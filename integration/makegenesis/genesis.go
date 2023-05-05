@@ -3,6 +3,8 @@ package makegenesis
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"io"
 	"math/big"
 
@@ -111,7 +113,10 @@ func (b *GenesisBuilder) CurrentHash() hash.Hash {
 
 func NewGenesisBuilder(dbs kvdb.DBProducer) *GenesisBuilder {
 	tmpEvmStore := evmstore.NewStore(dbs, evmstore.LiteStoreConfig())
-	statedb, _ := tmpEvmStore.StateDB(hash.Zero)
+	statedb, err := statedb.GetLiveStateDb(hash.Zero, tmpEvmStore.EvmState, tmpEvmStore.Snaps)
+	if err != nil {
+		panic(fmt.Errorf("failed to create StateDB: %v", err))
+	}
 	return &GenesisBuilder{
 		dbs:         dbs,
 		tmpEvmStore: tmpEvmStore,
