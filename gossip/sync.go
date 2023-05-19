@@ -159,24 +159,10 @@ func (h *handler) txsyncLoop() {
 }
 
 func (h *handler) updateSnapsyncStage() {
-	// never allow fullsync while EVM snap is still generating, as it may lead to a race condition
-	snapGenOngoing, _ := h.store.evm.Snaps.Generating()
-	fullsyncPossibleEver := h.store.evm.HasStateDB(h.store.GetBlockState().FinalizedStateRoot)
-	fullsyncPossibleNow := fullsyncPossibleEver && !snapGenOngoing
-	// never allow to stop fullsync as it may lead to a race condition due to overwritten EVM snapshot by snapsync
-	snapsyncPossible := h.config.AllowSnapsync && (h.syncStatus.Is(ssUnknown) || h.syncStatus.Is(ssSnaps))
-	snapsyncNeeded := !fullsyncPossibleEver || time.Since(h.store.GetEpochState().EpochStart.Time()) > snapsyncMinEndAge
-
-	if snapsyncPossible && snapsyncNeeded {
-		h.syncStatus.Set(ssSnaps)
-	} else if snapGenOngoing {
-		h.syncStatus.Set(ssEvmSnapGen)
-	} else if fullsyncPossibleNow {
-		if !h.syncStatus.Is(ssEvents) {
-			h.Log.Info("Start/Switch to fullsync mode...")
-		}
-		h.syncStatus.Set(ssEvents)
+	if !h.syncStatus.Is(ssEvents) {
+		h.Log.Info("Start/Switch to fullsync mode...")
 	}
+	h.syncStatus.Set(ssEvents)
 }
 
 func (h *handler) snapsyncStageTick() {

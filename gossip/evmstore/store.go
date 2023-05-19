@@ -2,7 +2,7 @@ package evmstore
 
 import (
 	"errors"
-
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
@@ -142,10 +142,12 @@ func (s *Store) GenerateEvmSnapshot(root common.Hash, rebuild, async bool) (err 
 }
 
 func (s *Store) RebuildEvmSnapshot(root common.Hash) {
-	if s.Snaps == nil {
-		return
-	}
-	s.Snaps.Rebuild(root)
+	/*
+		if s.Snaps == nil {
+			return
+		}
+		s.Snaps.Rebuild(root)
+	*/
 }
 
 // CleanCommit clean old state trie and commit changes.
@@ -176,7 +178,7 @@ func (s *Store) CleanCommit(block iblockproc.BlockState) error {
 }
 
 func (s *Store) PauseEvmSnapshot() {
-	s.Snaps.Disable()
+	//s.Snaps.Disable()
 }
 
 func (s *Store) IsEvmSnapshotPaused() bool {
@@ -223,12 +225,14 @@ func (s *Store) Commit(block idx.Block, root hash.Hash, flush bool) error {
 func (s *Store) Flush(block iblockproc.BlockState) {
 	// Ensure that the entirety of the state snapshot is journalled to disk.
 	var snapBase common.Hash
+	/* // EVM snapshot requires state in the trie - disabled for Carmen integration
 	if s.Snaps != nil {
 		var err error
 		if snapBase, err = s.Snaps.Journal(common.Hash(block.FinalizedStateRoot)); err != nil {
 			s.Log.Error("Failed to journal state snapshot", "err", err)
 		}
 	}
+	*/
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	if !s.cfg.Cache.TrieDirtyDisabled {
 		triedb := s.EvmState.TrieDB()
@@ -269,7 +273,7 @@ func (s *Store) Cap() {
 
 // StateDB returns state database.
 func (s *Store) StateDB(from hash.Hash) (*state.StateDB, error) {
-	return state.NewWithSnapLayers(common.Hash(from), s.EvmState, s.Snaps, 0)
+	return statedb.GetStateDbGeneral(from, s.EvmState, s.Snaps)
 }
 
 // HasStateDB returns if state database exists

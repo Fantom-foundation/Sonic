@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -139,5 +140,5 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 }
 
 func (r *EvmStateReader) StateAt(root common.Hash) (*state.StateDB, error) {
-	return r.store.evm.StateDB(hash.Hash(root))
+	return statedb.GetTxPoolStateDb(root, r.store.evm.EvmState, r.store.evm.Snaps)
 }

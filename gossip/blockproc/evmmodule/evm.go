@@ -29,6 +29,10 @@ func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb *state.StateDB, rea
 	if block.Idx != 0 {
 		prevBlockHash = reader.GetHeader(common.Hash{}, uint64(block.Idx-1)).Hash
 	}
+
+	// Start block
+	statedb.BeginBlock(uint64(block.Idx))
+
 	return &OperaEVMProcessor{
 		block:         block,
 		reader:        reader,
@@ -117,6 +121,9 @@ func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs [
 	)
 	skippedTxs = p.skippedTxs
 	receipts = p.receipts
+
+	// Commit block
+	p.statedb.EndBlock(evmBlock.Number.Uint64())
 
 	// Get state root
 	newStateHash, err := p.statedb.Commit(true)

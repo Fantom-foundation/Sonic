@@ -15,9 +15,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/event"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -389,9 +387,7 @@ func MakeProtocols(svc *Service, backend *handler, disc enode.Iterator) []p2p.Pr
 
 // Protocols returns protocols the service can communicate on.
 func (s *Service) Protocols() []p2p.Protocol {
-	protos := append(
-		MakeProtocols(s, s.handler, s.operaDialCandidates),
-		snap.MakeProtocols((*snapHandler)(s.handler), s.snapDialCandidates)...)
+	protos := MakeProtocols(s, s.handler, s.operaDialCandidates)
 	return protos
 }
 
@@ -443,7 +439,7 @@ func (s *Service) Start() error {
 		}
 		root = hash.Zero
 	}
-	_ = s.store.GenerateSnapshotAt(common.Hash(root), true)
+	//_ = s.store.GenerateSnapshotAt(common.Hash(root), true) // EVM snapshot requires state in the trie - disabled for Carmen integration
 
 	// start blocks processor
 	s.blockProcTasks.Start(1)

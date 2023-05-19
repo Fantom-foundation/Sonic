@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"os"
 	"path"
 	"path/filepath"
@@ -58,6 +59,11 @@ var (
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
+	}
+
+	stateDbImplFlag = cli.StringFlag{
+		Name:  "statedb.impl",
+		Usage: "Implementation of StateDB to use (geth/go-file)",
 	}
 
 	// DataDirFlag defines directory to store Lachesis state and user's wallets
@@ -528,6 +534,11 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	}
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
+
+	// StateDB initialization
+	if err := statedb.InitializeStateDB(ctx.GlobalString(stateDbImplFlag.Name), cfg.Node.DataDir); err != nil {
+		return nil, fmt.Errorf("failed to initialize StateDB; %s", err)
+	}
 
 	err = setValidator(ctx, &cfg.Emitter)
 	if err != nil {
