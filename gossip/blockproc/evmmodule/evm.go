@@ -30,7 +30,7 @@ func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb *state.StateDB, rea
 		prevBlockHash = reader.GetHeader(common.Hash{}, uint64(block.Idx-1)).Hash
 	}
 
-	// Start block (Carmen specific)
+	// Start block
 	statedb.BeginBlock(uint64(block.Idx))
 
 	return &OperaEVMProcessor{
@@ -122,7 +122,7 @@ func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs [
 	skippedTxs = p.skippedTxs
 	receipts = p.receipts
 
-	// Commit block (Carmen specific)
+	// Commit block
 	p.statedb.EndBlock(evmBlock.Number.Uint64())
 
 	// Get state root
