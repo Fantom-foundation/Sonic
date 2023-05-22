@@ -46,6 +46,7 @@ require (
 require (
 	github.com/Fantom-foundation/Carmen/go v0.0.0-20230420182045-672b46b45826
 	github.com/Fantom-foundation/Substate v0.0.0-20230224090651-4c8c024214f4
+	github.com/Fantom-foundation/Tosca v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -124,3 +125,9 @@ replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210201
 // The Carmen project is integrated as a git-submodule since we need to run extra
 // build steps when importing the project. This is handled in the Makefile.
 replace github.com/Fantom-foundation/Carmen/go => ./carmen/go
+
+// The Tosca project is also integrated as a git-submodule for the same reasons as
+// Carmen. Furthermore, the EVMC library, which is part of Tosca, needs to be used.
+replace github.com/Fantom-foundation/Tosca => ./tosca
+
+replace github.com/ethereum/evmc/v10 => ./tosca/third_party/evmc

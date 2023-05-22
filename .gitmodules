@@ -1,3 +1,6 @@
 [submodule "Carmen"]
 	path = carmen
 	url = git@github.com:Fantom-foundation/Carmen.git
+[submodule "Tosca"]
+	path = tosca
+	url = git@github.com:Fantom-foundation/Tosca.git
