@@ -3,7 +3,7 @@ all: opera
 
 GOPROXY ?= "https://proxy.golang.org,direct"
 .PHONY: opera
-opera: carmen/go/lib/libcarmen.so
+opera: carmen/go/lib/libcarmen.so tosca
 	GIT_COMMIT=`git rev-list -1 HEAD 2>/dev/null || echo ""` && \
 	GIT_DATE=`git log -1 --date=short --pretty=format:%ct 2>/dev/null || echo ""` && \
 	GOPROXY=$(GOPROXY) \
@@ -15,6 +15,10 @@ opera: carmen/go/lib/libcarmen.so
 carmen/go/lib/libcarmen.so:
 	@cd carmen/go/lib ; \
 	./build_libcarmen.sh ;
+
+tosca:
+	@cd tosca ; \
+	make
 
 TAG ?= "latest"
 .PHONY: opera-image
