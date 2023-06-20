@@ -54,6 +54,8 @@ var (
 	blockExecutionTimer = metrics.GetOrRegisterTimer("chain/execution", nil)
 	blockWriteTimer     = metrics.GetOrRegisterTimer("chain/write", nil)
 	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
+
+	processedTxsMeter = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
 )
 
 type ExtendedTxPosition struct {
@@ -435,6 +437,8 @@ func consensusCallbackBeginBlockFn(
 						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
 						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
+
+					processedTxsMeter.Mark(int64(len(evmBlock.Transactions)))
 				}
 				if confirmedEvents.Len() != 0 {
 					atomic.StoreUint32(blockBusyFlag, 1)

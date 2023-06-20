@@ -120,6 +120,8 @@ var (
 	slotsGauge   = metrics.GetOrRegisterGauge("txpool/slots", nil)
 
 	reheapTimer = metrics.GetOrRegisterTimer("txpool/reheap", nil)
+
+	receivedTxsMeter = metrics.GetOrRegisterMeter("txpool/received", nil)
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -692,6 +694,10 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		invalidTxMeter.Mark(1)
 		return false, err
 	}
+
+	// Mark a new received valid tx
+	receivedTxsMeter.Mark(1)
+
 	// If the transaction pool is full, discard underpriced transactions
 	if uint64(pool.all.Slots()+numSlots(tx)) > pool.config.GlobalSlots+pool.config.GlobalQueue {
 		// If the new transaction is underpriced, don't accept it
