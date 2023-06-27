@@ -231,7 +231,7 @@ func mayGetGenesisStore(ctx *cli.Context) *genesisstore.Store {
 				log.Crit("Invalid flag", "flag", FakeNetGasPowerFlag.Name, "err", err)
 			}
 			opera.FakeGasPowerCoefficient = fakeNetGasPowerInt
-			log.Info("Fakenet gas power coeficient will be used", "coef", fakeNetGasPowerInt)
+			log.Info("Fakenet gas power coefficient will be used", "coef", fakeNetGasPowerInt)
 		}
 
 		return makefakegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))

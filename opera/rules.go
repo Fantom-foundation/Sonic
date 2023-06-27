@@ -30,6 +30,8 @@ var DefaultVMConfig = vm.Config{
 	},
 }
 
+// FakeGasPowerCoefficient multiplies gas limits in Fakenet - allows to increase the network throughput
+// by increasing the amount of gas per block, event, epoch and for each validator per second
 var FakeGasPowerCoefficient = uint64(1)
 
 type RulesRLP struct {
