@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -222,6 +223,17 @@ func mayGetGenesisStore(ctx *cli.Context) *genesisstore.Store {
 		if err != nil {
 			log.Crit("Invalid flag", "flag", FakeNetFlag.Name, "err", err)
 		}
+
+		fakeNetGasPower := ctx.GlobalString(FakeNetGasPowerFlag.Name)
+		if fakeNetGasPower != "" {
+			fakeNetGasPowerInt, err := strconv.ParseUint(fakeNetGasPower, 10, 64)
+			if err != nil {
+				log.Crit("Invalid flag", "flag", FakeNetGasPowerFlag.Name, "err", err)
+			}
+			opera.FakeGasPowerCoefficient = fakeNetGasPowerInt
+			log.Info("Fakenet gas power coeficient will be used", "coef", fakeNetGasPowerInt)
+		}
+
 		return makefakegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	case ctx.GlobalIsSet(GenesisFlag.Name):
 		genesisPath := ctx.GlobalString(GenesisFlag.Name)

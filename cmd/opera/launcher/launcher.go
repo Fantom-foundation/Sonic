@@ -66,6 +66,7 @@ func initFlags() {
 	// Flags for testing purpose.
 	testFlags = []cli.Flag{
 		FakeNetFlag,
+		FakeNetGasPowerFlag,
 	}
 
 	// Flags that configure the node.

@@ -30,6 +30,8 @@ var DefaultVMConfig = vm.Config{
 	},
 }
 
+var FakeGasPowerCoefficient = uint64(1)
+
 type RulesRLP struct {
 	Name      string
 	NetworkID uint64
@@ -186,7 +188,7 @@ func FakeNetRules() Rules {
 		Epochs:    FakeNetEpochsRules(),
 		Economy:   FakeEconomyRules(),
 		Blocks: BlocksRules{
-			MaxBlockGas:             20500000,
+			MaxBlockGas:             20500000 * FakeGasPowerCoefficient,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(3 * time.Second),
 		},
 		Upgrades: Upgrades{
@@ -211,6 +213,7 @@ func DefaultEconomyRules() EconomyRules {
 // FakeEconomyRules returns fakenet economy
 func FakeEconomyRules() EconomyRules {
 	cfg := DefaultEconomyRules()
+	cfg.Gas.MaxEventGas *= FakeGasPowerCoefficient
 	cfg.ShortGasPower = FakeShortGasPowerRules()
 	cfg.LongGasPower = FakeLongGasPowerRules()
 	return cfg
@@ -246,7 +249,7 @@ func DefaultGasRules() GasRules {
 
 func FakeNetEpochsRules() EpochsRules {
 	cfg := DefaultEpochsRules()
-	cfg.MaxEpochGas /= 5
+	cfg.MaxEpochGas = cfg.MaxEpochGas * FakeGasPowerCoefficient / 5
 	cfg.MaxEpochDuration = inter.Timestamp(10 * time.Minute)
 	return cfg
 }
@@ -274,14 +277,14 @@ func DefaultShortGasPowerRules() GasPowerRules {
 // FakeLongGasPowerRules is fake long-window config
 func FakeLongGasPowerRules() GasPowerRules {
 	config := DefaulLongGasPowerRules()
-	config.AllocPerSec *= 1000
+	config.AllocPerSec *= 1000 * FakeGasPowerCoefficient
 	return config
 }
 
 // FakeShortGasPowerRules is fake short-window config
 func FakeShortGasPowerRules() GasPowerRules {
 	config := DefaultShortGasPowerRules()
-	config.AllocPerSec *= 1000
+	config.AllocPerSec *= 1000 * FakeGasPowerCoefficient
 	return config
 }
 
