@@ -147,19 +147,17 @@ func (em *Emitter) Start() {
 	em.wg.Add(1)
 	go func() {
 		defer em.wg.Done()
-		tick := 11 * time.Millisecond
-		timer := time.NewTimer(tick)
-		defer timer.Stop()
+		ticker := time.NewTicker(11 * time.Millisecond)
+		defer ticker.Stop()
 		for {
 			select {
 			case txNotify := <-newTxsCh:
 				em.memorizeTxTimes(txNotify.Txs)
-			case <-timer.C:
+			case <-ticker.C:
 				em.tick()
 			case <-done:
 				return
 			}
-			timer.Reset(tick)
 		}
 	}()
 }
