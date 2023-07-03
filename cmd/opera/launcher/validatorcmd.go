@@ -116,6 +116,7 @@ func validatorKeyCreate(ctx *cli.Context) error {
 
 	fmt.Printf("\nYour new key was generated\n\n")
 	fmt.Printf("Public key:                  %s\n", publicKey.String())
+	fmt.Printf("Public address of the key:   %s\n", crypto.PubkeyToAddress(privateKeyECDSA.PublicKey))
 	fmt.Printf("Path of the secret key file: %s\n\n", valKeystore.PathOf(publicKey))
 	fmt.Printf("- You can share your public key with anyone. Others need it to validate messages from you.\n")
 	fmt.Printf("- You must NEVER share the secret key with anyone! The key controls access to your validator!\n")

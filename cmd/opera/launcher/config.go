@@ -218,15 +218,15 @@ func loadAllConfigs(file string, cfg *config) error {
 
 func mayGetGenesisStore(ctx *cli.Context) *genesisstore.Store {
 	switch {
-	case ctx.GlobalIsSet(FakeGenesisJsonFlag.Name):
-		genesisPath := ctx.GlobalString(FakeGenesisJsonFlag.Name)
+	case ctx.GlobalIsSet(JsonGenesisFlag.Name):
+		genesisPath := ctx.GlobalString(JsonGenesisFlag.Name)
 		genesisJson, err := makefakegenesis.LoadGenesisJson(genesisPath)
 		if err != nil {
-			log.Crit("Invalid flag", "flag", FakeGenesisJsonFlag.Name, "err", err)
+			log.Crit("Invalid flag", "flag", JsonGenesisFlag.Name, "err", err)
 		}
 		genesisStore, err := makefakegenesis.ApplyGenesisJson(genesisJson)
 		if err != nil {
-			log.Crit("Failed to apply genesis JSON", "flag", FakeGenesisJsonFlag.Name, "err", err)
+			log.Crit("Failed to apply genesis JSON", "flag", JsonGenesisFlag.Name, "err", err)
 		}
 		log.Info("Fake genesis JSON used")
 		return genesisStore

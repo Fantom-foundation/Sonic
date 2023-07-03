@@ -1,4 +1,5 @@
 {
+  "_": "This is a sample JSON genesis file. Opera can run a network defined by it when enabled by --jsongenesis parameter.",
   "rules": {
     "networkName": "sample-demonet",
     "networkId": "0x1234",
