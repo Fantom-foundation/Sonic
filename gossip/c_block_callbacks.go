@@ -56,6 +56,9 @@ var (
 	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
+	skippedTxsMeter      = metrics.GetOrRegisterMeter("chain/txs/skipped", nil)
+	confirmedEventsMeter = metrics.GetOrRegisterMeter("chain/events/confirmed", nil) // events received from lachesis
+	spilledEventsMeter   = metrics.GetOrRegisterMeter("chain/events/spilled", nil) // tx excluded because of MaxBlockGas
 )
 
 type ExtendedTxPosition struct {
@@ -188,6 +191,7 @@ func consensusCallbackBeginBlockFn(
 				for _, em := range *emitters {
 					em.OnEventConfirmed(e)
 				}
+				confirmedEventsMeter.Mark(1)
 			},
 			EndBlock: func() (newValidators *pos.Validators) {
 				if atroposTime <= bs.LastBlock.Time {
@@ -439,6 +443,7 @@ func consensusCallbackBeginBlockFn(
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 
 					processedTxsMeter.Mark(int64(len(evmBlock.Transactions)))
+					skippedTxsMeter.Mark(int64(len(block.SkippedTxs)))
 				}
 				if confirmedEvents.Len() != 0 {
 					atomic.StoreUint32(blockBusyFlag, 1)
@@ -525,6 +530,7 @@ func spillBlockEvents(store *Store, block *inter.Block, network opera.Rules) (*i
 		// stop if limit is exceeded, erase [:i] events
 		if gasPowerUsedSum > network.Blocks.MaxBlockGas {
 			// spill
+			spilledEventsMeter.Mark(int64(len(fullEvents)-(i+1)))
 			block.Events = block.Events[i+1:]
 			fullEvents = fullEvents[i+1:]
 			break

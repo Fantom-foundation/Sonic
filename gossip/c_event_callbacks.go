@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/metrics"
 	"math/big"
 	"sync/atomic"
 
@@ -26,6 +27,9 @@ var (
 	errNonExistingEpoch = errors.New("epoch doesn't exist")
 	errSameEpoch        = errors.New("epoch hasn't changed")
 	errDirtyEvmSnap     = errors.New("EVM snapshot is dirty")
+)
+var (
+	processedEventsMeter = metrics.GetOrRegisterMeter("chain/events/processed", nil) // txs received into lachesis processing
 )
 
 func (s *Service) buildEvent(e *inter.MutableEventPayload, onIndexed func()) error {
@@ -221,6 +225,8 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	if err != nil && err != eventcheck.ErrAlreadyProcessedEV {
 		return err
 	}
+
+	processedEventsMeter.Mark(1)
 
 	err = s.saveAndProcessEvent(e, &es)
 	if err != nil {

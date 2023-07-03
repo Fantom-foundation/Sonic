@@ -2,6 +2,7 @@ package emitter
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/metrics"
 	"math/rand"
 	"os"
 	"strings"
@@ -27,6 +28,17 @@ import (
 const (
 	SenderCountBufferSize = 20000
 	PayloadIndexerSize    = 5000
+)
+
+var (
+	emittedEventsMeter          = metrics.GetOrRegisterMeter("emitter/events", nil) // amount of emitted events
+	emittedEventsTxsMeter       = metrics.GetOrRegisterMeter("emitter/txs", nil) // amount of txs in emitted events
+	emittedGasMeter             = metrics.GetOrRegisterMeter("emitter/gas", nil) // consumed validator gas
+	txsSkippedNoValidatorGas    = metrics.GetOrRegisterMeter("emitter/skipped/novalidatorgas", nil) // validator does not have enough gas
+	txsSkippedEpochRules        = metrics.GetOrRegisterMeter("emitter/skipped/epochrules", nil) // tx skipped because of epoch rules (like insufficient gasPrice)
+	txsSkippedConflictingSender = metrics.GetOrRegisterMeter("emitter/skipped/conflictingsender", nil) // tx by given sender in some unconfirmed event
+	txsSkippedNotMyTurn         = metrics.GetOrRegisterMeter("emitter/skipped/notmyturn", nil) // tx should be handled by other validator
+	txsSkippedOutdated          = metrics.GetOrRegisterMeter("emitter/skipped/outdated", nil) // tx skipped because it is outdated
 )
 
 type Emitter struct {
@@ -264,7 +276,12 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	// broadcast the event
 	em.world.Broadcast(e)
 
-	em.prevEmittedAtTime = time.Now() // record time after connecting, to add the event processing time"
+	// metrics
+	emittedEventsTxsMeter.Mark(int64(e.Txs().Len()))
+	emittedGasMeter.Mark(int64(e.GasPowerUsed()))
+	emittedEventsMeter.Mark(1)
+
+	em.prevEmittedAtTime = time.Now() // record time after connecting, to add the event processing time
 	em.prevEmittedAtBlock = em.world.GetLatestBlockIndex()
 
 	// metrics
