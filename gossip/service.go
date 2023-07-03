@@ -3,12 +3,13 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"math/big"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -331,8 +332,11 @@ func (s *Service) EmitterWorld(signer valkeystore.SignerI) emitter.World {
 	return emitter.World{
 		External: &emitterWorld{
 			emitterWorldProc: emitterWorldProc{s},
-			emitterWorldRead: emitterWorldRead{s.store},
-			WgMutex:          wgmutex.New(s.engineMu, &s.blockProcWg),
+			emitterWorldRead: emitterWorldRead{
+				Store:          s.store,
+				blockHashCache: newBlockHashCache(),
+			},
+			WgMutex: wgmutex.New(s.engineMu, &s.blockProcWg),
 		},
 		TxPool:   s.txpool,
 		Signer:   signer,

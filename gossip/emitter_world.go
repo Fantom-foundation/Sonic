@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"fmt"
 	"sync/atomic"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -12,7 +13,35 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
 	"github.com/Fantom-foundation/go-opera/vecmt"
+
+	lru "github.com/hashicorp/golang-lru"
 )
+
+type blockHashCache struct {
+	cache *lru.Cache
+}
+
+func newBlockHashCache() blockHashCache {
+	cache, err := lru.New(1000)
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize block hash cache: %v", err))
+	}
+	return blockHashCache{
+		cache: cache,
+	}
+}
+
+func (c *blockHashCache) Get(block idx.Block) (hash.Hash, bool) {
+	res, ok := c.cache.Get(block)
+	if !ok {
+		return hash.Hash{}, false
+	}
+	return res.(hash.Hash), true
+}
+
+func (c *blockHashCache) Add(block idx.Block, hash hash.Hash) {
+	c.cache.Add(block, hash)
+}
 
 type emitterWorldProc struct {
 	s *Service
@@ -20,6 +49,7 @@ type emitterWorldProc struct {
 
 type emitterWorldRead struct {
 	*Store
+	blockHashCache blockHashCache
 }
 
 // emitterWorld implements emitter.World interface
@@ -81,11 +111,16 @@ func (ew *emitterWorldRead) GetLowestBlockToDecide() idx.Block {
 }
 
 func (ew *emitterWorldRead) GetBlockRecordHash(n idx.Block) *hash.Hash {
+	hash, ok := ew.blockHashCache.Get(n)
+	if ok {
+		return &hash
+	}
 	record := ew.Store.GetFullBlockRecord(n)
 	if record == nil {
 		return nil
 	}
 	h := record.Hash()
+	ew.blockHashCache.Add(n, h)
 	return &h
 }
 
