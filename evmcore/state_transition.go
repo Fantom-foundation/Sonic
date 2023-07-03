@@ -33,8 +33,9 @@ import (
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 var (
-	skippedTxsNonceMeter = metrics.GetOrRegisterMeter("chain/txs/skipped/nonce", nil)
-	skippedTxsBalanceMeter = metrics.GetOrRegisterMeter("chain/txs/skipped/balance", nil)
+	skippedTxsNonceTooHighMeter = metrics.GetOrRegisterMeter("chain/txs/skipped/nonceTooHigh", nil)
+	skippedTxsNonceTooLowMeter = metrics.GetOrRegisterMeter("chain/txs/skipped/nonceToLow", nil)
+	skippedTxsNoBalanceMeter   = metrics.GetOrRegisterMeter("chain/txs/skipped/noBalance", nil)
 )
 
 /*
@@ -196,7 +197,7 @@ func (st *StateTransition) buyGas() error {
 	mgval = mgval.Mul(mgval, st.gasPrice)
 	// Note: Opera doesn't need to check against gasFeeCap instead of gasPrice, as it's too aggressive in the asynchronous environment
 	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
-		skippedTxsBalanceMeter.Mark(1)
+		skippedTxsNoBalanceMeter.Mark(1)
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
 	}
 	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
@@ -215,11 +216,11 @@ func (st *StateTransition) preCheck() error {
 		// Make sure this transaction's nonce is correct.
 		stNonce := st.state.GetNonce(st.msg.From())
 		if msgNonce := st.msg.Nonce(); stNonce < msgNonce {
-			skippedTxsNonceMeter.Mark(1)
+			skippedTxsNonceTooHighMeter.Mark(1)
 			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
 				st.msg.From().Hex(), msgNonce, stNonce)
 		} else if stNonce > msgNonce {
-			skippedTxsNonceMeter.Mark(1)
+			skippedTxsNonceTooLowMeter.Mark(1)
 			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
 				st.msg.From().Hex(), msgNonce, stNonce)
 		}
