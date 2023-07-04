@@ -445,8 +445,7 @@ func (env *testEnv) callContract(
 		call.Value = new(big.Int)
 	}
 	// Set infinite balance to the fake caller account.
-	from := state.GetOrNewStateObject(call.From)
-	from.SetBalance(big.NewInt(math.MaxInt64))
+	state.SetBalance(call.From, big.NewInt(math.MaxInt64))
 
 	msg := callmsg{call}
 
