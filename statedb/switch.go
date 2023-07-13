@@ -3,31 +3,26 @@ package statedb
 import (
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/metrics"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
-	"github.com/ethereum/go-ethereum/metrics"
-	"io/fs"
-	"log"
 	"math/big"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
 var DiskSizeMetricDone chan bool
 
-var consumedDiskSpace = metrics.GetOrRegisterGauge("statedb/disksize", nil)
-
 func InitializeStateDB(impl string, datadir string) error {
 	if impl == "" || impl == "geth" {
 		return nil // no initialization needed
 	}
 	datadir = filepath.Join(datadir, "carmen")
-	go periodicallyCheckDiskSize(5*time.Second, datadir)
+	go metrics.MeasureDbDir("statedb/disksize", datadir)
 
 	if impl != "go-file" {
 		return fmt.Errorf("statedb impl %s not supported", impl)
@@ -47,39 +42,6 @@ func InitializeStateDB(impl string, datadir string) error {
 	}
 	liveStateDb = carmen.CreateStateDBUsing(carmenState)
 	return nil
-}
-
-func periodicallyCheckDiskSize(frequency time.Duration, directory string) {
-	ticker := time.NewTicker(frequency)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			if size, err := GetDirectorySize(directory); err == nil {
-				consumedDiskSpace.Update(size)
-			} else {
-				log.Printf("cannot get directory size: %s", err)
-			}
-		case <-DiskSizeMetricDone:
-			log.Printf("stopped meassuring consumeed disk space")
-			return
-		}
-	}
-}
-
-// GetDirectorySize computes the size of all files in the given directory in bytes.
-func GetDirectorySize(directory string) (int64, error) {
-	var sum int64 = 0
-	err := filepath.Walk(directory, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !info.IsDir() {
-			sum += info.Size()
-		}
-		return nil
-	})
-	return sum, err
 }
 
 // GetStateDbGeneral is used in evmstore, in situations not covered by following methods - read-only latest state

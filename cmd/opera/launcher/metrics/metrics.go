@@ -15,11 +15,11 @@ var once sync.Once
 
 func SetDataDir(datadir string) {
 	once.Do(func() {
-		go measureDbDir("db_size", datadir)
+		go MeasureDbDir("db_size", datadir)
 	})
 }
 
-func measureDbDir(name, datadir string) {
+func MeasureDbDir(name, datadir string) {
 	var (
 		dbSize int64
 		gauge  metrics.Gauge
