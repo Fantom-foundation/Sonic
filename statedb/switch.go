@@ -15,7 +15,6 @@ import (
 
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
-var DiskSizeMetricDone chan bool
 
 func InitializeStateDB(impl string, datadir string) error {
 	if impl == "" || impl == "geth" {
