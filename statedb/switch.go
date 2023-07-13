@@ -20,14 +20,14 @@ var carmenState carmen.State
 var liveStateDb carmen.StateDB
 var DiskSizeMetricDone chan bool
 
-var consumedDiskSpace = metrics.GetOrRegisterGauge("statedb/diskspace", nil)
+var consumedDiskSpace = metrics.GetOrRegisterGauge("statedb/disksize", nil)
 
 func InitializeStateDB(impl string, datadir string) error {
 	if impl == "" || impl == "geth" {
 		return nil // no initialization needed
 	}
 	datadir = filepath.Join(datadir, "carmen")
-	go periodicallyCheckDiskSpace(5*time.Second, datadir)
+	go periodicallyCheckDiskSize(5*time.Second, datadir)
 
 	if impl != "go-file" {
 		return fmt.Errorf("statedb impl %s not supported", impl)
@@ -49,7 +49,7 @@ func InitializeStateDB(impl string, datadir string) error {
 	return nil
 }
 
-func periodicallyCheckDiskSpace(frequency time.Duration, directory string) {
+func periodicallyCheckDiskSize(frequency time.Duration, directory string) {
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 	for {
