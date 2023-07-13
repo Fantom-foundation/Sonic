@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"path"
 	"sort"
 	"strings"
@@ -256,7 +257,7 @@ func init() {
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
 		prompt.Stdin.Close() // Resets terminal mode.
-
+		close(statedb.DiskSizeMetricDone)
 		return nil
 	}
 }
