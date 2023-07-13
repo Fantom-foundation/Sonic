@@ -20,7 +20,7 @@ var carmenState carmen.State
 var liveStateDb carmen.StateDB
 var DiskSizeMetricDone chan bool
 
-var consumedDiskSpace = metrics.GetOrRegisterGauge("statedb/disksize", nil)
+var consumedDiskSpace = metrics.GetOrRegisterGauge("statedb/diskspace", nil)
 
 func InitializeStateDB(impl string, datadir string) error {
 	if impl == "" || impl == "geth" {
