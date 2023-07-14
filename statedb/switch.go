@@ -17,29 +17,29 @@ var carmenState carmen.State
 var liveStateDb carmen.StateDB
 
 func InitializeStateDB(impl string, datadir string) error {
-	if impl == "" || impl == "geth" {
-		return nil // no initialization needed
-	}
-	datadir = filepath.Join(datadir, "carmen")
-	go metrics.MeasureDbDir("statedb/disksize", datadir)
+	if impl == "go-file" {
+		datadir = filepath.Join(datadir, "carmen")
 
-	if impl != "go-file" {
+		err := os.MkdirAll(datadir, 0700)
+		if err != nil {
+			panic(fmt.Errorf("failed to create carmen dir"))
+		}
+		params := carmen.Parameters{
+			Schema:    carmen.StateSchema(3),
+			Directory: datadir,
+			Archive:   carmen.LevelDbArchive,
+		}
+		carmenState, err = carmen.NewGoCachedFileState(params)
+		if err != nil {
+			panic(fmt.Errorf("failed to create carmen state; %s", err))
+		}
+		liveStateDb = carmen.CreateStateDBUsing(carmenState)
+	} else if impl != "" && impl != "geth" {
 		return fmt.Errorf("statedb impl %s not supported", impl)
 	}
-	err := os.MkdirAll(datadir, 0700)
-	if err != nil {
-		panic(fmt.Errorf("failed to create carmen dir"))
-	}
-	params := carmen.Parameters{
-		Schema:    carmen.StateSchema(3),
-		Directory: datadir,
-		Archive:   carmen.LevelDbArchive,
-	}
-	carmenState, err = carmen.NewGoCachedFileState(params)
-	if err != nil {
-		panic(fmt.Errorf("failed to create carmen state; %s", err))
-	}
-	liveStateDb = carmen.CreateStateDBUsing(carmenState)
+
+	go metrics.MeasureDbDir("statedb/disksize", datadir)
+
 	return nil
 }
 
