@@ -2,6 +2,8 @@ package launcher
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"path"
 	"sort"
 	"strings"
@@ -294,6 +296,16 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
 
+	// StateDB initialization
+	if err := statedb.InitializeStateDB(cfg.StateDbImpl, cfg.Node.DataDir); err != nil {
+		utils.Fatalf("Failed to initialize StateDB; %v", err)
+	}
+
+	// Set default VM implementation
+	if cfg.VmImpl != "" {
+		opera.DefaultVMConfig.InterpreterImpl = cfg.VmImpl
+	}
+
 	var g *genesis.Genesis
 	if genesisStore != nil {
 		gv := genesisStore.Genesis()
@@ -378,11 +390,20 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	stack.RegisterLifecycle(svc)
 
 	return stack, svc, func() {
-		_ = stack.Close()
+		if err := stack.Close(); err != nil && err != node.ErrNodeStopped {
+			log.Warn("Failed to close stack", "err", err)
+		}
 		gdb.Close()
-		_ = cdb.Close()
+		if err := cdb.Close(); err != nil {
+			log.Warn("Failed to close consensus database", "err", err)
+		}
 		if closeDBs != nil {
-			_ = closeDBs()
+			if err := closeDBs(); err != nil {
+				log.Warn("Failed to close databases", "err", err)
+			}
+		}
+		if err := statedb.ShutdownStateDB(); err != nil {
+			log.Error("Failed to shutdown StateDB", "err", err)
 		}
 	}
 }

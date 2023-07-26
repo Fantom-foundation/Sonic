@@ -22,7 +22,7 @@ func InitializeStateDB(impl string, datadir string) error {
 
 		err := os.MkdirAll(datadir, 0700)
 		if err != nil {
-			panic(fmt.Errorf("failed to create carmen dir"))
+			return fmt.Errorf("failed to create carmen dir")
 		}
 		params := carmen.Parameters{
 			Schema:    carmen.StateSchema(3),
@@ -31,7 +31,7 @@ func InitializeStateDB(impl string, datadir string) error {
 		}
 		carmenState, err = carmen.NewGoCachedFileState(params)
 		if err != nil {
-			panic(fmt.Errorf("failed to create carmen state; %s", err))
+			return fmt.Errorf("failed to create carmen state; %s", err)
 		}
 		liveStateDb = carmen.CreateStateDBUsing(carmenState)
 	} else if impl != "" && impl != "geth" {
@@ -88,4 +88,14 @@ func GetRpcStateDb(useLatest bool, blockNum *big.Int, stateRoot common.Hash, evm
 	} else {
 		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
 	}
+}
+
+func ShutdownStateDB() error {
+	if carmenState != nil {
+		err := carmenState.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close carmen state; %s", err)
+		}
+	}
+	return nil
 }
