@@ -282,7 +282,7 @@ func lachesisMain(ctx *cli.Context) error {
 	//defer tracingStop()
 
 	cfg := makeAllConfigs(ctx)
-	genesisStore := mayGetGenesisStore(ctx)
+	genesisStore := mayGetGenesisStore(ctx, cfg)
 	node, _, nodeClose := makeNode(ctx, cfg, genesisStore)
 	defer nodeClose()
 	startNode(ctx, node)

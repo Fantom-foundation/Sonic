@@ -216,7 +216,13 @@ func loadAllConfigs(file string, cfg *config) error {
 	return err
 }
 
-func mayGetGenesisStore(ctx *cli.Context) *genesisstore.Store {
+func mayGetGenesisStore(ctx *cli.Context, cfg *config) *genesisstore.Store {
+	if futils.FileExists(path.Join(cfg.Node.DataDir, "chaindata")) {
+		log.Info("chaindata already exist, skipping genesis")
+		// repeated genesis processing is no-op for geth, but it collides with existing Carmen database
+		return nil
+	}
+
 	switch {
 	case ctx.GlobalIsSet(JsonGenesisFlag.Name):
 		genesisPath := ctx.GlobalString(JsonGenesisFlag.Name)
