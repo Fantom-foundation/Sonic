@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"os"
 	"path"
 	"path/filepath"
@@ -182,8 +183,6 @@ type config struct {
 	LachesisStore abft.StoreConfig
 	VectorClock   vecmt.IndexConfig
 	DBs           integration.DBsConfig
-	StateDbImpl   string
-	VmImpl        string
 }
 
 func (c *config) AppConfigs() integration.Configs {
@@ -566,9 +565,15 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
 
-	// StateDB and VM initialization
-	cfg.StateDbImpl = ctx.GlobalString(stateDbImplFlag.Name)
-	cfg.VmImpl = ctx.GlobalString(vmImplFlag.Name)
+	// StateDB initialization
+	if err := statedb.InitializeStateDB(ctx.GlobalString(stateDbImplFlag.Name), cfg.Node.DataDir); err != nil {
+		return nil, fmt.Errorf("failed to initialize StateDB; %s", err)
+	}
+
+	// Set default VM implementation
+	if impl := ctx.GlobalString(vmImplFlag.Name); impl != "" {
+		opera.DefaultVMConfig.InterpreterImpl = impl
+	}
 
 	err = setValidator(ctx, &cfg.Emitter)
 	if err != nil {

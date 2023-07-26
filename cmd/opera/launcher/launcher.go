@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"path"
 	"sort"
@@ -295,16 +294,6 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	// check errlock file
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
-
-	// StateDB initialization
-	if err := statedb.InitializeStateDB(cfg.StateDbImpl, cfg.Node.DataDir); err != nil {
-		utils.Fatalf("Failed to initialize StateDB; %v", err)
-	}
-
-	// Set default VM implementation
-	if cfg.VmImpl != "" {
-		opera.DefaultVMConfig.InterpreterImpl = cfg.VmImpl
-	}
 
 	var g *genesis.Genesis
 	if genesisStore != nil {
