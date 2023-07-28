@@ -38,6 +38,7 @@ type NetworkRules struct {
 	MaxEventGas         *uint64 `json:",omitempty"`
 	LongGasAllocPerSec  *uint64 `json:",omitempty"`
 	ShortGasAllocPerSec *uint64 `json:",omitempty"`
+	OverrideMinGasPrice *uint64 `json:",omitempty"`
 }
 
 type Account struct {
@@ -101,6 +102,9 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 	}
 	if json.Rules.LongGasAllocPerSec != nil {
 		rules.Economy.LongGasPower.AllocPerSec = *json.Rules.LongGasAllocPerSec
+	}
+	if json.Rules.OverrideMinGasPrice != nil {
+		rules.Economy.OverrideMinGasPrice = big.NewInt(int64(*json.Rules.OverrideMinGasPrice))
 	}
 
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
