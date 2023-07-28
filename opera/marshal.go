@@ -12,5 +12,9 @@ func UpdateRules(src Rules, diff []byte) (res Rules, err error) {
 	res = changed
 	res.NetworkID = src.NetworkID
 	res.Name = src.Name
+	// norma specific override of MinGasPrice by overridden value
+	if res.Economy.OverrideMinGasPrice != nil {
+		res.Economy.MinGasPrice = res.Economy.OverrideMinGasPrice
+	}
 	return
 }
