@@ -105,6 +105,9 @@ type EconomyRules struct {
 
 	MinGasPrice *big.Int
 
+	// norma specific override of MinGasPrice
+	OverrideMinGasPrice *big.Int
+
 	ShortGasPower GasPowerRules
 	LongGasPower  GasPowerRules
 }
