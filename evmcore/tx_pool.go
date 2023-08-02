@@ -122,6 +122,12 @@ var (
 	reheapTimer = metrics.GetOrRegisterTimer("txpool/reheap", nil)
 
 	receivedTxsMeter = metrics.GetOrRegisterMeter("txpool/received", nil)
+
+	usedPricedUrgentGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/urgent", nil)
+	usedPricedFloatingGauge = metrics.GetOrRegisterGauge("txpool/used/priced/floating", nil)
+	usedPricedStalesGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/stales", nil)
+	usedAllLocalsGauge      = metrics.GetOrRegisterGauge("txpool/used/all/locals", nil)
+	usedAllRemotesGauge     = metrics.GetOrRegisterGauge("txpool/used/all/remotes", nil)
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -764,9 +770,18 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		localGauge.Inc(1)
 	}
 	pool.journalTx(from, tx)
+	pool.updateUsedGauges()
 
 	log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
 	return replaced, nil
+}
+
+func (pool *TxPool) updateUsedGauges() {
+	usedPricedUrgentGauge.Update(int64(len(pool.priced.urgent.list)))
+	usedPricedFloatingGauge.Update(int64(len(pool.priced.floating.list)))
+	usedPricedStalesGauge.Update(int64(pool.priced.stales))
+	usedAllLocalsGauge.Update(int64(len(pool.all.locals)))
+	usedAllRemotesGauge.Update(int64(len(pool.all.remotes)))
 }
 
 // enqueueTx inserts a new transaction into the non-executable transaction queue.
