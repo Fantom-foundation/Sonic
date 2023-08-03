@@ -24,12 +24,7 @@ func InitializeStateDB(impl string, datadir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create carmen dir")
 		}
-		params := carmen.Parameters{
-			Schema:    carmen.StateSchema(3),
-			Directory: datadir,
-			Archive:   carmen.LevelDbArchive,
-		}
-		carmenState, err = carmen.NewGoCachedFileState(params)
+		carmenState, err = carmen.NewScheme3GoFileLdbArchiveState(datadir)
 		if err != nil {
 			return fmt.Errorf("failed to create carmen state; %s", err)
 		}
