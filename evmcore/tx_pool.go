@@ -122,6 +122,12 @@ var (
 	reheapTimer = metrics.GetOrRegisterTimer("txpool/reheap", nil)
 
 	receivedTxsMeter = metrics.GetOrRegisterMeter("txpool/received", nil)
+
+	usedPricedUrgentGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/urgent", nil)
+	usedPricedFloatingGauge = metrics.GetOrRegisterGauge("txpool/used/priced/floating", nil)
+	usedPricedStalesGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/stales", nil)
+	usedAllLocalsGauge      = metrics.GetOrRegisterGauge("txpool/used/all/locals", nil)
+	usedAllRemotesGauge     = metrics.GetOrRegisterGauge("txpool/used/all/remotes", nil)
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -444,7 +450,7 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 		// pool.priced is sorted by GasFeeCap, so we have to iterate through pool.all instead
 		drop := pool.all.RemotesBelowTip(price)
 		for _, tx := range drop {
-			pool.removeTx(tx.Hash(), false)
+			pool.removeTx(tx.Hash(), true)
 		}
 		pool.priced.Removed(len(drop))
 	}
@@ -721,7 +727,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		for _, tx := range drop {
 			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			underpricedTxMeter.Mark(1)
-			pool.removeTx(tx.Hash(), false)
+			pool.removeTx(tx.Hash(), true)
 		}
 	}
 	// Try to replace an existing transaction in the pending pool
@@ -758,15 +764,26 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	if local && !pool.locals.contains(from) {
 		log.Info("Setting new local account", "address", from)
 		pool.locals.add(from)
-		pool.priced.Removed(pool.all.RemoteToLocals(pool.locals)) // Migrate the remotes if it's marked as local first time.
+		migrated := pool.all.RemoteToLocals(pool.locals) // Migrate the remotes if it's marked as local first time.
+		pool.priced.Removed(migrated)
+		localGauge.Inc(int64(migrated))
 	}
 	if isLocal {
 		localGauge.Inc(1)
 	}
 	pool.journalTx(from, tx)
+	pool.updateUsedGauges()
 
 	log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
 	return replaced, nil
+}
+
+func (pool *TxPool) updateUsedGauges() {
+	usedPricedUrgentGauge.Update(int64(len(pool.priced.urgent.list)))
+	usedPricedFloatingGauge.Update(int64(len(pool.priced.floating.list)))
+	usedPricedStalesGauge.Update(int64(pool.priced.stales))
+	usedAllLocalsGauge.Update(int64(len(pool.all.locals)))
+	usedAllRemotesGauge.Update(int64(len(pool.all.remotes)))
 }
 
 // enqueueTx inserts a new transaction into the non-executable transaction queue.
@@ -1034,7 +1051,9 @@ func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
 			// Postpone any invalidated transactions
 			for _, tx := range invalids {
 				// Internal shuffle shouldn't touch the lookup set.
-				pool.enqueueTx(tx.Hash(), tx, false, false)
+				_,_ = pool.enqueueTx(tx.Hash(), tx, false, false)
+				// err should not occur, as it cannot be replacing of existing tx in queue
+				// local=false is OK, as it is ignored when addAll=false
 			}
 			// Update the account nonce if needed
 			pool.pendingNonces.setIfLower(addr, tx.Nonce())
@@ -1567,6 +1586,7 @@ func (pool *TxPool) demoteUnexecutables() {
 			// Internal shuffle shouldn't touch the lookup set.
 			pool.enqueueTx(hash, tx, false, false)
 		}
+		pool.priced.Removed(len(olds) + len(drops)) // invalid are only moved into queue
 		pendingGauge.Dec(int64(len(olds) + len(drops) + len(invalids)))
 		if pool.locals.contains(addr) {
 			localGauge.Dec(int64(len(olds) + len(drops) + len(invalids)))
@@ -1769,6 +1789,7 @@ func (t *txLookup) Get(hash common.Hash) *types.Transaction {
 	return t.remotes[hash]
 }
 
+// OnlyNotExisting filters hashes of unknown txs from a provided slice of tx hashes.
 func (t *txLookup) OnlyNotExisting(hashes []common.Hash) []common.Hash {
 	t.lock.RLock()
 	defer t.lock.RUnlock()

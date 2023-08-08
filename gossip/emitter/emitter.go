@@ -31,6 +31,8 @@ const (
 )
 
 var (
+	emittingTriedMeter          = metrics.GetOrRegisterMeter("emitter/tried", nil) // amount of tries to emit an event
+	emittingTriedTxsMeter       = metrics.GetOrRegisterMeter("emitter/triedtxs", nil) // amount of txs tries to emit
 	emittedEventsMeter          = metrics.GetOrRegisterMeter("emitter/events", nil) // amount of emitted events
 	emittedEventsTxsMeter       = metrics.GetOrRegisterMeter("emitter/txs", nil) // amount of txs in emitted events
 	emittedGasMeter             = metrics.GetOrRegisterMeter("emitter/gas", nil) // consumed validator gas
@@ -208,7 +210,10 @@ func (em *Emitter) tick() {
 	em.recheckChallenges()
 	em.recheckIdleTime()
 	if time.Since(em.prevEmittedAtTime) >= em.intervals.Min {
-		_, _ = em.EmitEvent()
+		_, err := em.EmitEvent()
+		if err != nil {
+			em.Log.Error("Event emitting error", "err", err)
+		}
 	}
 }
 
@@ -251,6 +256,10 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	if em.world.IsBusy() {
 		return nil, nil
 	}
+
+	emittingTriedMeter.Mark(1)
+	emittingTriedTxsMeter.Mark(int64(sortedTxs.Len()))
+
 	em.world.Lock()
 	defer em.world.Unlock()
 
