@@ -15,7 +15,11 @@ jobs:
       - name: Golang dependency
         uses: actions/setup-go@v3
         with:
-          go-version: '^1.18'
+          go-version: '1.20'
+
+      - name: Build Carmen
+        working-directory: ./carmen/go/lib
+        run: ./build_libcarmen.sh
 
       - name: Run unit tests
         run: go test -v ./...
