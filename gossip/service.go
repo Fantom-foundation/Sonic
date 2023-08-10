@@ -3,13 +3,12 @@ package gossip
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"math/big"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -50,6 +49,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
+	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
 	"github.com/Fantom-foundation/go-opera/vecmt"
@@ -153,6 +153,8 @@ type Service struct {
 	haltCheck func(oldEpoch, newEpoch idx.Epoch, time time.Time) bool
 
 	tflusher PeriodicFlusher
+
+	bootstrapping bool
 
 	logger.Instance
 }
@@ -332,11 +334,8 @@ func (s *Service) EmitterWorld(signer valkeystore.SignerI) emitter.World {
 	return emitter.World{
 		External: &emitterWorld{
 			emitterWorldProc: emitterWorldProc{s},
-			emitterWorldRead: emitterWorldRead{
-				Store:          s.store,
-				blockHashCache: newBlockHashCache(),
-			},
-			WgMutex: wgmutex.New(s.engineMu, &s.blockProcWg),
+			emitterWorldRead: emitterWorldRead{s.store},
+			WgMutex:          wgmutex.New(s.engineMu, &s.blockProcWg),
 		},
 		TxPool:   s.txpool,
 		Signer:   signer,
@@ -346,6 +345,7 @@ func (s *Service) EmitterWorld(signer valkeystore.SignerI) emitter.World {
 
 // RegisterEmitter must be called before service is started
 func (s *Service) RegisterEmitter(em *emitter.Emitter) {
+	txtime.Enabled = true // enable tracking of tx times
 	s.emitters = append(s.emitters, em)
 }
 
