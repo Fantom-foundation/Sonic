@@ -4,7 +4,7 @@
 # This script migrates Opera and Carmen to its public version.
 #
 # It removes all experimental, alternative and unfinished features
-# and keep only to be productized ones.
+# and keep only to be disclosed ones.
 #
 # In particular, this version exports GoLang implementation of file-based Index/Store StateDB
 # with LevelDB Archive database.
@@ -20,7 +20,7 @@
 #
 #
 # Carmen related directories and files to be included in the output version
-# are configured in the file 'scripts/migration/filter.txt', from the Carmen repository.
+# are configured in the file 'scripts/export/filter.txt', from the Carmen repository.
 #
 # Carmen and Tosca are switched from sub-modules to integral
 # parts of the resulting repository.
@@ -34,7 +34,7 @@
 # Temporary folder to checkout into, and use it as workspace for
 # modifications.
 #
-REPO_DIR=~/_opera_carmen_temp
+REPO_DIR=${TMPDIR-/tmp}/_opera_carmen_temp
 
 #
 # Source repository with Opera.
@@ -88,8 +88,7 @@ ORIGINAL_DIR=$(pwd)
 # Checkout to a new local repository and filter out unnecessary parts
 #
 carmen_temp="$REPO_DIR-CARMEN"
-rm -rf $carmen_temp
-mkdir -p $carmen_temp
+mkdir $carmen_temp || exit
 git clone $CARMEN_SOURCE_REPO $carmen_temp
 cd $carmen_temp || exit
 git checkout $CARMEN_SOURCE_BRANCH
@@ -98,7 +97,7 @@ git remote rm origin
 #
 # Filter out unnecessary parts of Carmen in a detached branch
 #
-cp scripts/migration/filter.txt filter.txt
+cp scripts/export/filter.txt filter.txt
 git filter-repo --force --path go/ --path-rename go/:
 git filter-repo --force --paths-from-file filter.txt
 git filter-repo --force --path-rename :carmen-embedded/
@@ -112,15 +111,14 @@ git filter-repo --force --path-rename :carmen-embedded/
 # Checkout to a new local repository and filter out unnecessary parts
 #
 tosca_temp="$REPO_DIR-TOSCA"
-rm -rf $tosca_temp
-mkdir -p $tosca_temp
+mkdir $tosca_temp || exit
 git clone $TOSCA_SOURCE_REPO $tosca_temp
 cd $tosca_temp || exit
 git checkout $TOSCA_SOURCE_BRANCH
 git remote rm origin
 
 #
-# Filter out unnecessary parts of Carmen in a detached branch
+# Filter out unnecessary parts of Tosca in a detached branch
 #
 git filter-repo --force --path go/ --path go.mod --path go.sum
 git filter-repo --force --path-rename :tosca-embedded/
@@ -136,9 +134,8 @@ git filter-repo --force --path-rename :tosca-embedded/
 #
 # Clone the Opera/Norma repo to a new directory
 #
-rm -rf $REPO_DIR
-mkdir -p $REPO_DIR
-git clone $SOURCE_REPO $REPO_DIR
+mkdir "$REPO_DIR" || exit
+git clone $SOURCE_REPO "$REPO_DIR"
 
 cd "$REPO_DIR" || exit
 git checkout $OPERA_SOURCE_BRANCH
@@ -203,6 +200,6 @@ git push -f origin $OPERA_SOURCE_BRANCH:$DEST_BRANCH
 # test all can build
 make
 
-#rm -rf $REPO_DIR ## keep the tmp directory for debug
 cd "$ORIGINAL_DIR" || exit
 
+echo "Result stored in '$REPO_DIR'"
