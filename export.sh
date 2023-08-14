@@ -52,7 +52,7 @@ CARMEN_SOURCE_REPO=git@github.com:Fantom-foundation/Carmen.git
 TOSCA_SOURCE_REPO=git@github.com:Fantom-foundation/Tosca.git
 
 #
-# Destination repository, where modified Carmen will be stored into.
+# Destination repository, where modified Opera will be stored into.
 #
 DEST_REPO=git@github.com:Fantom-foundation/go-opera-norma-public-test.git
 
