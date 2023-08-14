@@ -190,8 +190,8 @@ git commit -a -m "publishes Opera"
 # Push to the new repository, while adding required extra files.
 #
 git remote add origin $DEST_REPO
-git commit -a -m "migrates to public repository at $d"
-git push -f origin $OPERA_SOURCE_BRANCH:$DEST_BRANCH
+git commit -a -m "migrates to public repository"
+#git push -f origin $OPERA_SOURCE_BRANCH:$DEST_BRANCH
 
 #
 # Clean-up
