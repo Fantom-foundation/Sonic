@@ -138,7 +138,7 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.Transactio
 		sender, _ := types.Sender(em.world.TxSigner, tx)
 		// check transaction epoch rules (tx type, gas price)
 		if epochcheck.CheckTxs(types.Transactions{tx}, rules) != nil {
-			txsSkippedEpochRules.Mark(int64(sorted.GetCountToPop()))
+			txsSkippedEpochRules.Inc(int64(sorted.GetCountToPop()))
 			sorted.Pop()
 			continue
 		}
@@ -146,28 +146,28 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.Transactio
 		if tx.Gas() >= e.GasPowerLeft().Min() || e.GasPowerUsed()+tx.Gas() >= maxGasUsed {
 			if params.TxGas >= e.GasPowerLeft().Min() || e.GasPowerUsed()+params.TxGas >= maxGasUsed {
 				// stop if cannot originate even an empty transaction
-				txsSkippedNoValidatorGas.Mark(int64(sorted.Len()))
+				txsSkippedNoValidatorGas.Inc(int64(sorted.Len()))
 				break
 			}
-			txsSkippedNoValidatorGas.Mark(int64(sorted.GetCountToPop()))
+			txsSkippedNoValidatorGas.Inc(int64(sorted.GetCountToPop()))
 			sorted.Pop()
 			continue
 		}
 		// check not conflicted with already originated txs (in any connected event)
 		if em.originatedTxs.TotalOf(sender) != 0 {
-			txsSkippedConflictingSender.Mark(int64(sorted.GetCountToPop()))
+			txsSkippedConflictingSender.Inc(int64(sorted.GetCountToPop()))
 			sorted.Pop()
 			continue
 		}
 		// my turn, i.e. try to not include the same tx simultaneously by different validators
 		if !em.isMyTxTurn(tx.Hash(), sender, tx.Nonce(), time.Now(), em.validators, e.Creator(), em.epoch) {
-			txsSkippedNotMyTurn.Mark(int64(sorted.GetCountToPop()))
+			txsSkippedNotMyTurn.Inc(int64(sorted.GetCountToPop()))
 			sorted.Pop()
 			continue
 		}
 		// check transaction is not outdated
 		if !em.world.TxPool.Has(tx.Hash()) {
-			txsSkippedOutdated.Mark(int64(sorted.GetCountToPop()))
+			txsSkippedOutdated.Inc(int64(sorted.GetCountToPop()))
 			sorted.Pop()
 			continue
 		}

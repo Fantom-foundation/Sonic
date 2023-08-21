@@ -31,16 +31,17 @@ const (
 )
 
 var (
-	emittingTriedMeter          = metrics.GetOrRegisterMeter("emitter/tried", nil) // amount of tries to emit an event
-	emittingTriedTxsMeter       = metrics.GetOrRegisterMeter("emitter/triedtxs", nil) // amount of txs tries to emit
-	emittedEventsMeter          = metrics.GetOrRegisterMeter("emitter/events", nil) // amount of emitted events
-	emittedEventsTxsMeter       = metrics.GetOrRegisterMeter("emitter/txs", nil) // amount of txs in emitted events
-	emittedGasMeter             = metrics.GetOrRegisterMeter("emitter/gas", nil) // consumed validator gas
-	txsSkippedNoValidatorGas    = metrics.GetOrRegisterMeter("emitter/skipped/novalidatorgas", nil) // validator does not have enough gas
-	txsSkippedEpochRules        = metrics.GetOrRegisterMeter("emitter/skipped/epochrules", nil) // tx skipped because of epoch rules (like insufficient gasPrice)
-	txsSkippedConflictingSender = metrics.GetOrRegisterMeter("emitter/skipped/conflictingsender", nil) // tx by given sender in some unconfirmed event
-	txsSkippedNotMyTurn         = metrics.GetOrRegisterMeter("emitter/skipped/notmyturn", nil) // tx should be handled by other validator
-	txsSkippedOutdated          = metrics.GetOrRegisterMeter("emitter/skipped/outdated", nil) // tx skipped because it is outdated
+	emittingTriedCounter        = metrics.GetOrRegisterCounter("emitter/tried", nil)    // amount of tries to emit an event
+	emittingTriedTxsCounter     = metrics.GetOrRegisterCounter("emitter/triedtxs", nil) // amount of sortedTxs tried to emit
+	emittingTxsCountHistogram   = metrics.GetOrRegisterHistogram("emitter/txscounthistogram", nil, metrics.NewExpDecaySample(1028, 0.015))
+	emittedEventsCounter        = metrics.GetOrRegisterCounter("emitter/events", nil)                    // amount of emitted events
+	emittedEventsTxsCounter     = metrics.GetOrRegisterCounter("emitter/txs", nil)                       // amount of txs in emitted events
+	emittedGasCounter           = metrics.GetOrRegisterCounter("emitter/gas", nil)                       // consumed validator gas
+	txsSkippedNoValidatorGas    = metrics.GetOrRegisterCounter("emitter/skipped/novalidatorgas", nil)    // validator does not have enough gas
+	txsSkippedEpochRules        = metrics.GetOrRegisterCounter("emitter/skipped/epochrules", nil)        // tx skipped because of epoch rules (like insufficient gasPrice)
+	txsSkippedConflictingSender = metrics.GetOrRegisterCounter("emitter/skipped/conflictingsender", nil) // tx by given sender in some unconfirmed event
+	txsSkippedNotMyTurn         = metrics.GetOrRegisterCounter("emitter/skipped/notmyturn", nil)         // tx should be handled by other validator
+	txsSkippedOutdated          = metrics.GetOrRegisterCounter("emitter/skipped/outdated", nil)          // tx skipped because it is outdated
 )
 
 type Emitter struct {
@@ -251,8 +252,10 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 		return nil, nil
 	}
 
-	emittingTriedMeter.Mark(1)
-	emittingTriedTxsMeter.Mark(int64(sortedTxs.Len()))
+	sortedTxsLen := int64(sortedTxs.Len())
+	emittingTriedCounter.Inc(1)
+	emittingTriedTxsCounter.Inc(sortedTxsLen)
+	emittingTxsCountHistogram.Update(sortedTxsLen)
 
 	em.world.Lock()
 	defer em.world.Unlock()
@@ -280,9 +283,9 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	em.world.Broadcast(e)
 
 	// metrics
-	emittedEventsTxsMeter.Mark(int64(e.Txs().Len()))
-	emittedGasMeter.Mark(int64(e.GasPowerUsed()))
-	emittedEventsMeter.Mark(1)
+	emittedEventsTxsCounter.Inc(int64(e.Txs().Len()))
+	emittedGasCounter.Inc(int64(e.GasPowerUsed()))
+	emittedEventsCounter.Inc(1)
 
 	em.prevEmittedAtTime = time.Now() // record time after connecting, to add the event processing time
 	em.prevEmittedAtBlock = em.world.GetLatestBlockIndex()
