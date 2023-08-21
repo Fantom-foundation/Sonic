@@ -717,7 +717,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		for _, tx := range drop {
 			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			underpricedTxMeter.Mark(1)
-			pool.removeTx(tx.Hash(), true)
+			pool.removeTx(tx.Hash(), false) // don't remove from priced, already removed by Discard
 		}
 	}
 	// Try to replace an existing transaction in the pending pool
@@ -1023,7 +1023,7 @@ func (pool *TxPool) OnlyNotExisting(hashes []common.Hash) []common.Hash {
 
 // removeTx removes a single transaction from the queue, moving all subsequent
 // transactions back to the future queue.
-func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
+func (pool *TxPool) removeTx(hash common.Hash, removeFromPriced bool) {
 	// Fetch the transaction we wish to delete
 	tx := pool.all.Get(hash)
 	if tx == nil {
@@ -1033,7 +1033,7 @@ func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
 
 	// Remove it from the list of known transactions
 	pool.all.Remove(hash)
-	if outofbound {
+	if removeFromPriced {
 		pool.priced.Removed(1)
 	}
 	if pool.locals.contains(addr) {
