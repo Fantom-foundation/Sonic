@@ -259,6 +259,7 @@ type TxPool struct {
 	pending map[common.Address]*txList   // All currently processable transactions
 	queue   map[common.Address]*txList   // Queued but non-processable transactions
 	beats   map[common.Address]time.Time // Last heartbeat from each known account
+	promotions map[common.Address]time.Time // Last promotion from each known account
 	all     *txLookup                    // All transactions to allow lookups
 	priced  *txPricedList                // All transactions sorted by price
 
@@ -291,6 +292,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain State
 		pending:         make(map[common.Address]*txList),
 		queue:           make(map[common.Address]*txList),
 		beats:           make(map[common.Address]time.Time),
+		promotions:      make(map[common.Address]time.Time),
 		all:             newTxLookup(),
 		chainHeadCh:     make(chan ChainHeadNotify, chainHeadChanSize),
 		reqResetCh:      make(chan *txpoolResetRequest),
@@ -743,6 +745,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 
 		// Successful promotion, bump the heartbeat
 		pool.beats[from] = time.Now()
+		pool.promotions[from] = time.Now()
 		return old != nil, nil
 	}
 	// New transaction isn't replacing a pending one, push into queue
@@ -861,6 +864,7 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 
 	// Successful promotion, bump the heartbeat
 	pool.beats[addr] = time.Now()
+	pool.promotions[addr] = time.Now()
 	return true
 }
 
@@ -1408,6 +1412,9 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		if pool.locals.contains(addr) {
 			localGauge.Dec(int64(len(forwards) + len(drops) + len(caps)))
 		}
+		if len(forwards) > 0 { // missed promotion, bump the heartbeat
+			pool.promotions[addr] = time.Now()
+		}
 		// Delete the entire queue entry if it became empty.
 		if list.Empty() {
 			delete(pool.queue, addr)
@@ -1518,7 +1525,7 @@ func (pool *TxPool) truncateQueue() {
 	addresses := make(addressesByHeartbeat, 0, len(pool.queue))
 	for addr := range pool.queue {
 		if !pool.locals.contains(addr) { // don't drop locals
-			addresses = append(addresses, addressByHeartbeat{addr, pool.beats[addr]})
+			addresses = append(addresses, addressByHeartbeat{addr, pool.promotions[addr]})
 		}
 	}
 	sort.Sort(addresses)
