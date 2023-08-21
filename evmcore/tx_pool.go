@@ -1609,6 +1609,7 @@ func (pool *TxPool) demoteUnexecutables() {
 }
 
 // addressByHeartbeat is an account address tagged with its last activity timestamp.
+// Should be sorted from the most active account (first) to the longest inactive account (last).
 type addressByHeartbeat struct {
 	address   common.Address
 	heartbeat time.Time
@@ -1617,7 +1618,7 @@ type addressByHeartbeat struct {
 type addressesByHeartbeat []addressByHeartbeat
 
 func (a addressesByHeartbeat) Len() int           { return len(a) }
-func (a addressesByHeartbeat) Less(i, j int) bool { return a[i].heartbeat.Before(a[j].heartbeat) }
+func (a addressesByHeartbeat) Less(i, j int) bool { return a[i].heartbeat.After(a[j].heartbeat) }
 func (a addressesByHeartbeat) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 // accountSet is simply a set of addresses to check for existence, and a signer

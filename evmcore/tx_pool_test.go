@@ -1118,6 +1118,66 @@ func testTransactionQueueTimeLimiting(t *testing.T, nolocals bool) {
 	}
 }
 
+func TestTransactionQueueTruncating(t *testing.T) {
+	// Create the pool to test the queue truncation when GlobalQueue is exceeded
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
+
+	config := testTxPoolConfig
+	config.GlobalQueue = 2
+
+	pool := NewTxPool(config, params.TestChainConfig, blockchain)
+	defer pool.Stop()
+
+	active, _ := crypto.GenerateKey()
+	inactive, _ := crypto.GenerateKey()
+	activeAddr := crypto.PubkeyToAddress(active.PublicKey)
+	inactiveAddr := crypto.PubkeyToAddress(inactive.PublicKey)
+
+	testAddBalance(pool, crypto.PubkeyToAddress(active.PublicKey), big.NewInt(1000000000))
+	testAddBalance(pool, crypto.PubkeyToAddress(inactive.PublicKey), big.NewInt(1000000000))
+
+	if err := pool.addRemoteSync(pricedTransaction(5, 100000, big.NewInt(1), active)); err != nil {
+		t.Fatalf("failed to add transaction: %v", err)
+	}
+	if err := pool.addRemoteSync(pricedTransaction(5, 100000, big.NewInt(1), inactive)); err != nil {
+		t.Fatalf("failed to add transaction: %v", err)
+	}
+
+	// add pending tx - should update last activity timestamp of the sender, should not affect the content of the queue
+	if err := pool.addRemoteSync(pricedTransaction(0, 100000, big.NewInt(1), active)); err != nil {
+		t.Fatalf("failed to add transaction: %v", err)
+	}
+
+	if queued := pool.queue[activeAddr].Len(); queued != 1 {
+		t.Fatalf("queued transactions for active sender mismatched: have %d, want %d", queued, 1)
+	}
+	if queued := pool.queue[inactiveAddr].Len(); queued != 1 {
+		t.Fatalf("queued transactions for inactive sender mismatched: have %d, want %d", queued, 1)
+	}
+
+	// add another queued tx - should be truncated immediately
+	if err := pool.addRemoteSync(pricedTransaction(6, 100000, big.NewInt(1), inactive)); err != nil {
+		t.Fatalf("failed to add transaction: %v", err)
+	}
+
+	// add tx of active sender - should replace tx of the inactive sender
+	if err := pool.addRemoteSync(pricedTransaction(6, 100000, big.NewInt(1), active)); err != nil {
+		t.Fatalf("failed to add transaction: %v", err)
+	}
+
+	if queued := pool.queue[activeAddr].Len(); queued != 2 {
+		t.Fatalf("queued transactions for active sender mismatched: have %d, want %d", queued, 2)
+	}
+	if queue := pool.queue[inactiveAddr]; queue != nil {
+		t.Fatalf("queued transactions for inactive sender mismatched: have %d, want nil", queue.Len())
+	}
+	if err := validateTxPoolInternals(pool); err != nil {
+		t.Fatalf("pool internal state corrupted: %v", err)
+	}
+}
+
+
 // Tests that even if the transaction count belonging to a single account goes
 // above some threshold, as long as the transactions are executable, they are
 // accepted.
