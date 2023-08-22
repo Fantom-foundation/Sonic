@@ -105,9 +105,10 @@ var (
 	// Metrics for the queued pool
 	queuedDiscardMeter   = metrics.GetOrRegisterMeter("txpool/queued/discard", nil)
 	queuedReplaceMeter   = metrics.GetOrRegisterMeter("txpool/queued/replace", nil)
-	queuedRateLimitMeter = metrics.GetOrRegisterMeter("txpool/queued/ratelimit", nil) // Dropped due to rate limiting
-	queuedNofundsMeter   = metrics.GetOrRegisterMeter("txpool/queued/nofunds", nil)   // Dropped due to out-of-funds
-	queuedEvictionMeter  = metrics.GetOrRegisterMeter("txpool/queued/eviction", nil)  // Dropped due to lifetime
+	queuedRateLimitMeter = metrics.GetOrRegisterMeter("txpool/queued/ratelimit", nil)   // Dropped due to queue size limit
+	queuedNofundsMeter   = metrics.GetOrRegisterMeter("txpool/queued/nofunds", nil)     // Dropped due to out-of-funds
+	queuedEvictionMeter  = metrics.GetOrRegisterMeter("txpool/queued/eviction", nil)    // Dropped due to lifetime
+	queuedTruncatedHb    = metrics.GetOrRegisterTimer("txpool/queued/truncatedhb", nil) // How old was heartbeat of truncated senders
 
 	// General tx metrics
 	validTxMeter       = metrics.GetOrRegisterMeter("txpool/valid", nil)
@@ -1534,6 +1535,8 @@ func (pool *TxPool) truncateQueue() {
 	for drop := queued - pool.config.GlobalQueue; drop > 0 && len(addresses) > 0; {
 		addr := addresses[len(addresses)-1]
 		list := pool.queue[addr.address]
+
+		queuedTruncatedHb.Update(time.Since(addr.heartbeat))
 
 		addresses = addresses[:len(addresses)-1]
 
