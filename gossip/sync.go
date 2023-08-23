@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"github.com/ethereum/go-ethereum/metrics"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -9,6 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 )
+
+var syncStatusGauge = metrics.GetOrRegisterGauge("chain/syncStage", nil)
+var isMaybeSyncedGauge = metrics.GetOrRegisterGauge("chain/maybeSynced", nil)
 
 type syncStage uint32
 
@@ -41,6 +45,7 @@ func (ss *syncStatus) Is(s ...syncStage) bool {
 
 func (ss *syncStatus) Set(s syncStage) {
 	atomic.StoreUint32(&ss.stage, uint32(s))
+	syncStatusGauge.Update(int64(s))
 }
 
 func (ss *syncStatus) MaybeSynced() bool {
@@ -49,6 +54,7 @@ func (ss *syncStatus) MaybeSynced() bool {
 
 func (ss *syncStatus) MarkMaybeSynced() {
 	atomic.StoreUint32(&ss.maybeSynced, uint32(1))
+	isMaybeSyncedGauge.Update(int64(1))
 }
 
 func (ss *syncStatus) AcceptEvents() bool {
