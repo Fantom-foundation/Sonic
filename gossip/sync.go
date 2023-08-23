@@ -12,6 +12,7 @@ import (
 )
 
 var syncStatusGauge = metrics.GetOrRegisterGauge("chain/syncStage", nil)
+var isMaybeSyncedGauge = metrics.GetOrRegisterGauge("chain/maybeSynced", nil)
 
 type syncStage uint32
 
@@ -53,6 +54,7 @@ func (ss *syncStatus) MaybeSynced() bool {
 
 func (ss *syncStatus) MarkMaybeSynced() {
 	atomic.StoreUint32(&ss.maybeSynced, uint32(1))
+	isMaybeSyncedGauge.Update(int64(1))
 }
 
 func (ss *syncStatus) AcceptEvents() bool {
