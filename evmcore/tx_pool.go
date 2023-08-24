@@ -129,6 +129,8 @@ var (
 	usedPricedStalesGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/stales", nil)
 	usedAllLocalsGauge      = metrics.GetOrRegisterGauge("txpool/used/all/locals", nil)
 	usedAllRemotesGauge     = metrics.GetOrRegisterGauge("txpool/used/all/remotes", nil)
+
+	promotedTxsCounter = metrics.GetOrRegisterCounter("txpool_txs_promoted", nil)
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -1462,6 +1464,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 			delete(pool.beats, addr)
 		}
 	}
+	promotedTxsCounter.Inc(int64(len(promoted)))
 	return promoted
 }
 
