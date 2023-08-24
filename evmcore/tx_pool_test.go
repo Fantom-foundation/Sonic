@@ -2506,6 +2506,54 @@ func TestTransactionSlotCount(t *testing.T) {
 	}
 }
 
+func TestSampleHashes(t *testing.T) {
+	// Create the pool to test the queue truncation when GlobalQueue is exceeded
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
+
+	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
+	defer pool.Stop()
+
+	local, _ := crypto.GenerateKey()
+	testAddBalance(pool, crypto.PubkeyToAddress(local.PublicKey), big.NewInt(1000000))
+	remote, _ := crypto.GenerateKey()
+	testAddBalance(pool, crypto.PubkeyToAddress(remote.PublicKey), big.NewInt(1000000))
+
+	txOccurrences := make(map[common.Hash]int, 20)
+	for i := uint64(0); i < 100; i++ {
+		tx := pricedTransaction(i, 100000, big.NewInt(1), remote)
+		if err := pool.addRemoteSync(tx); err != nil {
+			t.Fatalf("failed to add transaction: %v", err)
+		}
+		txOccurrences[tx.Hash()] = 0
+	}
+	for i := uint64(0); i < 100; i++ {
+		tx := pricedTransaction(i, 100000, big.NewInt(1), local)
+		if err := pool.AddLocal(tx); err != nil {
+			t.Fatalf("failed to add transaction: %v", err)
+		}
+		txOccurrences[tx.Hash()] = 0
+	}
+
+	pending, queued := pool.stats()
+	if pending != 200 || queued != 0 {
+		t.Fatalf("failed to fill the pool, incorrect amount of pending/queued: %d/%d", pending, queued)
+	}
+
+	for i := 0; i < 100; i++ { // increase if the test is flaky
+		for _, txHash := range pool.SampleHashes(40) {
+			txOccurrences[txHash]++
+		}
+	}
+
+	for txHash, occurrences := range txOccurrences {
+		fmt.Printf(" - %x (nonce %d): %d\n", txHash, pool.Get(txHash).Nonce(), occurrences)
+		if occurrences == 0 {
+			t.Errorf("tx %x never occured in the sample", txHash)
+		}
+	}
+}
+
 // Benchmarks the speed of validating the contents of the pending queue of the
 // transaction pool.
 func BenchmarkPendingDemotion100(b *testing.B)   { benchmarkPendingDemotion(b, 100) }

@@ -565,7 +565,42 @@ func (pool *TxPool) Pending(enforceTips bool) (map[common.Address]types.Transact
 }
 
 func (pool *TxPool) SampleHashes(max int) []common.Hash {
-	return pool.all.SampleHashes(max)
+	pendingSample := pool.samplePending(max / 2)
+	if len(pendingSample) < max {
+		allSample := pool.all.SampleHashes(max - len(pendingSample))
+		return append(pendingSample, allSample...)
+	}
+	return pendingSample
+}
+
+func (pool *TxPool) samplePending(max int) []common.Hash {
+	pendingTxs, _ := pool.Pending(true) // Pending never returns err
+	if len(pendingTxs) == 0 {
+		return nil
+	}
+
+	// if we have more senders than is the sample size, choose random senders
+	skipSenders := 0
+	if len(pendingTxs) > max {
+		skipSenders = rand.Intn(len(pendingTxs) - max)
+	}
+
+	res := make([]common.Hash, 0, max)
+	txsPerSender := max / len(pendingTxs) + 1
+
+	for _, txs := range pendingTxs {
+		if skipSenders > 0 {
+			skipSenders--
+			continue
+		}
+		for i := 0; i < txsPerSender && i < len(txs); i++ {
+			res = append(res, txs[i].Hash())
+			if len(res) >= max {
+				return res
+			}
+		}
+	}
+	return res
 }
 
 // Locals retrieves the accounts currently considered local by the pool.
@@ -1728,29 +1763,29 @@ func (t *txLookup) SampleHashes(max int) []common.Hash {
 	res := make([]common.Hash, 0, max)
 	skip := 0
 	if len(t.locals)+len(t.remotes) > max {
-		skip = rand.Intn(len(t.locals) + len(t.remotes) - max)
+		skip = rand.Intn(len(t.locals) + len(t.remotes))
 	}
-	forEach := func(key common.Hash) bool {
-		if len(res) >= max {
-			return false
+	iterate := func (iterated map[common.Hash]*types.Transaction) {
+		if skip >= len(iterated) {
+			skip -= len(iterated)
+			return
 		}
-		if skip > 0 {
-			skip--
-			return true
-		}
-		res = append(res, key)
-		return true
-	}
-	for key := range t.locals {
-		if !forEach(key) {
-			break
-		}
-	}
-	for key := range t.remotes {
-		if !forEach(key) {
-			break
+		for key := range iterated {
+			if len(res) >= max {
+				return
+			}
+			if skip > 0 {
+				skip--
+			} else {
+				res = append(res, key)
+			}
 		}
 	}
+	// simulate ring-buffer by iterating both maps twice
+	iterate(t.locals)
+	iterate(t.remotes)
+	iterate(t.locals)
+	iterate(t.remotes)
 	return res
 }
 
