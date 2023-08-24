@@ -565,42 +565,55 @@ func (pool *TxPool) Pending(enforceTips bool) (map[common.Address]types.Transact
 }
 
 func (pool *TxPool) SampleHashes(max int) []common.Hash {
-	pendingSample := pool.samplePending(max / 2)
-	if len(pendingSample) < max {
-		allSample := pool.all.SampleHashes(max - len(pendingSample))
-		return append(pendingSample, allSample...)
-	}
-	return pendingSample
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	pendingSample := sampleTxHashes(pool.pending, max * 9 / 10)
+	queueSample := sampleTxHashes(pool.queue, max - len(pendingSample))
+	return append(pendingSample, queueSample...)
 }
 
-func (pool *TxPool) samplePending(max int) []common.Hash {
-	pendingTxs, _ := pool.Pending(true) // Pending never returns err
-	if len(pendingTxs) == 0 {
+func sampleTxHashes(txListsMap map[common.Address]*txList, max int) (out []common.Hash) {
+	if len(txListsMap) == 0 {
 		return nil
 	}
 
+	// max amount of txs per one sender
+	txsPerSender := max / len(txListsMap) + 1
+
 	// if we have more senders than is the sample size, choose random senders
 	skipSenders := 0
-	if len(pendingTxs) > max {
-		skipSenders = rand.Intn(len(pendingTxs) - max)
+	ringWalkthrough := false
+	if len(txListsMap) > max {
+		skipSenders = rand.Intn(len(txListsMap))
+		if skipSenders > len(txListsMap) - max {
+			ringWalkthrough = true
+		}
 	}
 
-	res := make([]common.Hash, 0, max)
-	txsPerSender := max / len(pendingTxs) + 1
-
-	for _, txs := range pendingTxs {
-		if skipSenders > 0 {
-			skipSenders--
-			continue
-		}
-		for i := 0; i < txsPerSender && i < len(txs); i++ {
-			res = append(res, txs[i].Hash())
-			if len(res) >= max {
-				return res
+	iterate := func() {
+		for _, txs := range txListsMap {
+			if skipSenders > 0 {
+				skipSenders--
+				continue
+			}
+			for i := 0; i < txsPerSender; i++ {
+				tx := txs.GetElement(i)
+				if tx == nil {
+					break // go to next sender
+				}
+				out = append(out, tx.Hash())
+				if len(out) >= max {
+					return // sample complete
+				}
 			}
 		}
 	}
-	return res
+	iterate()
+	// simulate ring-buffer by second walk
+	if ringWalkthrough && len(out) < max {
+		iterate()
+	}
+	return out
 }
 
 // Locals retrieves the accounts currently considered local by the pool.

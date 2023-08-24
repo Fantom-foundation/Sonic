@@ -243,6 +243,15 @@ func (m *txSortedMap) LastElement() *types.Transaction {
 	return cache[len(cache)-1]
 }
 
+// GetElement returns element of a flattened list by index or nil.
+func (m *txSortedMap) GetElement(index int) *types.Transaction {
+	cache := m.flatten()
+	if index >= len(cache) {
+		return nil
+	}
+	return cache[index]
+}
+
 // txList is a "list" of transactions belonging to an account, sorted by account
 // nonce. The same type can be used both for storing contiguous transactions for
 // the executable/pending queue; and for storing gapped transactions for the non-
@@ -412,6 +421,11 @@ func (l *txList) Flatten() types.Transactions {
 // transaction with the highest nonce
 func (l *txList) LastElement() *types.Transaction {
 	return l.txs.LastElement()
+}
+
+// GetElement returns element of a flattened list by index or nil.
+func (l *txList) GetElement(index int) *types.Transaction {
+	return l.txs.GetElement(index)
 }
 
 // priceHeap is a heap.Interface implementation over transactions for retrieving

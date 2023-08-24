@@ -2514,42 +2514,64 @@ func TestSampleHashes(t *testing.T) {
 	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
 	defer pool.Stop()
 
-	local, _ := crypto.GenerateKey()
-	testAddBalance(pool, crypto.PubkeyToAddress(local.PublicKey), big.NewInt(1000000))
-	remote, _ := crypto.GenerateKey()
-	testAddBalance(pool, crypto.PubkeyToAddress(remote.PublicKey), big.NewInt(1000000))
+	expectedTxs := make(map[common.Hash]int)
+	for acc := 0; acc < 5; acc++ {
+		account, _ := crypto.GenerateKey()
+		testAddBalance(pool, crypto.PubkeyToAddress(account.PublicKey), big.NewInt(1000000))
+		// add pending txs
+		for i := uint64(0); i < 20; i++ {
+			tx := pricedTransaction(i, 100000, big.NewInt(1), account)
+			if err := pool.addRemoteSync(tx); err != nil {
+				t.Fatalf("failed to add transaction: %v", err)
+			}
+			if i < 8 { // first eight pending expected
+				expectedTxs[tx.Hash()] = 0
+			}
+		}
 
-	txOccurrences := make(map[common.Hash]int, 20)
-	for i := uint64(0); i < 100; i++ {
-		tx := pricedTransaction(i, 100000, big.NewInt(1), remote)
-		if err := pool.addRemoteSync(tx); err != nil {
-			t.Fatalf("failed to add transaction: %v", err)
+		// add queued txs
+		for i := uint64(0); i < 15; i++ {
+			tx := pricedTransaction(i+1000, 100000, big.NewInt(1), account)
+			if err := pool.addRemoteSync(tx); err != nil {
+				t.Fatalf("failed to add transaction: %v", err)
+			}
+			if i < 2 { // first two queued expected
+				expectedTxs[tx.Hash()] = 0
+			}
 		}
-		txOccurrences[tx.Hash()] = 0
-	}
-	for i := uint64(0); i < 100; i++ {
-		tx := pricedTransaction(i, 100000, big.NewInt(1), local)
-		if err := pool.AddLocal(tx); err != nil {
-			t.Fatalf("failed to add transaction: %v", err)
-		}
-		txOccurrences[tx.Hash()] = 0
 	}
 
 	pending, queued := pool.stats()
-	if pending != 200 || queued != 0 {
+	if pending != 100 || queued != 75 {
 		t.Fatalf("failed to fill the pool, incorrect amount of pending/queued: %d/%d", pending, queued)
 	}
 
-	for i := 0; i < 100; i++ { // increase if the test is flaky
-		for _, txHash := range pool.SampleHashes(40) {
-			txOccurrences[txHash]++
+	for i := 0; i < 10; i++ {
+		samplePending, sampleQueued := 0, 0
+		for _, txHash := range pool.SampleHashes(100) {
+			tx := pool.Get(txHash)
+			if tx.Nonce() < 1000 {
+				samplePending++
+			} else {
+				sampleQueued++
+			}
+			if _, contains := expectedTxs[txHash]; contains {
+				expectedTxs[txHash]++
+			}
+		}
+
+		if samplePending != 90 || sampleQueued != 10 {
+			t.Errorf("incorrect amount of pending/queued in the sample: %d/%d", samplePending, sampleQueued)
 		}
 	}
 
-	for txHash, occurrences := range txOccurrences {
-		fmt.Printf(" - %x (nonce %d): %d\n", txHash, pool.Get(txHash).Nonce(), occurrences)
+	for txHash, occurrences := range expectedTxs {
+		tx := pool.Get(txHash)
 		if occurrences == 0 {
-			t.Errorf("tx %x never occured in the sample", txHash)
+			t.Errorf("expected tx %x (nonce %d) missing in samples", txHash, tx.Nonce())
+		}
+		if occurrences > 10 {
+			t.Errorf("expected tx %x (nonce %d) present in samples in more occurences than expected", txHash, tx.Nonce())
 		}
 	}
 }
