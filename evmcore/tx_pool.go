@@ -1773,38 +1773,6 @@ func newTxLookup() *txLookup {
 	}
 }
 
-func (t *txLookup) SampleHashes(max int) []common.Hash {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-	res := make([]common.Hash, 0, max)
-	skip := 0
-	if len(t.locals)+len(t.remotes) > max {
-		skip = rand.Intn(len(t.locals) + len(t.remotes))
-	}
-	iterate := func (iterated map[common.Hash]*types.Transaction) {
-		if skip >= len(iterated) {
-			skip -= len(iterated)
-			return
-		}
-		for key := range iterated {
-			if len(res) >= max {
-				return
-			}
-			if skip > 0 {
-				skip--
-			} else {
-				res = append(res, key)
-			}
-		}
-	}
-	// simulate ring-buffer by iterating both maps twice
-	iterate(t.locals)
-	iterate(t.remotes)
-	iterate(t.locals)
-	iterate(t.remotes)
-	return res
-}
-
 // Range calls f on each key and value present in the map. The callback passed
 // should return the indicator whether the iteration needs to be continued.
 // Callers need to specify which set (or both) to be iterated.

@@ -185,19 +185,6 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 	p.knownTxs.Add(hash)
 }
 
-// SendTransactions sends transactions to the peer and includes the hashes
-// in its transaction hash set for future reference.
-func (p *peer) SendTransactions(txs types.Transactions) error {
-	// Mark all the transactions as known, but ensure we don't overflow our limits
-	for _, tx := range txs {
-		p.knownTxs.Add(tx.Hash())
-	}
-	for p.knownTxs.Cardinality() >= p.cfg.MaxKnownTxs {
-		p.knownTxs.Pop()
-	}
-	return p2p.Send(p.rw, EvmTxsMsg, txs)
-}
-
 // SendTransactionHashes sends transaction hashess to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactionHashes(txids []common.Hash) error {
