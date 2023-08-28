@@ -203,8 +203,8 @@ func DefaultConfig(scale cachescale.Func) Config {
 			EpStreamLeecher:          epstreamleecher.DefaultConfig(),
 			EpStreamSeeder:           epstreamseeder.DefaultConfig(scale),
 			MaxInitialTxHashesSend:   20000,
-			MaxRandomTxHashesSend:    128,
-			RandomTxHashesSendPeriod: 20 * time.Second,
+			MaxRandomTxHashesSend:    250, // match softLimitItems to fit into one message
+			RandomTxHashesSendPeriod: 1 * time.Second,
 			PeerCache:                DefaultPeerCacheConfig(scale),
 		},
 

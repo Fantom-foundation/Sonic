@@ -3,6 +3,7 @@ package gossip
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/metrics"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,6 +28,13 @@ import (
 
 var (
 	errNotRegistered = errors.New("peer is not registered")
+)
+
+var (
+	sentTxsPromotedCounter = metrics.GetOrRegisterCounter("p2p_sent_txs_promoted", nil)
+	droppedTxsPromotedCounter = metrics.GetOrRegisterCounter("p2p_dropped_txs_promoted", nil)
+	sentTxsRequestedCounter = metrics.GetOrRegisterCounter("p2p_sent_txs_requested", nil)
+	sentTxHashesCounter = metrics.GetOrRegisterCounter("p2p_sent_tx_hashes", nil)
 )
 
 const (
@@ -177,19 +185,6 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 	p.knownTxs.Add(hash)
 }
 
-// SendTransactions sends transactions to the peer and includes the hashes
-// in its transaction hash set for future reference.
-func (p *peer) SendTransactions(txs types.Transactions) error {
-	// Mark all the transactions as known, but ensure we don't overflow our limits
-	for _, tx := range txs {
-		p.knownTxs.Add(tx.Hash())
-	}
-	for p.knownTxs.Cardinality() >= p.cfg.MaxKnownTxs {
-		p.knownTxs.Pop()
-	}
-	return p2p.Send(p.rw, EvmTxsMsg, txs)
-}
-
 // SendTransactionHashes sends transaction hashess to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactionHashes(txids []common.Hash) error {
@@ -200,6 +195,7 @@ func (p *peer) SendTransactionHashes(txids []common.Hash) error {
 	for p.knownTxs.Cardinality() >= p.cfg.MaxKnownTxs {
 		p.knownTxs.Pop()
 	}
+	sentTxHashesCounter.Inc(int64(len(txids)))
 	return p2p.Send(p.rw, NewEvmTxHashesMsg, txids)
 }
 
@@ -278,6 +274,7 @@ func SplitTransactions(txs types.Transactions, fn func(types.Transactions)) {
 // peer. If the peer's broadcast queue is full, the transactions are silently dropped.
 func (p *peer) AsyncSendTransactions(txs types.Transactions, queue chan broadcastItem) {
 	if p.asyncSendNonEncodedItem(txs, EvmTxsMsg, queue) {
+		sentTxsPromotedCounter.Inc(int64(len(txs)))
 		// Mark all the transactions as known, but ensure we don't overflow our limits
 		for _, tx := range txs {
 			p.knownTxs.Add(tx.Hash())
@@ -286,6 +283,7 @@ func (p *peer) AsyncSendTransactions(txs types.Transactions, queue chan broadcas
 			p.knownTxs.Pop()
 		}
 	} else {
+		droppedTxsPromotedCounter.Inc(int64(len(txs)))
 		p.Log().Debug("Dropping transactions propagation", "count", len(txs))
 	}
 }
@@ -294,6 +292,7 @@ func (p *peer) AsyncSendTransactions(txs types.Transactions, queue chan broadcas
 // peer. If the peer's broadcast queue is full, the transactions are silently dropped.
 func (p *peer) AsyncSendTransactionHashes(txids []common.Hash, queue chan broadcastItem) {
 	if p.asyncSendNonEncodedItem(txids, NewEvmTxHashesMsg, queue) {
+		sentTxHashesCounter.Inc(int64(len(txids)))
 		// Mark all the transactions as known, but ensure we don't overflow our limits
 		for _, tx := range txids {
 			p.knownTxs.Add(tx)
@@ -311,6 +310,7 @@ func (p *peer) AsyncSendTransactionHashes(txids []common.Hash, queue chan broadc
 // The method is blocking in a case if the peer's broadcast queue is full.
 func (p *peer) EnqueueSendTransactions(txs types.Transactions, queue chan broadcastItem) {
 	p.enqueueSendNonEncodedItem(txs, EvmTxsMsg, queue)
+	sentTxsRequestedCounter.Inc(int64(len(txs)))
 	// Mark all the transactions as known, but ensure we don't overflow our limits
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())

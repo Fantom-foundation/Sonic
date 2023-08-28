@@ -129,6 +129,8 @@ var (
 	usedPricedStalesGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/stales", nil)
 	usedAllLocalsGauge      = metrics.GetOrRegisterGauge("txpool/used/all/locals", nil)
 	usedAllRemotesGauge     = metrics.GetOrRegisterGauge("txpool/used/all/remotes", nil)
+
+	promotedTxsCounter = metrics.GetOrRegisterCounter("txpool_txs_promoted", nil)
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -565,7 +567,50 @@ func (pool *TxPool) Pending(enforceTips bool) (map[common.Address]types.Transact
 }
 
 func (pool *TxPool) SampleHashes(max int) []common.Hash {
-	return pool.all.SampleHashes(max)
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	pendingSample := sampleTxHashes(pool.pending, max * 9 / 10)
+	queueSample := sampleTxHashes(pool.queue, max - len(pendingSample))
+	return append(pendingSample, queueSample...)
+}
+
+func sampleTxHashes(txListsMap map[common.Address]*txList, max int) (out []common.Hash) {
+	if len(txListsMap) == 0 {
+		return nil
+	}
+
+	// max amount of txs per one sender
+	txsPerSender := max / len(txListsMap) + 1
+
+	// if we have more senders than is the sample size, choose random senders
+	first := 0
+	last := len(txListsMap) - 1
+	if len(txListsMap) > max {
+		first = rand.Intn(len(txListsMap))
+		last = (first + max) % len(txListsMap)
+	}
+
+	current := 0
+	for _, txs := range txListsMap {
+		if (current < first && first <= last) || (last < current && current < first) {
+			current++
+			continue
+		}
+		// no need to handle (current > last && current > first) case - max check is sufficient
+
+		for i := 0; i < txsPerSender; i++ {
+			tx := txs.GetElement(i)
+			if tx == nil {
+				break // go to next sender
+			}
+			out = append(out, tx.Hash())
+			if len(out) >= max {
+				return out // sample complete
+			}
+		}
+		current++
+	}
+	return out
 }
 
 // Locals retrieves the accounts currently considered local by the pool.
@@ -1414,6 +1459,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 			delete(pool.beats, addr)
 		}
 	}
+	promotedTxsCounter.Inc(int64(len(promoted)))
 	return promoted
 }
 
@@ -1720,38 +1766,6 @@ func newTxLookup() *txLookup {
 		locals:  make(map[common.Hash]*types.Transaction),
 		remotes: make(map[common.Hash]*types.Transaction),
 	}
-}
-
-func (t *txLookup) SampleHashes(max int) []common.Hash {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-	res := make([]common.Hash, 0, max)
-	skip := 0
-	if len(t.locals)+len(t.remotes) > max {
-		skip = rand.Intn(len(t.locals) + len(t.remotes) - max)
-	}
-	forEach := func(key common.Hash) bool {
-		if len(res) >= max {
-			return false
-		}
-		if skip > 0 {
-			skip--
-			return true
-		}
-		res = append(res, key)
-		return true
-	}
-	for key := range t.locals {
-		if !forEach(key) {
-			break
-		}
-	}
-	for key := range t.remotes {
-		if !forEach(key) {
-			break
-		}
-	}
-	return res
 }
 
 // Range calls f on each key and value present in the map. The callback passed

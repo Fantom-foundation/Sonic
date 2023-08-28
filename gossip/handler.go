@@ -3,6 +3,7 @@ package gossip
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/metrics"
 	"math"
 	"math/rand"
 	"strings"
@@ -62,6 +63,10 @@ const (
 	// txChanSize is the size of channel listening to NewTxsNotify.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
+)
+
+var (
+	broadcastedTxsCounter = metrics.GetOrRegisterCounter("p2p_txs_broadcasted", nil)
 )
 
 func errResp(code errCode, format string, v ...interface{}) error {
@@ -1403,6 +1408,7 @@ func (h *handler) BroadcastEvent(event *inter.EventPayload, passed time.Duration
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (h *handler) BroadcastTxs(txs types.Transactions) {
+	broadcastedTxsCounter.Inc(int64(txs.Len()))
 	var txset = make(map[*peer]types.Transactions)
 
 	// Broadcast transactions to a batch of peers not knowing about it

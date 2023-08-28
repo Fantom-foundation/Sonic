@@ -2506,6 +2506,139 @@ func TestTransactionSlotCount(t *testing.T) {
 	}
 }
 
+func TestSampleHashes(t *testing.T) {
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
+
+	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
+	defer pool.Stop()
+
+	expectedPendingTxs := make(map[common.Hash]int)
+	expectedQueuedTxs := make(map[common.Hash]int)
+	for acc := 0; acc < 5; acc++ {
+		account, _ := crypto.GenerateKey()
+		testAddBalance(pool, crypto.PubkeyToAddress(account.PublicKey), big.NewInt(1000000))
+		// add pending txs
+		for i := uint64(0); i < 20; i++ {
+			tx := pricedTransaction(i, 100000, big.NewInt(1), account)
+			if err := pool.addRemoteSync(tx); err != nil {
+				t.Fatalf("failed to add transaction: %v", err)
+			}
+			if i < 8 { // first eight pending expected
+				expectedPendingTxs[tx.Hash()] = 0
+			}
+		}
+
+		// add queued txs
+		for i := uint64(0); i < 15; i++ {
+			tx := pricedTransaction(i+1000, 100000, big.NewInt(1), account)
+			if err := pool.addRemoteSync(tx); err != nil {
+				t.Fatalf("failed to add transaction: %v", err)
+			}
+			if i < 2 { // first two queued expected
+				expectedQueuedTxs[tx.Hash()] = 0
+			}
+		}
+	}
+
+	pending, queued := pool.stats()
+	if pending != 100 || queued != 75 {
+		t.Fatalf("failed to fill the pool, incorrect amount of pending/queued: %d/%d", pending, queued)
+	}
+
+	for i := 0; i < 10; i++ {
+		samplePending, sampleQueued := 0, 0
+		for _, txHash := range pool.SampleHashes(100) {
+			tx := pool.Get(txHash)
+			if tx.Nonce() < 1000 {
+				samplePending++
+			} else {
+				sampleQueued++
+			}
+			if _, contains := expectedPendingTxs[txHash]; contains {
+				expectedPendingTxs[txHash]++
+			}
+			if _, contains := expectedQueuedTxs[txHash]; contains {
+				expectedQueuedTxs[txHash]++
+			}
+		}
+
+		if samplePending != 90 || sampleQueued != 10 {
+			t.Errorf("incorrect amount of pending/queued in the sample: %d/%d", samplePending, sampleQueued)
+		}
+	}
+
+	for txHash, occurrences := range expectedPendingTxs {
+		tx := pool.Get(txHash)
+		if occurrences != 10 {
+			t.Errorf("expected pending tx %x (nonce %d) present %d times in samples, expected 10", txHash, tx.Nonce(), occurrences)
+		}
+	}
+	for txHash, occurrences := range expectedQueuedTxs {
+		tx := pool.Get(txHash)
+		if occurrences == 0 {
+			t.Errorf("expected tx %x (nonce %d) missing in samples", txHash, tx.Nonce())
+		}
+		if occurrences > 10 {
+			t.Errorf("expected tx %x (nonce %d) present in samples in more occurences than expected", txHash, tx.Nonce())
+		}
+	}
+}
+
+func TestSampleHashesManySenders(t *testing.T) {
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
+
+	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
+	defer pool.Stop()
+
+	expectedTxs := make(map[common.Hash]int)
+	for acc := 0; acc < 10; acc++ {
+		account, _ := crypto.GenerateKey()
+		address := crypto.PubkeyToAddress(account.PublicKey)
+		testAddBalance(pool, address, big.NewInt(1000000))
+		// add pending txs
+		for i := uint64(0); i < 4; i++ {
+			tx := pricedTransaction(i, 100000, big.NewInt(1), account)
+			if err := pool.addRemoteSync(tx); err != nil {
+				t.Fatalf("failed to add transaction: %v", err)
+			}
+			if i  == 0 { // first pending expected
+				expectedTxs[tx.Hash()] = 0
+			}
+		}
+	}
+
+	pending, queued := pool.stats()
+	if pending != 40 || queued != 0 {
+		t.Fatalf("failed to fill the pool, incorrect amount of pending/queued: %d/%d", pending, queued)
+	}
+
+	for i := 0; i < 20; i++ {
+		samples := pool.SampleHashes(5)
+		if len(samples) != 4 { // should get 4 pending + 1 queued (but we have no queued)
+			t.Errorf("unexpected amount of returned txs - returned %d, expected 4", len(samples))
+		}
+		for _, txHash := range samples {
+			if _, contains := expectedTxs[txHash]; contains {
+				expectedTxs[txHash]++
+			} else {
+				t.Errorf("unexpected tx %x in the sample", txHash)
+			}
+		}
+	}
+
+	for txHash, occurrences := range expectedTxs {
+		tx := pool.Get(txHash)
+		if occurrences == 0 {
+			t.Errorf("expected tx %x (nonce %d) missing in samples", txHash, tx.Nonce())
+		}
+		if occurrences > 20 {
+			t.Errorf("expected tx %x (nonce %d) present in samples in more occurences than expected", txHash, tx.Nonce())
+		}
+	}
+}
+
 // Benchmarks the speed of validating the contents of the pending queue of the
 // transaction pool.
 func BenchmarkPendingDemotion100(b *testing.B)   { benchmarkPendingDemotion(b, 100) }
