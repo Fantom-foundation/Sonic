@@ -583,37 +583,32 @@ func sampleTxHashes(txListsMap map[common.Address]*txList, max int) (out []commo
 	txsPerSender := max / len(txListsMap) + 1
 
 	// if we have more senders than is the sample size, choose random senders
-	skipSenders := 0
-	ringWalkthrough := false
+	first := 0
+	last := len(txListsMap) - 1
 	if len(txListsMap) > max {
-		skipSenders = rand.Intn(len(txListsMap))
-		if skipSenders > len(txListsMap) - max {
-			ringWalkthrough = true
-		}
+		first = rand.Intn(len(txListsMap))
+		last = (first + max) % len(txListsMap)
 	}
 
-	iterate := func() {
-		for _, txs := range txListsMap {
-			if skipSenders > 0 {
-				skipSenders--
-				continue
+	current := 0
+	for _, txs := range txListsMap {
+		if (current < first && first <= last) || (last < current && current < first) {
+			current++
+			continue
+		}
+		// no need to handle (current > last && current > first) case - max check is sufficient
+
+		for i := 0; i < txsPerSender; i++ {
+			tx := txs.GetElement(i)
+			if tx == nil {
+				break // go to next sender
 			}
-			for i := 0; i < txsPerSender; i++ {
-				tx := txs.GetElement(i)
-				if tx == nil {
-					break // go to next sender
-				}
-				out = append(out, tx.Hash())
-				if len(out) >= max {
-					return // sample complete
-				}
+			out = append(out, tx.Hash())
+			if len(out) >= max {
+				return out // sample complete
 			}
 		}
-	}
-	iterate()
-	// simulate ring-buffer by second walk
-	if ringWalkthrough && len(out) < max {
-		iterate()
+		current++
 	}
 	return out
 }
