@@ -3,6 +3,7 @@ package emitter
 import (
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"github.com/ethereum/go-ethereum/metrics"
 	"math/rand"
 	"os"
@@ -42,6 +43,10 @@ var (
 	txsSkippedConflictingSender = metrics.GetOrRegisterCounter("emitter/skipped/conflictingsender", nil) // tx by given sender in some unconfirmed event
 	txsSkippedNotMyTurn         = metrics.GetOrRegisterCounter("emitter/skipped/notmyturn", nil)         // tx should be handled by other validator
 	txsSkippedOutdated          = metrics.GetOrRegisterCounter("emitter/skipped/outdated", nil)          // tx skipped because it is outdated
+
+	eventTimeToConfirmTimer = metrics.GetOrRegisterTimer("emitter/timetoconfirm", nil)
+	txTimeToEmitTimer       = metrics.GetOrRegisterTimer("emitter/timetoemit", nil)
+	txEndToEndTimer         = metrics.GetOrRegisterTimer("emitter/endtoendtime", nil)
 )
 
 type Emitter struct {
@@ -466,6 +471,13 @@ func (em *Emitter) createEvent(sortedTxs *types.TransactionsByPriceAndNonce) (*i
 
 	// set mutEvent name for debug
 	em.nameEventForDebug(event)
+
+	for _, tx := range event.Txs() {
+		txTime := txtime.Get(tx.Hash()) // time when was the tx seen first time
+		if !txTime.Equal(time.Time{}) {
+			txTimeToEmitTimer.Update(time.Since(txTime))
+		}
+	}
 
 	return event, nil
 }
