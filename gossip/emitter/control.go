@@ -104,25 +104,30 @@ func (em *Emitter) isAllowedToEmit(e inter.EventI, eTxs bool, metric ancestor.Me
 			}
 		}
 	}
-	// Slow down emitting if no txs to confirm/originate
+	// Avoid emitting if no txs to confirm/originate
 	{
-		if passedTime < em.intervals.Max &&
-			em.idle() &&
+		if em.idle() &&
 			!eTxs {
 			return false
 		}
 	}
+	// enforced !em.idle() || eTxs
+
 	// Emitting is controlled by the efficiency metric
 	{
+		// Min already enforced in tick(), just to make sure
 		if passedTime < em.intervals.Min {
 			return false
 		}
+
+		// Slow down emitting if no txs to confirm and will not help the consensus significantly
 		if adjustedPassedTime < em.intervals.Min &&
-			!em.idle() {
+			em.idle() {
 			return false
 		}
+
+		// Slow down if no txs to originate (but at least 1 tx to confirm)
 		if adjustedPassedIdleTime < em.intervals.Confirming &&
-			!em.idle() &&
 			!eTxs {
 			return false
 		}
