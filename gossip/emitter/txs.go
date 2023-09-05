@@ -128,15 +128,13 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 	rounds := utils.WeightedPermutation(int(validators.Len()), validators.SortedWeights(), roundsHash)
 
 	// take a validator from the sequence, skip offline validators
-	var chosenValidator idx.ValidatorID
-	for i := 0; i < len(rounds); i++ {
-		chosenValidator = validators.GetID(idx.Validator(rounds[(roundIndex + i) % len(rounds)]))
+	for ; roundIndex < len(rounds); roundIndex++ {
+		chosenValidator := validators.GetID(idx.Validator(rounds[roundIndex]))
 		if !em.offlineValidators[chosenValidator] {
-			break
+			return chosenValidator == me
 		}
 	}
-
-	return chosenValidator == me
+	return false
 }
 
 func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.TransactionsByPriceAndNonce) {
