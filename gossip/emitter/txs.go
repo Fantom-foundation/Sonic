@@ -121,9 +121,22 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 		return false
 	}
 
+	// generate seed for generating the validators sequence for the tx
 	roundsHash := hash.Of(sender.Bytes(), bigendian.Uint64ToBytes(accountNonce/TxTurnNonces), epoch.Bytes())
-	rounds := utils.WeightedPermutation(roundIndex+1, validators.SortedWeights(), roundsHash)
-	return validators.GetID(idx.Validator(rounds[roundIndex])) == me
+
+	// generate the validators sequence for the tx
+	rounds := utils.WeightedPermutation(int(validators.Len()), validators.SortedWeights(), roundsHash)
+
+	// take a validator from the sequence, skip offline validators
+	var chosenValidator idx.ValidatorID
+	for i := 0; i < len(rounds); i++ {
+		chosenValidator = validators.GetID(idx.Validator(rounds[(roundIndex + i) % len(rounds)]))
+		if !em.offlineValidators[chosenValidator] {
+			break
+		}
+	}
+
+	return chosenValidator == me
 }
 
 func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.TransactionsByPriceAndNonce) {
