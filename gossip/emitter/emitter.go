@@ -44,6 +44,8 @@ var (
 	txsSkippedNotMyTurn         = metrics.GetOrRegisterCounter("emitter/skipped/notmyturn", nil)         // tx should be handled by other validator
 	txsSkippedOutdated          = metrics.GetOrRegisterCounter("emitter/skipped/outdated", nil)          // tx skipped because it is outdated
 
+	skippedOfflineValidatorsCounter = metrics.GetOrRegisterCounter("emitter/skipped_offline", nil)
+
 	eventTimeToConfirmTimer = metrics.GetOrRegisterTimer("emitter/timetoconfirm", nil)
 	txTimeToEmitTimer       = metrics.GetOrRegisterTimer("emitter/timetoemit", nil)
 	txEndToEndTimer         = metrics.GetOrRegisterTimer("emitter/endtoendtime", nil)

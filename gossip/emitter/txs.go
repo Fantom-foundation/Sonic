@@ -130,9 +130,14 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 	// take a validator from the sequence, skip offline validators
 	for ; roundIndex < len(rounds); roundIndex++ {
 		chosenValidator := validators.GetID(idx.Validator(rounds[roundIndex]))
-		if !em.offlineValidators[chosenValidator] {
-			return chosenValidator == me
+		if chosenValidator == me {
+			return true // current validator is the chosen - emit
 		}
+		if !em.offlineValidators[chosenValidator] {
+			return false // chosen validator is online - don't emit
+		}
+		// otherwise try next validator in the sequence
+		skippedOfflineValidatorsCounter.Inc(1)
 	}
 	return false
 }
