@@ -43,6 +43,21 @@ func Pbl1RoutingConfig() RoutingConfig {
 				Type: "pebble-fsh",
 				Name: "events",
 			},
+			"evm/X": { // tx hash -> tx
+				Type: "pebble-fsh",
+				Name: "txs",
+				Table: "X",
+			},
+			"evm/x": { // tx hash -> tx position
+				Type: "pebble-fsh",
+				Name: "txs",
+				Table: "x",
+			},
+			"evm/r": { // block id -> receipts
+				Type: "pebble-fsh",
+				Name: "receipts",
+			},
+
 			"evm/M": {
 				Type: "pebble-drc",
 				Name: "evm-data",
