@@ -129,8 +129,11 @@ var (
 	usedPricedStalesGauge   = metrics.GetOrRegisterGauge("txpool/used/priced/stales", nil)
 	usedAllLocalsGauge      = metrics.GetOrRegisterGauge("txpool/used/all/locals", nil)
 	usedAllRemotesGauge     = metrics.GetOrRegisterGauge("txpool/used/all/remotes", nil)
+	usedPendingGauge     = metrics.GetOrRegisterGauge("txpool/used/pending", nil)
+	usedQueuedGauge     = metrics.GetOrRegisterGauge("txpool/used/queued", nil)
 
-	promotedTxsCounter = metrics.GetOrRegisterCounter("txpool_txs_promoted", nil)
+	promotedTxsCounter   = metrics.GetOrRegisterCounter("txpool_txs_promoted", nil)
+	failedEnqueueCounter = metrics.GetOrRegisterCounter("txpool_failed_enqueue", nil)
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -804,10 +807,9 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		pool.locals.add(from)
 		migrated := pool.all.RemoteToLocals(pool.locals) // Migrate the remotes if it's marked as local first time.
 		pool.priced.Removed(migrated)
-		localGauge.Inc(int64(migrated))
 	}
 	if isLocal {
-		localGauge.Inc(1)
+		localGauge.Update(int64(pool.all.LocalCount()))
 	}
 	pool.journalTx(from, tx)
 	pool.updateUsedGauges()
@@ -820,11 +822,14 @@ func (pool *TxPool) updateUsedGauges() {
 	usedPricedUrgentGauge.Update(int64(len(pool.priced.urgent.list)))
 	usedPricedFloatingGauge.Update(int64(len(pool.priced.floating.list)))
 	usedPricedStalesGauge.Update(int64(pool.priced.stales))
-	usedAllLocalsGauge.Update(int64(len(pool.all.locals)))
-	usedAllRemotesGauge.Update(int64(len(pool.all.remotes)))
+	usedAllLocalsGauge.Update(int64(pool.all.LocalCount()))
+	usedAllRemotesGauge.Update(int64(pool.all.RemoteCount()))
+	usedPendingGauge.Update(int64(len(pool.pending)))
+	usedQueuedGauge.Update(int64(len(pool.queue)))
 }
 
 // enqueueTx inserts a new transaction into the non-executable transaction queue.
+// Returns true if the new tx replaced an existing tx with the same nonce in the queue.
 //
 // Note, this method assumes the pool lock is held!
 func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction, local bool, addAll bool) (bool, error) {
@@ -835,7 +840,16 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction, local boo
 	}
 	inserted, old := pool.queue[from].Add(tx, pool.config.PriceBump)
 	if !inserted {
+		if old != nil && old.Hash() == hash {
+			log.Error("Trying to enqueue already queued tx", "hash", hash)
+			return true, nil // Not inserted because already present - act as if replaced
+		}
 		// An older transaction was better, discard this
+		if !addAll {
+			// discarded tx expected to be present in all/priced sets
+			pool.all.Remove(hash)
+			pool.priced.Removed(1)
+		}
 		queuedDiscardMeter.Mark(1)
 		return false, ErrReplaceUnderpriced
 	}
@@ -889,6 +903,10 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 
 	inserted, old := list.Add(tx, pool.config.PriceBump)
 	if !inserted {
+		if old != nil && old.Hash() == hash {
+			log.Warn("Trying to promote already pending tx", "hash", hash)
+			return false // Not inserted because already present
+		}
 		// An older transaction was better, discard this
 		pool.all.Remove(hash)
 		pool.priced.Removed(1)
@@ -1024,7 +1042,7 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) ([]error,
 		replaced, err := pool.add(tx, local)
 		errs[i] = err
 		if err == nil && !replaced {
-			dirty.addTx(tx)
+			dirty.addTx(tx) // request promotion for the sender
 		}
 	}
 	validTxMeter.Mark(int64(len(dirty.accounts)))
@@ -1097,8 +1115,10 @@ func (pool *TxPool) removeTx(hash common.Hash, removeFromPriced bool) {
 			// Postpone any invalidated transactions
 			for _, tx := range invalids {
 				// Internal shuffle shouldn't touch the lookup set.
-				_,_ = pool.enqueueTx(tx.Hash(), tx, false, false)
-				// err should not occur, as it cannot be replacing of existing tx in queue
+				if _, err := pool.enqueueTx(tx.Hash(), tx, false, false); err != nil {
+					log.Warn("Failed to enqueue tx invalidated by removing", "err", err)
+					failedEnqueueCounter.Inc(int64(1))
+				}
 				// local=false is OK, as it is ignored when addAll=false
 			}
 			// Update the account nonce if needed
@@ -1454,7 +1474,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		pool.priced.Removed(len(forwards) + len(drops) + len(caps))
 		queuedGauge.Dec(int64(len(forwards) + len(drops) + len(caps)))
 		if pool.locals.contains(addr) {
-			localGauge.Dec(int64(len(forwards) + len(drops) + len(caps)))
+			localGauge.Update(int64(pool.all.LocalCount()))
 		}
 		// Delete the entire queue entry if it became empty.
 		if list.Empty() {
@@ -1631,13 +1651,12 @@ func (pool *TxPool) demoteUnexecutables() {
 			log.Trace("Demoting pending transaction", "hash", hash)
 
 			// Internal shuffle shouldn't touch the lookup set.
-			pool.enqueueTx(hash, tx, false, false)
+			if _, err := pool.enqueueTx(hash, tx, false, false); err != nil {
+				log.Error("Failed to enqueue demoted tx", "err", err)
+				failedEnqueueCounter.Inc(1)
+			}
 		}
-		pool.priced.Removed(len(olds) + len(drops)) // invalid are only moved into queue
-		pendingGauge.Dec(int64(len(olds) + len(drops) + len(invalids)))
-		if pool.locals.contains(addr) {
-			localGauge.Dec(int64(len(olds) + len(drops) + len(invalids)))
-		}
+
 		// If there's a gap in front, alert (should never happen) and postpone all transactions
 		if list.Len() > 0 && list.txs.Get(nonce) == nil {
 			gapped := list.Cap(0)
@@ -1646,10 +1665,20 @@ func (pool *TxPool) demoteUnexecutables() {
 				log.Error("Demoting invalidated transaction", "hash", hash)
 
 				// Internal shuffle shouldn't touch the lookup set.
-				pool.enqueueTx(hash, tx, false, false)
+				if _, err := pool.enqueueTx(hash, tx, false, false); err != nil {
+					log.Error("Failed to enqueue invalidated tx", "err", err)
+					failedEnqueueCounter.Inc(1)
+				}
 			}
 			pendingGauge.Dec(int64(len(gapped)))
 		}
+
+		pool.priced.Removed(len(olds) + len(drops))
+		pendingGauge.Dec(int64(len(olds) + len(drops) + len(invalids)))
+		if pool.locals.contains(addr) {
+			localGauge.Update(int64(pool.all.LocalCount()))
+		}
+
 		// Delete the entire pending entry if it became empty.
 		if list.Empty() {
 			delete(pool.pending, addr)
