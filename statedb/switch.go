@@ -25,11 +25,12 @@ func InitializeStateDB(impl string, datadir string) error {
 			return fmt.Errorf("failed to create carmen dir")
 		}
 		params := carmen.Parameters{
-			Schema:    carmen.StateSchema(3),
 			Directory: datadir,
+			Variant:   "go-file",
+			Schema:    carmen.StateSchema(3),
 			Archive:   carmen.LevelDbArchive,
 		}
-		carmenState, err = carmen.NewGoCachedFileState(params)
+		carmenState, err = carmen.NewState(params)
 		if err != nil {
 			return fmt.Errorf("failed to create carmen state; %s", err)
 		}
@@ -72,19 +73,22 @@ func GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *sna
 	}
 }
 
-// GetRpcStateDb obtains archive StateDB for RPC requests evaluation
-func GetRpcStateDb(useLatest bool, blockNum *big.Int, stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
+func GetLatestRpcBlockNum() (uint64, error) {
 	if carmenState != nil {
-		if useLatest { // use read-only live state for latest or pending
-			stateDb := carmen.CreateNonCommittableStateDBUsing(carmenState)
-			return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
-		} else { // use archive state
-			stateDb, err := liveStateDb.GetArchiveStateDB(blockNum.Uint64())
-			if err != nil {
-				return nil, err
-			}
-			return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
+		return liveStateDb.GetLastArchiveBlockHeight()
+	}
+	return 0, nil
+}
+
+// GetRpcStateDb obtains archive StateDB for RPC requests evaluation
+func GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
+	if carmenState != nil {
+		// always use archive state (live state may mix data from various block heights)
+		stateDb, err := liveStateDb.GetArchiveStateDB(blockNum.Uint64())
+		if err != nil {
+			return nil, err
 		}
+		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
 	}

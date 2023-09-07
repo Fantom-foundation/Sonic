@@ -115,10 +115,19 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 // StateAndHeaderByNumberOrHash returns evm state and block header by block number or block hash, err if not exists.
 func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *evmcore.EvmHeader, error) {
 	var header *evmcore.EvmHeader
-	var useLatest = false
 	if number, ok := blockNrOrHash.Number(); ok && (number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber) {
+		// use current block from BlockEpochState table first
 		header = &b.state.CurrentBlock().EvmHeader
-		useLatest = true
+
+		// make sure the block is present in the archive
+		latestBlockNum, err := statedb.GetLatestRpcBlockNum()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get latest block number; %v", err)
+		}
+		if latestBlockNum != 0 && latestBlockNum < header.Number.Uint64() {
+			header = b.state.GetHeader(common.Hash{}, latestBlockNum)
+		}
+
 	} else if number, ok := blockNrOrHash.Number(); ok {
 		header = b.state.GetHeader(common.Hash{}, uint64(number))
 	} else if h, ok := blockNrOrHash.Hash(); ok {
@@ -133,7 +142,7 @@ func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockN
 	if header == nil {
 		return nil, nil, errors.New("header not found")
 	}
-	stateDb, err := statedb.GetRpcStateDb(useLatest, header.Number, header.Root, b.svc.store.evm.EvmState, b.svc.store.evm.Snaps)
+	stateDb, err := statedb.GetRpcStateDb(header.Number, header.Root, b.svc.store.evm.EvmState, b.svc.store.evm.Snaps)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -206,7 +206,7 @@ func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.H
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Copy() state.StateDbInterface { // used by tx_noncer
+func (c *CarmenStateDB) Copy() state.StateDbInterface {
 	return CreateCarmenStateDb(carmen.CreateStateDBUsing(carmenState))
 }
 
