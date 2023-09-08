@@ -7,7 +7,8 @@
     "MaxEventGas": 10028000000,
     "MaxEpochGas": 1500000000000,
     "ShortGasAllocPerSec": 5600000000000,
-    "LongGasAllocPerSec": 2800000000000
+    "LongGasAllocPerSec": 2800000000000,
+    "OverrideMinGasPrice": 10
   },
   "accounts": [
     {
