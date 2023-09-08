@@ -58,6 +58,7 @@ type Reader interface {
 	GetRules() opera.Rules
 	GetPendingRules() opera.Rules
 	PendingTxs() map[common.Address]types.Transactions
+	MinGasTip() *big.Int
 }
 
 type tipCache struct {
@@ -148,8 +149,9 @@ func (gpo *Oracle) suggestTip(certainty uint64) *big.Int {
 	}
 
 	tip := new(big.Int).Sub(combined, minPrice)
-	if tip.Sign() < 0 {
-		return new(big.Int)
+	minGasTip := gpo.backend.MinGasTip()
+	if tip.Cmp(minGasTip) < 0 {
+		return minGasTip
 	}
 	return tip
 }

@@ -58,6 +58,10 @@ func (t TestBackend) PendingTxs() map[common.Address]types.Transactions {
 	return txs
 }
 
+func (t TestBackend) MinGasTip() *big.Int {
+	return big.NewInt(0)
+}
+
 func TestOracle_EffectiveMinGasPrice(t *testing.T) {
 	backend := &TestBackend{
 		block:             1,

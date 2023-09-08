@@ -5,6 +5,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"math/big"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck/gaspowercheck"
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -39,6 +40,10 @@ func (b *GPOBackend) PendingTxs() map[common.Address]types.Transactions {
 		return map[common.Address]types.Transactions{}
 	}
 	return txs
+}
+
+func (b *GPOBackend) MinGasTip() *big.Int {
+	return b.txpool.GasPrice()
 }
 
 // TotalGasPowerLeft returns a total amount of obtained gas power by the validators, according to the latest events from each validator
