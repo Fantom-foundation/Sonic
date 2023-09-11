@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"math/big"
 	"math/rand"
 	"sort"
 	"sync"
@@ -74,6 +75,10 @@ func (p *dummyTxPool) Pending(enforceTips bool) (map[common.Address]types.Transa
 		sort.Sort(types.TxByNonce(batch))
 	}
 	return batches, nil
+}
+
+func (p *dummyTxPool) GasPrice() *big.Int {
+	return big.NewInt(0)
 }
 
 func (p *dummyTxPool) SubscribeNewTxsNotify(ch chan<- evmcore.NewTxsNotify) notify.Subscription {
