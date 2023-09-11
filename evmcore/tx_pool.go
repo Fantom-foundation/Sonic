@@ -1385,7 +1385,7 @@ func (pool *TxPool) reset(oldHead, newHead *EvmHeader) {
 		return
 	}
 	pool.currentState = statedb
-	pool.pendingNonces = newTxNoncer(statedb)
+	pool.pendingNonces = newTxNoncer(statedb, len(pool.pending)*2)
 	pool.currentMaxGas = pool.chain.MaxGasLimit()
 
 	// Inject any transactions discarded due to reorgs

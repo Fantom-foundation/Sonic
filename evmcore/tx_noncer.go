@@ -33,10 +33,10 @@ type txNoncer struct {
 }
 
 // newTxNoncer creates a new virtual state database to track the pool nonces.
-func newTxNoncer(statedb *state.StateDB) *txNoncer {
+func newTxNoncer(statedb *state.StateDB, initialSize int) *txNoncer {
 	return &txNoncer{
 		fallback: statedb,
-		nonces:   make(map[common.Address]uint64),
+		nonces:   make(map[common.Address]uint64, initialSize),
 	}
 }
 
