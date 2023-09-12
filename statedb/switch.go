@@ -35,12 +35,12 @@ func InitializeStateDB(impl string, datadir string) error {
 			return fmt.Errorf("failed to create carmen state; %s", err)
 		}
 		liveStateDb = carmen.CreateStateDBUsing(carmenState)
+
+		// measure the size of carmen directory
+		go metrics.MeasureDbDir("statedb/disksize", datadir)
 	} else if impl != "" && impl != "geth" {
 		return fmt.Errorf("statedb impl %s not supported", impl)
 	}
-
-	go metrics.MeasureDbDir("statedb/disksize", datadir)
-
 	return nil
 }
 
