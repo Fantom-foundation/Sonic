@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -21,27 +20,13 @@ func SetDataDir(datadir string) {
 
 func MeasureDbDir(name, datadir string) {
 	var (
-		dbSize int64
-		gauge  metrics.Gauge
-		rescan = (len(datadir) > 0 && datadir != "inmemory")
+		gauge = metrics.GetOrRegisterGauge(name, nil)
+		rescan = len(datadir) > 0 && datadir != "inmemory"
 	)
-	for {
-		time.Sleep(time.Second)
-
-		if rescan {
-			size := sizeOfDir(datadir)
-			atomic.StoreInt64(&dbSize, size)
-		}
-
-		if gauge == nil {
-			gauge = metrics.NewRegisteredFunctionalGauge(name, nil, func() int64 {
-				return atomic.LoadInt64(&dbSize)
-			})
-		}
-
-		if !rescan {
-			break
-		}
+	for rescan {
+		time.Sleep(time.Minute)
+		size := sizeOfDir(datadir)
+		gauge.Update(size)
 	}
 }
 
