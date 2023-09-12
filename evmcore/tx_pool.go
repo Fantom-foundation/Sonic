@@ -1274,6 +1274,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	// Ensure pool.queue and pool.pending sizes stay within the configured limits.
 	pool.truncatePending()
 	pool.truncateQueue()
+	pool.updateUsedGauges()
 
 	// Update all accounts to the latest known pending nonce
 	for addr, list := range pool.pending {
