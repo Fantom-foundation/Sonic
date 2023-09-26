@@ -130,6 +130,7 @@ func initFlags() {
 		DBPresetFlag,
 		DBMigrationModeFlag,
 		stateDbImplFlag,
+		archiveImplFlag,
 		vmImplFlag,
 	}
 	legacyRpcFlags = []cli.Flag{

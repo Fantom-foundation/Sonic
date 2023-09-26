@@ -16,31 +16,58 @@ import (
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
 
-func InitializeStateDB(impl string, datadir string) error {
-	if impl == "go-file" {
-		datadir = filepath.Join(datadir, "carmen")
-
-		err := os.MkdirAll(datadir, 0700)
-		if err != nil {
-			return fmt.Errorf("failed to create carmen dir")
+func InitializeStateDB(stateImpl string, archiveImpl string, datadir string) error {
+	if stateImpl == "" || stateImpl == "geth" {
+		if archiveImpl != "" {
+			return fmt.Errorf("using geth statedb with Carmen archive is not supported")
 		}
-		params := carmen.Parameters{
-			Directory: datadir,
-			Variant:   "go-file",
-			Schema:    carmen.StateSchema(3),
-			Archive:   carmen.LevelDbArchive,
-		}
-		carmenState, err = carmen.NewState(params)
-		if err != nil {
-			return fmt.Errorf("failed to create carmen state; %s", err)
-		}
-		liveStateDb = carmen.CreateStateDBUsing(carmenState)
-
-		// measure the size of carmen directory
-		go metrics.MeasureDbDir("statedb/disksize", datadir)
-	} else if impl != "" && impl != "geth" {
-		return fmt.Errorf("statedb impl %s not supported", impl)
+		return nil
 	}
+
+	var schema carmen.StateSchema
+	switch stateImpl {
+	case "carmen-s3":
+	case "go-file": // deprecated name, use "carmen-s3"
+		schema = carmen.StateSchema(3)
+	case "carmen-s5":
+		schema = carmen.StateSchema(5)
+	default:
+		return fmt.Errorf("unsupported statedb impl %s", stateImpl)
+	}
+
+	var archiveType carmen.ArchiveType
+	switch archiveImpl {
+	case "none":
+		archiveType = carmen.NoArchive
+	case "ldb":
+	case "":
+		archiveType = carmen.LevelDbArchive
+	case "s5":
+		archiveType = carmen.S5Archive
+	default:
+		return fmt.Errorf("unsupported archive impl %s", archiveImpl)
+	}
+
+	datadir = filepath.Join(datadir, "carmen")
+	err := os.MkdirAll(datadir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen dir; %v", err)
+	}
+
+	params := carmen.Parameters{
+		Directory: datadir,
+		Variant:   "go-file",
+		Schema:    schema,
+		Archive:   archiveType,
+	}
+	carmenState, err = carmen.NewState(params)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen state; %s", err)
+	}
+	liveStateDb = carmen.CreateStateDBUsing(carmenState)
+
+	// measure the size of carmen directory
+	go metrics.MeasureDbDir("statedb/disksize", datadir)
 	return nil
 }
 
@@ -73,6 +100,7 @@ func GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *sna
 	}
 }
 
+// GetLatestRpcBlockNum provides the last block number available in the archive. Returns 0 if not known.
 func GetLatestRpcBlockNum() (uint64, error) {
 	if carmenState != nil {
 		return liveStateDb.GetLastArchiveBlockHeight()
