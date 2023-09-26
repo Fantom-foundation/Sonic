@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var carmenState carmen.State
@@ -25,7 +26,7 @@ func InitializeStateDB(stateImpl string, archiveImpl string, datadir string) err
 	}
 
 	var schema carmen.StateSchema
-	switch stateImpl {
+	switch strings.ToLower(stateImpl) {
 	case "carmen-s3":
 	case "go-file": // deprecated name, use "carmen-s3"
 		schema = carmen.StateSchema(3)
@@ -36,7 +37,7 @@ func InitializeStateDB(stateImpl string, archiveImpl string, datadir string) err
 	}
 
 	var archiveType carmen.ArchiveType
-	switch archiveImpl {
+	switch strings.ToLower(archiveImpl) {
 	case "none":
 		archiveType = carmen.NoArchive
 	case "ldb":
