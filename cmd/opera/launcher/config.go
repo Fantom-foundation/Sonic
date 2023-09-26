@@ -65,7 +65,12 @@ var (
 
 	stateDbImplFlag = cli.StringFlag{
 		Name:  "statedb.impl",
-		Usage: "Implementation of StateDB to use (geth/go-file)",
+		Usage: "Implementation of StateDB to use (geth/carmen-s3/carmen-s5)",
+	}
+
+	archiveImplFlag = cli.StringFlag{
+		Name:  "archive.impl",
+		Usage: "Implementation of Carmen Archive to use (none/ldb/s5)",
 	}
 
 	vmImplFlag = cli.StringFlag{
@@ -572,7 +577,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
 
 	// StateDB initialization
-	if err := statedb.InitializeStateDB(ctx.GlobalString(stateDbImplFlag.Name), cfg.Node.DataDir); err != nil {
+	if err := statedb.InitializeStateDB(ctx.GlobalString(stateDbImplFlag.Name), ctx.GlobalString(archiveImplFlag.Name), cfg.Node.DataDir); err != nil {
 		return nil, fmt.Errorf("failed to initialize StateDB; %s", err)
 	}
 

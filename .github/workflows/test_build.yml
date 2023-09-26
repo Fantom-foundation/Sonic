@@ -9,7 +9,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: true
           token: ${{ secrets.ACCESS_TOKEN }}
 
       - name: Golang dependency
