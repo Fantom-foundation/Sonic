@@ -27,8 +27,7 @@ func InitializeStateDB(stateImpl string, archiveImpl string, datadir string) err
 
 	var schema carmen.StateSchema
 	switch strings.ToLower(stateImpl) {
-	case "carmen-s3":
-	case "go-file": // deprecated name, use "carmen-s3"
+	case "carmen-s3", "go-file": // "go-file" deprecated, use "carmen-s3"
 		schema = carmen.StateSchema(3)
 	case "carmen-s5":
 		schema = carmen.StateSchema(5)
@@ -40,8 +39,7 @@ func InitializeStateDB(stateImpl string, archiveImpl string, datadir string) err
 	switch strings.ToLower(archiveImpl) {
 	case "none":
 		archiveType = carmen.NoArchive
-	case "ldb":
-	case "":
+	case "ldb", "":
 		archiveType = carmen.LevelDbArchive
 	case "s5":
 		archiveType = carmen.S5Archive
