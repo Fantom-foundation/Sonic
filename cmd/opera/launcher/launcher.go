@@ -132,6 +132,7 @@ func initFlags() {
 		stateDbImplFlag,
 		archiveImplFlag,
 		vmImplFlag,
+		disableLogsFlag,
 	}
 	legacyRpcFlags = []cli.Flag{
 		utils.NoUSBFlag,
