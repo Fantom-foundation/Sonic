@@ -36,6 +36,8 @@ type (
 		Cache StoreCacheConfig
 		// Enables tracking of SHA3 preimages in the VM
 		EnablePreimageRecording bool
+		// Disables EVM logs indexing
+		DisableLogsIndexing bool
 	}
 )
 

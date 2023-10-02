@@ -77,7 +77,11 @@ func NewStore(dbs kvdb.DBProducer, cfg StoreConfig) *Store {
 	}
 
 	s.initEVMDB()
-	s.EvmLogs = topicsdb.NewWithThreadPool(dbs)
+	if cfg.DisableLogsIndexing {
+		s.EvmLogs = topicsdb.NewDummy()
+	} else {
+		s.EvmLogs = topicsdb.NewWithThreadPool(dbs)
+	}
 	s.initCache()
 
 	return s

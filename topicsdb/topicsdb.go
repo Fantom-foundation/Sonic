@@ -13,13 +13,13 @@ import (
 const maxTopicsCount = 5 // count is limited hard to 5 by EVM (see LOG0...LOG4 ops)
 
 var (
-	ErrEmptyTopics  = fmt.Errorf("empty topics")
-	ErrTooBigTopics = fmt.Errorf("too many topics")
+	ErrEmptyTopics     = fmt.Errorf("empty topics")
+	ErrTooBigTopics    = fmt.Errorf("too many topics")
+	ErrLogsNotRecorded = fmt.Errorf("logs are not being recorded")
 )
 
 type Index interface {
 	FindInBlocks(ctx context.Context, from, to idx.Block, pattern [][]common.Hash) (logs []*types.Log, err error)
-	ForEachInBlocks(ctx context.Context, from, to idx.Block, pattern [][]common.Hash, onLog func(*types.Log) (gonext bool)) error
 	Push(recs ...*types.Log) error
 	Close()
 
@@ -37,6 +37,10 @@ func New(dbs kvdb.DBProducer) Index {
 func NewWithThreadPool(dbs kvdb.DBProducer) Index {
 	tt := newIndex(dbs)
 	return &withThreadPool{tt}
+}
+
+func NewDummy() Index {
+	return &dummyIndex{}
 }
 
 func limitPattern(pattern [][]common.Hash) (limited [][]common.Hash, err error) {

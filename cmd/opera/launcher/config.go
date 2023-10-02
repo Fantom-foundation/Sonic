@@ -78,6 +78,11 @@ var (
 		Usage: "Implementation of EVM to use (geth/lfvm/lfvm-si)",
 	}
 
+	disableLogsFlag = cli.BoolFlag{
+		Name:  "noevmlogs",
+		Usage: "Disable recording of EVM logs",
+	}
+
 	// DataDirFlag defines directory to store Lachesis state and user's wallets
 	DataDirFlag = utils.DirectoryFlag{
 		Name:  "datadir",
@@ -584,6 +589,10 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	// Set default VM implementation
 	if impl := ctx.GlobalString(vmImplFlag.Name); impl != "" {
 		opera.DefaultVMConfig.InterpreterImpl = impl
+	}
+
+	if ctx.GlobalBool(disableLogsFlag.Name) {
+		cfg.OperaStore.EVM.DisableLogsIndexing = true
 	}
 
 	err = setValidator(ctx, &cfg.Emitter)
