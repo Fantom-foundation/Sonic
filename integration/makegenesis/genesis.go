@@ -65,14 +65,6 @@ func DefaultBlockProc() BlockProc {
 	}
 }
 
-func (b *GenesisBuilder) GetStateDB() *state.StateDB {
-	if b.tmpStateDB == nil {
-		tmpEvmStore := evmstore.NewStore(b.dbs, evmstore.LiteStoreConfig())
-		b.tmpStateDB, _ = tmpEvmStore.StateDB(hash.Zero)
-	}
-	return b.tmpStateDB
-}
-
 func (b *GenesisBuilder) AddBalance(acc common.Address, balance *big.Int) {
 	b.tmpStateDB.AddBalance(acc, balance)
 	b.totalSupply.Add(b.totalSupply, balance)

@@ -498,6 +498,7 @@ func (s *Service) ReexecuteBlocks(from, to idx.Block) {
 		txs := s.store.GetBlockTxs(b, block)
 		evmProcessor.Execute(txs)
 		evmProcessor.Finalize()
+		statedb.Release()
 		_ = s.store.evm.Commit(b, block.Root, false)
 		s.store.evm.Cap()
 		s.mayCommit(false)

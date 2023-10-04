@@ -120,11 +120,11 @@ func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockN
 		header = &b.state.CurrentBlock().EvmHeader
 
 		// make sure the block is present in the archive
-		latestBlockNum, err := statedb.GetLatestRpcBlockNum()
+		latestBlockNum, empty, err := statedb.GetArchiveBlockHeight()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get latest block number; %v", err)
 		}
-		if latestBlockNum != 0 && latestBlockNum < header.Number.Uint64() {
+		if !empty && latestBlockNum < header.Number.Uint64() {
 			header = b.state.GetHeader(common.Hash{}, latestBlockNum)
 		}
 
