@@ -41,7 +41,7 @@ func (br LlrFullBlockRecord) Hash() hash.Hash {
 		Atropos:      br.Atropos,
 		Root:         br.Root,
 		TxHash:       inter.CalcTxHash(br.Txs),
-		ReceiptsHash: inter.CalcReceiptsHash(br.Receipts),
+		//ReceiptsHash: inter.CalcReceiptsHash(br.Receipts),
 		Time:         br.Time,
 		GasUsed:      br.GasUsed,
 	}.Hash()

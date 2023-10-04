@@ -13,6 +13,10 @@ import (
 
 // SetReceipts stores transaction receipts.
 func (s *Store) SetReceipts(n idx.Block, receipts types.Receipts) {
+	if s.cfg.DisableReceiptsStoring {
+		return
+	}
+
 	receiptsStorage := make([]*types.ReceiptForStorage, receipts.Len())
 	for i, r := range receipts {
 		receiptsStorage[i] = (*types.ReceiptForStorage)(r)
@@ -26,6 +30,10 @@ func (s *Store) SetReceipts(n idx.Block, receipts types.Receipts) {
 
 // SetRawReceipts stores raw transaction receipts.
 func (s *Store) SetRawReceipts(n idx.Block, receipts []*types.ReceiptForStorage) (size int) {
+	if s.cfg.DisableReceiptsStoring {
+		return 0
+	}
+
 	buf, err := rlp.EncodeToBytes(receipts)
 	if err != nil {
 		s.Log.Crit("Failed to encode rlp", "err", err)
@@ -50,6 +58,10 @@ func (s *Store) GetRawReceiptsRLP(n idx.Block) rlp.RawValue {
 }
 
 func (s *Store) GetRawReceipts(n idx.Block) ([]*types.ReceiptForStorage, int) {
+	if s.cfg.DisableReceiptsStoring {
+		return nil, 0
+	}
+
 	buf := s.GetRawReceiptsRLP(n)
 	if buf == nil {
 		return nil, 0
@@ -74,6 +86,10 @@ func UnwrapStorageReceipts(receiptsStorage []*types.ReceiptForStorage, n idx.Blo
 
 // GetReceipts returns stored transaction receipts.
 func (s *Store) GetReceipts(n idx.Block, signer types.Signer, hash common.Hash, txs types.Transactions) types.Receipts {
+	if s.cfg.DisableReceiptsStoring {
+		return nil
+	}
+
 	// Get data from LRU cache first.
 	if s.cache.Receipts != nil {
 		if c, ok := s.cache.Receipts.Get(n); ok {
