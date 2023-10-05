@@ -282,7 +282,10 @@ func (s *Store) StateDB(from hash.Hash) (*state.StateDB, error) {
 
 // HasStateDB returns if state database exists
 func (s *Store) HasStateDB(from hash.Hash) bool {
-	_, err := s.StateDB(from)
+	db, err := s.StateDB(from)
+	if db != nil {
+		db.Release()
+	}
 	return err == nil
 }
 

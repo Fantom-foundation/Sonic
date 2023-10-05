@@ -688,6 +688,7 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	if state == nil || err != nil {
 		return nil, err
 	}
+	defer state.Release()
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
 }
 
@@ -715,6 +716,7 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 	if state == nil || err != nil {
 		return nil, err
 	}
+	defer state.Release()
 
 	storageTrie := state.StorageTrie(address)
 	storageHash := types.EmptyRootHash
@@ -879,6 +881,7 @@ func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Addres
 	if state == nil || err != nil {
 		return nil, err
 	}
+	defer state.Release()
 	code := state.GetCode(address)
 	return code, state.Error()
 }
@@ -891,6 +894,7 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	if state == nil || err != nil {
 		return nil, err
 	}
+	defer state.Release()
 	res := state.GetState(address, common.HexToHash(key))
 	return res[:], state.Error()
 }
@@ -954,6 +958,7 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 	if state == nil || err != nil {
 		return nil, err
 	}
+	defer state.Release()
 	if err := overrides.Apply(state); err != nil {
 		return nil, err
 	}
@@ -1087,6 +1092,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 		if state == nil || err != nil {
 			return 0, err
 		}
+		defer state.Release()
 		balance := state.GetBalance(*args.From) // from can't be nil
 		available := new(big.Int).Set(balance)
 		if args.Value != nil {
@@ -1475,6 +1481,7 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 	if db == nil || err != nil {
 		return nil, 0, nil, err
 	}
+	defer db.Release()
 	// If the gas amount is not set, extract this as it will depend on access
 	// lists and we'll need to reestimate every time
 	nogas := args.Gas == nil
@@ -1621,6 +1628,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 	if state == nil || err != nil {
 		return nil, err
 	}
+	defer state.Release()
 	nonce := state.GetNonce(address)
 	return (*hexutil.Uint64)(&nonce), state.Error()
 }

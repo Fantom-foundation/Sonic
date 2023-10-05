@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-func CreateCarmenStateDb(carmenStateDb carmen.StateDB) state.StateDbInterface {
+func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDbInterface {
 	return &CarmenStateDB{
 		db: carmenStateDb,
 	}
 }
 
 type CarmenStateDB struct {
-	db carmen.StateDB
+	db carmen.VmStateDB
 
 	// current block - set by BeginBlock
 	blockNum uint64
@@ -241,11 +241,15 @@ func (c *CarmenStateDB) Prepare(txHash common.Hash, txIndex int) {
 
 func (c *CarmenStateDB) BeginBlock(number uint64) {
 	c.blockNum = number
-	c.db.BeginBlock()
+	if db, ok := c.db.(carmen.StateDB); ok {
+		db.BeginBlock()
+	}
 }
 
 func (c *CarmenStateDB) EndBlock(number uint64) {
-	c.db.EndBlock(number)
+	if db, ok := c.db.(carmen.StateDB); ok {
+		db.EndBlock(number)
+	}
 }
 
 func (c *CarmenStateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
@@ -364,4 +368,10 @@ func (c *CarmenStateDB) GetSnapshotCommits() time.Duration {
 func (c *CarmenStateDB) GetSubstatePostAlloc() substate.SubstateAlloc {
 	//TODO implement me
 	return nil
+}
+
+func (c *CarmenStateDB) Release() {
+	if db, ok := c.db.(carmen.NonCommittableStateDB); ok {
+		db.Release()
+	}
 }

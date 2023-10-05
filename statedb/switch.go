@@ -99,12 +99,12 @@ func GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *sna
 	}
 }
 
-// GetLatestRpcBlockNum provides the last block number available in the archive. Returns 0 if not known.
-func GetLatestRpcBlockNum() (uint64, error) {
+// GetArchiveBlockHeight provides the last block number available in the archive. Returns 0 if not known.
+func GetArchiveBlockHeight() (height uint64, empty bool, err error) {
 	if carmenState != nil {
-		return liveStateDb.GetLastArchiveBlockHeight()
+		return liveStateDb.GetArchiveBlockHeight()
 	}
-	return 0, nil
+	return 0, true, nil
 }
 
 // GetRpcStateDb obtains archive StateDB for RPC requests evaluation
