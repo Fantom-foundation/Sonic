@@ -83,6 +83,11 @@ var (
 		Usage: "Disable recording of EVM logs",
 	}
 
+	disableTxHashesFlag = cli.BoolFlag{
+		Name:  "notxhashes",
+		Usage: "Disable indexing of tx hashes",
+	}
+
 	// DataDirFlag defines directory to store Lachesis state and user's wallets
 	DataDirFlag = utils.DirectoryFlag{
 		Name:  "datadir",
@@ -593,6 +598,10 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 
 	if ctx.GlobalBool(disableLogsFlag.Name) {
 		cfg.OperaStore.EVM.DisableLogsIndexing = true
+	}
+
+	if ctx.GlobalBool(disableTxHashesFlag.Name) {
+		cfg.OperaStore.EVM.DisableTxHashesIndexing = true
 	}
 
 	err = setValidator(ctx, &cfg.Emitter)
