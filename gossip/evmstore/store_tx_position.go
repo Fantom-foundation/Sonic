@@ -19,6 +19,10 @@ type TxPosition struct {
 
 // SetTxPosition stores transaction block and position.
 func (s *Store) SetTxPosition(txid common.Hash, position TxPosition) {
+	if s.cfg.DisableTxHashesIndexing {
+		return
+	}
+
 	s.rlp.Set(s.table.TxPositions, txid.Bytes(), &position)
 
 	// Add to LRU cache.
@@ -27,6 +31,10 @@ func (s *Store) SetTxPosition(txid common.Hash, position TxPosition) {
 
 // GetTxPosition returns stored transaction block and position.
 func (s *Store) GetTxPosition(txid common.Hash) *TxPosition {
+	if s.cfg.DisableTxHashesIndexing {
+		return nil
+	}
+
 	// Get data from LRU cache first.
 	if c, ok := s.cache.TxPositions.Get(txid.String()); ok {
 		if b, ok := c.(*TxPosition); ok {

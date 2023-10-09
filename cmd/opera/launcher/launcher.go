@@ -133,6 +133,7 @@ func initFlags() {
 		archiveImplFlag,
 		vmImplFlag,
 		disableLogsFlag,
+		disableTxHashesFlag,
 	}
 	legacyRpcFlags = []cli.Flag{
 		utils.NoUSBFlag,

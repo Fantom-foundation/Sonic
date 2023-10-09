@@ -38,6 +38,8 @@ type (
 		EnablePreimageRecording bool
 		// Disables EVM logs indexing
 		DisableLogsIndexing bool
+		// Disables storing of txs positions
+		DisableTxHashesIndexing bool
 	}
 )
 
