@@ -1,6 +1,7 @@
 package evmstore
 
 import (
+	"github.com/Fantom-foundation/Carmen/go/evmstore"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -40,6 +41,8 @@ type (
 		DisableLogsIndexing bool
 		// Disables storing of txs positions
 		DisableTxHashesIndexing bool
+		// Switch to using Carmen EvmStore instead of leveldb.
+		CarmenEvmStore evmstore.EvmStore `toml:"-"`
 	}
 )
 

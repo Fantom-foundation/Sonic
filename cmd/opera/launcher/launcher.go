@@ -134,6 +134,7 @@ func initFlags() {
 		vmImplFlag,
 		disableLogsFlag,
 		disableTxHashesFlag,
+		carmenEvmStoreFlag,
 	}
 	legacyRpcFlags = []cli.Flag{
 		utils.NoUSBFlag,
@@ -401,6 +402,11 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		}
 		if err := statedb.ShutdownStateDB(); err != nil {
 			log.Error("Failed to shutdown StateDB", "err", err)
+		}
+		if cfg.OperaStore.EVM.CarmenEvmStore != nil {
+			if err := cfg.OperaStore.EVM.CarmenEvmStore.Close(); err != nil {
+				log.Error("Failed to shutdown Carmen EvmStore", "err", err)
+			}
 		}
 	}
 }
