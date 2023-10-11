@@ -2,9 +2,12 @@ package gossip
 
 import (
 	"errors"
-
+	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -49,8 +52,12 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 	s.FlushBlockEpochState()
 
 	// write blocks
+	var lastBlock idx.Block
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
 		s.WriteFullBlockRecord(br)
+		if br.Idx > lastBlock {
+			lastBlock = br.Idx
+		}
 		return true
 	})
 
@@ -58,6 +65,27 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 	err = s.evm.ApplyGenesis(g)
 	if err != nil {
 		return genesisHash, err
+	}
+
+	// write EVM items into Carmen
+	if statedb.IsExternalStateDbUsed() {
+		for blockNum := idx.Block(1); blockNum <= lastBlock; blockNum++ {
+			block := s.GetBlock(blockNum)
+			if block == nil {
+				s.Log.Trace("Skipping missing block from import into StateDB", "index", blockNum)
+				continue
+			}
+			err = statedb.ImportTrieIntoStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(blockNum), common.Hash(block.Root))
+			if err != nil {
+				return genesisHash, fmt.Errorf("genesis import into StateDB failed at block %d; %v", blockNum, err)
+			}
+			stateHash := statedb.GetLiveStateHash()
+			if common.Hash(block.Root) == stateHash {
+				s.Log.Info("Imported block into StateDB", "index", blockNum, "root", block.Root)
+			} else {
+				s.Log.Warn("Imported block into StateDB with not-matching state hash", "index", blockNum, "root", block.Root, "realHash", stateHash)
+			}
+		}
 	}
 
 	// write LLR state
