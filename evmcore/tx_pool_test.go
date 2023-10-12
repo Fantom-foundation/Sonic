@@ -1349,7 +1349,7 @@ func TestTransactionCapClearsFromAll(t *testing.T) {
 		txs = append(txs, transaction(uint64(j), 100000, key))
 	}
 	// Import the batch and verify that limits have been enforced
-	pool.AddRemotes(txs)
+	pool.AddRemotesSync(txs)
 	if err := validateTxPoolInternals(pool); err != nil {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
@@ -2043,7 +2043,7 @@ func TestDualHeapEviction(t *testing.T) {
 				highCap = txs[i]
 			}
 		}
-		pool.AddRemotes(txs)
+		pool.AddRemotesSync(txs)
 		pending, queued := pool.Stats()
 		if pending+queued != 20 {
 			t.Fatalf("transaction count mismatch: have %d, want %d", pending+queued, 10)
