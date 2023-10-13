@@ -3,7 +3,6 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -392,10 +391,7 @@ func MakeProtocols(svc *Service, backend *handler, disc enode.Iterator) []p2p.Pr
 
 // Protocols returns protocols the service can communicate on.
 func (s *Service) Protocols() []p2p.Protocol {
-	protos := append(
-		MakeProtocols(s, s.handler, s.operaDialCandidates),
-		snap.MakeProtocols((*snapHandler)(s.handler), s.snapDialCandidates)...)
-	return protos
+	return MakeProtocols(s, s.handler, s.operaDialCandidates)
 }
 
 // APIs returns api methods the service wants to expose on rpc channels.
