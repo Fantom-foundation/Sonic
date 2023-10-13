@@ -781,27 +781,17 @@ func (h *handler) highestPeerProgress() PeerProgress {
 // handle is the callback invoked to manage the life cycle of a peer. When
 // this function terminates, the peer is disconnected.
 func (h *handler) handle(p *peer) error {
-	// If the peer has a `snap` extension, wait for it to connect so we can have
-	// a uniform initialization/teardown mechanism
-	snap, err := h.peers.WaitSnapExtension(p)
-	if err != nil {
-		p.Log().Error("Snapshot extension barrier failed", "err", err)
-		return err
-	}
 	useless := discfilter.Banned(p.Node().ID(), p.Node().Record())
-	if !useless && (!eligibleForSnap(p.Peer) || !strings.Contains(strings.ToLower(p.Name()), "opera")) {
+	if !useless && !strings.Contains(strings.ToLower(p.Name()), "opera") {
 		useless = true
 		discfilter.Ban(p.ID())
 	}
 	if !p.Peer.Info().Network.Trusted && useless && h.peers.UselessNum() >= h.maxPeers/10 {
 		// don't allow more than 10% of useless peers
+		p.Log().Trace("Rejecting peer as useless")
 		return p2p.DiscTooManyPeers
 	}
 	if !p.Peer.Info().Network.Trusted && useless {
-		if h.peers.UselessNum() >= h.maxPeers/10 {
-			// don't allow more than 10% of useless peers
-			return p2p.DiscTooManyPeers
-		}
 		p.SetUseless()
 	}
 
@@ -823,12 +813,13 @@ func (h *handler) handle(p *peer) error {
 
 	// Ignore maxPeers if this is a trusted peer
 	if h.peers.Len() >= h.maxPeers && !p.Peer.Info().Network.Trusted {
+		p.Log().Trace("Rejecting peer as maxPeers is exceeded")
 		return p2p.DiscTooManyPeers
 	}
 	p.Log().Debug("Peer connected", "name", p.Name())
 
 	// Register the peer locally
-	if err := h.peers.RegisterPeer(p, snap); err != nil {
+	if err := h.peers.RegisterPeer(p, nil); err != nil {
 		p.Log().Warn("Peer registration failed", "err", err)
 		return err
 	}
@@ -847,12 +838,6 @@ func (h *handler) handle(p *peer) error {
 		}
 		if err := h.brLeecher.RegisterPeer(p.id); err != nil {
 			p.Log().Warn("Leecher peer registration failed", "err", err)
-			return err
-		}
-	}
-	if snap != nil {
-		if err := h.snapLeecher.SnapSyncer.Register(snap); err != nil {
-			p.Log().Error("Failed to register peer in snap syncer", "err", err)
 			return err
 		}
 	}
