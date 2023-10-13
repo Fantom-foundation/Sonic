@@ -30,6 +30,9 @@ var DefaultVMConfig = vm.Config{
 	},
 }
 
+// OverrideMinGasPrice is a Norma specific override of MinGasPrice
+var OverrideMinGasPrice *big.Int
+
 // FakeGasPowerCoefficient multiplies gas limits in Fakenet - allows to increase the network throughput
 // by increasing the amount of gas per block, event, epoch and for each validator per second
 var FakeGasPowerCoefficient = uint64(1)
@@ -104,9 +107,6 @@ type EconomyRules struct {
 	Gas GasRules
 
 	MinGasPrice *big.Int
-
-	// norma specific override of MinGasPrice
-	OverrideMinGasPrice *big.Int
 
 	ShortGasPower GasPowerRules
 	LongGasPower  GasPowerRules
@@ -210,7 +210,6 @@ func DefaultEconomyRules() EconomyRules {
 		BlockMissedSlack: 50,
 		Gas:              DefaultGasRules(),
 		MinGasPrice:      big.NewInt(1e9),
-		OverrideMinGasPrice: big.NewInt(0),
 		ShortGasPower:    DefaultShortGasPowerRules(),
 		LongGasPower:     DefaulLongGasPowerRules(),
 	}

@@ -104,8 +104,8 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 		rules.Economy.LongGasPower.AllocPerSec = *json.Rules.LongGasAllocPerSec
 	}
 	if json.Rules.OverrideMinGasPrice != nil {
-		rules.Economy.OverrideMinGasPrice = big.NewInt(int64(*json.Rules.OverrideMinGasPrice))
-		rules.Economy.MinGasPrice = rules.Economy.OverrideMinGasPrice
+		opera.OverrideMinGasPrice = big.NewInt(int64(*json.Rules.OverrideMinGasPrice))
+		rules.Economy.MinGasPrice = opera.OverrideMinGasPrice
 	}
 
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
