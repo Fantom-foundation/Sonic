@@ -135,6 +135,7 @@ func initFlags() {
 		disableLogsFlag,
 		disableTxHashesFlag,
 		carmenEvmStoreFlag,
+		overrideMinGasPriceFlag,
 	}
 	legacyRpcFlags = []cli.Flag{
 		utils.NoUSBFlag,

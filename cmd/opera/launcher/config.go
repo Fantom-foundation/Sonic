@@ -7,6 +7,7 @@ import (
 	"github.com/Fantom-foundation/Carmen/go/evmstore"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/statedb"
+	"math/big"
 	"os"
 	"path"
 	"path/filepath"
@@ -68,12 +69,10 @@ var (
 		Name:  "statedb.impl",
 		Usage: "Implementation of StateDB to use (geth/carmen-s3/carmen-s5)",
 	}
-
 	archiveImplFlag = cli.StringFlag{
 		Name:  "archive.impl",
 		Usage: "Implementation of Carmen Archive to use (none/ldb/s5)",
 	}
-
 	vmImplFlag = cli.StringFlag{
 		Name:  "vm.impl",
 		Usage: "Implementation of EVM to use (geth/lfvm/lfvm-si)",
@@ -83,7 +82,6 @@ var (
 		Name:  "noevmlogs",
 		Usage: "Disable recording of EVM logs",
 	}
-
 	disableTxHashesFlag = cli.BoolFlag{
 		Name:  "notxhashes",
 		Usage: "Disable indexing of tx hashes",
@@ -92,6 +90,11 @@ var (
 	carmenEvmStoreFlag = cli.BoolFlag{
 		Name:  "carmenevmstore",
 		Usage: "Switch to using Carmen EvmStore for receipts and txs.",
+	}
+
+	overrideMinGasPriceFlag = cli.Uint64Flag{
+		Name: "overridemingasprice",
+		Usage: "Override the MinGasPrice with given value",
 	}
 
 	// DataDirFlag defines directory to store Lachesis state and user's wallets
@@ -600,6 +603,10 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	// Set default VM implementation
 	if impl := ctx.GlobalString(vmImplFlag.Name); impl != "" {
 		opera.DefaultVMConfig.InterpreterImpl = impl
+	}
+
+	if overrideMinGasPrice := ctx.GlobalUint64(overrideMinGasPriceFlag.Name); overrideMinGasPrice != 0 {
+		opera.OverrideMinGasPrice = big.NewInt(int64(overrideMinGasPrice))
 	}
 
 	if ctx.GlobalBool(disableLogsFlag.Name) {
