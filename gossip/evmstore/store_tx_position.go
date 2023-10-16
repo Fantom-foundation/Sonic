@@ -47,6 +47,7 @@ func (s *Store) GetTxPosition(txid common.Hash) *TxPosition {
 	txPosition, err := s.backend.GetTxPosition(txid)
 	if err != nil {
 		s.Log.Crit("Failed to get key-value", "err", err)
+		return nil
 	}
 
 	// Add to LRU cache.

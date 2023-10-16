@@ -76,7 +76,7 @@ func NewStore(dbs kvdb.DBProducer, cfg StoreConfig) *Store {
 	if cfg.CarmenEvmStore != nil {
 		s.backend = carmenBackend{cfg.CarmenEvmStore}
 	} else {
-		s.backend = defaultBackend{s}
+		s.backend = legacyBackend{s}
 	}
 
 	err := table.OpenTables(&s.table, dbs, "evm")

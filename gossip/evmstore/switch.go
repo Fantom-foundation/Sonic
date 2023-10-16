@@ -36,43 +36,43 @@ type Backend interface {
 	io.Closer
 }
 
-type defaultBackend struct {
+type legacyBackend struct {
 	s *Store
 }
 
-func (s defaultBackend) SetTxPosition(txid common.Hash, position TxPosition) error {
+func (s legacyBackend) SetTxPosition(txid common.Hash, position TxPosition) error {
 	s.s.rlp.Set(s.s.table.TxPositions, txid.Bytes(), &position)
 	return nil
 }
 
-func (s defaultBackend) GetTxPosition(txid common.Hash) (*TxPosition, error) {
+func (s legacyBackend) GetTxPosition(txid common.Hash) (*TxPosition, error) {
 	txPosition, _ := s.s.rlp.Get(s.s.table.TxPositions, txid.Bytes(), &TxPosition{}).(*TxPosition)
 	return txPosition, nil
 }
 
-func (s defaultBackend) SetTx(txid common.Hash, tx *types.Transaction) error {
+func (s legacyBackend) SetTx(txid common.Hash, tx *types.Transaction) error {
 	s.s.rlp.Set(s.s.table.Txs, txid.Bytes(), tx)
 	return nil
 }
 
-func (s defaultBackend) GetTx(txid common.Hash) (*types.Transaction, error) {
+func (s legacyBackend) GetTx(txid common.Hash) (*types.Transaction, error) {
 	tx, _ := s.s.rlp.Get(s.s.table.Txs, txid.Bytes(), &types.Transaction{}).(*types.Transaction)
 	return tx, nil
 }
 
-func (s defaultBackend) SetRawReceipts(n idx.Block, receipts []byte) error {
+func (s legacyBackend) SetRawReceipts(n idx.Block, receipts []byte) error {
 	return s.s.table.Receipts.Put(n.Bytes(), receipts)
 }
 
-func (s defaultBackend) GetRawReceipts(n idx.Block) ([]byte, error) {
+func (s legacyBackend) GetRawReceipts(n idx.Block) ([]byte, error) {
 	return s.s.table.Receipts.Get(n.Bytes())
 }
 
-func (s defaultBackend) Flush() error {
+func (s legacyBackend) Flush() error {
 	return nil
 }
 
-func (s defaultBackend) Close() error {
+func (s legacyBackend) Close() error {
 	return nil
 }
 

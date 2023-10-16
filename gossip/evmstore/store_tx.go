@@ -22,6 +22,7 @@ func (s *Store) GetTx(txid common.Hash) *types.Transaction {
 	tx, err := s.backend.GetTx(txid)
 	if err != nil {
 		s.Log.Crit("Failed to get tx", "err", err)
+		return nil
 	}
 	return tx
 }
@@ -44,7 +45,7 @@ func (s *Store) GetBlockTxs(n idx.Block, block inter.Block, getEventPayload func
 		tx := s.GetTx(txid)
 		if tx == nil {
 			log.Crit("Tx not found", "tx", txid.String())
-			continue
+			return nil
 		}
 		transactions = append(transactions, tx)
 	}
