@@ -68,15 +68,15 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 
 	// write EVM items into Carmen
 	if statedb.IsExternalStateDbUsed() {
-		err = statedb.ImportTrieIntoStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
+		err = statedb.ImportTrieIntoExternalStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
 		if err != nil {
 			return genesisHash, fmt.Errorf("genesis import into StateDB failed at block %d; %v", lastBlock.Idx, err)
 		}
-		stateHash := statedb.GetLiveStateHash()
+		stateHash := statedb.GetExternalStateDbHash()
 		if common.Hash(lastBlock.Root) == stateHash {
 			s.Log.Info("Imported block into StateDB", "index", lastBlock.Idx, "root", lastBlock.Root)
 		} else {
-			s.Log.Warn("Imported block into StateDB with not-matching state hash", "index", lastBlock.Idx, "root", lastBlock.Root, "realHash", stateHash)
+			s.Log.Warn("Imported block into StateDB with not-matching state hash", "index", lastBlock.Idx, "expectedHash", lastBlock.Root, "reproducedHash", stateHash)
 		}
 	}
 

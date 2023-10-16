@@ -22,14 +22,14 @@ func IsExternalStateDbUsed() bool {
 	return liveStateDb != nil
 }
 
-func GetLiveStateHash() common.Hash {
+func GetExternalStateDbHash() common.Hash {
 	if liveStateDb == nil {
 		return common.Hash{}
 	}
 	return common.Hash(liveStateDb.GetHash())
 }
 
-func ImportTrieIntoStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
+func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
 	if liveStateDb == nil {
 		return nil
 	}
