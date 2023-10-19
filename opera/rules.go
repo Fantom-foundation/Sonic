@@ -206,13 +206,18 @@ func FakeNetRules() Rules {
 
 // DefaultEconomyRules returns mainnet economy
 func DefaultEconomyRules() EconomyRules {
-	return EconomyRules{
+	rules := EconomyRules{
 		BlockMissedSlack: 50,
 		Gas:              DefaultGasRules(),
 		MinGasPrice:      big.NewInt(1e9),
 		ShortGasPower:    DefaultShortGasPowerRules(),
 		LongGasPower:     DefaulLongGasPowerRules(),
 	}
+	// hack for performance testing
+	if OverrideMinGasPrice != nil && OverrideMinGasPrice.Sign() > 0 {
+		rules.MinGasPrice = OverrideMinGasPrice
+	}
+	return rules
 }
 
 // FakeEconomyRules returns fakenet economy
