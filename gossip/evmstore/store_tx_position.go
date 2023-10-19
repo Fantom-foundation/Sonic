@@ -23,7 +23,9 @@ func (s *Store) SetTxPosition(txid common.Hash, position TxPosition) {
 		return
 	}
 
-	s.rlp.Set(s.table.TxPositions, txid.Bytes(), &position)
+	if err := s.backend.SetTxPosition(txid, position); err != nil {
+		s.Log.Crit("Failed to put key-value", "err", err)
+	}
 
 	// Add to LRU cache.
 	s.cache.TxPositions.Add(txid.String(), &position, nominalSize)
@@ -42,7 +44,11 @@ func (s *Store) GetTxPosition(txid common.Hash) *TxPosition {
 		}
 	}
 
-	txPosition, _ := s.rlp.Get(s.table.TxPositions, txid.Bytes(), &TxPosition{}).(*TxPosition)
+	txPosition, err := s.backend.GetTxPosition(txid)
+	if err != nil {
+		s.Log.Crit("Failed to get key-value", "err", err)
+		return nil
+	}
 
 	// Add to LRU cache.
 	if txPosition != nil {

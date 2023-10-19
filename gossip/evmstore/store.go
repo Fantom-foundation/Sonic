@@ -45,6 +45,8 @@ type Store struct {
 	EvmLogs  topicsdb.Index
 	Snaps    *snapshot.Tree
 
+	backend Backend
+
 	cache struct {
 		TxPositions *wlru.Cache `cache:"-"` // store by pointer
 		Receipts    *wlru.Cache `cache:"-"` // store by value
@@ -69,6 +71,12 @@ func NewStore(dbs kvdb.DBProducer, cfg StoreConfig) *Store {
 		Instance: logger.New("evm-store"),
 		rlp:      rlpstore.Helper{logger.New("rlp")},
 		triegc:   prque.New(nil),
+	}
+
+	if cfg.CarmenEvmStore != nil {
+		s.backend = carmenBackend{cfg.CarmenEvmStore}
+	} else {
+		s.backend = legacyBackend{s}
 	}
 
 	err := table.OpenTables(&s.table, dbs, "evm")
