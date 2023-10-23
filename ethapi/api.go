@@ -2158,6 +2158,7 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 	evmconfig.Tracer = tracer
 	evmconfig.Debug = true
 	evmconfig.NoBaseFee = true
+	evmconfig.InterpreterImpl = "geth" // use always geth, as lfvm does not support tracing now
 	vmenv := vm.NewEVM(vmctx, txContext, statedb, api.b.ChainConfig(), evmconfig)
 
 	// Call Prepare to clear out the statedb access list
