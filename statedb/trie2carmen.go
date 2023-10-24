@@ -33,7 +33,20 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 	if liveStateDb == nil {
 		return nil
 	}
-	bulk := liveStateDb.StartBulkLoad(blockNum)
+	var currentBlock uint64 = 1
+	var accountsCount, slotsCount uint64 = 0, 0
+	bulk := liveStateDb.StartBulkLoad(currentBlock)
+
+	restartBulkIfNeeded := func () error {
+		if (accountsCount + slotsCount) % 1_000_000 == 0 && currentBlock < blockNum {
+			if err := bulk.Close(); err != nil {
+				return err
+			}
+			currentBlock++
+			bulk = liveStateDb.StartBulkLoad(currentBlock)
+		}
+		return nil
+	}
 
 	triedb := trie.NewDatabase(chaindb)
 	t, err := trie.NewSecure(root, triedb)
@@ -42,7 +55,7 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 	}
 	preimages := table.New(evmDb, []byte("secure-key-"))
 
-	accountsCount, slotsCount := 0,0
+
 
 	accIter := t.NodeIterator(nil)
 	for accIter.Next(true) {
@@ -62,7 +75,7 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 			bulk.CreateAccount(address)
 			bulk.SetNonce(address, acc.Nonce)
 			bulk.SetBalance(address, acc.Balance)
-			accountsCount++
+
 
 			if !bytes.Equal(acc.CodeHash, EmptyCode) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
@@ -94,14 +107,22 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 
 						bulk.SetState(address, key, value)
 						slotsCount++
+						if err := restartBulkIfNeeded(); err != nil {
+							return err
+						}
 					}
 				}
 				if storageIt.Error() != nil {
 					return fmt.Errorf("failed to iterate storage trie; %v", storageIt.Error())
 				}
 			}
+
+			accountsCount++
+			if err := restartBulkIfNeeded(); err != nil {
+				return err
+			}
 		}
 	}
-	fmt.Printf("Imported %d accounts and %d slots\n", accountsCount, slotsCount)
+	fmt.Printf("Imported %d accounts and %d slots into %d blocks\n", accountsCount, slotsCount, currentBlock)
 	return bulk.Close()
 }
