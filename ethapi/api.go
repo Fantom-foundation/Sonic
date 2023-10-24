@@ -22,9 +22,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	"math/big"
-	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -2209,6 +2207,7 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 
 // txTraceResult is the result of a single transaction trace.
 type txTraceResult struct {
+	TxHash common.Hash `json:"txHash"`           // transaction hash
 	Result interface{} `json:"result,omitempty"` // Trace results produced by the tracer
 	Error  string      `json:"error,omitempty"`  // Trace failure produced by the tracer
 }
@@ -2268,80 +2267,39 @@ func (api *PublicDebugAPI) blockByHash(ctx context.Context, hash common.Hash) (*
 
 // traceBlock configures a new tracer according to the provided configuration, and
 // executes all the transactions contained within. The return value will be one item
-// per transaction, dependent on the requestd tracer.
+// per transaction, dependent on the requested tracer.
 func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlock, config *TraceConfig) ([]*txTraceResult, error) {
 	if block.NumberU64() == 0 {
 		return nil, errors.New("genesis is not traceable")
 	}
-	statedb, _, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
+	statedb, blockHeader, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, err
 	}
-	// Execute all the transaction contained within the block concurrently
+	defer statedb.Release()
+
 	var (
-		signer  = types.MakeSigner(api.b.ChainConfig(), block.Number)
-		txs     = block.Transactions
-		results = make([]*txTraceResult, len(txs))
-
-		pend = new(sync.WaitGroup)
-		jobs = make(chan *txTraceTask, len(txs))
+		txs       = block.Transactions
+		blockHash = block.Hash
+		is158orBz = api.b.ChainConfig().IsByzantium(block.Number) || api.b.ChainConfig().IsEIP158(block.Number)
+		signer    = types.MakeSigner(api.b.ChainConfig(), block.Number)
+		results   = make([]*txTraceResult, len(txs))
 	)
-	threads := runtime.NumCPU()
-	if threads > len(txs) {
-		threads = len(txs)
-	}
-
-	blockHeader := block.Header()
-	blockHash := block.Hash
-	for th := 0; th < threads; th++ {
-		pend.Add(1)
-		go func() {
-			defer pend.Done()
-
-			// Fetch and execute the next transaction trace tasks
-			for task := range jobs {
-				msg, _ := evmcore.TxAsMessage(txs[task.index], signer, block.BaseFee)
-				txctx := &tracers.Context{
-					BlockHash: blockHash,
-					TxIndex:   task.index,
-					TxHash:    txs[task.index].Hash(),
-				}
-				res, err := api.traceTx(ctx, msg, txctx, blockHeader, task.statedb, config)
-				if err != nil {
-					results[task.index] = &txTraceResult{Error: err.Error()}
-					continue
-				}
-				results[task.index] = &txTraceResult{Result: res}
-			}
-		}()
-	}
-	// Feed the transactions into the tracers and return
-	var failed error
 	for i, tx := range txs {
-		// Send the trace task over for execution
-		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
-
-		// Generate the next state snapshot fast without tracing
 		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
-		statedb.Prepare(tx.Hash(), i)
-		vmenv, _, err := api.b.GetEVM(ctx, msg, statedb, blockHeader, &opera.DefaultVMConfig)
+		txctx := &tracers.Context{
+			BlockHash: blockHash,
+			TxIndex:   i,
+			TxHash:    tx.Hash(),
+		}
+		res, err := api.traceTx(ctx, msg, txctx, blockHeader, statedb, config)
 		if err != nil {
-			failed = err
-			break
+			return nil, err
 		}
-		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.Gas())); err != nil {
-			failed = err
-			break
-		}
+		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
 		// Finalize the state so any modifications are written to the trie
-		statedb.Finalise(vmenv.ChainConfig().IsByzantium(block.Number) || vmenv.ChainConfig().IsEIP158(block.Number))
-	}
-	close(jobs)
-	pend.Wait()
-
-	// If execution failed in between, abort
-	if failed != nil {
-		return nil, failed
+		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
+		statedb.Finalise(is158orBz)
 	}
 	return results, nil
 }
