@@ -2227,26 +2227,6 @@ type txTraceTask struct {
 // TraceBlockByNumber returns the structured logs created during the execution of
 // EVM and returns them as a JSON object.
 func (api *PublicDebugAPI) TraceBlockByNumber(ctx context.Context, number rpc.BlockNumber, config *TraceConfig) ([]*txTraceResult, error) {
-	block, err := api.blockByNumber(ctx, number)
-	if err != nil {
-		return nil, err
-	}
-	return api.traceBlock(ctx, block, config)
-}
-
-// TraceBlockByHash returns the structured logs created during the execution of
-// EVM and returns them as a JSON object.
-func (api *PublicDebugAPI) TraceBlockByHash(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error) {
-	block, err := api.blockByHash(ctx, hash)
-	if err != nil {
-		return nil, err
-	}
-	return api.traceBlock(ctx, block, config)
-}
-
-// blockByNumber is the wrapper of the chain access function offered by the backend.
-// It will return an error if the block is not found.
-func (api *PublicDebugAPI) blockByNumber(ctx context.Context, number rpc.BlockNumber) (*evmcore.EvmBlock, error) {
 	block, err := api.b.BlockByNumber(ctx, number)
 	if err != nil {
 		return nil, err
@@ -2254,12 +2234,12 @@ func (api *PublicDebugAPI) blockByNumber(ctx context.Context, number rpc.BlockNu
 	if block == nil {
 		return nil, fmt.Errorf("block #%d not found", number)
 	}
-	return block, nil
+	return api.traceBlock(ctx, block, config)
 }
 
-// blockByHash is the wrapper of the chain access function offered by the backend.
-// It will return an error if the block is not found.
-func (api *PublicDebugAPI) blockByHash(ctx context.Context, hash common.Hash) (*evmcore.EvmBlock, error) {
+// TraceBlockByHash returns the structured logs created during the execution of
+// EVM and returns them as a JSON object.
+func (api *PublicDebugAPI) TraceBlockByHash(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error) {
 	block, err := api.b.BlockByHash(ctx, hash)
 	if err != nil {
 		return nil, err
@@ -2267,7 +2247,7 @@ func (api *PublicDebugAPI) blockByHash(ctx context.Context, hash common.Hash) (*
 	if block == nil {
 		return nil, fmt.Errorf("block %s not found", hash.Hex())
 	}
-	return block, nil
+	return api.traceBlock(ctx, block, config)
 }
 
 // traceBlock configures a new tracer according to the provided configuration, and
@@ -2287,7 +2267,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 		txs       = block.Transactions
 		blockHash = block.Hash
 		is158orBz = api.b.ChainConfig().IsByzantium(block.Number) || api.b.ChainConfig().IsEIP158(block.Number)
-		signer    = types.MakeSigner(api.b.ChainConfig(), block.Number)
+		signer    = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number))
 		results   = make([]*txTraceResult, len(txs))
 	)
 	for i, tx := range txs {
