@@ -42,6 +42,8 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 	}
 	preimages := table.New(evmDb, []byte("secure-key-"))
 
+	accountsCount, slotsCount := 0,0
+
 	accIter := t.NodeIterator(nil)
 	for accIter.Next(true) {
 		if accIter.Leaf() {
@@ -60,6 +62,7 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 			bulk.CreateAccount(address)
 			bulk.SetNonce(address, acc.Nonce)
 			bulk.SetBalance(address, acc.Balance)
+			accountsCount++
 
 			if !bytes.Equal(acc.CodeHash, EmptyCode) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
@@ -90,14 +93,15 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 						value := cc.Value(common.BytesToHash(valueBytes))
 
 						bulk.SetState(address, key, value)
+						slotsCount++
 					}
 				}
 				if storageIt.Error() != nil {
 					return fmt.Errorf("failed to iterate storage trie; %v", storageIt.Error())
 				}
 			}
-
 		}
 	}
+	fmt.Printf("Imported %d accounts and %d slots\n", accountsCount, slotsCount)
 	return bulk.Close()
 }
