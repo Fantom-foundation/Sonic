@@ -2102,6 +2102,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 	if err != nil {
 		return nil, err
 	}
+	defer statedb.Release()
 
 	txctx := &tracers.Context{
 		BlockHash: block.Hash,
@@ -2132,6 +2133,10 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 			if timeout, err = time.ParseDuration(*config.Timeout); err != nil {
 				return nil, err
 			}
+		}
+		// Cap the timeout with a timeout configured for one eth_call
+		if rpcTimeout := api.b.RPCEVMTimeout(); rpcTimeout != 0 && rpcTimeout < timeout {
+			timeout = rpcTimeout
 		}
 		if t, err := tracers.New(*config.Tracer, txctx); err != nil {
 			return nil, err
@@ -2334,12 +2339,12 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 		}
 		statedb.Prepare(tx.Hash(), idx)
 		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(tx.Gas())); err != nil {
-			return nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
+			return nil, statedb, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state
 		statedb.Finalise(vmenv.ChainConfig().IsByzantium(block.Number) || vmenv.ChainConfig().IsEIP158(block.Number))
 	}
-	return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	return nil, statedb, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
 }
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
