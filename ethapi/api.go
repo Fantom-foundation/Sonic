@@ -2100,7 +2100,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 		return nil, errors.New("cannot get block from db")
 	}
 
-	msg, vmctx, statedb, err := api.stateAtTransaction(ctx, block, int(index))
+	msg, statedb, err := api.stateAtTransaction(ctx, block, int(index))
 	if err != nil {
 		return nil, err
 	}
@@ -2111,18 +2111,17 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 		TxHash:    hash,
 	}
 
-	return api.traceTx(ctx, msg, txctx, vmctx, statedb, config)
+	return api.traceTx(ctx, msg, txctx, block.Header(), statedb, config)
 }
 
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
 	// Assemble the structured logger or the JavaScript tracer
 	var (
 		tracer    vm.Tracer
 		err       error
-		txContext = evmcore.NewEVMTxContext(message)
 	)
 
 	switch {
@@ -2159,7 +2158,10 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 	evmconfig.Debug = true
 	evmconfig.NoBaseFee = true
 	evmconfig.InterpreterImpl = "geth" // use always geth, as lfvm does not support tracing now
-	vmenv := vm.NewEVM(vmctx, txContext, statedb, api.b.ChainConfig(), evmconfig)
+	vmenv, _, err := api.b.GetEVM(ctx, message, statedb, blockHeader, &evmconfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get EVM for tracing: %w", err)
+	}
 
 	// Call Prepare to clear out the statedb access list
 	statedb.Prepare(txctx.TxHash, txctx.TxIndex)
@@ -2295,17 +2297,16 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 		pend.Add(1)
 		go func() {
 			defer pend.Done()
-			blockCtx := api.b.GetBlockContext(blockHeader)
 
 			// Fetch and execute the next transaction trace tasks
 			for task := range jobs {
-				msg, _ := txs[task.index].AsMessage(signer, block.BaseFee)
+				msg, _ := evmcore.TxAsMessage(txs[task.index], signer, block.BaseFee)
 				txctx := &tracers.Context{
 					BlockHash: blockHash,
 					TxIndex:   task.index,
 					TxHash:    txs[task.index].Hash(),
 				}
-				res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, config)
+				res, err := api.traceTx(ctx, msg, txctx, blockHeader, task.statedb, config)
 				if err != nil {
 					results[task.index] = &txTraceResult{Error: err.Error()}
 					continue
@@ -2315,16 +2316,19 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 		}()
 	}
 	// Feed the transactions into the tracers and return
-	blockCtx := api.b.GetBlockContext(blockHeader)
 	var failed error
 	for i, tx := range txs {
 		// Send the trace task over for execution
 		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
 
 		// Generate the next state snapshot fast without tracing
-		msg, _ := tx.AsMessage(signer, block.BaseFee)
+		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
 		statedb.Prepare(tx.Hash(), i)
-		vmenv := vm.NewEVM(blockCtx, evmcore.NewEVMTxContext(msg), statedb, api.b.ChainConfig(), opera.DefaultVMConfig)
+		vmenv, _, err := api.b.GetEVM(ctx, msg, statedb, blockHeader, &opera.DefaultVMConfig)
+		if err != nil {
+			failed = err
+			break
+		}
 		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.Gas())); err != nil {
 			failed = err
 			break
@@ -2343,40 +2347,41 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 }
 
 // stateAtTransaction returns the execution environment of a certain transaction.
-func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex int) (evmcore.Message, vm.BlockContext, *state.StateDB, error) {
+func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex int) (evmcore.Message, *state.StateDB, error) {
 	// Short circuit if it's genesis block.
 	if block.NumberU64() == 0 {
-		return nil, vm.BlockContext{}, nil, errors.New("no transaction in genesis")
+		return nil, nil, errors.New("no transaction in genesis")
 	}
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
 	statedb, _, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
-		return nil, vm.BlockContext{}, nil, err
+		return nil, nil, err
 	}
 	if txIndex == 0 && len(block.Transactions) == 0 {
-		return nil, vm.BlockContext{}, statedb, nil
+		return nil, statedb, nil
 	}
 	// Recompute transactions up to the target index.
 	signer := gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number))
 	for idx, tx := range block.Transactions {
 		// Assemble the transaction call message and return if the requested offset
-		msg, _ := tx.AsMessage(signer, block.BaseFee)
-		txContext := evmcore.NewEVMTxContext(msg)
-		context := api.b.GetBlockContext(block.Header())
+		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
 		if idx == txIndex {
-			return msg, context, statedb, nil
+			return msg, statedb, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewEVM(context, txContext, statedb, api.b.ChainConfig(), opera.DefaultVMConfig)
+		vmenv, _, err := api.b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
+		if err != nil {
+			return msg, statedb, err
+		}
 		statedb.Prepare(tx.Hash(), idx)
 		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(tx.Gas())); err != nil {
-			return nil, vm.BlockContext{}, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
+			return nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state
 		statedb.Finalise(vmenv.ChainConfig().IsByzantium(block.Number) || vmenv.ChainConfig().IsEIP158(block.Number))
 	}
-	return nil, vm.BlockContext{}, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
 }
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
