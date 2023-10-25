@@ -105,9 +105,9 @@ func (b *GenesisBuilder) CurrentHash() hash.Hash {
 
 func NewGenesisBuilder(dbs kvdb.DBProducer) *GenesisBuilder {
 	tmpEvmStore := evmstore.NewStore(dbs, evmstore.LiteStoreConfig())
-	statedb, err := statedb.GetLiveStateDb(hash.Zero, tmpEvmStore.EvmState, tmpEvmStore.Snaps)
+	statedb, err := statedb.GetGenesisStateDb(tmpEvmStore.EvmState, tmpEvmStore.Snaps)
 	if err != nil {
-		panic(fmt.Errorf("failed to create StateDB: %v", err))
+		panic(fmt.Errorf("failed to create StateDB for GenesisBuilder: %v", err))
 	}
 	return &GenesisBuilder{
 		dbs:         dbs,
