@@ -263,6 +263,7 @@ func (tr *TraceStructLogger) CaptureExit(output []byte, gasUsed uint64, err erro
 	log.Debug("TraceStructLogger Capture Exit", "tx hash", tr.tx.String(), "output", string(output), "gasUsed", gasUsed, "error", err)
 
 	if tr.rootTrace == nil {
+		log.Debug("There is no root trace when CaptureExit", "tx hash", tr.tx.String())
 		return
 	}
 
