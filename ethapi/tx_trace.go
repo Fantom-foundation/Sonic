@@ -163,7 +163,7 @@ func (s *PublicTxTraceAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 
 		} else if txHash != nil {
 
-			// Generate the next state snapshot fast without tracing
+			// Replay transaction without tracing to prepare state for next transaction
 			log.Debug("Replaying transaction without trace", "txHash", tx.Hash().String())
 			msg, err := evmcore.TxAsMessage(tx, signer, block.BaseFee)
 			if err != nil {
