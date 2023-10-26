@@ -368,14 +368,14 @@ func (callTrace *CallTrace) AddTrace(blockTrace *ActionTrace) {
 // AddTraces Append traces to call trace list
 func (callTrace *CallTrace) AddTraces(traces *[]ActionTrace, traceIndex *[]hexutil.Uint) {
 	for _, trace := range *traces {
-		if traceIndex == nil || equalContent(traceIndex, trace.TraceAddress) {
+		if traceIndex == nil || isIndexEqual(traceIndex, trace.TraceAddress) {
 			callTrace.AddTrace(&trace)
 		}
 	}
 }
 
-// equalContent tells whether index and traceIndex are the same
-func equalContent(index *[]hexutil.Uint, traceIndex []uint32) bool {
+// isIndexEqual tells whether index and traceIndex are the same
+func isIndexEqual(index *[]hexutil.Uint, traceIndex []uint32) bool {
 	if len(*index) != len(traceIndex) {
 		return false
 	}
