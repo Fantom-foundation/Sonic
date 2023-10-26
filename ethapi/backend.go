@@ -159,6 +159,12 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Service:   NewPublicAbftAPI(apiBackend),
 			Public:    true,
 		},
+		{
+			Namespace: "trace",
+			Version:   "1.0",
+			Service:   NewPublicTxTraceAPI(apiBackend),
+			Public:    true,
+		},
 	}
 
 	// NOTE: eth-namespace is doubled as ftm-namespace for branding purpose
