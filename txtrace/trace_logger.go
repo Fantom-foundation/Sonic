@@ -268,11 +268,12 @@ func (tr *TraceStructLogger) CaptureExit(output []byte, gasUsed uint64, err erro
 
 	size := len(tr.rootTrace.Stack)
 	if size <= 1 {
+		log.Debug("CaptureExit does not match with number of CaptureEnter", "tx hash", tr.tx.String())
 		return
 	}
 
-	trace := tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
-	tr.rootTrace.Stack = tr.rootTrace.Stack[:len(tr.rootTrace.Stack)-1]
+	trace := tr.rootTrace.Stack[size-1]
+	tr.rootTrace.Stack = tr.rootTrace.Stack[:size-1]
 
 	parent := tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
 	parent.childTraces = append(parent.childTraces, trace)
