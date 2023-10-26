@@ -149,7 +149,7 @@ func (tr *TraceStructLogger) CaptureStart(env *vm.EVM, from common.Address, to c
 			log.Error("Tracer CaptureStart failed", r)
 		}
 	}()
-	log.Debug("TraceStructLogger Capture Enter", "tx hash", tr.tx.String(), "create", create, "from", from.String(), "to", to.String(), "input", string(input), "gas", gas, "value", value.String())
+	log.Trace("TraceStructLogger Capture Enter", "tx hash", tr.tx.String(), "create", create, "from", from.String(), "to", to.String(), "input", string(input), "gas", gas, "value", value.String())
 
 	// Create main trace holder
 	txTrace := CallTrace{
@@ -209,7 +209,7 @@ func (tr *TraceStructLogger) CaptureEnter(op vm.OpCode, from common.Address, to 
 			log.Error("Tracer CaptureState failed", r)
 		}
 	}()
-	log.Debug("TraceStructLogger Capture Enter", "tx hash", tr.tx.String(), "op code", op.String(), "from", from.String(), "to", to.String(), "input", string(input), "gas", gas, "value", value.String())
+	log.Trace("TraceStructLogger Capture Enter", "tx hash", tr.tx.String(), "op code", op.String(), "from", from.String(), "to", to.String(), "input", string(input), "gas", gas, "value", value.String())
 	var (
 		fromTrace *ActionTrace
 		trace     *ActionTrace
@@ -260,7 +260,7 @@ func (tr *TraceStructLogger) CaptureExit(output []byte, gasUsed uint64, err erro
 			log.Error("Tracer CaptureExit failed", r)
 		}
 	}()
-	log.Debug("TraceStructLogger Capture Exit", "tx hash", tr.tx.String(), "output", string(output), "gasUsed", gasUsed, "error", err)
+	log.Trace("TraceStructLogger Capture Exit", "tx hash", tr.tx.String(), "output", string(output), "gasUsed", gasUsed, "error", err)
 
 	if tr.rootTrace == nil {
 		log.Debug("There is no root trace when CaptureExit", "tx hash", tr.tx.String())
@@ -294,7 +294,7 @@ func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Du
 			log.Error("Tracer CaptureEnd failed", r)
 		}
 	}()
-	log.Debug("TraceStructLogger Capture END", "tx hash", tr.tx.String(), "duration", t, "gasUsed", gasUsed, "error", err)
+	log.Trace("TraceStructLogger Capture END", "tx hash", tr.tx.String(), "duration", t, "gasUsed", gasUsed, "error", err)
 
 	if tr.rootTrace != nil && tr.rootTrace.lastTrace() != nil {
 
