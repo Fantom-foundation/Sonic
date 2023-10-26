@@ -211,42 +211,41 @@ func (tr *TraceStructLogger) CaptureEnter(op vm.OpCode, from common.Address, to 
 	}()
 	log.Trace("TraceStructLogger Capture Enter", "tx hash", tr.tx.String(), "op code", op.String(), "from", from.String(), "to", to.String(), "input", string(input), "gas", gas, "value", value.String())
 	var (
-		fromTrace *ActionTrace
-		trace     *ActionTrace
+		trace *ActionTrace
 	)
-	if tr.rootTrace != nil && len(tr.rootTrace.Stack) > 0 {
-		fromTrace = tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
-	} else {
+
+	if tr.rootTrace == nil || len(tr.rootTrace.Stack) == 0 {
+		log.Debug("There is no root trace or is empty when CaptureEnter", "tx hash", tr.tx.String())
 		return
 	}
+
+	fromTrace := tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
 
 	if value == nil {
 		value = big.NewInt(0)
 	}
-	// copy values
-	toAddress := to
-	fromAddress := from
+
 	// Match processed instruction and create trace based on it
 	switch op {
 	case vm.CREATE, vm.CREATE2:
 
 		trace = NewActionTraceFromTrace(fromTrace, CREATE, tr.traceAddress)
-		traceAction := NewAddressAction(fromAddress, gas, input, &toAddress, hexutil.Big(*value), nil)
+		traceAction := NewAddressAction(from, gas, input, &to, hexutil.Big(*value), nil)
 		trace.Action = traceAction
 
 	case vm.CALL, vm.CALLCODE, vm.DELEGATECALL, vm.STATICCALL:
 
 		trace = NewActionTraceFromTrace(fromTrace, CALL, tr.traceAddress)
 		callType := strings.ToLower(op.String())
-		traceAction := NewAddressAction(fromAddress, gas, input, &toAddress, hexutil.Big(*value), &callType)
+		traceAction := NewAddressAction(from, gas, input, &to, hexutil.Big(*value), &callType)
 		trace.Action = traceAction
 
 	case vm.SELFDESTRUCT:
 
 		trace = NewActionTraceFromTrace(fromTrace, SELFDESTRUCT, tr.traceAddress)
-		traceAction := NewAddressAction(fromAddress, gas, input, nil, hexutil.Big(*value), nil)
-		traceAction.Address = &fromAddress
-		traceAction.RefundAddress = &toAddress
+		traceAction := NewAddressAction(from, gas, input, nil, hexutil.Big(*value), nil)
+		traceAction.Address = &from
+		traceAction.RefundAddress = &to
 		traceAction.Balance = (*hexutil.Big)(value)
 		trace.Action = traceAction
 	}
