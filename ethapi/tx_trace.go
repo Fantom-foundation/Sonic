@@ -99,10 +99,6 @@ func (s *PublicTxTraceAPI) traceTxHash(ctx context.Context, hash common.Hash, tr
 //
 // traceIndex - when specified, then only trace on that index is returned
 func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBlock, txHash *common.Hash, traceIndex *[]hexutil.Uint) (*[]txtrace.ActionTrace, error) {
-	var (
-		blockNumber   int64
-		parentBlockNr rpc.BlockNumber
-	)
 
 	if block == nil {
 		return nil, fmt.Errorf("invalid block for tracing")
@@ -110,11 +106,10 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 
 	if block.NumberU64() == 0 {
 		return nil, fmt.Errorf("genesis block is not traceable")
-	} else {
-		blockNumber = block.Number.Int64()
-		parentBlockNr = rpc.BlockNumber(blockNumber - 1)
 	}
 
+	blockNumber := block.Number.Int64()
+	parentBlockNr := rpc.BlockNumber(blockNumber - 1)
 	callTrace := txtrace.CallTrace{
 		Actions: make([]txtrace.ActionTrace, 0),
 	}
