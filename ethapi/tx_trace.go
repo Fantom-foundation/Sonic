@@ -56,7 +56,7 @@ func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumb
 
 	block, err := s.b.BlockByNumber(ctx, blockNumber)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %v from db", blockNumber.Int64())
+		return nil, fmt.Errorf("cannot get block %v from db got %v", blockNumber.Int64(), err.Error())
 	}
 
 	traces, err := s.replayBlock(ctx, block, nil, nil)
@@ -116,14 +116,12 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHash{BlockNumber: &parentBlockNr})
 	if err != nil {
-		log.Error("cannot get state for block", "block", blockNumber, "err", err.Error())
 		return nil, fmt.Errorf("cannot get state for block %v, error: %v", block.NumberU64(), err.Error())
 	}
 	defer state.Release()
 
 	receipts, err := s.b.GetReceiptsByNumber(ctx, rpc.BlockNumber(blockNumber))
 	if err != nil {
-		log.Error("cannot get receipts for block", "block", blockNumber, "err", err.Error())
 		return nil, fmt.Errorf("cannot get receipts for block %v, error: %v", block.NumberU64(), err.Error())
 	}
 
@@ -137,19 +135,16 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 
 			tx, _, index, err := s.b.GetTransaction(ctx, tx.Hash())
 			if err != nil {
-				log.Error("cannot get tranasction info", "txHash", tx.Hash().String(), "err", err.Error())
 				return nil, fmt.Errorf("cannot get tranasction info %s, error %s", tx.Hash().String(), err)
 			}
 
 			msg, err := evmcore.TxAsMessage(tx, signer, block.BaseFee)
 			if err != nil {
-				log.Error("cannot get message from transaction", "txHash", tx.Hash().String(), "err", err.Error())
 				return nil, fmt.Errorf("cannot get message from transaction %s, error %s", tx.Hash().String(), err)
 			}
 
 			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, index, receipts[i].Status, s.b.ChainConfig())
 			if err != nil {
-				log.Debug("cannot get transaction trace for transaction", "txHash", tx.Hash().String(), "err", err.Error())
 				return nil, fmt.Errorf("cannot get transaction trace for transaction %s, error %s", tx.Hash().String(), err)
 			} else {
 				callTrace.AddTraces(txTraces, traceIndex)
