@@ -60,7 +60,7 @@ func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumb
 		return nil, err
 	}
 
-	traces, err := s.traceBlock(ctx, block, nil, nil)
+	traces, err := s.replayBlock(ctx, block, nil, nil)
 	if err != nil {
 		log.Debug("Cannot trace block ", "blockNr", blockNr, "error", err.Error())
 		return nil, err
@@ -88,11 +88,17 @@ func (s *PublicTxTraceAPI) traceTxHash(ctx context.Context, hash common.Hash, tr
 		return nil, err
 	}
 
-	return s.traceBlock(ctx, block, &hash, traceIndex)
+	return s.replayBlock(ctx, block, &hash, traceIndex)
 }
 
-// Gets all transaction from specified block and process them
-func (s *PublicTxTraceAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlock, txHash *common.Hash, traceIndex *[]hexutil.Uint) (*[]txtrace.ActionTrace, error) {
+// Replays block and returns traces acording to parameters
+//
+// txHash
+//   - if is nil, all transaction traces in the block are collected
+//   - is value, then only trace for that transaction is returned
+//
+// traceIndex - when specified, then only trace on that index is returned
+func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBlock, txHash *common.Hash, traceIndex *[]hexutil.Uint) (*[]txtrace.ActionTrace, error) {
 	var (
 		blockNumber   int64
 		parentBlockNr rpc.BlockNumber
@@ -448,7 +454,7 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 
 			// when block has any transaction, then process it
 			if block != nil && block.Transactions.Len() > 0 {
-				traces, err := s.traceBlock(ctx, block, nil, nil)
+				traces, err := s.replayBlock(ctx, block, nil, nil)
 				if err != nil {
 					mainErr = err
 					break
@@ -525,7 +531,7 @@ func worker(id int,
 
 		// when block has any transaction, then process it
 		if block != nil && block.Transactions.Len() > 0 {
-			traces, err := s.traceBlock(ctx, block, nil, nil)
+			traces, err := s.replayBlock(ctx, block, nil, nil)
 			if err != nil {
 				break
 			}
