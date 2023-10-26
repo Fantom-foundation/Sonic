@@ -36,7 +36,7 @@ func NewPublicTxTraceAPI(b Backend) *PublicTxTraceAPI {
 // Transaction - trace_transaction function returns transaction inner traces
 func (s *PublicTxTraceAPI) Transaction(ctx context.Context, hash common.Hash) (*[]txtrace.ActionTrace, error) {
 	defer func(start time.Time) {
-		log.Info("Executing trace_transaction call finished", "txHash", hash.String(), "runtime", time.Since(start))
+		log.Debug("Executing trace_transaction call finished", "txHash", hash.String(), "runtime", time.Since(start))
 	}(time.Now())
 	return s.traceTxHash(ctx, hash, nil)
 }
@@ -44,26 +44,24 @@ func (s *PublicTxTraceAPI) Transaction(ctx context.Context, hash common.Hash) (*
 // Block - trace_block function returns transaction traces in given block
 func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumberOrHash) (*[]txtrace.ActionTrace, error) {
 
-	blockNr, _ := numberOrHash.Number()
+	blockNumber, _ := numberOrHash.Number()
 
-	if uint64(blockNr.Int64()) > s.b.CurrentBlock().NumberU64() {
-		return nil, fmt.Errorf("requested block nr %v > current node block nr %v", blockNr.Int64(), s.b.CurrentBlock().NumberU64())
+	if uint64(blockNumber.Int64()) > s.b.CurrentBlock().NumberU64() {
+		return nil, fmt.Errorf("requested block nr %v > current node block nr %v", blockNumber.Int64(), s.b.CurrentBlock().NumberU64())
 	}
 
 	defer func(start time.Time) {
-		log.Info("Executing trace_block call finished", "blockNr", blockNr.Int64(), "runtime", time.Since(start))
+		log.Debug("Executing trace_block call finished", "block", blockNumber.Int64(), "runtime", time.Since(start))
 	}(time.Now())
 
-	block, err := s.b.BlockByNumber(ctx, blockNr)
+	block, err := s.b.BlockByNumber(ctx, blockNumber)
 	if err != nil {
-		log.Debug("Cannot get block from db", "blockNr", blockNr)
-		return nil, err
+		return nil, fmt.Errorf("cannot get block %v from db", blockNumber.Int64())
 	}
 
 	traces, err := s.replayBlock(ctx, block, nil, nil)
 	if err != nil {
-		log.Debug("Cannot trace block ", "blockNr", blockNr, "error", err.Error())
-		return nil, err
+		return nil, fmt.Errorf("cannot trace block %v got %v", blockNumber.Int64(), err.Error())
 	}
 
 	return traces, nil
@@ -73,7 +71,7 @@ func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumb
 // If index is nil, then just root trace is returned
 func (s *PublicTxTraceAPI) Get(ctx context.Context, hash common.Hash, traceIndex []hexutil.Uint) (*[]txtrace.ActionTrace, error) {
 	defer func(start time.Time) {
-		log.Info("Executing trace_get call finished", "txHash", hash.String(), "index", traceIndex, "runtime", time.Since(start))
+		log.Debug("Executing trace_get call finished", "txHash", hash.String(), "index", traceIndex, "runtime", time.Since(start))
 	}(time.Now())
 	return s.traceTxHash(ctx, hash, &traceIndex)
 }
@@ -351,7 +349,7 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 			data = append(data, "toAddr", adresses)
 		}
 		data = append(data, "time", time.Since(start))
-		log.Info("Executing trace_filter call finished", data...)
+		log.Debug("Executing trace_filter call finished", data...)
 	}(time.Now())
 
 	// process arguments
