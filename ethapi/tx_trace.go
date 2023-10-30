@@ -399,8 +399,12 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 			defer wgResult.Done()
 			// collect results
 			for res := range results {
+
 				if mainErr != nil && res.err != nil {
 					mainErr = res.err
+				}
+
+				if mainErr != nil || contextDone {
 					for len(blocks) > 0 {
 						<-blocks
 					}
