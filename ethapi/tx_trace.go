@@ -83,8 +83,7 @@ func (s *PublicTxTraceAPI) traceTxHash(ctx context.Context, hash common.Hash, tr
 	blkNr := rpc.BlockNumber(blockNumber)
 	block, err := s.b.BlockByNumber(ctx, blkNr)
 	if err != nil {
-		log.Debug("Cannot get block from db", "blockNr", blkNr, "error", err.Error())
-		return nil, err
+		return nil, fmt.Errorf("cannot get block from db %v, error:%v", blkNr, err.Error())
 	}
 
 	return s.replayBlock(ctx, block, &hash, traceIndex)
@@ -322,37 +321,18 @@ type FilterArgs struct {
 func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtrace.ActionTrace, error) {
 	// add log after execution
 	defer func(start time.Time) {
-
-		var data []interface{}
-		if args.FromBlock != nil {
-			data = append(data, "fromBlock", args.FromBlock.BlockNumber.Int64())
-		}
-		if args.ToBlock != nil {
-			data = append(data, "toBlock", args.ToBlock.BlockNumber.Int64())
-		}
-		if args.FromAddress != nil {
-			adresses := make([]string, 0)
-			for _, addr := range *args.FromAddress {
-				adresses = append(adresses, addr.String())
-			}
-			data = append(data, "fromAddr", adresses)
-		}
-		if args.ToAddress != nil {
-			adresses := make([]string, 0)
-			for _, addr := range *args.ToAddress {
-				adresses = append(adresses, addr.String())
-			}
-			data = append(data, "toAddr", adresses)
-		}
-		data = append(data, "time", time.Since(start))
+		data := getLogData(args, start)
 		log.Debug("Executing trace_filter call finished", data...)
 	}(time.Now())
 
-	// process arguments
 	var (
-		fromBlock, toBlock rpc.BlockNumber
-		mainErr            error
+		fromBlock, toBlock         rpc.BlockNumber
+		mainErr                    error
+		traceAdded, traceCount     uint
+		fromAddresses, toAddresses map[common.Address]struct{}
 	)
+
+	// process arguments
 	if args.FromBlock != nil {
 		fromBlock = *args.FromBlock.BlockNumber
 	}
@@ -365,9 +345,6 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 		toBlock = rpc.BlockNumber(s.b.CurrentBlock().NumberU64())
 	}
 
-	// counter of processed traces
-	var traceAdded, traceCount uint
-	var fromAddresses, toAddresses map[common.Address]struct{}
 	if args.FromAddress != nil {
 		fromAddresses = make(map[common.Address]struct{})
 		for _, addr := range *args.FromAddress {
@@ -397,7 +374,7 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 	if args.Count == 0 {
 		workerCount := runtime.NumCPU() / 2
 		blocks := make(chan rpc.BlockNumber, 1000)
-		results := make(chan txtrace.ActionTrace, 100000)
+		results := make(chan traceWorkerResult, 100000)
 
 		// create workers and their sync group
 		var wg sync.WaitGroup
@@ -421,8 +398,16 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 		go func() {
 			defer wgResult.Done()
 			// collect results
-			for trace := range results {
-				callTrace.AddTrace(&trace)
+			for res := range results {
+				if mainErr != nil && res.err != nil {
+					mainErr = res.err
+					for len(blocks) > 0 {
+						<-blocks
+					}
+				}
+				if mainErr == nil {
+					callTrace.AddTrace(&res.trace)
+				}
 			}
 		}()
 
@@ -432,61 +417,45 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 
 		wgResult.Wait()
 	} else {
-	blocks:
 		// go thru all blocks in specified range
 		for i := fromBlock; i <= toBlock; i++ {
 			block, err := s.b.BlockByNumber(ctx, i)
 			if err != nil {
-				mainErr = err
-				break
+				return nil, fmt.Errorf("cannot get block from db %v, error:%v", i.Int64(), err.Error())
 			}
 
 			// when block has any transaction, then process it
-			if block != nil && block.Transactions.Len() > 0 {
-				traces, err := s.replayBlock(ctx, block, nil, nil)
-				if err != nil {
-					mainErr = err
-					break
+			if block == nil || block.Transactions.Len() == 0 {
+				continue
+			}
+
+			traces, err := s.replayBlock(ctx, block, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			// loop thru all traces from the block
+			// and check
+			for _, trace := range *traces {
+
+				if traceAdded >= args.Count {
+					// already reached desired count of traces in batch
+					return &callTrace.Actions, nil
 				}
 
-				// loop thru all traces from the block
-				// and check
-				for _, trace := range *traces {
+				if trace.Action == nil {
+					continue
+				}
 
-					if args.Count == 0 || traceAdded < args.Count {
-						addTrace := true
-
-						if args.FromAddress != nil || args.ToAddress != nil {
-							if args.FromAddress != nil {
-								if trace.Action.From == nil {
-									addTrace = false
-								} else {
-									if _, ok := fromAddresses[*trace.Action.From]; !ok {
-										addTrace = false
-									}
-								}
-							}
-							if args.ToAddress != nil {
-								if trace.Action.To == nil {
-									addTrace = false
-								} else if _, ok := toAddresses[*trace.Action.To]; !ok {
-									addTrace = false
-								}
-							}
-						}
-						if addTrace {
-							if traceCount >= args.After {
-								callTrace.AddTrace(&trace)
-								traceAdded++
-							}
-							traceCount++
-						}
-					} else {
-						// already reached desired count of traces in batch
-						break blocks
+				if isValidTrace(trace.Action.From, trace.Action.To, fromAddresses, toAddresses) {
+					if traceCount >= args.After {
+						callTrace.AddTrace(&trace)
+						traceAdded++
 					}
+					traceCount++
 				}
 			}
+
 			if contextDone {
 				break
 			}
@@ -504,50 +473,92 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 	return &callTrace.Actions, nil
 }
 
+type traceWorkerResult struct {
+	trace txtrace.ActionTrace
+	err   error
+}
+
 func worker(id int,
 	s *PublicTxTraceAPI,
 	ctx context.Context,
 	blocks <-chan rpc.BlockNumber,
-	results chan<- txtrace.ActionTrace,
+	results chan<- traceWorkerResult,
 	fromAddresses map[common.Address]struct{},
 	toAddresses map[common.Address]struct{}) {
 
 	for i := range blocks {
 		block, err := s.b.BlockByNumber(ctx, i)
 		if err != nil {
-			break
+			results <- traceWorkerResult{trace: txtrace.ActionTrace{}, err: fmt.Errorf("cannot get block from db %v, error:%v", i.Int64(), err.Error())}
+			continue
+		}
+
+		if block == nil || block.Transactions.Len() == 0 {
+			continue
 		}
 
 		// when block has any transaction, then process it
-		if block != nil && block.Transactions.Len() > 0 {
-			traces, err := s.replayBlock(ctx, block, nil, nil)
-			if err != nil {
-				break
-			}
-			for _, trace := range *traces {
-				addTrace := true
+		traces, err := s.replayBlock(ctx, block, nil, nil)
+		if err != nil {
+			results <- traceWorkerResult{trace: txtrace.ActionTrace{}, err: err}
+			continue
+		}
 
-				if len(fromAddresses) > 0 {
+		for _, trace := range *traces {
 
-					if trace.Action.From == nil {
-						addTrace = false
-					} else {
-						if _, ok := fromAddresses[*trace.Action.From]; !ok {
-							addTrace = false
-						}
-					}
-				}
-				if len(toAddresses) > 0 {
-					if trace.Action.To == nil {
-						addTrace = false
-					} else if _, ok := toAddresses[*trace.Action.To]; !ok {
-						addTrace = false
-					}
-				}
-				if addTrace {
-					results <- trace
+			if trace.Action != nil {
+				if isValidTrace(trace.Action.From, trace.Action.To, fromAddresses, toAddresses) {
+					results <- traceWorkerResult{trace: trace, err: nil}
 				}
 			}
 		}
 	}
+}
+
+func isValidTrace(addressFrom *common.Address, addressTo *common.Address, fromAddresses map[common.Address]struct{}, toAddresses map[common.Address]struct{}) bool {
+
+	if len(fromAddresses) > 0 {
+		if addressFrom == nil {
+			return false
+		} else {
+			if _, ok := fromAddresses[*addressFrom]; !ok {
+				return false
+			}
+		}
+	}
+
+	if len(toAddresses) > 0 {
+		if addressTo == nil {
+			return false
+		} else if _, ok := toAddresses[*addressTo]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func getLogData(args FilterArgs, start time.Time) []interface{} {
+	var data []interface{}
+	if args.FromBlock != nil {
+		data = append(data, "fromBlock", args.FromBlock.BlockNumber.Int64())
+	}
+	if args.ToBlock != nil {
+		data = append(data, "toBlock", args.ToBlock.BlockNumber.Int64())
+	}
+	if args.FromAddress != nil {
+		adresses := make([]string, 0)
+		for _, addr := range *args.FromAddress {
+			adresses = append(adresses, addr.String())
+		}
+		data = append(data, "fromAddr", adresses)
+	}
+	if args.ToAddress != nil {
+		adresses := make([]string, 0)
+		for _, addr := range *args.ToAddress {
+			adresses = append(adresses, addr.String())
+		}
+		data = append(data, "toAddr", adresses)
+	}
+	data = append(data, "time", time.Since(start))
+	return data
 }
