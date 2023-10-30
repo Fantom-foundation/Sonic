@@ -45,9 +45,10 @@ func (s *PublicTxTraceAPI) Transaction(ctx context.Context, hash common.Hash) (*
 func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumberOrHash) (*[]txtrace.ActionTrace, error) {
 
 	blockNumber, _ := numberOrHash.Number()
+	currentBlockNumber := s.b.CurrentBlock().NumberU64()
 
-	if uint64(blockNumber.Int64()) > s.b.CurrentBlock().NumberU64() {
-		return nil, fmt.Errorf("requested block nr %v > current node block nr %v", blockNumber.Int64(), s.b.CurrentBlock().NumberU64())
+	if uint64(blockNumber.Int64()) > currentBlockNumber {
+		return nil, fmt.Errorf("requested block nr %v > current node block nr %v", blockNumber.Int64(), currentBlockNumber)
 	}
 
 	defer func(start time.Time) {
