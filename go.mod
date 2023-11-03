@@ -1,6 +1,6 @@
 module github.com/Fantom-foundation/go-opera
 
-go 1.17
+go 1.21
 
 require (
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20230629034932-42bae8eeb426
@@ -37,15 +37,15 @@ require (
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	go.uber.org/atomic v1.5.1 // indirect
-	golang.org/x/crypto v0.12.0
-	golang.org/x/sys v0.11.0
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/crypto v0.14.0
+	golang.org/x/sys v0.13.0
+	golang.org/x/tools v0.14.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
 require (
-	github.com/Fantom-foundation/Carmen/go v0.0.0-20230420182045-672b46b45826
-	github.com/Fantom-foundation/Tosca v0.0.0-00010101000000-000000000000
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20231103182907-f1e4a7aae27f
+	github.com/Fantom-foundation/Tosca v0.0.0-20231103111201-05bbc1e5ebfc
 )
 
 require (
@@ -105,11 +105,11 @@ require (
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/mock v0.2.0 // indirect
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
@@ -121,13 +121,3 @@ require (
 replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20231003122306-febfe681b4a7
 
 replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210201043429-a8e90a2a4f88
-
-// The Carmen project is integrated as a git-submodule since we need to run extra
-// build steps when importing the project. This is handled in the Makefile.
-replace github.com/Fantom-foundation/Carmen/go => ./carmen/go
-
-// The Tosca project is also integrated as a git-submodule for the same reasons as
-// Carmen. Furthermore, the EVMC library, which is part of Tosca, needs to be used.
-replace github.com/Fantom-foundation/Tosca => ./tosca
-
-replace github.com/ethereum/evmc/v10 => ./tosca/third_party/evmc
