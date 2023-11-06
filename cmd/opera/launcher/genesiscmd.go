@@ -4,10 +4,12 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"io"
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -247,6 +249,8 @@ func exportGenesis(ctx *cli.Context) error {
 			sections["ers"] = str
 		} else if strings.HasPrefix(str, "evm") {
 			sections["evm"] = str
+		} else if strings.HasPrefix(str, "s5") {
+			sections["s5"] = str
 		} else {
 			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'evm'", str)
 		}
@@ -288,6 +292,7 @@ func exportGenesis(ctx *cli.Context) error {
 	var epochsHash hash.Hash
 	var blocksHash hash.Hash
 	var evmHash hash.Hash
+	var s5Hash hash.Hash
 
 	if from < 1 {
 		// avoid underflow
@@ -398,6 +403,27 @@ func exportGenesis(ctx *cli.Context) error {
 		}
 		log.Info("Exported EVM data")
 		fmt.Printf("- EVM hash: %v \n", evmHash.String())
+	}
+
+	if len(sections["s5"]) > 0 {
+		log.Info("Exporting Carmen S5 data")
+		writer := newUnitWriter(plain)
+		err := writer.Start(header, sections["s5"], tmpPath)
+		if err != nil {
+			return err
+		}
+
+		err = mptIo.Export(filepath.Join(cfg.Node.DataDir, "carmen"), writer)
+		if err != nil {
+			return err
+		}
+
+		s5Hash, err = writer.Flush()
+		if err != nil {
+			return err
+		}
+		log.Info("Exported Carmen S5 data")
+		fmt.Printf("- S5 hash: %v \n", s5Hash.String())
 	}
 
 	return nil

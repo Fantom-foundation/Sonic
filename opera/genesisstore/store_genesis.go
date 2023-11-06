@@ -23,6 +23,9 @@ type (
 	RawEvmItems struct {
 		fMap FilesMap
 	}
+	RawS5Section struct {
+		fMap FilesMap
+	}
 )
 
 func (s *Store) Genesis() genesis.Genesis {
@@ -31,6 +34,7 @@ func (s *Store) Genesis() genesis.Genesis {
 		Blocks:      s.Blocks(),
 		Epochs:      s.Epochs(),
 		RawEvmItems: s.RawEvmItems(),
+		S5Section:   s.S5Section(),
 	}
 }
 
@@ -120,4 +124,17 @@ func (s RawEvmItems) ForEach(fn func(key, value []byte) bool) {
 		}
 		it.Release()
 	}
+}
+
+func (s *Store) S5Section() genesis.S5Section {
+	return RawS5Section{s.fMap}
+}
+
+func (s RawS5Section) GetReader() io.Reader {
+	f, err := s.fMap(S5Section(0))
+	if err != nil {
+		log.Info("Genesis file contains no S5 data", "err", err)
+		return nil
+	}
+	return f
 }

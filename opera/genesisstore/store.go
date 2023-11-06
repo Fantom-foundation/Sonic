@@ -19,6 +19,10 @@ func EvmSection(i int) string {
 	return getSectionName("evm", i)
 }
 
+func S5Section(i int) string {
+	return getSectionName("s5", i)
+}
+
 type FilesMap func(string) (io.Reader, error)
 
 // Store is a node persistent storage working over a physical zip archive.

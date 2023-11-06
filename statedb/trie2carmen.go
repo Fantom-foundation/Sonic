@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,7 +20,7 @@ import (
 var EmptyCode = crypto.Keccak256(nil)
 
 func IsExternalStateDbUsed() bool {
-	return liveStateDb != nil
+	return carmenParams != carmen.Parameters{}
 }
 
 func GetExternalStateDbHash() common.Hash {
@@ -31,7 +32,7 @@ func GetExternalStateDbHash() common.Hash {
 
 func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
 	if liveStateDb == nil {
-		return nil
+		return fmt.Errorf("unable to import into Carmen State - not initialized")
 	}
 	var currentBlock uint64 = 1
 	var accountsCount, slotsCount uint64 = 0, 0
@@ -54,8 +55,6 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 		return fmt.Errorf("failed to open trie; %v", err)
 	}
 	preimages := table.New(evmDb, []byte("secure-key-"))
-
-
 
 	accIter := t.NodeIterator(nil)
 	for accIter.Next(true) {

@@ -3,21 +3,19 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/autocompact"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 // ApplyGenesis writes initial state.
-func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err error) {
+func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	// use batching wrapper for hot tables
 	unwrap := s.WrapTablesAsBatched()
 	defer unwrap()
@@ -36,10 +34,10 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 		return true
 	})
 	if err != nil {
-		return genesisHash, err
+		return err
 	}
 	if topEr == nil {
-		return genesisHash, errors.New("no ERs in genesis")
+		return errors.New("no ERs in genesis")
 	}
 	var prevEs *iblockproc.EpochState
 	s.ForEachHistoryBlockEpochState(func(bs iblockproc.BlockState, es iblockproc.EpochState) bool {
@@ -61,16 +59,37 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 	})
 
 	// write EVM items
-	err = s.evm.ApplyGenesis(g)
-	if err != nil {
-		return genesisHash, err
+	if reader := g.S5Section.GetReader(); reader != nil {
+		s.Log.Info("Importing Carmen S5 data from genesis")
+		err := statedb.ImportS5(reader)
+		if err != nil {
+			return fmt.Errorf("failed to import Carmen S5 data from genesis; %v", err)
+		}
+	} else { // no S5 section in the genesis file
+
+		// write EVM data from genesis into leveldb
+		err = s.evm.ApplyGenesis(g)
+		if err != nil {
+			return err
+		}
+
+		// write EVM items into Carmen
+		if statedb.IsExternalStateDbUsed() {
+			s.Log.Info("Importing legacy EVM data into Carmen", "index", lastBlock.Idx, "root", lastBlock.Root)
+			if err = statedb.InitializeStateDB(); err != nil {
+				return fmt.Errorf("failed to initialize StateDB for the genesis import; %v", err)
+			}
+			err = statedb.ImportTrieIntoExternalStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
+			if err != nil {
+				return fmt.Errorf("genesis import into StateDB failed at block %d; %v", lastBlock.Idx, err)
+			}
+		}
 	}
 
-	// write EVM items into Carmen
+	// check EVM state hash
 	if statedb.IsExternalStateDbUsed() {
-		err = statedb.ImportTrieIntoExternalStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
-		if err != nil {
-			return genesisHash, fmt.Errorf("genesis import into StateDB failed at block %d; %v", lastBlock.Idx, err)
+		if err = statedb.InitializeStateDB(); err != nil { // make sure the StateDB is available
+			return fmt.Errorf("failed to initialize StateDB after the genesis import; %v", err)
 		}
 		stateHash := statedb.GetExternalStateDbHash()
 		if common.Hash(lastBlock.Root) == stateHash {
@@ -92,7 +111,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 	s.SetGenesisID(g.GenesisID)
 	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 
-	return genesisHash, err
+	return nil
 }
 
 func (s *Store) WrapTablesAsBatched() (unwrap func()) {

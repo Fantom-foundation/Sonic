@@ -207,6 +207,8 @@ type config struct {
 	LachesisStore abft.StoreConfig
 	VectorClock   vecmt.IndexConfig
 	DBs           integration.DBsConfig
+	StateDbImpl   string
+	ArchiveImpl   string
 }
 
 func (c *config) AppConfigs() integration.Configs {
@@ -595,9 +597,9 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
 
-	// StateDB initialization
-	if err := statedb.InitializeStateDB(ctx.GlobalString(stateDbImplFlag.Name), ctx.GlobalString(archiveImplFlag.Name), cfg.Node.DataDir); err != nil {
-		return nil, fmt.Errorf("failed to initialize StateDB; %s", err)
+	// StateDB configuration
+	if err := statedb.ConfigureStateDB(ctx.GlobalString(stateDbImplFlag.Name), ctx.GlobalString(archiveImplFlag.Name), cfg.Node.DataDir); err != nil {
+		return nil, fmt.Errorf("failed to configure StateDB; %s", err)
 	}
 
 	// Set default VM implementation
