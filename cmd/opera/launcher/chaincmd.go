@@ -17,8 +17,8 @@ var (
 	}
 	GenesisExportSections = cli.StringFlag{
 		Name:  "export.sections",
-		Usage: `Genesis sections to export separated by comma (e.g. "brs-1" or "ers" or "evm-2" or "s5")`,
-		Value: "brs,ers,evm,s5",
+		Usage: `Genesis sections to export separated by comma (e.g. "brs-1" or "ers" or "evm-2" or "fws")`,
+		Value: "brs,ers,evm,fws",
 	}
 	importCommand = cli.Command{
 		Name:      "import",

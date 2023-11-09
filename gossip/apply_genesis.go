@@ -59,11 +59,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	})
 
 	// write EVM items
-	if reader := g.S5Section.GetReader(); reader != nil {
-		s.Log.Info("Importing Carmen S5 data from genesis")
-		err := statedb.ImportS5(reader)
+	if reader := g.FwsSection.GetReader(); reader != nil {
+		s.Log.Info("Importing Fantom World State data from genesis")
+		err := statedb.ImportFws(reader)
 		if err != nil {
-			return fmt.Errorf("failed to import Carmen S5 data from genesis; %v", err)
+			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 		}
 	} else { // no S5 section in the genesis file
 

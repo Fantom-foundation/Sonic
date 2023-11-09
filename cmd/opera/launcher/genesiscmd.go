@@ -249,10 +249,10 @@ func exportGenesis(ctx *cli.Context) error {
 			sections["ers"] = str
 		} else if strings.HasPrefix(str, "evm") {
 			sections["evm"] = str
-		} else if strings.HasPrefix(str, "s5") {
-			sections["s5"] = str
+		} else if strings.HasPrefix(str, "fws") {
+			sections["fws"] = str
 		} else {
-			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'evm'", str)
+			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'evm' or 'fws'", str)
 		}
 		if len(sections) == before {
 			return fmt.Errorf("duplicate section: '%s'", str)
@@ -292,7 +292,7 @@ func exportGenesis(ctx *cli.Context) error {
 	var epochsHash hash.Hash
 	var blocksHash hash.Hash
 	var evmHash hash.Hash
-	var s5Hash hash.Hash
+	var fwsHash hash.Hash
 
 	if from < 1 {
 		// avoid underflow
@@ -405,10 +405,10 @@ func exportGenesis(ctx *cli.Context) error {
 		fmt.Printf("- EVM hash: %v \n", evmHash.String())
 	}
 
-	if len(sections["s5"]) > 0 {
-		log.Info("Exporting Carmen S5 data")
+	if len(sections["fws"]) > 0 {
+		log.Info("Exporting Fantom World State data")
 		writer := newUnitWriter(plain)
-		err := writer.Start(header, sections["s5"], tmpPath)
+		err := writer.Start(header, sections["fws"], tmpPath)
 		if err != nil {
 			return err
 		}
@@ -418,12 +418,12 @@ func exportGenesis(ctx *cli.Context) error {
 			return err
 		}
 
-		s5Hash, err = writer.Flush()
+		fwsHash, err = writer.Flush()
 		if err != nil {
 			return err
 		}
-		log.Info("Exported Carmen S5 data")
-		fmt.Printf("- S5 hash: %v \n", s5Hash.String())
+		log.Info("Exported Fantom World State data")
+		fmt.Printf("- FWS hash: %v \n", fwsHash.String())
 	}
 
 	return nil

@@ -85,18 +85,18 @@ func InitializeStateDB() error {
 	return nil
 }
 
-// ImportS5 imports S5 data from the genesis file into the Carmen state.
+// ImportFws imports Fantom World State data from the genesis file into the Carmen state.
 // Should be called after ConfigureStateDB, but before InitializeStateDB.
-func ImportS5(reader io.Reader) error {
+func ImportFws(reader io.Reader) error {
 	if liveStateDb != nil {
-		return fmt.Errorf("unable to import S5 data - Carmen State already initialized")
+		return fmt.Errorf("unable to import FWS data - Carmen State already initialized")
 	}
 	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
-		return fmt.Errorf("unable to import S5 data - Carmen S5 not used")
+		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
 	}
 	err := os.MkdirAll(carmenParams.Directory, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create carmen dir during S5 import; %v", err)
+		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
 	return io2.Import(carmenParams.Directory, reader)
 }

@@ -19,8 +19,8 @@ func EvmSection(i int) string {
 	return getSectionName("evm", i)
 }
 
-func S5Section(i int) string {
-	return getSectionName("s5", i)
+func FwsSection(i int) string {
+	return getSectionName("fws", i)
 }
 
 type FilesMap func(string) (io.Reader, error)
