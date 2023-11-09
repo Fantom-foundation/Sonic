@@ -93,7 +93,7 @@ func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, g *genesis.Genesis, cfg C
 	blockProc := gossip.DefaultBlockProc()
 
 	if g != nil {
-		_, err := gdb.ApplyGenesis(*g)
+		err := gdb.ApplyGenesis(*g)
 		if err != nil {
 			return nil, nil, blockProc, fmt.Errorf("failed to write Gossip genesis state: %v", err)
 		}

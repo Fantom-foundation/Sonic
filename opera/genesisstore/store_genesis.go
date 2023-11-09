@@ -23,6 +23,9 @@ type (
 	RawEvmItems struct {
 		fMap FilesMap
 	}
+	RawFwsSection struct {
+		fMap FilesMap
+	}
 )
 
 func (s *Store) Genesis() genesis.Genesis {
@@ -31,6 +34,7 @@ func (s *Store) Genesis() genesis.Genesis {
 		Blocks:      s.Blocks(),
 		Epochs:      s.Epochs(),
 		RawEvmItems: s.RawEvmItems(),
+		FwsSection:  s.FwsSection(),
 	}
 }
 
@@ -120,4 +124,17 @@ func (s RawEvmItems) ForEach(fn func(key, value []byte) bool) {
 		}
 		it.Release()
 	}
+}
+
+func (s *Store) FwsSection() genesis.FwsSection {
+	return RawFwsSection{s.fMap}
+}
+
+func (s RawFwsSection) GetReader() io.Reader {
+	f, err := s.fMap(FwsSection(0))
+	if err != nil {
+		log.Info("Genesis file contains no Fantom World State data", "err", err)
+		return nil
+	}
+	return f
 }

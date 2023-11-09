@@ -2,6 +2,7 @@ package genesis
 
 import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"io"
 
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -23,12 +24,16 @@ type (
 	EvmItems interface {
 		ForEach(fn func(key, value []byte) bool)
 	}
+	FwsSection interface {
+		GetReader() io.Reader
+	}
 	Genesis struct {
 		Header
 
 		Blocks      Blocks
 		Epochs      Epochs
 		RawEvmItems EvmItems
+		FwsSection
 	}
 )
 

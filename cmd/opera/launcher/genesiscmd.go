@@ -4,10 +4,12 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"io"
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -247,8 +249,10 @@ func exportGenesis(ctx *cli.Context) error {
 			sections["ers"] = str
 		} else if strings.HasPrefix(str, "evm") {
 			sections["evm"] = str
+		} else if strings.HasPrefix(str, "fws") {
+			sections["fws"] = str
 		} else {
-			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'evm'", str)
+			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'evm' or 'fws'", str)
 		}
 		if len(sections) == before {
 			return fmt.Errorf("duplicate section: '%s'", str)
@@ -288,6 +292,7 @@ func exportGenesis(ctx *cli.Context) error {
 	var epochsHash hash.Hash
 	var blocksHash hash.Hash
 	var evmHash hash.Hash
+	var fwsHash hash.Hash
 
 	if from < 1 {
 		// avoid underflow
@@ -398,6 +403,27 @@ func exportGenesis(ctx *cli.Context) error {
 		}
 		log.Info("Exported EVM data")
 		fmt.Printf("- EVM hash: %v \n", evmHash.String())
+	}
+
+	if len(sections["fws"]) > 0 {
+		log.Info("Exporting Fantom World State data")
+		writer := newUnitWriter(plain)
+		err := writer.Start(header, sections["fws"], tmpPath)
+		if err != nil {
+			return err
+		}
+
+		err = mptIo.Export(filepath.Join(cfg.Node.DataDir, "carmen"), writer)
+		if err != nil {
+			return err
+		}
+
+		fwsHash, err = writer.Flush()
+		if err != nil {
+			return err
+		}
+		log.Info("Exported Fantom World State data")
+		fmt.Printf("- FWS hash: %v \n", fwsHash.String())
 	}
 
 	return nil

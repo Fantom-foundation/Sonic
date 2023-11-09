@@ -288,6 +288,7 @@ func lachesisMain(ctx *cli.Context) error {
 
 	cfg := makeAllConfigs(ctx)
 	genesisStore := mayGetGenesisStore(ctx, cfg)
+
 	node, _, nodeClose := makeNode(ctx, cfg, genesisStore)
 	defer nodeClose()
 	startNode(ctx, node)
@@ -306,12 +307,18 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		g = &gv
 	}
 
+	// applies genesis
 	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), g, cfg.AppConfigs())
 	if genesisStore != nil {
 		_ = genesisStore.Close()
 	}
 	metrics.SetDataDir(cfg.Node.DataDir)
 	memorizeDBPreset(cfg)
+
+	// StateDB initialization (must be done after the genesis application)
+	if err := statedb.InitializeStateDB(); err != nil {
+		utils.Fatalf("Failed to initialize StateDB; %s", err) // interrupts the execution
+	}
 
 	// substitute default bootnodes if requested
 	networkName := ""
