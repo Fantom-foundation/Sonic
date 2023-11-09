@@ -20,7 +20,8 @@ var carmenParams carmen.Parameters
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
 
-// ConfigureStateDB sets carmenParams, should be called during config parsing
+// ConfigureStateDB sets carmenParams, should be called during config parsing,
+// before any other method in this package call.
 func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) error {
 	if stateImpl == "" || stateImpl == "geth" {
 		if archiveImpl != "" {
@@ -60,7 +61,8 @@ func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) erro
 	return nil
 }
 
-// InitializeStateDB initialize configured StateDB, should be called after ConfigureStateDB
+// InitializeStateDB initialize configured StateDB, should be called after ConfigureStateDB.
+// Can be called multiple times, but once initialized, ImportFws is no longer possible.
 func InitializeStateDB() error {
 	if (carmenParams == carmen.Parameters{}) {
 		return nil // Carmen StateDB not configured
@@ -164,6 +166,8 @@ func ShutdownStateDB() error {
 		if err != nil {
 			return fmt.Errorf("failed to close carmen state; %s", err)
 		}
+		carmenState = nil
+		liveStateDb = nil
 	}
 	return nil
 }
