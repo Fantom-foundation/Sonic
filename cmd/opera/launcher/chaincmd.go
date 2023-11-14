@@ -132,6 +132,7 @@ Requires a first argument of the DB directory to write to.
 				Action: utils.MigrateFlags(checkEvm),
 				Flags: []cli.Flag{
 					DataDirFlag,
+					stateDbImplFlag,
 				},
 				Description: `
     opera check evm

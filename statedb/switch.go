@@ -2,7 +2,9 @@ package statedb
 
 import (
 	"fmt"
+	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/Carmen/go/state/mpt"
 	io2 "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/metrics"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -101,6 +103,37 @@ func ImportFws(reader io.Reader) error {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
 	return io2.Import(carmenParams.Directory, reader)
+}
+
+func VerifyFws(expectedHash common.Hash, observer mpt.VerificationObserver) error {
+	if liveStateDb != nil {
+		return fmt.Errorf("unable to verify FWS data - Carmen State already initialized")
+	}
+	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
+		return fmt.Errorf("unable to verify FWS data - Carmen S5 not used")
+	}
+	// try to obtain information of the contained MPT
+	info, err := io2.CheckMptDirectoryAndGetInfo(carmenParams.Directory)
+	if err != nil {
+		return err
+	}
+	err = mpt.VerifyFileLiveTrie(carmenParams.Directory, info.Config, observer)
+	if err != nil {
+		return err
+	}
+	liveState, err := carmen.NewState(carmenParams)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen state; %s", err)
+	}
+	defer liveState.Close()
+	stateHash, err := liveState.GetHash()
+	if err != nil {
+		return fmt.Errorf("failed to get state hash; %s", err)
+	}
+	if stateHash != cc.Hash(expectedHash) {
+		return fmt.Errorf("validation failed - the live state hash does not match with the last block state root (%x != %x)", stateHash, expectedHash)
+	}
+	return nil
 }
 
 // GetStateDbGeneral is used in evmstore, in situations not covered by following methods - read-only latest state

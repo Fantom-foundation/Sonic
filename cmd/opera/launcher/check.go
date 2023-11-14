@@ -1,6 +1,7 @@
 package launcher
 
 import (
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -22,10 +23,26 @@ func checkEvm(ctx *cli.Context) error {
 	rawDbs := makeDirectDBsProducer(cfg)
 	gdb := makeGossipStore(rawDbs, cfg)
 	defer gdb.Close()
-	evms := gdb.EvmStore()
 
 	start, reported := time.Now(), time.Now()
 
+	// verify Carmen StateDB
+	if statedb.IsExternalStateDbUsed() {
+		lastBlockIdx := gdb.GetLatestBlockIndex()
+		lastBlock := gdb.GetBlock(lastBlockIdx)
+		if lastBlock == nil {
+			log.Crit("Verification of the database failed - unable to get the last block")
+		}
+		err := statedb.VerifyFws(common.Hash(lastBlock.Root), verificationObserver{})
+		if err != nil {
+			log.Crit("Verification of the Fantom World State failed", "err", err)
+		}
+		log.Info("EVM storage is verified", "last", lastBlockIdx, "elapsed", common.PrettyDuration(time.Since(start)))
+		return nil
+	}
+
+	// verify legacy EVM store
+	evmStore := gdb.EvmStore()
 	var prevPoint idx.Block
 	var prevIndex idx.Block
 	checkBlocks := func(checkStateRoot func(root common.Hash) (bool, error)) {
@@ -59,9 +76,19 @@ func checkEvm(ctx *cli.Context) error {
 		})
 	}
 
-	if err := evms.CheckEvm(checkBlocks); err != nil {
+	if err := evmStore.CheckEvm(checkBlocks); err != nil {
 		return err
 	}
 	log.Info("EVM storage is verified", "last", prevIndex, "elapsed", common.PrettyDuration(time.Since(start)))
 	return nil
 }
+
+type verificationObserver struct {}
+
+func (o verificationObserver) StartVerification() {}
+
+func (o verificationObserver) Progress(msg string) {
+	log.Info(msg)
+}
+
+func (o verificationObserver) EndVerification(res error) {}
