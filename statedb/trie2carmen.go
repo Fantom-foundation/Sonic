@@ -122,6 +122,16 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 			}
 		}
 	}
+	if err := bulk.Close(); err != nil {
+		return err
+	}
+	// add the genesis block into archive
+	if currentBlock < blockNum {
+		bulk = liveStateDb.StartBulkLoad(blockNum)
+		if err := bulk.Close(); err != nil {
+			return err
+		}
+	}
 	fmt.Printf("Imported %d accounts and %d slots into %d blocks\n", accountsCount, slotsCount, currentBlock)
-	return bulk.Close()
+	return nil
 }

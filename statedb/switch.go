@@ -21,6 +21,7 @@ import (
 var carmenParams carmen.Parameters
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
+var compatibleHashes bool
 
 // ConfigureStateDB sets carmenParams, should be called during config parsing,
 // before any other method in this package call.
@@ -36,8 +37,10 @@ func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) erro
 	switch strings.ToLower(stateImpl) {
 	case "carmen-s3", "go-file": // "go-file" deprecated, use "carmen-s3"
 		schema = carmen.StateSchema(3)
+		compatibleHashes = false
 	case "carmen-s5":
 		schema = carmen.StateSchema(5)
+		compatibleHashes = true
 	default:
 		return fmt.Errorf("unsupported statedb impl %s", stateImpl)
 	}
@@ -138,6 +141,9 @@ func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserve
 func GetStateDbGeneral(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if carmenState != nil {
 		stateDb := carmen.CreateNonCommittableStateDBUsing(carmenState)
+		if compatibleHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen live StateDB (general) - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
+		}
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
@@ -147,6 +153,9 @@ func GetStateDbGeneral(stateRoot hash.Hash, evmState state.Database, snaps *snap
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
 func GetLiveStateDb(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if liveStateDb != nil {
+		if compatibleHashes && liveStateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
+		}
 		return state.NewWrapper(CreateCarmenStateDb(liveStateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
@@ -156,6 +165,9 @@ func GetLiveStateDb(stateRoot hash.Hash, evmState state.Database, snaps *snapsho
 // GetTxPoolStateDb obtains StateDB for TxPool evaluation - the latest finalized, read-only
 func GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if carmenState != nil {
+		if compatibleHashes && liveStateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen live StateDB (txpool) - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
+		}
 		stateDb := carmen.CreateNonCommittableStateDBUsing(carmenState)
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
@@ -179,6 +191,7 @@ func GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash, evmState state.Data
 		if err != nil {
 			return nil, err
 		}
+		// archive stateDb hash is allowed be different from the stateRoot
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
