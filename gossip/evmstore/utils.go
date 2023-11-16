@@ -3,32 +3,23 @@ package evmstore
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 
+	"github.com/Fantom-foundation/go-opera/utils/iodb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
-	"github.com/Fantom-foundation/lachesis-base/utils/simplewlru"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/Fantom-foundation/go-opera/utils/iodb"
 )
 
 var (
 	// EmptyCode is the known hash of the empty EVM bytecode.
 	EmptyCode = crypto.Keccak256(nil)
-
-	emptyCodeHash = common.BytesToHash(EmptyCode)
-	emptyHash     = common.Hash{}
 )
 
-func (s *Store) CheckEvm(forEachState func(func(root common.Hash) (found bool, err error)), onlyRoots bool) error {
+func (s *Store) CheckEvm(forEachState func(func(root common.Hash) (found bool, err error))) error {
 	log.Info("Checking every node hash")
 	nodeIt := s.table.Evm.NewIterator(nil, nil)
 	defer nodeIt.Release()
@@ -68,100 +59,10 @@ func (s *Store) CheckEvm(forEachState func(func(root common.Hash) (found bool, e
 		}
 	}
 
-	if onlyRoots {
-		log.Info("Checking presence of every root")
-	} else {
-		log.Info("Checking presence of every node")
-	}
-	var (
-		visitedHashes   = make([]common.Hash, 0, 1000000)
-		visitedI        = 0
-		checkedCache, _ = simplewlru.New(100000000, 100000000)
-		cached          = func(h common.Hash) bool {
-			_, ok := checkedCache.Get(h)
-			return ok
-		}
-	)
-	visited := func(h common.Hash, priority int) {
-		base := 100000 * priority
-		if visitedI%(1<<(len(visitedHashes)/base)) == 0 {
-			visitedHashes = append(visitedHashes, h)
-		}
-		visitedI++
-	}
+	log.Info("Checking presence of every root")
 	forEachState(func(root common.Hash) (found bool, err error) {
 		stateTrie, err := s.EvmState.OpenTrie(root)
-		found = stateTrie != nil && err == nil
-		if !found || onlyRoots {
-			return
-		}
-
-		// check existence of every code hash and root of every storage trie
-		stateIt := stateTrie.NodeIterator(nil)
-		for stateItSkip := false; stateIt.Next(!stateItSkip); {
-			stateItSkip = false
-			if stateIt.Hash() != emptyHash {
-				if cached(stateIt.Hash()) {
-					stateItSkip = true
-					continue
-				}
-				visited(stateIt.Hash(), 2)
-			}
-
-			if stateIt.Leaf() {
-				addrHash := common.BytesToHash(stateIt.LeafKey())
-
-				var account state.Account
-				if err = rlp.Decode(bytes.NewReader(stateIt.LeafBlob()), &account); err != nil {
-					err = fmt.Errorf("Failed to decode accoun as %s addr: %s", addrHash.String(), err.Error())
-					return
-				}
-
-				codeHash := common.BytesToHash(account.CodeHash)
-				if codeHash != emptyCodeHash && !cached(codeHash) {
-					code, _ := s.EvmState.ContractCode(addrHash, codeHash)
-					if code == nil {
-						err = fmt.Errorf("failed to get code %s at %s addr", codeHash.String(), addrHash.String())
-						return
-					}
-					checkedCache.Add(codeHash, true, 1)
-				}
-
-				if account.Root != types.EmptyRootHash && !cached(account.Root) {
-					storageTrie, storageErr := s.EvmState.OpenStorageTrie(addrHash, account.Root)
-					if storageErr != nil {
-						err = fmt.Errorf("failed to open storage trie %s at %s addr: %s", account.Root.String(), addrHash.String(), storageErr.Error())
-						return
-					}
-					storageIt := storageTrie.NodeIterator(nil)
-					for storageItSkip := false; storageIt.Next(!storageItSkip); {
-						storageItSkip = false
-						if storageIt.Hash() != emptyHash {
-							if cached(storageIt.Hash()) {
-								storageItSkip = true
-								continue
-							}
-							visited(storageIt.Hash(), 1)
-						}
-					}
-					if storageIt.Error() != nil {
-						err = fmt.Errorf("EVM storage trie %s at %s addr iteration error: %s", account.Root.String(), addrHash.String(), storageIt.Error())
-						return
-					}
-				}
-			}
-		}
-
-		if stateIt.Error() != nil {
-			err = fmt.Errorf("EVM state trie %s iteration error: %s", root.String(), stateIt.Error())
-			return
-		}
-		for _, h := range visitedHashes {
-			checkedCache.Add(h, true, 1)
-		}
-		visitedHashes = visitedHashes[:0]
-
-		return
+		return stateTrie != nil && err == nil, err
 	})
 
 	return nil
