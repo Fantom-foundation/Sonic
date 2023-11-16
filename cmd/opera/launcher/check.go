@@ -33,7 +33,7 @@ func checkEvm(ctx *cli.Context) error {
 		if lastBlock == nil {
 			log.Crit("Verification of the database failed - unable to get the last block")
 		}
-		err := statedb.VerifyFws(common.Hash(lastBlock.Root), verificationObserver{})
+		err := statedb.VerifyWorldState(common.Hash(lastBlock.Root), verificationObserver{})
 		if err != nil {
 			log.Crit("Verification of the Fantom World State failed", "err", err)
 		}

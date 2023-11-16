@@ -61,7 +61,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	// write EVM items
 	if reader := g.FwsSection.GetReader(); reader != nil {
 		s.Log.Info("Importing Fantom World State data from genesis")
-		err := statedb.ImportFws(reader)
+		err := statedb.ImportWorldState(reader)
 		if err != nil {
 			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 		}

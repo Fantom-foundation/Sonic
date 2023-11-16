@@ -64,7 +64,7 @@ func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) erro
 }
 
 // InitializeStateDB initialize configured StateDB, should be called after ConfigureStateDB.
-// Can be called multiple times, but once initialized, ImportFws is no longer possible.
+// Can be called multiple times, but once initialized, ImportWorldState is no longer possible.
 func InitializeStateDB() error {
 	if (carmenParams == carmen.Parameters{}) {
 		return nil // Carmen StateDB not configured
@@ -89,9 +89,9 @@ func InitializeStateDB() error {
 	return nil
 }
 
-// ImportFws imports Fantom World State data from the genesis file into the Carmen state.
+// ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
 // Should be called after ConfigureStateDB, but before InitializeStateDB.
-func ImportFws(reader io.Reader) error {
+func ImportWorldState(reader io.Reader) error {
 	if liveStateDb != nil {
 		return fmt.Errorf("unable to import FWS data - Carmen State already initialized")
 	}
@@ -105,22 +105,19 @@ func ImportFws(reader io.Reader) error {
 	return io2.Import(carmenParams.Directory, reader)
 }
 
-func VerifyFws(expectedHash common.Hash, observer mpt.VerificationObserver) error {
+func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver) error {
 	if liveStateDb != nil {
-		return fmt.Errorf("unable to verify FWS data - Carmen State already initialized")
+		return fmt.Errorf("unable to verify world state data - Carmen State already initialized")
 	}
 	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
-		return fmt.Errorf("unable to verify FWS data - Carmen S5 not used")
+		return fmt.Errorf("unable to verify world state data - Carmen S5 not used")
 	}
 	// try to obtain information of the contained MPT
 	info, err := io2.CheckMptDirectoryAndGetInfo(carmenParams.Directory)
 	if err != nil {
 		return err
 	}
-	err = mpt.VerifyFileLiveTrie(carmenParams.Directory, info.Config, observer)
-	if err != nil {
-		return err
-	}
+	// get hash of the live state
 	liveState, err := carmen.NewState(carmenParams)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen state; %s", err)
@@ -133,7 +130,8 @@ func VerifyFws(expectedHash common.Hash, observer mpt.VerificationObserver) erro
 	if stateHash != cc.Hash(expectedHash) {
 		return fmt.Errorf("validation failed - the live state hash does not match with the last block state root (%x != %x)", stateHash, expectedHash)
 	}
-	return nil
+	// verify the world state
+	return mpt.VerifyFileLiveTrie(carmenParams.Directory, info.Config, observer)
 }
 
 // GetStateDbGeneral is used in evmstore, in situations not covered by following methods - read-only latest state
