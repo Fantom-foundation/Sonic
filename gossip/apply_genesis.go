@@ -16,7 +16,7 @@ import (
 )
 
 // ApplyGenesis writes initial state.
-func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
+func (s *Store) ApplyGenesis(g genesis.Genesis, stateDbConfig statedb.Config) (err error) {
 	// use batching wrapper for hot tables
 	unwrap := s.WrapTablesAsBatched()
 	defer unwrap()
@@ -70,7 +70,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed to get second FWS section reader; %v", err)
 		}
-		err = statedb.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
+		err = statedb.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx), stateDbConfig)
 		if err != nil {
 			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 		}
@@ -83,9 +83,9 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		}
 
 		// write EVM items into Carmen
-		if statedb.IsExternalStateDbUsed() {
+		if stateDbConfig.IsCarmen() {
 			s.Log.Info("Importing legacy EVM data into Carmen", "index", lastBlock.Idx, "root", lastBlock.Root)
-			if err = statedb.InitializeStateDB(); err != nil {
+			if err = statedb.InitializeStateDB(stateDbConfig); err != nil {
 				return fmt.Errorf("failed to initialize StateDB for the genesis import; %v", err)
 			}
 			err = statedb.ImportTrieIntoExternalStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
@@ -96,8 +96,8 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	}
 
 	// check EVM state hash
-	if statedb.IsExternalStateDbUsed() {
-		if err = statedb.InitializeStateDB(); err != nil { // make sure the StateDB is available
+	if stateDbConfig.IsCarmen() {
+		if err = statedb.InitializeStateDB(stateDbConfig); err != nil { // make sure the StateDB is available
 			return fmt.Errorf("failed to initialize StateDB after the genesis import; %v", err)
 		}
 		stateHash := statedb.GetExternalStateDbHash()

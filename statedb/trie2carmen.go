@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,10 +17,6 @@ import (
 )
 
 var EmptyCode = crypto.Keccak256(nil)
-
-func IsExternalStateDbUsed() bool {
-	return carmenParams != carmen.Parameters{}
-}
 
 func GetExternalStateDbHash() common.Hash {
 	if liveStateDb == nil {

@@ -316,7 +316,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	memorizeDBPreset(cfg)
 
 	// StateDB initialization (must be done after the genesis application)
-	if err := statedb.InitializeStateDB(); err != nil {
+	if err := statedb.InitializeStateDB(cfg.StateDB); err != nil {
 		utils.Fatalf("Failed to initialize StateDB; %s", err) // interrupts the execution
 	}
 

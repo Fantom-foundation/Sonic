@@ -15,106 +15,66 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
-var carmenParams carmen.Parameters
+type Config struct {
+	CarmenParameters carmen.Parameters
+}
+
+func (cfg *Config) IsCarmen() bool {
+	return cfg.CarmenParameters != (carmen.Parameters{})
+}
+
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
 var compatibleHashes bool
 var compatibleArchiveHashes bool
 
-// ConfigureStateDB sets carmenParams, should be called during config parsing,
-// before any other method in this package call.
-func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) error {
-	if stateImpl == "" || stateImpl == "geth" {
-		if archiveImpl != "" {
-			return fmt.Errorf("using geth statedb with Carmen archive is not supported")
-		}
-		return nil
-	}
-
-	var schema carmen.StateSchema
-	switch strings.ToLower(stateImpl) {
-	case "carmen-s3", "go-file": // "go-file" deprecated, use "carmen-s3"
-		schema = carmen.StateSchema(3)
-		compatibleHashes = false
-	case "carmen-s5":
-		schema = carmen.StateSchema(5)
-		compatibleHashes = true
-	default:
-		return fmt.Errorf("unsupported statedb impl %s", stateImpl)
-	}
-
-	var archiveType carmen.ArchiveType
-	switch strings.ToLower(archiveImpl) {
-	case "none":
-		archiveType = carmen.NoArchive
-		compatibleArchiveHashes = false
-	case "ldb", "":
-		archiveType = carmen.LevelDbArchive
-		compatibleArchiveHashes = false
-	case "s5":
-		archiveType = carmen.S5Archive
-		compatibleArchiveHashes = true
-	default:
-		return fmt.Errorf("unsupported archive impl %s", archiveImpl)
-	}
-
-	carmenParams = carmen.Parameters{
-		Directory: filepath.Join(datadir, "carmen"),
-		Variant:   "go-file",
-		Schema:    schema,
-		Archive:   archiveType,
-	}
-	return nil
-}
-
 // InitializeStateDB initialize configured StateDB, should be called after ConfigureStateDB.
 // Can be called multiple times, but once initialized, ImportWorldState is no longer possible.
-func InitializeStateDB() error {
-	if (carmenParams == carmen.Parameters{}) {
+func InitializeStateDB(cfg Config) error {
+	if cfg.CarmenParameters == (carmen.Parameters{}) {
 		return nil // Carmen StateDB not configured
 	}
 	if liveStateDb != nil {
 		return nil // Carmen StateDB already initialized
 	}
 
-	err := os.MkdirAll(carmenParams.Directory, 0700)
+	err := os.MkdirAll(cfg.CarmenParameters.Directory, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen dir; %v", err)
 	}
 
-	carmenState, err = carmen.NewState(carmenParams)
+	carmenState, err = carmen.NewState(cfg.CarmenParameters)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen state; %s", err)
 	}
 	liveStateDb = carmen.CreateStateDBUsing(carmenState)
 
 	// measure the size of carmen directory
-	go metrics.MeasureDbDir("statedb/disksize", carmenParams.Directory)
+	go metrics.MeasureDbDir("statedb/disksize", cfg.CarmenParameters.Directory)
 	return nil
 }
 
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
 // Should be called after ConfigureStateDB, but before InitializeStateDB.
-func ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
+func ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64, cfg Config) error {
 	if liveStateDb != nil {
 		return fmt.Errorf("unable to import FWS data - Carmen State already initialized")
 	}
-	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
+	if cfg.CarmenParameters.Directory == "" || cfg.CarmenParameters.Schema != carmen.StateSchema(5) {
 		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
 	}
 
-	if err := os.MkdirAll(carmenParams.Directory, 0700); err != nil {
+	if err := os.MkdirAll(cfg.CarmenParameters.Directory, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
-	if err := io2.ImportLiveDb(carmenParams.Directory, liveReader); err != nil {
+	if err := io2.ImportLiveDb(cfg.CarmenParameters.Directory, liveReader); err != nil {
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
 
-	if carmenParams.Archive == carmen.S5Archive {
-		archiveDir := carmenParams.Directory + string(filepath.Separator) + "archive"
+	if cfg.CarmenParameters.Archive == carmen.S5Archive {
+		archiveDir := cfg.CarmenParameters.Directory + string(filepath.Separator) + "archive"
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
@@ -125,20 +85,20 @@ func ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum ui
 	return nil
 }
 
-func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver) error {
+func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver, cfg Config) error {
 	if liveStateDb != nil {
 		return fmt.Errorf("unable to verify world state data - Carmen State already initialized")
 	}
-	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
+	if cfg.CarmenParameters.Directory == "" || cfg.CarmenParameters.Schema != carmen.StateSchema(5) {
 		return fmt.Errorf("unable to verify world state data - Carmen S5 not used")
 	}
 	// try to obtain information of the contained MPT
-	info, err := io2.CheckMptDirectoryAndGetInfo(carmenParams.Directory)
+	info, err := io2.CheckMptDirectoryAndGetInfo(cfg.CarmenParameters.Directory)
 	if err != nil {
 		return err
 	}
 	// get hash of the live state
-	liveState, err := carmen.NewState(carmenParams)
+	liveState, err := carmen.NewState(cfg.CarmenParameters)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen state; %s", err)
 	}
@@ -151,7 +111,7 @@ func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserve
 		return fmt.Errorf("validation failed - the live state hash does not match with the last block state root (%x != %x)", stateHash, expectedHash)
 	}
 	// verify the world state
-	return mpt.VerifyFileLiveTrie(carmenParams.Directory, info.Config, observer)
+	return mpt.VerifyFileLiveTrie(cfg.CarmenParameters.Directory, info.Config, observer)
 }
 
 // GetStateDbGeneral is used in evmstore, in situations not covered by following methods - read-only latest state

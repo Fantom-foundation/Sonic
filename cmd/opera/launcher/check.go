@@ -27,13 +27,13 @@ func checkEvm(ctx *cli.Context) error {
 	start, reported := time.Now(), time.Now()
 
 	// verify Carmen StateDB
-	if statedb.IsExternalStateDbUsed() {
+	if cfg.StateDB.IsCarmen() {
 		lastBlockIdx := gdb.GetLatestBlockIndex()
 		lastBlock := gdb.GetBlock(lastBlockIdx)
 		if lastBlock == nil {
 			log.Crit("Verification of the database failed - unable to get the last block")
 		}
-		err := statedb.VerifyWorldState(common.Hash(lastBlock.Root), verificationObserver{})
+		err := statedb.VerifyWorldState(common.Hash(lastBlock.Root), verificationObserver{}, cfg.StateDB)
 		if err != nil {
 			log.Crit("Verification of the Fantom World State failed", "err", err)
 		}

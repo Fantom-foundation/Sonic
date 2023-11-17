@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/Carmen/go/evmstore"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
@@ -207,8 +208,7 @@ type config struct {
 	LachesisStore abft.StoreConfig
 	VectorClock   vecmt.IndexConfig
 	DBs           integration.DBsConfig
-	StateDbImpl   string
-	ArchiveImpl   string
+	StateDB       statedb.Config
 }
 
 func (c *config) AppConfigs() integration.Configs {
@@ -219,6 +219,7 @@ func (c *config) AppConfigs() integration.Configs {
 		LachesisStore: c.LachesisStore,
 		VectorClock:   c.VectorClock,
 		DBs:           c.DBs,
+		StateDB:       c.StateDB,
 	}
 }
 
@@ -442,6 +443,48 @@ func setDBConfig(ctx *cli.Context, cfg integration.DBsConfig, cacheRatio cachesc
 	return cfg
 }
 
+func setStateDBConfig(ctx *cli.Context, datadir string, cfg statedb.Config) statedb.Config {
+	stateImpl := ctx.GlobalString(stateDbImplFlag.Name)
+	archiveImpl := ctx.GlobalString(archiveImplFlag.Name)
+
+	if stateImpl == "" || stateImpl == "geth" {
+		if archiveImpl != "" {
+			utils.Fatalf("using geth statedb with Carmen archive is not supported")
+		}
+		return cfg
+	}
+
+	var schema carmen.StateSchema
+	switch strings.ToLower(stateImpl) {
+	case "carmen-s3":
+		schema = carmen.StateSchema(3)
+	case "carmen-s5":
+		schema = carmen.StateSchema(5)
+	default:
+		utils.Fatalf("unsupported statedb impl %s", stateImpl)
+	}
+
+	var archiveType carmen.ArchiveType
+	switch strings.ToLower(archiveImpl) {
+	case "none":
+		archiveType = carmen.NoArchive
+	case "ldb":
+		archiveType = carmen.LevelDbArchive
+	case "s5", "":
+		archiveType = carmen.S5Archive
+	default:
+		utils.Fatalf("unsupported archive impl %s", archiveImpl)
+	}
+
+	cfg.CarmenParameters = carmen.Parameters{
+		Directory: filepath.Join(datadir, "carmen"),
+		Variant:   "go-file",
+		Schema:    schema,
+		Archive:   archiveType,
+	}
+	return cfg
+}
+
 func setDBConfigStr(cfg integration.DBsConfig, cacheRatio cachescale.Func, preset string) integration.DBsConfig {
 	switch preset {
 	case "pbl-1":
@@ -596,11 +639,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	}
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
-
-	// StateDB configuration
-	if err := statedb.ConfigureStateDB(ctx.GlobalString(stateDbImplFlag.Name), ctx.GlobalString(archiveImplFlag.Name), cfg.Node.DataDir); err != nil {
-		return nil, fmt.Errorf("failed to configure StateDB; %s", err)
-	}
+	cfg.StateDB = setStateDBConfig(ctx, cfg.Node.DataDir, cfg.StateDB)
 
 	// Set default VM implementation
 	if impl := ctx.GlobalString(vmImplFlag.Name); impl != "" {

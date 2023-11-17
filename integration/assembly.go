@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"path"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -51,6 +52,7 @@ type Configs struct {
 	LachesisStore abft.StoreConfig
 	VectorClock   vecmt.IndexConfig
 	DBs           DBsConfig
+	StateDB       statedb.Config
 }
 
 func panics(name string) func(error) {
@@ -93,7 +95,7 @@ func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, g *genesis.Genesis, cfg C
 	blockProc := gossip.DefaultBlockProc()
 
 	if g != nil {
-		err := gdb.ApplyGenesis(*g)
+		err := gdb.ApplyGenesis(*g, cfg.StateDB)
 		if err != nil {
 			return nil, nil, blockProc, fmt.Errorf("failed to write Gossip genesis state: %v", err)
 		}
