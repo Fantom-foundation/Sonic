@@ -59,9 +59,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	})
 
 	// write EVM items
-	if reader := g.FwsSection.GetReader(); reader != nil {
+	liveReader := g.FwsSection.GetReader()
+	archiveReader := g.FwsSection.GetReader() // second reader of the same section for the archive import
+	if liveReader != nil && archiveReader != nil {
 		s.Log.Info("Importing Fantom World State data from genesis")
-		err := statedb.ImportWorldState(reader)
+		err := statedb.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
 		if err != nil {
 			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 		}

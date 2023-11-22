@@ -22,6 +22,7 @@ var carmenParams carmen.Parameters
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
 var compatibleHashes bool
+var compatibleArchiveHashes bool
 
 // ConfigureStateDB sets carmenParams, should be called during config parsing,
 // before any other method in this package call.
@@ -49,10 +50,13 @@ func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) erro
 	switch strings.ToLower(archiveImpl) {
 	case "none":
 		archiveType = carmen.NoArchive
+		compatibleArchiveHashes = false
 	case "ldb", "":
 		archiveType = carmen.LevelDbArchive
+		compatibleArchiveHashes = false
 	case "s5":
 		archiveType = carmen.S5Archive
+		compatibleArchiveHashes = true
 	default:
 		return fmt.Errorf("unsupported archive impl %s", archiveImpl)
 	}
@@ -94,18 +98,23 @@ func InitializeStateDB() error {
 
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
 // Should be called after ConfigureStateDB, but before InitializeStateDB.
-func ImportWorldState(reader io.Reader) error {
+func ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
 	if liveStateDb != nil {
 		return fmt.Errorf("unable to import FWS data - Carmen State already initialized")
 	}
 	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
 		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
 	}
-	err := os.MkdirAll(carmenParams.Directory, 0700)
-	if err != nil {
+	if err := os.MkdirAll(carmenParams.Directory, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
-	return io2.Import(carmenParams.Directory, reader)
+	if err := io2.ImportLiveDb(carmenParams.Directory, liveReader); err != nil {
+		return fmt.Errorf("failed to import LiveDB; %v", err)
+	}
+	if err := io2.InitializeArchive(carmenParams.Directory, archiveReader, blockNum); err != nil {
+		return fmt.Errorf("failed to initialize Archive; %v", err)
+	}
+	return nil
 }
 
 func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver) error {
@@ -191,7 +200,9 @@ func GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash, evmState state.Data
 		if err != nil {
 			return nil, err
 		}
-		// archive stateDb hash is allowed be different from the stateRoot
+		if compatibleArchiveHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
+		}
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
