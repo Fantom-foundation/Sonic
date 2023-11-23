@@ -113,12 +113,14 @@ func ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum ui
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
 
-	archiveDir := carmenParams.Directory + string(filepath.Separator) + "archive"
-	if err := os.MkdirAll(archiveDir, 0700); err != nil {
-		return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
-	}
-	if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
-		return fmt.Errorf("failed to initialize Archive; %v", err)
+	if carmenParams.Archive == carmen.S5Archive {
+		archiveDir := carmenParams.Directory + string(filepath.Separator) + "archive"
+		if err := os.MkdirAll(archiveDir, 0700); err != nil {
+			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
+		}
+		if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
+			return fmt.Errorf("failed to initialize Archive; %v", err)
+		}
 	}
 	return nil
 }
