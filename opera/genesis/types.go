@@ -25,7 +25,7 @@ type (
 		ForEach(fn func(key, value []byte) bool)
 	}
 	FwsSection interface {
-		GetReader() io.Reader
+		GetReader() (io.Reader, error)
 	}
 	Genesis struct {
 		Header

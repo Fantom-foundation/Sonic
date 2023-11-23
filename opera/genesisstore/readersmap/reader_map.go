@@ -5,11 +5,13 @@ import (
 	"io"
 )
 
-type Map map[string]io.Reader
+type ReaderProvider func () (io.Reader, error)
+
+type Map map[string]ReaderProvider
 
 type Unit struct {
 	Name string
-	io.Reader
+	ReaderProvider
 }
 
 var (
@@ -23,7 +25,7 @@ func Wrap(rr []Unit) (Map, error) {
 		if units[r.Name] != nil {
 			return nil, ErrDupFile
 		}
-		units[r.Name] = r.Reader
+		units[r.Name] = r.ReaderProvider
 	}
 	return units, nil
 }
@@ -33,5 +35,5 @@ func (mm Map) Open(name string) (io.Reader, error) {
 	if f == nil {
 		return nil, ErrNotFound
 	}
-	return f, nil
+	return f()
 }

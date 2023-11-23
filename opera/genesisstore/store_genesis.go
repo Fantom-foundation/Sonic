@@ -130,11 +130,6 @@ func (s *Store) FwsSection() genesis.FwsSection {
 	return RawFwsSection{s.fMap}
 }
 
-func (s RawFwsSection) GetReader() io.Reader {
-	f, err := s.fMap(FwsSection(0))
-	if err != nil {
-		log.Info("Genesis file contains no Fantom World State data", "err", err)
-		return nil
-	}
-	return f
+func (s RawFwsSection) GetReader() (io.Reader, error) {
+	return s.fMap(FwsSection(0))
 }

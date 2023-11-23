@@ -123,37 +123,19 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 			return nil, hashes, err
 		}
 
-		unitReader := io.NewSectionReader(rawReader, offset+headerSize, offset+headerSize+int64(dataCompressedSize))
-		offset += headerSize + int64(dataCompressedSize)
-
-		gzipReader, err := gzip.NewReader(unitReader)
-		if err != nil {
-			return nil, hashes, err
-		}
-
-		// wrap with a logger
-		// human-readable name
-		name := unit.UnitName
-		scanfName := strings.ReplaceAll(name, "-", "")
-		if scanfName[len(scanfName)-1] < '0' || scanfName[len(scanfName)-1] > '9' {
-			scanfName += "0"
-		}
-		var part int
-		if _, err := fmt.Sscanf(scanfName, "brs%d", &part); err == nil {
-			name = fmt.Sprintf("blocks unit %d", part)
-		}
-		if _, err := fmt.Sscanf(scanfName, "ers%d", &part); err == nil {
-			name = fmt.Sprintf("epochs unit %d", part)
-		}
-		if _, err := fmt.Sscanf(scanfName, "evm%d", &part); err == nil {
-			name = fmt.Sprintf("EVM unit %d", part)
-		}
-		loggedReader := filelog.Wrap(gzipReader, name, uncompressedSize, time.Minute)
-
+		off := offset // standalone variable for each Unit instance
 		units = append(units, readersmap.Unit{
 			Name:   unit.UnitName,
-			Reader: loggedReader,
+			ReaderProvider: func () (io.Reader, error) {
+				unitReader := io.NewSectionReader(rawReader, off+headerSize, off+headerSize+int64(dataCompressedSize))
+				gzipReader, err := gzip.NewReader(unitReader)
+				if err != nil {
+					return nil, err
+				}
+				return filelog.Wrap(gzipReader, getLoggerName(unit.UnitName), uncompressedSize, time.Minute), nil
+			},
 		})
+		offset += headerSize + int64(dataCompressedSize)
 	}
 
 	unitsMap, err := readersmap.Wrap(units)
@@ -164,4 +146,23 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 	hashedMap := fileshash.Wrap(unitsMap.Open, FilesHashMaxMemUsage, hashes)
 
 	return NewStore(hashedMap, header, rawReader.Close), hashes, nil
+}
+
+// getLoggerName provides a human-readable name of a unit for logging purposes
+func getLoggerName(name string) string {
+	scanfName := strings.ReplaceAll(name, "-", "")
+	if scanfName[len(scanfName)-1] < '0' || scanfName[len(scanfName)-1] > '9' {
+		scanfName += "0"
+	}
+	var part int
+	if _, err := fmt.Sscanf(scanfName, "brs%d", &part); err == nil {
+		name = fmt.Sprintf("blocks unit %d", part)
+	}
+	if _, err := fmt.Sscanf(scanfName, "ers%d", &part); err == nil {
+		name = fmt.Sprintf("epochs unit %d", part)
+	}
+	if _, err := fmt.Sscanf(scanfName, "evm%d", &part); err == nil {
+		name = fmt.Sprintf("EVM unit %d", part)
+	}
+	return name
 }

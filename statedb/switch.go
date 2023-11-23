@@ -21,6 +21,8 @@ import (
 var carmenParams carmen.Parameters
 var carmenState carmen.State
 var liveStateDb carmen.StateDB
+var compatibleHashes bool
+var compatibleArchiveHashes bool
 
 // ConfigureStateDB sets carmenParams, should be called during config parsing,
 // before any other method in this package call.
@@ -36,8 +38,10 @@ func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) erro
 	switch strings.ToLower(stateImpl) {
 	case "carmen-s3", "go-file": // "go-file" deprecated, use "carmen-s3"
 		schema = carmen.StateSchema(3)
+		compatibleHashes = false
 	case "carmen-s5":
 		schema = carmen.StateSchema(5)
+		compatibleHashes = true
 	default:
 		return fmt.Errorf("unsupported statedb impl %s", stateImpl)
 	}
@@ -46,10 +50,13 @@ func ConfigureStateDB(stateImpl string, archiveImpl string, datadir string) erro
 	switch strings.ToLower(archiveImpl) {
 	case "none":
 		archiveType = carmen.NoArchive
+		compatibleArchiveHashes = false
 	case "ldb", "":
 		archiveType = carmen.LevelDbArchive
+		compatibleArchiveHashes = false
 	case "s5":
 		archiveType = carmen.S5Archive
+		compatibleArchiveHashes = true
 	default:
 		return fmt.Errorf("unsupported archive impl %s", archiveImpl)
 	}
@@ -91,18 +98,31 @@ func InitializeStateDB() error {
 
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
 // Should be called after ConfigureStateDB, but before InitializeStateDB.
-func ImportWorldState(reader io.Reader) error {
+func ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
 	if liveStateDb != nil {
 		return fmt.Errorf("unable to import FWS data - Carmen State already initialized")
 	}
 	if carmenParams.Directory == "" || carmenParams.Schema != carmen.StateSchema(5) {
 		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
 	}
-	err := os.MkdirAll(carmenParams.Directory, 0700)
-	if err != nil {
+
+	if err := os.MkdirAll(carmenParams.Directory, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
-	return io2.Import(carmenParams.Directory, reader)
+	if err := io2.ImportLiveDb(carmenParams.Directory, liveReader); err != nil {
+		return fmt.Errorf("failed to import LiveDB; %v", err)
+	}
+
+	if carmenParams.Archive == carmen.S5Archive {
+		archiveDir := carmenParams.Directory + string(filepath.Separator) + "archive"
+		if err := os.MkdirAll(archiveDir, 0700); err != nil {
+			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
+		}
+		if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
+			return fmt.Errorf("failed to initialize Archive; %v", err)
+		}
+	}
+	return nil
 }
 
 func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver) error {
@@ -138,6 +158,9 @@ func VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserve
 func GetStateDbGeneral(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if carmenState != nil {
 		stateDb := carmen.CreateNonCommittableStateDBUsing(carmenState)
+		if compatibleHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen live StateDB (general) - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
+		}
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
@@ -147,6 +170,9 @@ func GetStateDbGeneral(stateRoot hash.Hash, evmState state.Database, snaps *snap
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
 func GetLiveStateDb(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if liveStateDb != nil {
+		if compatibleHashes && liveStateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
+		}
 		return state.NewWrapper(CreateCarmenStateDb(liveStateDb)), nil
 	} else {
 		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
@@ -156,6 +182,9 @@ func GetLiveStateDb(stateRoot hash.Hash, evmState state.Database, snaps *snapsho
 // GetTxPoolStateDb obtains StateDB for TxPool evaluation - the latest finalized, read-only
 func GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if carmenState != nil {
+		if compatibleHashes && liveStateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen live StateDB (txpool) - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
+		}
 		stateDb := carmen.CreateNonCommittableStateDBUsing(carmenState)
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
@@ -178,6 +207,9 @@ func GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash, evmState state.Data
 		stateDb, err := liveStateDb.GetArchiveStateDB(blockNum.Uint64())
 		if err != nil {
 			return nil, err
+		}
+		if compatibleArchiveHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
+			return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
 		}
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {

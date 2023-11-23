@@ -7,6 +7,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
+	"github.com/Fantom-foundation/go-opera/opera/genesisstore/readersmap"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/autocompact"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
@@ -59,9 +60,17 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	})
 
 	// write EVM items
-	if reader := g.FwsSection.GetReader(); reader != nil {
+	liveReader, err := g.FwsSection.GetReader()
+	if err != nil && err != readersmap.ErrNotFound {
+		s.Log.Warn("Failed to read Fantom World State data from genesis", "err", err)
+	}
+	if liveReader != nil {
 		s.Log.Info("Importing Fantom World State data from genesis")
-		err := statedb.ImportWorldState(reader)
+		archiveReader, err := g.FwsSection.GetReader() // second reader of the same section for the archive import
+		if err != nil {
+			return fmt.Errorf("failed to get second FWS section reader; %v", err)
+		}
+		err = statedb.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
 		if err != nil {
 			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 		}
