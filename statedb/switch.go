@@ -177,12 +177,6 @@ func GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash, evmState state.Data
 	}
 }
 
-// GetGenesisStateDb obtains StateDB for fake genesis generation
-// Should be writable, but independent on the production live StateDb
-func GetGenesisStateDb(evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
-	return state.NewWithSnapLayers(common.Hash(hash.Zero), evmState, snaps, 0)
-}
-
 func ShutdownStateDB() error {
 	if carmenState != nil {
 		err := carmenState.Close()

@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"math"
 	"math/big"
 	"sync"
@@ -139,7 +140,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator) *testEnv {
 	genesis := genStore.Genesis()
 
 	store := NewMemStore()
-	err := store.ApplyGenesis(genesis)
+	err := store.ApplyGenesis(genesis, statedb.Config{})
 	if err != nil {
 		panic(err)
 	}
