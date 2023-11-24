@@ -1375,9 +1375,6 @@ func (pool *TxPool) reset(oldHead, newHead *EvmHeader) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	if pool.currentState != nil {
-		pool.currentState.Release()
-	}
 	statedb, err := pool.chain.StateAt(newHead.Root)
 	if err != nil && pool.currentState == nil {
 		log.Debug("Failed to access EVM state", "block", newHead.Number, "root", newHead.Root, "err", err)
@@ -1386,6 +1383,9 @@ func (pool *TxPool) reset(oldHead, newHead *EvmHeader) {
 	if err != nil {
 		log.Error("Failed to reset txpool state", "block", newHead.Number, "root", newHead.Root, "err", err)
 		return
+	}
+	if pool.currentState != nil {
+		pool.currentState.Release() // release only when obtaining of the new StateDB succeed
 	}
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)

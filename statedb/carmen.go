@@ -207,7 +207,7 @@ func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.H
 }
 
 func (c *CarmenStateDB) Copy() state.StateDbInterface {
-	return CreateCarmenStateDb(carmen.CreateStateDBUsing(carmenState))
+	return CreateCarmenStateDb(carmen.CreateNonCommittableStateDBUsing(carmenState))
 }
 
 func (c *CarmenStateDB) Snapshot() int {
