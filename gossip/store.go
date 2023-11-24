@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -94,6 +95,7 @@ type Store struct {
 	rlp rlpstore.Helper
 
 	logger.Instance
+	*statedb.StateDbManager
 }
 
 // NewMemStore creates store over memory map.
@@ -113,6 +115,7 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
 		Instance:      logger.New("gossip-store"),
 		prevFlushTime: time.Now(),
 		rlp:           rlpstore.Helper{logger.New("rlp")},
+		StateDbManager: statedb.CreateStateDbManager(cfg.StateDB),
 	}
 
 	err := table.OpenTables(&s.table, dbs, "gossip")
@@ -121,7 +124,7 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
 	}
 
 	s.initCache()
-	s.evm = evmstore.NewStore(dbs, cfg.EVM)
+	s.evm = evmstore.NewStore(dbs, cfg.EVM, s.StateDbManager)
 
 	if err := s.migrateData(); err != nil {
 		s.Log.Crit("Failed to migrate Gossip DB", "err", err)
@@ -168,6 +171,10 @@ func (s *Store) Close() {
 
 	_ = s.closeEpochStore()
 	s.evm.Close()
+
+	if err := s.StateDbManager.Close(); err != nil {
+		log.Error("Failed to close Carmen State", "err", err)
+	}
 }
 
 func (s *Store) IsCommitNeeded() bool {

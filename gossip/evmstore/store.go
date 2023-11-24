@@ -58,6 +58,7 @@ type Store struct {
 	triegc *prque.Prque // Priority queue mapping block numbers to tries to gc
 
 	logger.Instance
+	sdbm *statedb.StateDbManager
 }
 
 const (
@@ -65,12 +66,13 @@ const (
 )
 
 // NewStore creates store over key-value db.
-func NewStore(dbs kvdb.DBProducer, cfg StoreConfig) *Store {
+func NewStore(dbs kvdb.DBProducer, cfg StoreConfig, sdbm *statedb.StateDbManager) *Store {
 	s := &Store{
 		cfg:      cfg,
 		Instance: logger.New("evm-store"),
 		rlp:      rlpstore.Helper{logger.New("rlp")},
 		triegc:   prque.New(nil),
+		sdbm:     sdbm,
 	}
 
 	if cfg.CarmenEvmStore != nil {
@@ -285,7 +287,7 @@ func (s *Store) Cap() {
 
 // StateDB returns state database.
 func (s *Store) StateDB(from hash.Hash) (*state.StateDB, error) {
-	return statedb.GetStateDbGeneral(from, s.EvmState, s.Snaps)
+	return s.sdbm.GetStateDbGeneral(from, s.EvmState, s.Snaps)
 }
 
 // HasStateDB returns if state database exists

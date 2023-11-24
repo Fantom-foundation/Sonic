@@ -7,11 +7,11 @@ import (
 func cachedStore() *Store {
 	cfg := LiteStoreConfig()
 
-	return NewStore(memorydb.NewProducer(""), cfg)
+	return NewStore(memorydb.NewProducer(""), cfg, nil)
 }
 
 func nonCachedStore() *Store {
 	cfg := StoreConfig{}
 
-	return NewStore(memorydb.NewProducer(""), cfg)
+	return NewStore(memorydb.NewProducer(""), cfg, nil)
 }

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	io2 "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,24 +16,60 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"io"
+	"os"
+	"path/filepath"
 )
 
-var EmptyCode = crypto.Keccak256(nil)
+var emptyCode = crypto.Keccak256(nil)
 
-func GetExternalStateDbHash() common.Hash {
-	if liveStateDb == nil {
-		return common.Hash{}
+// ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
+// Should be called after ConfigureStateDB, but before InitializeStateDB.
+func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64, root common.Hash) error {
+	if m.parameters.Directory == "" || m.parameters.Schema != carmen.StateSchema(5) {
+		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
 	}
-	return common.Hash(liveStateDb.GetHash())
+	if m.carmenState != nil {
+		return fmt.Errorf("carmen state must be closed before the FWS data import")
+	}
+
+	if err := os.MkdirAll(m.parameters.Directory, 0700); err != nil {
+		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
+	}
+	if err := io2.ImportLiveDb(m.parameters.Directory, liveReader); err != nil {
+		return fmt.Errorf("failed to import LiveDB; %v", err)
+	}
+
+	if m.parameters.Archive == carmen.S5Archive {
+		archiveDir := m.parameters.Directory + string(filepath.Separator) + "archive"
+		if err := os.MkdirAll(archiveDir, 0700); err != nil {
+			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
+		}
+		if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
+			return fmt.Errorf("failed to initialize Archive; %v", err)
+		}
+	}
+
+	if err := m.Open(); err != nil {
+		return fmt.Errorf("failed to open Carmen for checking imported state; %v", err)
+	}
+	defer m.Close() // Carmen must be closed before calling this function - ensure the same state after it
+	return m.checkStateHash(blockNum, root)
 }
 
-func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
-	if liveStateDb == nil {
-		return fmt.Errorf("unable to import into Carmen State - not initialized")
+func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
+	if m.carmenState != nil {
+		return fmt.Errorf("carmen state must be closed before the legacy EVM data import")
 	}
+	if err := m.Open(); err != nil {
+		return fmt.Errorf("failed to open StateDbManager for legacy EVM data import; %v", err)
+	}
+	defer m.Close()
+	m.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
+
 	var currentBlock uint64 = 1
 	var accountsCount, slotsCount uint64 = 0, 0
-	bulk := liveStateDb.StartBulkLoad(currentBlock)
+	bulk := m.liveStateDb.StartBulkLoad(currentBlock)
 
 	restartBulkIfNeeded := func () error {
 		if (accountsCount + slotsCount) % 1_000_000 == 0 && currentBlock < blockNum {
@@ -39,7 +77,7 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 				return err
 			}
 			currentBlock++
-			bulk = liveStateDb.StartBulkLoad(currentBlock)
+			bulk = m.liveStateDb.StartBulkLoad(currentBlock)
 		}
 		return nil
 	}
@@ -71,7 +109,7 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 			bulk.SetBalance(address, acc.Balance)
 
 
-			if !bytes.Equal(acc.CodeHash, EmptyCode) {
+			if !bytes.Equal(acc.CodeHash, emptyCode) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
 				if len(code) == 0 {
 					return fmt.Errorf("code is missing for account %v", common.BytesToHash(accIter.LeafKey()))
@@ -120,13 +158,25 @@ func ImportTrieIntoExternalStateDb(chaindb ethdb.Database, evmDb kvdb.Store, blo
 	if err := bulk.Close(); err != nil {
 		return err
 	}
-	// add the genesis block into archive
+	// add the empty genesis block into archive
 	if currentBlock < blockNum {
-		bulk = liveStateDb.StartBulkLoad(blockNum)
+		bulk = m.liveStateDb.StartBulkLoad(blockNum)
 		if err := bulk.Close(); err != nil {
 			return err
 		}
 	}
-	fmt.Printf("Imported %d accounts and %d slots into %d blocks\n", accountsCount, slotsCount, currentBlock)
+
+	return m.checkStateHash(blockNum, root)
+}
+
+func (m *StateDbManager) checkStateHash(blockNum uint64, root common.Hash) error {
+	if m.compatibleHashes {
+		stateHash := m.liveStateDb.GetHash()
+		if cc.Hash(root) != stateHash {
+			return fmt.Errorf("importing StateDB finished with incorrect state hash: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
+		} else {
+			m.Log.Info( "Importing EVM state into StateDB finished, stateRoot matches", "index", blockNum, "root", root)
+		}
+	}
 	return nil
 }

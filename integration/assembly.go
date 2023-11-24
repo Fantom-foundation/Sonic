@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"path"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -52,7 +51,6 @@ type Configs struct {
 	LachesisStore abft.StoreConfig
 	VectorClock   vecmt.IndexConfig
 	DBs           DBsConfig
-	StateDB       statedb.Config
 }
 
 func panics(name string) func(error) {
@@ -95,7 +93,7 @@ func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, g *genesis.Genesis, cfg C
 	blockProc := gossip.DefaultBlockProc()
 
 	if g != nil {
-		err := gdb.ApplyGenesis(*g, cfg.StateDB)
+		err := gdb.ApplyGenesis(*g)
 		if err != nil {
 			return nil, nil, blockProc, fmt.Errorf("failed to write Gossip genesis state: %v", err)
 		}
@@ -263,6 +261,11 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 			err = &GenesisMismatchError{*genesisID, g.GenesisID}
 			return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
 		}
+	}
+
+	if err := gdb.StateDbManager.Open(); err != nil {
+		err = fmt.Errorf("failed to open StateDbManager: %v", err)
+		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
 	}
 
 	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, nil, cfg)

@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
 	"time"
 
@@ -130,6 +131,7 @@ type (
 		Cache StoreCacheConfig
 		// EVM is EVM store config
 		EVM                 evmstore.StoreConfig
+		StateDB             statedb.Config
 		MaxNonFlushedSize   int
 		MaxNonFlushedPeriod time.Duration
 	}

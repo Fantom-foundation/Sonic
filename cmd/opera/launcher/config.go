@@ -208,7 +208,6 @@ type config struct {
 	LachesisStore abft.StoreConfig
 	VectorClock   vecmt.IndexConfig
 	DBs           integration.DBsConfig
-	StateDB       statedb.Config
 }
 
 func (c *config) AppConfigs() integration.Configs {
@@ -219,7 +218,6 @@ func (c *config) AppConfigs() integration.Configs {
 		LachesisStore: c.LachesisStore,
 		VectorClock:   c.VectorClock,
 		DBs:           c.DBs,
-		StateDB:       c.StateDB,
 	}
 }
 
@@ -639,7 +637,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	}
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
-	cfg.StateDB = setStateDBConfig(ctx, cfg.Node.DataDir, cfg.StateDB)
+	cfg.OperaStore.StateDB = setStateDBConfig(ctx, cfg.Node.DataDir, cfg.OperaStore.StateDB)
 
 	// Set default VM implementation
 	if impl := ctx.GlobalString(vmImplFlag.Name); impl != "" {
