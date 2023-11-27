@@ -387,11 +387,16 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 			}()
 		}
 
+		go func() {
+			defer close(blocks)
 		// add all blocks in specified range for processing
 		for i := fromBlock; i <= toBlock; i++ {
+				if contextDone {
+					break
+				}
 			blocks <- i
 		}
-		close(blocks)
+		}()
 
 		var wgResult sync.WaitGroup
 		wgResult.Add(1)
