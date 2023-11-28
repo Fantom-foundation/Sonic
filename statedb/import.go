@@ -65,6 +65,9 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 		return fmt.Errorf("failed to open StateDbManager for legacy EVM data import; %v", err)
 	}
 	defer m.Close()
+	if m.carmenState == nil {
+		return nil // Carmen not used - skip
+	}
 	m.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
 
 	var currentBlock uint64 = 1
