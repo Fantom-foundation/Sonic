@@ -130,9 +130,7 @@ func (m *StateDbManager) GetTxPoolStateDb(stateRoot common.Hash, evmState state.
 		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
 	}
 	if m.carmenState != nil {
-		if m.compatibleHashes && m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
-			return nil, fmt.Errorf("unable to get Carmen live StateDB (txpool) - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
-		}
+		// for TxPool it is ok to provide a newer state (with a different hash)
 		stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
 		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
 	} else {
