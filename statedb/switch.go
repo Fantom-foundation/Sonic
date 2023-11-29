@@ -182,9 +182,7 @@ func GetLiveStateDb(stateRoot hash.Hash, evmState state.Database, snaps *snapsho
 // GetTxPoolStateDb obtains StateDB for TxPool evaluation - the latest finalized, read-only
 func GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
 	if carmenState != nil {
-		if compatibleHashes && liveStateDb.GetHash() != cc.Hash(stateRoot) {
-			return nil, fmt.Errorf("unable to get Carmen live StateDB (txpool) - unexpected state root (%x != %x)", liveStateDb.GetHash(), stateRoot)
-		}
+		// for TxPool it is ok to provide a newer state (with a different hash)
 		stateDb := carmen.CreateNonCommittableStateDBUsing(carmenState)
 		return state.NewWrapper(CreateCarmenStateDb(stateDb)), nil
 	} else {
