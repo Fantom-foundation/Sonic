@@ -44,8 +44,8 @@ require (
 )
 
 require (
-	github.com/Fantom-foundation/Carmen/go v0.0.0-20231124092524-cc66783f55ae
-	github.com/Fantom-foundation/Tosca v0.0.0-20231103111201-05bbc1e5ebfc
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20231129181318-ae939c03e7cd
+	github.com/Fantom-foundation/Tosca v0.0.0-20231128155433-68fe1e727ad7
 )
 
 require (
@@ -116,6 +116,7 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	pgregory.net/rand v1.0.2 // indirect
 )
 
 replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20231003122306-febfe681b4a7
