@@ -6,7 +6,6 @@ import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/mpt"
 	io2 "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/metrics"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
@@ -87,9 +86,7 @@ func (m *StateDbManager) Open() error {
 		return fmt.Errorf("failed to create carmen state; %s", err)
 	}
 	m.liveStateDb = carmen.CreateStateDBUsing(m.carmenState)
-
-	// measure the size of carmen directory
-	go metrics.MeasureDbDir("statedb/disksize", m.parameters.Directory)
+	m.Log.Info("Carmen state successfully opened")
 	return nil
 }
 
@@ -179,6 +176,7 @@ func (m *StateDbManager) Close() error {
 		}
 		m.carmenState = nil
 		m.liveStateDb = nil
+		m.Log.Info("Carmen state successfully closed")
 	}
 	return nil
 }

@@ -14,11 +14,12 @@ var once sync.Once
 
 func SetDataDir(datadir string) {
 	once.Do(func() {
-		go MeasureDbDir("db_size", datadir)
+		go measureDbDir("db_size", datadir)
+		go measureDbDir("statedb/disksize", filepath.Join(datadir, "carmen"))
 	})
 }
 
-func MeasureDbDir(name, datadir string) {
+func measureDbDir(name, datadir string) {
 	var (
 		gauge = metrics.GetOrRegisterGauge(name, nil)
 		rescan = len(datadir) > 0 && datadir != "inmemory"

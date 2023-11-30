@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 )
 
-var emptyCode = crypto.Keccak256(nil)
+var emptyCodeHash = crypto.Keccak256(nil)
 
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
 // Should be called after ConfigureStateDB, but before InitializeStateDB.
@@ -48,6 +48,8 @@ func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io
 		if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
+	} else if m.parameters.Archive != carmen.NoArchive {
+		return fmt.Errorf("archive is used, but cannot be initialized from FWS genesis section")
 	}
 
 	if err := m.Open(); err != nil {
@@ -112,7 +114,7 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 			bulk.SetBalance(address, acc.Balance)
 
 
-			if !bytes.Equal(acc.CodeHash, emptyCode) {
+			if !bytes.Equal(acc.CodeHash, emptyCodeHash) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
 				if len(code) == 0 {
 					return fmt.Errorf("code is missing for account %v", common.BytesToHash(accIter.LeafKey()))
