@@ -474,7 +474,7 @@ func setStateDBConfig(ctx *cli.Context, datadir string, cfg statedb.Config) stat
 		utils.Fatalf("unsupported archive impl %s", archiveImpl)
 	}
 
-	cfg.CarmenParameters = carmen.Parameters{
+	cfg = statedb.Config{
 		Directory: filepath.Join(datadir, "carmen"),
 		Variant:   "go-file",
 		Schema:    schema,
