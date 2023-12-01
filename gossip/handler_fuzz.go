@@ -73,7 +73,7 @@ func makeFuzzedHandler() (h *handler, err error) {
 
 	config := DefaultConfig(cachescale.Identity)
 	store := NewMemStore()
-	err = store.ApplyGenesis(genesis)
+	err = store.ApplyGenesis(genesis, statedb.Config{})
 	if err != nil {
 		return
 	}

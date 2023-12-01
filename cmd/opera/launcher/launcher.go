@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"path"
 	"sort"
 	"strings"
@@ -315,11 +314,6 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	metrics.SetDataDir(cfg.Node.DataDir)
 	memorizeDBPreset(cfg)
 
-	// StateDB initialization (must be done after the genesis application)
-	if err := statedb.InitializeStateDB(); err != nil {
-		utils.Fatalf("Failed to initialize StateDB; %s", err) // interrupts the execution
-	}
-
 	// substitute default bootnodes if requested
 	networkName := ""
 	if gdb.HasBlockEpochState() {
@@ -407,9 +401,6 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 			if err := closeDBs(); err != nil {
 				log.Warn("Failed to close databases", "err", err)
 			}
-		}
-		if err := statedb.ShutdownStateDB(); err != nil {
-			log.Error("Failed to shutdown StateDB", "err", err)
 		}
 		if cfg.OperaStore.EVM.CarmenEvmStore != nil {
 			if err := cfg.OperaStore.EVM.CarmenEvmStore.Close(); err != nil {

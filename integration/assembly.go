@@ -263,6 +263,11 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		}
 	}
 
+	if err := gdb.StateDbManager.Open(); err != nil {
+		err = fmt.Errorf("failed to open StateDbManager: %v", err)
+		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
+	}
+
 	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, nil, cfg)
 	if err != nil {
 		err = fmt.Errorf("failed to make engine: %v", err)

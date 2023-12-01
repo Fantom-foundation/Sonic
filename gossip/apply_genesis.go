@@ -7,8 +7,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/opera/genesisstore/readersmap"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/autocompact"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/ethereum/go-ethereum/common"
@@ -61,16 +59,17 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 
 	// write EVM items
 	liveReader, err := g.FwsSection.GetReader()
-	if err != nil && err != readersmap.ErrNotFound {
-		s.Log.Warn("Failed to read Fantom World State data from genesis", "err", err)
+	if err != nil {
+		s.Log.Info("Fantom World State data not available in the genesis", "err", err)
 	}
+
 	if liveReader != nil {
-		s.Log.Info("Importing Fantom World State data from genesis")
+		s.Log.Info("Importing Fantom World State data from genesis", "index", lastBlock.Idx, "root", lastBlock.Root)
 		archiveReader, err := g.FwsSection.GetReader() // second reader of the same section for the archive import
 		if err != nil {
 			return fmt.Errorf("failed to get second FWS section reader; %v", err)
 		}
-		err = statedb.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
+		err = s.StateDbManager.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
 		if err != nil {
 			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 		}
@@ -82,29 +81,10 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 			return err
 		}
 
-		// write EVM items into Carmen
-		if statedb.IsExternalStateDbUsed() {
-			s.Log.Info("Importing legacy EVM data into Carmen", "index", lastBlock.Idx, "root", lastBlock.Root)
-			if err = statedb.InitializeStateDB(); err != nil {
-				return fmt.Errorf("failed to initialize StateDB for the genesis import; %v", err)
-			}
-			err = statedb.ImportTrieIntoExternalStateDb(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
-			if err != nil {
-				return fmt.Errorf("genesis import into StateDB failed at block %d; %v", lastBlock.Idx, err)
-			}
-		}
-	}
-
-	// check EVM state hash
-	if statedb.IsExternalStateDbUsed() {
-		if err = statedb.InitializeStateDB(); err != nil { // make sure the StateDB is available
-			return fmt.Errorf("failed to initialize StateDB after the genesis import; %v", err)
-		}
-		stateHash := statedb.GetExternalStateDbHash()
-		if common.Hash(lastBlock.Root) == stateHash {
-			s.Log.Info("Imported block into StateDB", "index", lastBlock.Idx, "root", lastBlock.Root)
-		} else {
-			s.Log.Warn("Imported block into StateDB with not-matching state hash", "index", lastBlock.Idx, "expectedHash", lastBlock.Root, "reproducedHash", stateHash)
+		// write EVM items into Carmen (if needed)
+		err = s.StateDbManager.ImportLegacyEvmData(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
+		if err != nil {
+			return fmt.Errorf("genesis import into StateDB failed; %v", err)
 		}
 	}
 

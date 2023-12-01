@@ -3,7 +3,6 @@ package gossip
 import (
 	"context"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
 	"strconv"
 	"strings"
@@ -116,18 +115,11 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *evmcore.EvmHeader, error) {
 	var header *evmcore.EvmHeader
 	if number, ok := blockNrOrHash.Number(); ok && (number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber) {
-		// use current block from BlockEpochState table first
-		header = &b.state.CurrentBlock().EvmHeader
-
-		// make sure the block is present in the archive
-		latestBlockNum, empty, err := statedb.GetArchiveBlockHeight()
+		var err error
+		header, err = b.state.LastHeaderWithArchiveState()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get latest block number; %v", err)
 		}
-		if !empty && latestBlockNum < header.Number.Uint64() {
-			header = b.state.GetHeader(common.Hash{}, latestBlockNum)
-		}
-
 	} else if number, ok := blockNrOrHash.Number(); ok {
 		header = b.state.GetHeader(common.Hash{}, uint64(number))
 	} else if h, ok := blockNrOrHash.Hash(); ok {
@@ -142,7 +134,7 @@ func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockN
 	if header == nil {
 		return nil, nil, errors.New("header not found")
 	}
-	stateDb, err := statedb.GetRpcStateDb(header.Number, header.Root, b.svc.store.evm.EvmState, b.svc.store.evm.Snaps)
+	stateDb, err := b.state.RpcStateAt(header.Number, header.Root)
 	if err != nil {
 		return nil, nil, err
 	}

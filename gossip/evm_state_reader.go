@@ -1,7 +1,7 @@
 package gossip
 
 import (
-	"github.com/Fantom-foundation/go-opera/statedb"
+	"fmt"
 	"math/big"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -21,12 +21,6 @@ type EvmStateReader struct {
 
 	store *Store
 	gpo   *gasprice.Oracle
-}
-
-func NewEvmStateReader(s *Store) *EvmStateReader {
-	return &EvmStateReader{
-		store: s,
-	}
 }
 
 func (s *Service) GetEvmStateReader() *EvmStateReader {
@@ -78,6 +72,21 @@ func (r *EvmStateReader) CurrentHeader() *evmcore.EvmHeader {
 	n := r.store.GetLatestBlockIndex()
 
 	return r.getBlock(hash.Event{}, n, false).Header()
+}
+
+func (r *EvmStateReader) LastHeaderWithArchiveState() (*evmcore.EvmHeader, error) {
+	latestBlock := r.store.GetLatestBlockIndex()
+
+	// make sure the block is present in the archive
+	latestArchiveBlock, empty, err := r.store.GetArchiveBlockHeight()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest archive block; %v", err)
+	}
+	if !empty && idx.Block(latestArchiveBlock) < latestBlock {
+		latestBlock = idx.Block(latestArchiveBlock)
+	}
+
+	return r.getBlock(hash.Event{}, latestBlock, false).Header(), nil
 }
 
 func (r *EvmStateReader) GetHeader(h common.Hash, n uint64) *evmcore.EvmHeader {
@@ -139,6 +148,12 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 	return evmBlock
 }
 
+// StateAt obtains StateDB for TxPool
 func (r *EvmStateReader) StateAt(root common.Hash) (*state.StateDB, error) {
-	return statedb.GetTxPoolStateDb(root, r.store.evm.EvmState, r.store.evm.Snaps)
+	return r.store.GetTxPoolStateDb(root, r.store.evm.EvmState, r.store.evm.Snaps)
+}
+
+// RpcStateAt obtains archive StateDB for RPC requests evaluation
+func (r *EvmStateReader) RpcStateAt(blockNum *big.Int, stateRoot common.Hash) (*state.StateDB, error) {
+	return r.store.GetRpcStateDb(blockNum, stateRoot, r.store.evm.EvmState, r.store.evm.Snaps)
 }

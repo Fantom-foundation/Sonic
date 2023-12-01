@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -121,7 +120,7 @@ func consensusCallbackBeginBlockFn(
 		bs.EpochCheaters = mergeCheaters(bs.EpochCheaters, cBlock.Cheaters)
 
 		// Get stateDB
-		statedb, err := statedb.GetLiveStateDb(bs.FinalizedStateRoot, store.evm.EvmState, store.evm.Snaps)
+		statedb, err := store.GetLiveStateDb(bs.FinalizedStateRoot, store.evm.EvmState, store.evm.Snaps)
 		if err != nil {
 			log.Crit("Failed to open StateDB", "err", err)
 		}

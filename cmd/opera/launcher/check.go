@@ -24,16 +24,18 @@ func checkEvm(ctx *cli.Context) error {
 	gdb := makeGossipStore(rawDbs, cfg)
 	defer gdb.Close()
 
+	sdbm := statedb.CreateStateDbManager(cfg.OperaStore.StateDB)
+
 	start, reported := time.Now(), time.Now()
 
 	// verify Carmen StateDB
-	if statedb.IsExternalStateDbUsed() {
+	if sdbm.IsWorldStateVerifiable() {
 		lastBlockIdx := gdb.GetLatestBlockIndex()
 		lastBlock := gdb.GetBlock(lastBlockIdx)
 		if lastBlock == nil {
 			log.Crit("Verification of the database failed - unable to get the last block")
 		}
-		err := statedb.VerifyWorldState(common.Hash(lastBlock.Root), verificationObserver{})
+		err := sdbm.VerifyWorldState(common.Hash(lastBlock.Root), verificationObserver{})
 		if err != nil {
 			log.Crit("Verification of the Fantom World State failed", "err", err)
 		}

@@ -144,6 +144,10 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator) *testEnv {
 		panic(err)
 	}
 
+	if err := store.StateDbManager.Open(); err != nil {
+		panic(err)
+	}
+
 	// install blockProc callbacks
 	env := &testEnv{
 		t:      store.GetGenesisTime().Time(),
