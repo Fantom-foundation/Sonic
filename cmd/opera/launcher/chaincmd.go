@@ -133,6 +133,7 @@ Requires a first argument of the DB directory to write to.
 				Flags: []cli.Flag{
 					DataDirFlag,
 					stateDbImplFlag,
+					archiveImplFlag,
 				},
 				Description: `
     opera check evm

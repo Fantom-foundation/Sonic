@@ -19,7 +19,7 @@ type Config carmen.Parameters
 type StateDbManager struct {
 	opened bool
 	parameters carmen.Parameters
-	logger.Instance
+	logger logger.Instance
 	carmenState carmen.State
 	liveStateDb carmen.StateDB
 	compatibleHashes bool
@@ -29,7 +29,7 @@ type StateDbManager struct {
 func CreateStateDbManager(cfg Config) *StateDbManager {
 	return &StateDbManager{
 		parameters: carmen.Parameters(cfg),
-		Instance: logger.New("statedb"),
+		logger: logger.New("statedb"),
 		compatibleHashes: cfg.Schema == carmen.StateSchema(5),
 		compatibleArchiveHashes: cfg.Archive == carmen.S5Archive,
 	}
@@ -58,7 +58,7 @@ func (m *StateDbManager) Open() error {
 		return fmt.Errorf("failed to create carmen state; %s", err)
 	}
 	m.liveStateDb = carmen.CreateStateDBUsing(m.carmenState)
-	m.Log.Info("Carmen state successfully opened")
+	m.logger.Log.Info("Carmen state successfully opened")
 	return nil
 }
 
@@ -143,12 +143,12 @@ func (m *StateDbManager) Close() error {
 	if m.carmenState != nil {
 		err := m.carmenState.Close()
 		if err != nil {
-			m.Log.Warn("Failed to close carmen state", "err", err)
+			m.logger.Log.Warn("Failed to close carmen state", "err", err)
 			return fmt.Errorf("failed to close carmen state; %s", err)
 		}
 		m.carmenState = nil
 		m.liveStateDb = nil
-		m.Log.Info("Carmen state successfully closed")
+		m.logger.Log.Info("Carmen state successfully closed")
 	}
 	return nil
 }
@@ -156,6 +156,6 @@ func (m *StateDbManager) Close() error {
 // logAndReturnIntegrationErr logs an error with its stacktrace, returns the error
 func (m *StateDbManager) logAndReturnIntegrationErr(msg string) error {
 	err := errors.New(msg) // create the error with a stacktrace
-	m.Log.Error(fmt.Sprintf("%+v", err)) // print with the stacktrace
+	m.logger.Log.Error(fmt.Sprintf("%+v", err)) // print with the stacktrace
 	return err
 }

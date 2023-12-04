@@ -5,39 +5,109 @@ import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/mpt"
-	io2 "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
+	"github.com/Fantom-foundation/Carmen/go/state/mpt/io"
+	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"path/filepath"
 )
 
 func (m *StateDbManager) IsWorldStateVerifiable() bool {
 	return m.doesUseCarmen() && m.parameters.Schema == carmen.StateSchema(5)
 }
 
-func (m *StateDbManager) VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver) error {
+func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Hash) error {
 	if m.carmenState != nil {
 		return fmt.Errorf("carmen state must be closed for the world state verification")
 	}
 	if !m.IsWorldStateVerifiable() {
 		return fmt.Errorf("unable to verify world state data - Carmen S5 not used")
 	}
-	// try to obtain information of the contained MPT
-	info, err := io2.CheckMptDirectoryAndGetInfo(m.parameters.Directory)
-	if err != nil {
-		return err
+
+	observer := verificationObserver{m.logger}
+
+	// check hash of the live state / last state in the archive
+	if err := verifyLastState(m.parameters, expectedBlockNum, expectedHash); err != nil {
+		return fmt.Errorf("verification of the last block failed: %v", err)
 	}
-	// get hash of the live state
-	liveState, err := carmen.NewState(m.parameters)
+	m.logger.Log.Info("State hash matches the last block state root.")
+
+	// verify the live world state
+	info, err := io.CheckMptDirectoryAndGetInfo(m.parameters.Directory)
 	if err != nil {
-		return fmt.Errorf("failed to create carmen state; %s", err)
+		return fmt.Errorf("failed to check live state dir: %v", err)
+	}
+	if err := mpt.VerifyFileLiveTrie(m.parameters.Directory, info.Config, observer); err != nil {
+		return fmt.Errorf("live state verification failed: %v", err)
+	}
+	m.logger.Log.Info("Live state verified successfully.")
+
+	// verify the archive
+	if m.parameters.Archive != carmen.S5Archive {
+		return nil // skip archive checks when S5 archive is not used
+	}
+	archiveDir := m.parameters.Directory + string(filepath.Separator) + "archive"
+	archiveInfo, err := io.CheckMptDirectoryAndGetInfo(archiveDir)
+	if err != nil {
+		return fmt.Errorf("failed to check archive dir: %v", err)
+	}
+	if err := mpt.VerifyArchive(archiveDir, archiveInfo.Config, observer); err != nil {
+		return fmt.Errorf("archive verification failed: %v", err)
+	}
+	m.logger.Log.Info("Archive verified successfully.")
+	return nil
+}
+
+func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expectedHash common.Hash) error {
+	liveState, err := carmen.NewState(params)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen live state: %v", err)
 	}
 	defer liveState.Close()
-	stateHash, err := liveState.GetHash()
+	if err := checkStateHash(liveState, expectedHash); err != nil {
+		return fmt.Errorf("live state check failed; %v", err)
+	}
+
+	lastArchiveBlock, _, err := liveState.GetArchiveBlockHeight()
 	if err != nil {
-		return fmt.Errorf("failed to get state hash; %s", err)
+		return fmt.Errorf("failed to get last archive block height; %v", err)
+	}
+	if lastArchiveBlock != expectedBlockNum {
+		return fmt.Errorf("the last archive block height does not match (%d != %d)", lastArchiveBlock, expectedBlockNum)
+	}
+
+	if params.Archive == carmen.NoArchive {
+		return nil // skip archive checks when archive is not enabled
+	}
+	archiveState, err := liveState.GetArchiveState(lastArchiveBlock)
+	if err != nil {
+		return fmt.Errorf("failed to get carmen archive state; %v", err)
+	}
+	defer archiveState.Close()
+	if err := checkStateHash(archiveState, expectedHash); err != nil {
+		return fmt.Errorf("archive state check failed; %v", err)
+	}
+	return nil
+}
+
+func checkStateHash(state carmen.State, expectedHash common.Hash) error {
+	stateHash, err := state.GetHash()
+	if err != nil {
+		return fmt.Errorf("failed to get state hash; %v", err)
 	}
 	if stateHash != cc.Hash(expectedHash) {
-		return fmt.Errorf("validation failed - the live state hash does not match with the last block state root (%x != %x)", stateHash, expectedHash)
+		return fmt.Errorf("state hash does not match (%x != %x)", stateHash, expectedHash)
 	}
-	// verify the world state
-	return mpt.VerifyFileLiveTrie(m.parameters.Directory, info.Config, observer)
+	return nil
 }
+
+type verificationObserver struct {
+	logger.Instance
+}
+
+func (o verificationObserver) StartVerification() {}
+
+func (o verificationObserver) Progress(msg string) {
+	o.Log.Info(msg)
+}
+
+func (o verificationObserver) EndVerification(res error) {}
