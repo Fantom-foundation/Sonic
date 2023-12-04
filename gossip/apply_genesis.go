@@ -92,7 +92,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		s.Log.Info("EVM data import skipped - data already present")
 	}
 
-	if err := s.StateDbManager.CompareImportedStateHash(uint64(lastBlock.Idx), common.Hash(lastBlock.Root)); err != nil {
+	if err := s.StateDbManager.CheckImportedStateHash(uint64(lastBlock.Idx), common.Hash(lastBlock.Root)); err != nil {
 		return err
 	}
 

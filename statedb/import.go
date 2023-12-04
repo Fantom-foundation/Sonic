@@ -24,7 +24,7 @@ import (
 var emptyCodeHash = crypto.Keccak256(nil)
 
 // IsAlreadyImported checks, if there is already a Carmen directory filled with state data,
-// so the EVM data import into it should be skipped. Calling CompareImportedStateHash should follow
+// so the EVM data import into it should be skipped. Calling CheckImportedStateHash should follow
 // to make sure the directory contains the state with the expected hash.
 func (m *StateDbManager) IsAlreadyImported() bool {
 	if !m.doesUseCarmen() {
@@ -184,8 +184,9 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 	return nil
 }
 
-// CompareImportedStateHash reads hash of the Carmen state and compare it with given expected state hash.
-func (m *StateDbManager) CompareImportedStateHash(blockNum uint64, root common.Hash) error {
+// CheckImportedStateHash reads hash of the Carmen state and compare it with given expected state hash.
+// If it does not match, it returns an error.
+func (m *StateDbManager) CheckImportedStateHash(blockNum uint64, root common.Hash) error {
 	if !m.doesUseCarmen() || !m.compatibleHashes {
 		return nil // applicable ony on Carmen with compatible hashes schema - skip the check
 	}

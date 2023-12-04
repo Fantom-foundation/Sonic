@@ -14,6 +14,9 @@ func (m *StateDbManager) IsWorldStateVerifiable() bool {
 }
 
 func (m *StateDbManager) VerifyWorldState(expectedHash common.Hash, observer mpt.VerificationObserver) error {
+	if m.carmenState != nil {
+		return fmt.Errorf("carmen state must be closed for the world state verification")
+	}
 	if !m.IsWorldStateVerifiable() {
 		return fmt.Errorf("unable to verify world state data - Carmen S5 not used")
 	}
