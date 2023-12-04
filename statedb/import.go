@@ -23,10 +23,21 @@ import (
 
 var emptyCodeHash = crypto.Keccak256(nil)
 
+// IsAlreadyImported checks, if there is already a Carmen directory filled with state data,
+// so the EVM data import into it should be skipped. Calling CheckImportedStateHash should follow
+// to make sure the directory contains the state with the expected hash.
+func (m *StateDbManager) IsAlreadyImported() bool {
+	if !m.doesUseCarmen() {
+		return false
+	}
+	stats, err := os.Stat(m.parameters.Directory)
+	return err == nil && stats.IsDir()
+}
+
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
-// Should be called after ConfigureStateDB, but before InitializeStateDB.
-func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64, root common.Hash) error {
-	if m.parameters.Directory == "" || m.parameters.Schema != carmen.StateSchema(5) {
+// Must be called before the first StateDbManager.Open call.
+func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
+	if !m.doesUseCarmen() || m.parameters.Schema != carmen.StateSchema(5) {
 		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
 	}
 	if m.carmenState != nil {
@@ -51,14 +62,10 @@ func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io
 	} else if m.parameters.Archive != carmen.NoArchive {
 		return fmt.Errorf("archive is used, but cannot be initialized from FWS genesis section")
 	}
-
-	if err := m.Open(); err != nil {
-		return fmt.Errorf("failed to open Carmen for checking imported state; %v", err)
-	}
-	defer m.Close() // Carmen must be closed before calling this function - ensure the same state after it
-	return m.checkStateHash(blockNum, root)
+	return nil
 }
 
+// ImportLegacyEvmData reads legacy EVM trie database and imports one state (for one given block) into Carmen state.
 func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
 	if m.carmenState != nil {
 		return fmt.Errorf("carmen state must be closed before the legacy EVM data import")
@@ -117,7 +124,7 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 			if !bytes.Equal(acc.CodeHash, emptyCodeHash) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
 				if len(code) == 0 {
-					return fmt.Errorf("code is missing for account %v", common.BytesToHash(accIter.LeafKey()))
+					return fmt.Errorf("missing code for account %v", address)
 				}
 				bulk.SetCode(address, code)
 			}
@@ -125,7 +132,7 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 			if acc.Root != types.EmptyRootHash {
 				storageTrie, err := trie.NewSecure(acc.Root, triedb)
 				if err != nil {
-					return fmt.Errorf("failed to open storage trie; %v", err)
+					return fmt.Errorf("failed to open storage trie for account %v; %v", address, err)
 				}
 				storageIt := storageTrie.NodeIterator(nil)
 				for storageIt.Next(true) {
@@ -150,7 +157,7 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 					}
 				}
 				if storageIt.Error() != nil {
-					return fmt.Errorf("failed to iterate storage trie; %v", storageIt.Error())
+					return fmt.Errorf("failed to iterate storage trie of account %v; %v", address, storageIt.Error())
 				}
 			}
 
@@ -160,6 +167,10 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 			}
 		}
 	}
+	if accIter.Error() != nil {
+		return fmt.Errorf("failed to iterate accounts trie; %v", accIter.Error())
+	}
+
 	if err := bulk.Close(); err != nil {
 		return err
 	}
@@ -170,18 +181,26 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 			return err
 		}
 	}
-
-	return m.checkStateHash(blockNum, root)
+	return nil
 }
 
-func (m *StateDbManager) checkStateHash(blockNum uint64, root common.Hash) error {
-	if m.compatibleHashes {
-		stateHash := m.liveStateDb.GetHash()
-		if cc.Hash(root) != stateHash {
-			return fmt.Errorf("importing StateDB finished with incorrect state hash: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
-		} else {
-			m.Log.Info( "Importing EVM state into StateDB finished, stateRoot matches", "index", blockNum, "root", root)
+// CheckImportedStateHash reads hash of the Carmen state and compare it with given expected state hash.
+// If it does not match, it returns an error.
+func (m *StateDbManager) CheckImportedStateHash(blockNum uint64, root common.Hash) error {
+	if !m.doesUseCarmen() || !m.compatibleHashes {
+		return nil // applicable ony on Carmen with compatible hashes schema - skip the check
+	}
+	if m.carmenState == nil {
+		if err := m.Open(); err != nil {
+			return fmt.Errorf("failed to open StateDbManager for live state hash checking; %v", err)
 		}
+		defer m.Close()
+	}
+	stateHash := m.liveStateDb.GetHash()
+	if cc.Hash(root) != stateHash {
+		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
+	} else {
+		m.Log.Info( "StateDB imported successfully, stateRoot matches", "index", blockNum, "root", root)
 	}
 	return nil
 }

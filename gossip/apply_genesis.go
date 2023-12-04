@@ -58,34 +58,42 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	})
 
 	// write EVM items
-	liveReader, err := g.FwsSection.GetReader()
-	if err != nil {
-		s.Log.Info("Fantom World State data not available in the genesis", "err", err)
+	if !s.StateDbManager.IsAlreadyImported() {
+		liveReader, err := g.FwsSection.GetReader()
+		if err != nil {
+			s.Log.Info("Fantom World State data not available in the genesis", "err", err)
+		}
+
+		if liveReader != nil { // has S5 section - import S5 data
+			s.Log.Info("Importing Fantom World State data from genesis", "index", lastBlock.Idx)
+			archiveReader, err := g.FwsSection.GetReader() // second reader of the same section for the archive import
+			if err != nil {
+				return fmt.Errorf("failed to get second FWS section reader; %v", err)
+			}
+			err = s.StateDbManager.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
+			if err != nil {
+				return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
+			}
+		} else { // no S5 section in the genesis file
+			// write EVM data from genesis into leveldb
+			s.Log.Info("Importing EVM data from genesis into KVDB", "index", lastBlock.Idx)
+			err = s.evm.ApplyGenesis(g)
+			if err != nil {
+				return err
+			}
+
+			// write EVM items into Carmen (if needed)
+			err = s.StateDbManager.ImportLegacyEvmData(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
+			if err != nil {
+				return fmt.Errorf("genesis import into StateDB failed; %v", err)
+			}
+		}
+	} else {
+		s.Log.Info("EVM data import skipped - data already present")
 	}
 
-	if liveReader != nil {
-		s.Log.Info("Importing Fantom World State data from genesis", "index", lastBlock.Idx, "root", lastBlock.Root)
-		archiveReader, err := g.FwsSection.GetReader() // second reader of the same section for the archive import
-		if err != nil {
-			return fmt.Errorf("failed to get second FWS section reader; %v", err)
-		}
-		err = s.StateDbManager.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
-		if err != nil {
-			return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
-		}
-	} else { // no S5 section in the genesis file
-
-		// write EVM data from genesis into leveldb
-		err = s.evm.ApplyGenesis(g)
-		if err != nil {
-			return err
-		}
-
-		// write EVM items into Carmen (if needed)
-		err = s.StateDbManager.ImportLegacyEvmData(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
-		if err != nil {
-			return fmt.Errorf("genesis import into StateDB failed; %v", err)
-		}
+	if err := s.StateDbManager.CheckImportedStateHash(uint64(lastBlock.Idx), common.Hash(lastBlock.Root)); err != nil {
+		return err
 	}
 
 	// write LLR state
