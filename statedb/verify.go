@@ -27,17 +27,17 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 
 	// check hash of the live state / last state in the archive
 	if err := verifyLastState(m.parameters, expectedBlockNum, expectedHash); err != nil {
-		return fmt.Errorf("verification of the last block failed: %v", err)
+		return fmt.Errorf("verification of the last block failed: %w", err)
 	}
 	m.logger.Log.Info("State hash matches the last block state root.")
 
 	// verify the live world state
 	info, err := io.CheckMptDirectoryAndGetInfo(m.parameters.Directory)
 	if err != nil {
-		return fmt.Errorf("failed to check live state dir: %v", err)
+		return fmt.Errorf("failed to check live state dir: %w", err)
 	}
 	if err := mpt.VerifyFileLiveTrie(m.parameters.Directory, info.Config, observer); err != nil {
-		return fmt.Errorf("live state verification failed: %v", err)
+		return fmt.Errorf("live state verification failed: %w", err)
 	}
 	m.logger.Log.Info("Live state verified successfully.")
 
@@ -48,10 +48,10 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 	archiveDir := m.parameters.Directory + string(filepath.Separator) + "archive"
 	archiveInfo, err := io.CheckMptDirectoryAndGetInfo(archiveDir)
 	if err != nil {
-		return fmt.Errorf("failed to check archive dir: %v", err)
+		return fmt.Errorf("failed to check archive dir: %w", err)
 	}
 	if err := mpt.VerifyArchive(archiveDir, archiveInfo.Config, observer); err != nil {
-		return fmt.Errorf("archive verification failed: %v", err)
+		return fmt.Errorf("archive verification failed: %w", err)
 	}
 	m.logger.Log.Info("Archive verified successfully.")
 	return nil
@@ -60,16 +60,16 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expectedHash common.Hash) error {
 	liveState, err := carmen.NewState(params)
 	if err != nil {
-		return fmt.Errorf("failed to open carmen live state in %s: %v", params.Directory, err)
+		return fmt.Errorf("failed to open carmen live state in %s: %w", params.Directory, err)
 	}
 	defer liveState.Close()
 	if err := checkStateHash(liveState, expectedHash); err != nil {
-		return fmt.Errorf("live state check failed; %v", err)
+		return fmt.Errorf("live state check failed; %w", err)
 	}
 
 	lastArchiveBlock, _, err := liveState.GetArchiveBlockHeight()
 	if err != nil {
-		return fmt.Errorf("failed to get last archive block height; %v", err)
+		return fmt.Errorf("failed to get last archive block height; %w", err)
 	}
 	if lastArchiveBlock != expectedBlockNum {
 		return fmt.Errorf("the last archive block height does not match (%d != %d)", lastArchiveBlock, expectedBlockNum)
@@ -80,11 +80,11 @@ func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expected
 	}
 	archiveState, err := liveState.GetArchiveState(lastArchiveBlock)
 	if err != nil {
-		return fmt.Errorf("failed to get carmen archive state; %v", err)
+		return fmt.Errorf("failed to get carmen archive state; %w", err)
 	}
 	defer archiveState.Close()
 	if err := checkStateHash(archiveState, expectedHash); err != nil {
-		return fmt.Errorf("archive state check failed; %v", err)
+		return fmt.Errorf("archive state check failed; %w", err)
 	}
 	return nil
 }
@@ -92,7 +92,7 @@ func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expected
 func checkStateHash(state carmen.State, expectedHash common.Hash) error {
 	stateHash, err := state.GetHash()
 	if err != nil {
-		return fmt.Errorf("failed to get state hash; %v", err)
+		return fmt.Errorf("failed to get state hash; %w", err)
 	}
 	if stateHash != cc.Hash(expectedHash) {
 		return fmt.Errorf("state hash does not match (%x != %x)", stateHash, expectedHash)
