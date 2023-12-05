@@ -77,7 +77,7 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 	if m.carmenState == nil {
 		return nil // Carmen not used - skip
 	}
-	m.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
+	m.logger.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
 
 	var currentBlock uint64 = 1
 	var accountsCount, slotsCount uint64 = 0, 0
@@ -200,7 +200,7 @@ func (m *StateDbManager) CheckImportedStateHash(blockNum uint64, root common.Has
 	if cc.Hash(root) != stateHash {
 		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
 	} else {
-		m.Log.Info( "StateDB imported successfully, stateRoot matches", "index", blockNum, "root", root)
+		m.logger.Log.Info("StateDB imported successfully, stateRoot matches", "index", blockNum, "root", root)
 	}
 	return nil
 }

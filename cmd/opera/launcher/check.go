@@ -35,7 +35,7 @@ func checkEvm(ctx *cli.Context) error {
 		if lastBlock == nil {
 			log.Crit("Verification of the database failed - unable to get the last block")
 		}
-		err := sdbm.VerifyWorldState(common.Hash(lastBlock.Root), verificationObserver{})
+		err := sdbm.VerifyWorldState(uint64(lastBlockIdx), common.Hash(lastBlock.Root))
 		if err != nil {
 			log.Crit("Verification of the Fantom World State failed", "err", err)
 		}
@@ -84,13 +84,3 @@ func checkEvm(ctx *cli.Context) error {
 	log.Info("EVM storage is verified", "last", prevIndex, "elapsed", common.PrettyDuration(time.Since(start)))
 	return nil
 }
-
-type verificationObserver struct {}
-
-func (o verificationObserver) StartVerification() {}
-
-func (o verificationObserver) Progress(msg string) {
-	log.Info(msg)
-}
-
-func (o verificationObserver) EndVerification(res error) {}
