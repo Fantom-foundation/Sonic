@@ -60,7 +60,7 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expectedHash common.Hash) error {
 	liveState, err := carmen.NewState(params)
 	if err != nil {
-		return fmt.Errorf("failed to create carmen live state: %v", err)
+		return fmt.Errorf("failed to open carmen live state in %s: %v", params.Directory, err)
 	}
 	defer liveState.Close()
 	if err := checkStateHash(liveState, expectedHash); err != nil {
