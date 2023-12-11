@@ -23,13 +23,13 @@ var (
 	importCommand = cli.Command{
 		Name:      "import",
 		Usage:     "Import a blockchain file",
-		ArgsUsage: "<filename> (<filename 2> ... <filename N>) [check=false]",
+		ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 		Category:  "MISCELLANEOUS COMMANDS",
 		Description: `
     opera import events
 
 The import command imports events from an RLP-encoded files.
-Events are fully verified by default, unless overridden by check=false flag.`,
+Events are fully verified.`,
 
 		Subcommands: []cli.Command{
 			{
@@ -39,10 +39,13 @@ Events are fully verified by default, unless overridden by check=false flag.`,
 				ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 				Flags: []cli.Flag{
 					DataDirFlag,
+					stateDbImplFlag,
+					archiveImplFlag,
+					vmImplFlag,
 				},
 				Description: `
 The import command imports events from RLP-encoded files.
-Events are fully verified by default, unless overridden by --check=false flag.`,
+Events are fully verified.`,
 			},
 			{
 				Action:    utils.MigrateFlags(importEvm),
