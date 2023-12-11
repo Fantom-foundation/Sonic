@@ -490,8 +490,15 @@ func replayBlockWorker(
 
 	for i := range blocks {
 
+		// check context before block processing
+		// error is not propagated as it is checked
+		// from context in the main goroutine
+		if ctx.Err() != nil {
+			return
+		}
+
 		traces, err := getTracesForBlock(s, ctx, i, fromAddresses, toAddresses)
-		if len(traces) == 0 {
+		if len(traces) == 0 && err == nil {
 			continue
 		}
 
