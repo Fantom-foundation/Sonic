@@ -39,6 +39,10 @@ Events are fully verified by default, unless overridden by check=false flag.`,
 				ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 				Flags: []cli.Flag{
 					DataDirFlag,
+					DBPresetFlag,
+					stateDbImplFlag,
+					archiveImplFlag,
+					vmImplFlag,
 				},
 				Description: `
 The import command imports events from RLP-encoded files.

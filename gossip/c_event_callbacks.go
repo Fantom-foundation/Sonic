@@ -174,11 +174,6 @@ func (s *Service) PauseEvmSnapshot() {
 	}
 }
 
-func (s *Service) EvmSnapshotGeneration() bool {
-	gen, _ := s.store.evm.Snaps.Generating()
-	return gen
-}
-
 func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.Epoch) {
 	// index DAG heads and last events
 	s.store.SetHeads(oldEpoch, processEventHeads(s.store.GetHeads(oldEpoch), e))
@@ -219,13 +214,6 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	if err := s.verWatcher.Pause(); err != nil {
 		return err
 	}
-	/* // EVM snapshot requires state in the trie - disabled for Carmen integration
-	if gen, err := s.store.evm.Snaps.Generating(); gen || err != nil {
-		// never allow fullsync while EVM snap is still generating, as it may lead to a race condition
-		s.Log.Warn("EVM snapshot is not ready during event processing", "gen", gen, "err", err)
-		return errDirtyEvmSnap
-	}
-	*/
 	atomic.StoreUint32(&s.eventBusyFlag, 1)
 	defer atomic.StoreUint32(&s.eventBusyFlag, 0)
 
