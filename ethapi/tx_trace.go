@@ -2,6 +2,7 @@ package ethapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
@@ -131,19 +132,12 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 		// replay only needed transaction if specified
 		if txHash == nil || *txHash == tx.Hash() {
 
-			log.Debug("Replaying transaction", "txHash", tx.Hash().String())
-
-			tx, _, index, err := s.b.GetTransaction(ctx, tx.Hash())
-			if err != nil {
-				return nil, fmt.Errorf("cannot get tranasction info %s, error %s", tx.Hash().String(), err)
-			}
-
 			msg, err := evmcore.TxAsMessage(tx, signer, block.BaseFee)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get message from transaction %s, error %s", tx.Hash().String(), err)
 			}
 
-			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, index, receipts[i].Status, s.b.ChainConfig())
+			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status, s.b.ChainConfig())
 			if err != nil {
 				return nil, fmt.Errorf("cannot get transaction trace for transaction %s, error %s", tx.Hash().String(), err)
 			} else {
@@ -267,8 +261,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	}
 	// If the timer caused an abort, return an appropriate error message
 	if vmenv.Cancelled() {
-		log.Debug("EVM was canceled due to timeout when replaying transaction ", "txHash", tx.Hash().String())
-		return nil, fmt.Errorf("timeout when replaying tx")
+		return nil, fmt.Errorf("EVM was cancelled when replaying tx")
 	}
 
 	// result.Err is error during EVM execution
@@ -325,24 +318,145 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 		log.Debug("Executing trace_filter call finished", data...)
 	}(time.Now())
 
-	var (
-		fromBlock, toBlock         rpc.BlockNumber
-		mainErr                    error
-		traceAdded, traceCount     uint
-		fromAddresses, toAddresses map[common.Address]struct{}
-	)
+	if args.Count == 0 && args.After == 0 {
+		// count and order of traces doesn't matter so filter blocks in parallel
+		return filterBlocksInParallel(ctx, s, args)
+	} else {
+		// filter blocks in series
+		return filterBlocks(ctx, s, args)
+	}
+}
 
-	// process arguments
+// Filter specified block range in series
+func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (*[]txtrace.ActionTrace, error) {
+
+	var traceAdded, traceCount uint
+	callTraces := make([]txtrace.ActionTrace, 0)
+	// parse arguments
+	fromBlock, toBlock, fromAddresses, toAddresses := parseFilterArguments(s.b, args)
+
+	// loop trhu all blocks
+	for i := fromBlock; i <= toBlock; i++ {
+		traces, err := getTracesForBlock(s, ctx, i, fromAddresses, toAddresses)
+		if err != nil {
+			return nil, err
+		}
+
+		// check if traces have to be added
+		for _, trace := range traces {
+
+			if traceCount >= args.After {
+				callTraces = append(callTraces, trace)
+				traceAdded++
+			}
+			if traceAdded >= args.Count {
+				return &callTraces, nil
+			}
+			traceCount++
+		}
+
+		// when context ended return error
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+	}
+	return &callTraces, nil
+}
+
+// Filter specified block range in parallel
+func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (*[]txtrace.ActionTrace, error) {
+
+	// struct for collecting result traces
+	callTraces := make([]txtrace.ActionTrace, 0)
+	// parse arguments
+	fromBlock, toBlock, fromAddresses, toAddresses := parseFilterArguments(s.b, args)
+	// add context cancel function
+	ctx, cancelFunc := context.WithCancelCause(ctx)
+
+	// number of workers
+	workerCount := runtime.NumCPU()
+
+	blocks := make(chan rpc.BlockNumber, 1)
+	results := make(chan traceWorkerResult, 1)
+
+	// make goroutine for results processing
+	var wgResult sync.WaitGroup
+	wgResult.Add(1)
+	go func() {
+		defer wgResult.Done()
+		for {
+			select {
+			case res, ok := <-results:
+				if !ok {
+					return
+				}
+				if res.err != nil {
+					cancelFunc(res.err)
+				} else {
+					callTraces = append(callTraces, res.trace...)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// make workers to process blocks
+	var wg sync.WaitGroup
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			replayBlockWorker(s, ctx, blocks, results, fromAddresses, toAddresses)
+		}()
+	}
+
+	// fill blocks channel with blocks to process
+	addBlocksForProcessing(ctx, fromBlock, toBlock, blocks)
+
+	// wait for workers to be done and then close results channel
+	wg.Wait()
+	close(results)
+	wgResult.Wait()
+
+	// check if context expired or had another error
+	if ctx.Err() != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, fmt.Errorf("timeout when replaying tx")
+		} else {
+			return nil, context.Cause(ctx)
+		}
+	}
+	return &callTraces, nil
+}
+
+// Fills blocks into provided channel for processing and close the channel in the end
+// or if the context was canceled
+func addBlocksForProcessing(ctx context.Context, fromBlock rpc.BlockNumber, toBlock rpc.BlockNumber, blocks chan<- rpc.BlockNumber) {
+	defer close(blocks)
+	for i := fromBlock; i <= toBlock; i++ {
+		select {
+		case blocks <- i:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// Parses rpc call arguments
+func parseFilterArguments(b Backend, args FilterArgs) (fromBlock rpc.BlockNumber, toBlock rpc.BlockNumber, fromAddresses map[common.Address]struct{}, toAddresses map[common.Address]struct{}) {
+
 	if args.FromBlock != nil {
 		fromBlock = *args.FromBlock.BlockNumber
 	}
+
 	if args.ToBlock != nil {
 		toBlock = *args.ToBlock.BlockNumber
 		if toBlock == rpc.LatestBlockNumber || toBlock == rpc.PendingBlockNumber {
-			toBlock = rpc.BlockNumber(s.b.CurrentBlock().NumberU64())
+			toBlock = rpc.BlockNumber(b.CurrentBlock().NumberU64())
 		}
 	} else {
-		toBlock = rpc.BlockNumber(s.b.CurrentBlock().NumberU64())
+		toBlock = rpc.BlockNumber(b.CurrentBlock().NumberU64())
 	}
 
 	if args.FromAddress != nil {
@@ -357,132 +471,16 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 			toAddresses[addr] = struct{}{}
 		}
 	}
-
-	// check for context timeout
-	contextDone := false
-	go func() {
-		<-ctx.Done()
-		contextDone = true
-	}()
-
-	// struct for collecting result traces
-	callTrace := txtrace.CallTrace{
-		Actions: make([]txtrace.ActionTrace, 0),
-	}
-
-	// count of traces doesn't matter so use parallel workers
-	if args.Count == 0 {
-		workerCount := runtime.NumCPU() / 2
-		blocks := make(chan rpc.BlockNumber, 1000)
-		results := make(chan traceWorkerResult, 100000)
-
-		// create workers and their sync group
-		var wg sync.WaitGroup
-		for w := 0; w < workerCount; w++ {
-			wg.Add(1)
-			wId := w
-			go func() {
-				defer wg.Done()
-				worker(wId, s, ctx, blocks, results, fromAddresses, toAddresses)
-			}()
-		}
-
-		// add all blocks in specified range for processing
-		for i := fromBlock; i <= toBlock; i++ {
-			blocks <- i
-		}
-		close(blocks)
-
-		var wgResult sync.WaitGroup
-		wgResult.Add(1)
-		go func() {
-			defer wgResult.Done()
-			// collect results
-			for res := range results {
-
-				if mainErr != nil && res.err != nil {
-					mainErr = res.err
-				}
-
-				if mainErr != nil || contextDone {
-					for len(blocks) > 0 {
-						<-blocks
-					}
-				}
-				if mainErr == nil {
-					callTrace.AddTrace(&res.trace)
-				}
-			}
-		}()
-
-		// wait for proccessing all blocks
-		wg.Wait()
-		close(results)
-
-		wgResult.Wait()
-	} else {
-		// go thru all blocks in specified range
-		for i := fromBlock; i <= toBlock; i++ {
-			block, err := s.b.BlockByNumber(ctx, i)
-			if err != nil {
-				return nil, fmt.Errorf("cannot get block from db %v, error:%v", i.Int64(), err.Error())
-			}
-
-			// when block has any transaction, then process it
-			if block == nil || block.Transactions.Len() == 0 {
-				continue
-			}
-
-			traces, err := s.replayBlock(ctx, block, nil, nil)
-			if err != nil {
-				return nil, err
-			}
-
-			// loop thru all traces from the block
-			// and check
-			for _, trace := range *traces {
-
-				if traceAdded >= args.Count {
-					// already reached desired count of traces in batch
-					return &callTrace.Actions, nil
-				}
-
-				if trace.Action == nil {
-					continue
-				}
-
-				if isValidTrace(trace.Action.From, trace.Action.To, fromAddresses, toAddresses) {
-					if traceCount >= args.After {
-						callTrace.AddTrace(&trace)
-						traceAdded++
-					}
-					traceCount++
-				}
-			}
-
-			if contextDone {
-				break
-			}
-		}
-	}
-
-	//when timeout occured or another error
-	if contextDone || mainErr != nil {
-		if mainErr != nil {
-			return nil, mainErr
-		}
-		return nil, fmt.Errorf("timeout when scanning blocks")
-	}
-
-	return &callTrace.Actions, nil
+	return fromBlock, toBlock, fromAddresses, toAddresses
 }
 
 type traceWorkerResult struct {
-	trace txtrace.ActionTrace
+	trace []txtrace.ActionTrace
 	err   error
 }
 
-func worker(id int,
+// Worker for replaying blocks in parallel and filter replayed traces
+func replayBlockWorker(
 	s *PublicTxTraceAPI,
 	ctx context.Context,
 	blocks <-chan rpc.BlockNumber,
@@ -491,35 +489,73 @@ func worker(id int,
 	toAddresses map[common.Address]struct{}) {
 
 	for i := range blocks {
-		block, err := s.b.BlockByNumber(ctx, i)
-		if err != nil {
-			results <- traceWorkerResult{trace: txtrace.ActionTrace{}, err: fmt.Errorf("cannot get block from db %v, error:%v", i.Int64(), err.Error())}
+
+		// check context before block processing
+		// error is not propagated as it is checked
+		// from context in the main goroutine
+		if ctx.Err() != nil {
+			return
+		}
+
+		traces, err := getTracesForBlock(s, ctx, i, fromAddresses, toAddresses)
+		if len(traces) == 0 && err == nil {
 			continue
 		}
 
-		if block == nil || block.Transactions.Len() == 0 {
-			continue
-		}
-
-		// when block has any transaction, then process it
-		traces, err := s.replayBlock(ctx, block, nil, nil)
-		if err != nil {
-			results <- traceWorkerResult{trace: txtrace.ActionTrace{}, err: err}
-			continue
-		}
-
-		for _, trace := range *traces {
-
-			if trace.Action != nil {
-				if isValidTrace(trace.Action.From, trace.Action.To, fromAddresses, toAddresses) {
-					results <- traceWorkerResult{trace: trace, err: nil}
-				}
-			}
+		select {
+		case results <- traceWorkerResult{trace: traces, err: err}:
+		case <-ctx.Done():
+			return
 		}
 	}
 }
 
-func isValidTrace(addressFrom *common.Address, addressTo *common.Address, fromAddresses map[common.Address]struct{}, toAddresses map[common.Address]struct{}) bool {
+// Replay block transactions and filter out useable traces
+func getTracesForBlock(
+	s *PublicTxTraceAPI,
+	ctx context.Context,
+	blockNumber rpc.BlockNumber,
+	fromAddresses map[common.Address]struct{},
+	toAddresses map[common.Address]struct{},
+) (
+	[]txtrace.ActionTrace,
+	error,
+) {
+	resultTraces := make([]txtrace.ActionTrace, 0)
+
+	block, err := s.b.BlockByNumber(ctx, blockNumber)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get block from db %v, error:%v", blockNumber.Int64(), err.Error())
+	}
+
+	if block == nil {
+		return nil, fmt.Errorf("cannot get block from db %v", blockNumber.Int64())
+	}
+
+	if block.Transactions.Len() == 0 {
+		return resultTraces, nil
+	}
+
+	// when block has any transaction, then process it
+	traces, err := s.replayBlock(ctx, block, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, trace := range *traces {
+
+		if trace.Action != nil {
+			if containsAddress(trace.Action.From, trace.Action.To, fromAddresses, toAddresses) {
+				resultTraces = append(resultTraces, trace)
+			}
+		}
+	}
+
+	return resultTraces, nil
+}
+
+// Check if from or to address is contained in the map
+func containsAddress(addressFrom *common.Address, addressTo *common.Address, fromAddresses map[common.Address]struct{}, toAddresses map[common.Address]struct{}) bool {
 
 	if len(fromAddresses) > 0 {
 		if addressFrom == nil {
@@ -541,14 +577,19 @@ func isValidTrace(addressFrom *common.Address, addressTo *common.Address, fromAd
 	return true
 }
 
+// Creates log record according to request arguments
 func getLogData(args FilterArgs, start time.Time) []interface{} {
+
 	var data []interface{}
+
 	if args.FromBlock != nil {
 		data = append(data, "fromBlock", args.FromBlock.BlockNumber.Int64())
 	}
+
 	if args.ToBlock != nil {
 		data = append(data, "toBlock", args.ToBlock.BlockNumber.Int64())
 	}
+
 	if args.FromAddress != nil {
 		adresses := make([]string, 0)
 		for _, addr := range *args.FromAddress {
@@ -556,6 +597,7 @@ func getLogData(args FilterArgs, start time.Time) []interface{} {
 		}
 		data = append(data, "fromAddr", adresses)
 	}
+
 	if args.ToAddress != nil {
 		adresses := make([]string, 0)
 		for _, addr := range *args.ToAddress {
