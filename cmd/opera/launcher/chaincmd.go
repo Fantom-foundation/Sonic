@@ -72,6 +72,7 @@ The import command imports EVM storage (trie nodes, code, preimages) from files.
 				Action:    utils.MigrateFlags(exportEvents),
 				Flags: []cli.Flag{
 					DataDirFlag,
+					DBPresetFlag,
 				},
 				Description: `
     opera export events
