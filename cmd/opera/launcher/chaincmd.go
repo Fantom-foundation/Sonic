@@ -39,7 +39,6 @@ Events are fully verified.`,
 				ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 				Flags: []cli.Flag{
 					DataDirFlag,
-					DBPresetFlag,
 					stateDbImplFlag,
 					archiveImplFlag,
 					vmImplFlag,
@@ -76,7 +75,6 @@ The import command imports EVM storage (trie nodes, code, preimages) from files.
 				Action:    utils.MigrateFlags(exportEvents),
 				Flags: []cli.Flag{
 					DataDirFlag,
-					DBPresetFlag,
 				},
 				Description: `
     opera export events
