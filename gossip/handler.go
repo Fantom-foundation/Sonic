@@ -292,7 +292,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.progress.Epoch
+			return p.GetEpoch()
 		},
 	})
 	h.dagSeeder = dagstreamseeder.New(h.config.Protocol.DagStreamSeeder, dagstreamseeder.Callbacks{
@@ -328,7 +328,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.progress.LastBlockIdx
+			return p.GetLastBlockIdx()
 		},
 	})
 	h.bvSeeder = bvstreamseeder.New(h.config.Protocol.BvStreamSeeder, bvstreamseeder.Callbacks{
@@ -369,7 +369,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.progress.LastBlockIdx
+			return p.GetLastBlockIdx()
 		},
 	})
 	h.brSeeder = brstreamseeder.New(h.config.Protocol.BrStreamSeeder, brstreamseeder.Callbacks{
@@ -407,7 +407,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.progress.Epoch
+			return p.GetEpoch()
 		},
 	})
 	h.epSeeder = epstreamseeder.New(h.config.Protocol.EpStreamSeeder, epstreamseeder.Callbacks{
@@ -771,8 +771,9 @@ func (h *handler) highestPeerProgress() PeerProgress {
 	peers := h.peers.List()
 	max := h.myProgress()
 	for _, peer := range peers {
-		if max.LastBlockIdx < peer.progress.LastBlockIdx {
-			max = peer.progress
+		peerProgress := peer.GetProgress()
+		if max.LastBlockIdx < peerProgress.LastBlockIdx {
+			max = peerProgress
 		}
 	}
 	return max
