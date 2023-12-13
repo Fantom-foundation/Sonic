@@ -292,7 +292,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.GetEpoch()
+			return p.GetProgress().Epoch
 		},
 	})
 	h.dagSeeder = dagstreamseeder.New(h.config.Protocol.DagStreamSeeder, dagstreamseeder.Callbacks{
@@ -328,7 +328,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.GetLastBlockIdx()
+			return p.GetProgress().LastBlockIdx
 		},
 	})
 	h.bvSeeder = bvstreamseeder.New(h.config.Protocol.BvStreamSeeder, bvstreamseeder.Callbacks{
@@ -369,7 +369,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.GetLastBlockIdx()
+			return p.GetProgress().LastBlockIdx
 		},
 	})
 	h.brSeeder = brstreamseeder.New(h.config.Protocol.BrStreamSeeder, brstreamseeder.Callbacks{
@@ -407,7 +407,7 @@ func newHandler(
 			if p == nil || p.Useless() {
 				return 0
 			}
-			return p.GetEpoch()
+			return p.GetProgress().Epoch
 		},
 	})
 	h.epSeeder = epstreamseeder.New(h.config.Protocol.EpStreamSeeder, epstreamseeder.Callbacks{

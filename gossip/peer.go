@@ -103,14 +103,6 @@ func (p *peer) GetProgress() PeerProgress {
 	return p.progress
 }
 
-func (p *peer) GetEpoch() idx.Epoch {
-	return (idx.Epoch)(atomic.LoadUint32((*uint32)(&p.progress.Epoch)))
-}
-
-func (p *peer) GetLastBlockIdx() idx.Block {
-	return (idx.Block)(atomic.LoadUint64((*uint64)(&p.progress.LastBlockIdx)))
-}
-
 func (p *peer) InterestedIn(h hash.Event) bool {
 	e := h.Epoch()
 
