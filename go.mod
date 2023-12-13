@@ -44,8 +44,8 @@ require (
 )
 
 require (
-	github.com/Fantom-foundation/Carmen/go v0.0.0-20231205102837-ce6959160762
-	github.com/Fantom-foundation/Tosca v0.0.0-20231128155433-68fe1e727ad7
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20231212101609-250e8428217f
+	github.com/Fantom-foundation/Tosca v0.0.0-20231211120117-160cf8af1fde
 )
 
 require (
