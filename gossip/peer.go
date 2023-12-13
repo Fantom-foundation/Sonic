@@ -96,6 +96,13 @@ func (p *peer) SetProgress(x PeerProgress) {
 	p.progress = x
 }
 
+func (p *peer) GetProgress() PeerProgress {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.progress
+}
+
 func (p *peer) InterestedIn(h hash.Event) bool {
 	e := h.Epoch()
 
@@ -158,6 +165,9 @@ func (p *peer) Close() {
 
 // Info gathers and returns a collection of metadata known about a peer.
 func (p *peer) Info() *PeerInfo {
+	p.RLock()
+	defer p.RUnlock()
+
 	return &PeerInfo{
 		Version:     p.version,
 		Epoch:       p.progress.Epoch,
