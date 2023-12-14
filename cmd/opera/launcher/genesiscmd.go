@@ -413,7 +413,7 @@ func exportGenesis(ctx *cli.Context) error {
 			return err
 		}
 
-		err = mptIo.Export(filepath.Join(cfg.Node.DataDir, "carmen"), writer)
+		err = mptIo.Export(filepath.Join(cfg.Node.DataDir, "carmen", "live"), writer)
 		if err != nil {
 			return err
 		}

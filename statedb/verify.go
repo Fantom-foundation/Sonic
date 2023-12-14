@@ -32,11 +32,12 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 	m.logger.Log.Info("State hash matches the last block state root.")
 
 	// verify the live world state
-	info, err := io.CheckMptDirectoryAndGetInfo(m.parameters.Directory)
+	liveDir := filepath.Join(m.parameters.Directory, "live")
+	info, err := io.CheckMptDirectoryAndGetInfo(liveDir)
 	if err != nil {
 		return fmt.Errorf("failed to check live state dir: %w", err)
 	}
-	if err := mpt.VerifyFileLiveTrie(m.parameters.Directory, info.Config, observer); err != nil {
+	if err := mpt.VerifyFileLiveTrie(liveDir, info.Config, observer); err != nil {
 		return fmt.Errorf("live state verification failed: %w", err)
 	}
 	m.logger.Log.Info("Live state verified successfully.")
@@ -45,7 +46,7 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 	if m.parameters.Archive != carmen.S5Archive {
 		return nil // skip archive checks when S5 archive is not used
 	}
-	archiveDir := m.parameters.Directory + string(filepath.Separator) + "archive"
+	archiveDir := filepath.Join(m.parameters.Directory, "archive")
 	archiveInfo, err := io.CheckMptDirectoryAndGetInfo(archiveDir)
 	if err != nil {
 		return fmt.Errorf("failed to check archive dir: %w", err)
