@@ -44,15 +44,16 @@ func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io
 		return fmt.Errorf("carmen state must be closed before the FWS data import")
 	}
 
-	if err := os.MkdirAll(m.parameters.Directory, 0700); err != nil {
+	liveDir := filepath.Join(m.parameters.Directory, "live")
+	if err := os.MkdirAll(liveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
-	if err := io2.ImportLiveDb(m.parameters.Directory, liveReader); err != nil {
+	if err := io2.ImportLiveDb(liveDir, liveReader); err != nil {
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
 
 	if m.parameters.Archive == carmen.S5Archive {
-		archiveDir := m.parameters.Directory + string(filepath.Separator) + "archive"
+		archiveDir := filepath.Join(m.parameters.Directory, "archive")
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}

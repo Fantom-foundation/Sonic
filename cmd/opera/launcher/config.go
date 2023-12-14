@@ -657,7 +657,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	}
 
 	if ctx.GlobalBool(carmenEvmStoreFlag.Name) {
-		evmStoreDir := filepath.Join(cfg.Node.DataDir, "carmen")
+		evmStoreDir := filepath.Join(cfg.Node.DataDir, "carmen", "evmstore")
 		err := os.MkdirAll(evmStoreDir, 0700)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create carmen evmstore dir; %v", err)
