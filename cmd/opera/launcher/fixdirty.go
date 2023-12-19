@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 )
@@ -24,11 +23,16 @@ import (
 // maxEpochsToTry represents amount of last closed epochs to try (in case that the last one has the state unavailable)
 const maxEpochsToTry = 10000
 
-// healDirty is the 'db heal' command.
-func healDirty(ctx *cli.Context) error {
+// revertDb is the 'db revert' command.
+func revertDb(ctx *cli.Context) error {
 	if !ctx.Bool(experimentalFlag.Name) {
 		utils.Fatalf("Add --experimental flag")
 	}
+	var targetEpoch = idx.Epoch(ctx.Uint64(targetEpochFlag.Name))
+	if targetEpoch == 0 {
+		utils.Fatalf("Add --target.epoch flag")
+	}
+
 	cfg := makeAllConfigs(ctx)
 
 	log.Info("Opening databases")
@@ -36,7 +40,7 @@ func healDirty(ctx *cli.Context) error {
 	multiProducer := makeDirectDBsProducerFrom(dbTypes, cfg)
 
 	// reverts the gossip database state
-	epochState, topEpoch, err := fixDirtyGossipDb(multiProducer, cfg)
+	epochState, oldTopEpoch, err := revertGossipDb(multiProducer, cfg, targetEpoch)
 	if err != nil {
 		return err
 	}
@@ -44,8 +48,8 @@ func healDirty(ctx *cli.Context) error {
 	// drop epoch-related databases and consensus database
 	log.Info("Removing epoch DBs - will be recreated on next start")
 	for _, name := range []string{
-		fmt.Sprintf("gossip-%d", topEpoch),
-		fmt.Sprintf("lachesis-%d", topEpoch),
+		fmt.Sprintf("gossip-%d", oldTopEpoch),
+		fmt.Sprintf("lachesis-%d", oldTopEpoch),
 		"lachesis",
 	} {
 		err = eraseTable(name, multiProducer)
@@ -79,25 +83,33 @@ func healDirty(ctx *cli.Context) error {
 		}
 	}
 
-	log.Info("Recovery is complete")
+	log.Info("Revert is complete")
 	return nil
 }
 
-// fixDirtyGossipDb reverts the gossip database into state, when was one of last epochs sealed
-func fixDirtyGossipDb(producer kvdb.FlushableDBProducer, cfg *config) (
-	epochState *iblockproc.EpochState, topEpoch idx.Epoch, err error) {
+// revertGossipDb reverts the gossip database into state, when was one of last epochs sealed
+func revertGossipDb(producer kvdb.FlushableDBProducer, cfg *config, targetEpoch idx.Epoch) (
+	epochState *iblockproc.EpochState, oldTopEpoch idx.Epoch, err error) {
 	gdb := makeGossipStore(producer, cfg) // requires FlushIDKey present (not clean) in all dbs
 	defer gdb.Close()
-	topEpoch = gdb.GetEpoch()
+	oldTopEpoch = gdb.GetEpoch()
 
-	// find the last closed epoch with the state available
-	epochIdx, blockState, epochState := getLastEpochWithState(gdb, maxEpochsToTry)
+	// get target epoch/block state
+	blockState, epochState := gdb.GetHistoryBlockEpochState(targetEpoch)
 	if blockState == nil || epochState == nil {
-		return nil, 0, fmt.Errorf("state for last %d closed epochs is pruned, recovery isn't possible", maxEpochsToTry)
+		return nil, 0, fmt.Errorf("target epoch not available")
+	}
+
+	if err := gdb.StateDbManager.Open(); err != nil {
+		return nil, 0, fmt.Errorf("failed to open StateDbManager; %w", err)
+	}
+	if !gdb.EvmStore().HasStateDB(blockState.FinalizedStateRoot) {
+		log.Warn("EVM state for the epoch is not available - you need to replace the state db manually",
+			"block", blockState.LastBlock.Idx, "stateRoot", blockState.FinalizedStateRoot)
 	}
 
 	// set the historic state to be the current
-	log.Info("Reverting to epoch state", "epoch", epochIdx)
+	log.Info("Reverting to epoch state", "epoch", epochState.Epoch, "block", blockState.LastBlock.Idx)
 	gdb.SetBlockEpochState(*blockState, *epochState)
 	gdb.FlushBlockEpochState()
 
@@ -107,37 +119,12 @@ func fixDirtyGossipDb(producer kvdb.FlushableDBProducer, cfg *config) (
 
 	// removing excessive events (event epoch >= closed epoch)
 	log.Info("Removing excessive events")
-	gdb.ForEachEventRLP(epochIdx.Bytes(), func(id hash.Event, _ rlp.RawValue) bool {
+	gdb.ForEachEventRLP(epochState.Epoch.Bytes(), func(id hash.Event, _ rlp.RawValue) bool {
 		gdb.DelEvent(id)
 		return true
 	})
 
-	return epochState, topEpoch, nil
-}
-
-// getLastEpochWithState finds the last closed epoch with the state available
-func getLastEpochWithState(gdb *gossip.Store, epochsToTry idx.Epoch) (epochIdx idx.Epoch, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
-	currentEpoch := gdb.GetEpoch()
-	endEpoch := idx.Epoch(1)
-	if currentEpoch > epochsToTry {
-		endEpoch = currentEpoch - epochsToTry
-	}
-
-	for epochIdx = currentEpoch; epochIdx > endEpoch; epochIdx-- {
-		blockState, epochState = gdb.GetHistoryBlockEpochState(epochIdx)
-		if blockState == nil || epochState == nil {
-			log.Debug("Epoch is not available", "epoch", epochIdx)
-			continue
-		}
-		if !gdb.EvmStore().HasStateDB(blockState.FinalizedStateRoot) {
-			log.Debug("EVM state for the epoch is not available", "epoch", epochIdx)
-			continue
-		}
-		log.Debug("Latest epoch with available state found", "epoch", epochIdx)
-		return epochIdx, blockState, epochState
-	}
-
-	return 0, nil, nil
+	return epochState, oldTopEpoch, nil
 }
 
 func eraseTable(name string, producer kvdb.IterableDBProducer) error {
