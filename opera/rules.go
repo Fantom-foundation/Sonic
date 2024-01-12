@@ -28,6 +28,7 @@ var DefaultVMConfig = vm.Config{
 	StatePrecompiles: map[common.Address]vm.PrecompiledStateContract{
 		evmwriter.ContractAddress: &evmwriter.PreCompiledContract{},
 	},
+	InterpreterImpl: "lfvm",
 }
 
 // OverrideMinGasPrice is a Norma specific override of MinGasPrice

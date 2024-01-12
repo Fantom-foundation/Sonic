@@ -2217,13 +2217,6 @@ type txTraceResult struct {
 	Error  string      `json:"error,omitempty"`  // Trace failure produced by the tracer
 }
 
-// txTraceTask represents a single transaction trace task when an entire block
-// is being traced.
-type txTraceTask struct {
-	statedb *state.StateDB // Intermediate state prepped for tracing
-	index   int            // Transaction offset in the block
-}
-
 // TraceBlockByNumber returns the structured logs created during the execution of
 // EVM and returns them as a JSON object.
 func (api *PublicDebugAPI) TraceBlockByNumber(ctx context.Context, number rpc.BlockNumber, config *TraceConfig) ([]*txTraceResult, error) {

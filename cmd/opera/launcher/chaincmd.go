@@ -39,9 +39,6 @@ Events are fully verified.`,
 				ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 				Flags: []cli.Flag{
 					DataDirFlag,
-					stateDbImplFlag,
-					archiveImplFlag,
-					vmImplFlag,
 				},
 				Description: `
 The import command imports events from RLP-encoded files.
@@ -135,8 +132,6 @@ Requires a first argument of the DB directory to write to.
 				Action: utils.MigrateFlags(checkEvm),
 				Flags: []cli.Flag{
 					DataDirFlag,
-					stateDbImplFlag,
-					archiveImplFlag,
 				},
 				Description: `
     opera check evm

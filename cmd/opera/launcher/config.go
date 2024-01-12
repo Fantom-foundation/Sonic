@@ -66,19 +66,6 @@ var (
 		Usage: "TOML configuration file",
 	}
 
-	stateDbImplFlag = cli.StringFlag{
-		Name:  "statedb.impl",
-		Usage: "Implementation of StateDB to use (geth/carmen-s3/carmen-s5)",
-	}
-	archiveImplFlag = cli.StringFlag{
-		Name:  "archive.impl",
-		Usage: "Implementation of Carmen Archive to use (none/ldb/s5)",
-	}
-	vmImplFlag = cli.StringFlag{
-		Name:  "vm.impl",
-		Usage: "Implementation of EVM to use (geth/lfvm/lfvm-si)",
-	}
-
 	disableLogsFlag = cli.BoolFlag{
 		Name:  "noevmlogs",
 		Usage: "Disable recording of EVM logs",
@@ -441,44 +428,12 @@ func setDBConfig(ctx *cli.Context, cfg integration.DBsConfig, cacheRatio cachesc
 	return cfg
 }
 
-func setStateDBConfig(ctx *cli.Context, datadir string, cfg statedb.Config) statedb.Config {
-	stateImpl := ctx.GlobalString(stateDbImplFlag.Name)
-	archiveImpl := ctx.GlobalString(archiveImplFlag.Name)
-
-	if stateImpl == "" || stateImpl == "geth" {
-		if archiveImpl != "" {
-			utils.Fatalf("using geth statedb with Carmen archive is not supported")
-		}
-		return cfg
-	}
-
-	var schema carmen.StateSchema
-	switch strings.ToLower(stateImpl) {
-	case "carmen-s3":
-		schema = carmen.StateSchema(3)
-	case "carmen-s5":
-		schema = carmen.StateSchema(5)
-	default:
-		utils.Fatalf("unsupported statedb impl %s", stateImpl)
-	}
-
-	var archiveType carmen.ArchiveType
-	switch strings.ToLower(archiveImpl) {
-	case "none":
-		archiveType = carmen.NoArchive
-	case "ldb":
-		archiveType = carmen.LevelDbArchive
-	case "s5", "":
-		archiveType = carmen.S5Archive
-	default:
-		utils.Fatalf("unsupported archive impl %s", archiveImpl)
-	}
-
-	cfg = statedb.Config{
+func setStateDBConfig(datadir string) statedb.Config {
+	cfg := statedb.Config{
 		Directory: filepath.Join(datadir, "carmen"),
 		Variant:   "go-file",
-		Schema:    schema,
-		Archive:   archiveType,
+		Schema:    carmen.StateSchema(5),
+		Archive:   carmen.S5Archive,
 	}
 	return cfg
 }
@@ -637,12 +592,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	}
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
 	cfg.DBs = setDBConfig(ctx, cfg.DBs, cacheRatio)
-	cfg.OperaStore.StateDB = setStateDBConfig(ctx, cfg.Node.DataDir, cfg.OperaStore.StateDB)
-
-	// Set default VM implementation
-	if impl := ctx.GlobalString(vmImplFlag.Name); impl != "" {
-		opera.DefaultVMConfig.InterpreterImpl = impl
-	}
+	cfg.OperaStore.StateDB = setStateDBConfig(cfg.Node.DataDir)
 
 	if overrideMinGasPrice := ctx.GlobalUint64(overrideMinGasPriceFlag.Name); overrideMinGasPrice != 0 {
 		opera.OverrideMinGasPrice = big.NewInt(int64(overrideMinGasPrice))
