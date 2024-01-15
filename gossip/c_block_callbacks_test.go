@@ -21,7 +21,7 @@ func TestConsensusCallback(t *testing.T) {
 
 	const validatorsNum = 3
 
-	env := newTestEnv(2, validatorsNum)
+	env := newTestEnv(2, validatorsNum, t)
 	defer env.Close()
 
 	// save start balances

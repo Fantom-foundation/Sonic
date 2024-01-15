@@ -51,8 +51,8 @@ func (s *IntegrationTestSuite) SetupTest() {
 	)
 
 	//creating generator and processor
-	generator := newTestEnv(startEpoch, validatorsNum)
-	processor := newTestEnv(startEpoch, validatorsNum)
+	generator := newTestEnv(startEpoch, validatorsNum, s.T())
+	processor := newTestEnv(startEpoch, validatorsNum, s.T())
 
 	proposals := [][32]byte{
 		ballotOption("Option 1"),
@@ -886,7 +886,7 @@ func TestBlockAndEpochRecords(t *testing.T) {
 		startEpoch    = 1
 	)
 	// setup testEnv
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	// 1.create epoch record er1 manually
 	er1 := ier.LlrIdxFullEpochRecord{Idx: idx.Epoch(startEpoch) + 1}
@@ -1058,7 +1058,7 @@ func TestEpochRecordWithDiffValidators(t *testing.T) {
 	)
 	require := require.New(t)
 	// setup testEnv
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	// Стартвые валидаторы имеют равномерные веса, стартовая эпоха - 2
 	bs, es := env.store.GetHistoryBlockEpochState(startEpoch)
@@ -1197,7 +1197,7 @@ func TestProcessEpochVotesWonErNil(t *testing.T) {
 	require := require.New(t)
 
 	// setup testEnv
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	newVals, partialWeight := func() (*pos.Validators, pos.Weight) {
 		builder := pos.NewBuilder()
@@ -1288,7 +1288,7 @@ func TestProcessEpochVotesWonErNotNilDoubleSign(t *testing.T) {
 	require := require.New(t)
 
 	// setup testEnv
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	newVals := func() *pos.Validators {
 		builder := pos.NewBuilder()
@@ -1413,7 +1413,7 @@ func TestProcessBlockVotesDoubleSign(t *testing.T) {
 	require := require.New(t)
 
 	// setup testEnv
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	br1 := ibr.LlrIdxFullBlockRecord{Idx: idx.Block(2)}
 	br1Hash := br1.Hash()
@@ -1496,7 +1496,7 @@ func TestBlockVotesTests(t *testing.T) {
 	require := require.New(t)
 
 	// setup testEnv
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	bs, es := env.store.GetHistoryBlockEpochState(startEpoch)
 
@@ -1665,7 +1665,7 @@ func TestProcessBlockVotesOneValidatorMultipleBvs(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			env := newTestEnv(startEpoch, validatorsNum)
+			env := newTestEnv(startEpoch, validatorsNum, t)
 			tc.pretest(env)
 			require.EqualError(env.ProcessFullBlockRecord(br), eventcheck.ErrUndecidedBR.Error())
 		})
@@ -1687,7 +1687,7 @@ func TestProcessEpochVotesOneValidatorMultipleEvsDiffLamport(t *testing.T) {
 		}
 	}
 
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 
 	er := ier.LlrIdxFullEpochRecord{Idx: idx.Epoch(startEpoch) + 1}
 	erHash := er.Hash()

@@ -57,7 +57,7 @@ func TestSFC(t *testing.T) {
 	logger.SetTestMode(t)
 	logger.SetLevel("debug")
 
-	env := newTestEnv(2, 3)
+	env := newTestEnv(2, 3, t)
 	defer env.Close()
 
 	var (

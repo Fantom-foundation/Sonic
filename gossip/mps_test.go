@@ -60,7 +60,7 @@ func TestMisbehaviourProofsEventsDoublesign(t *testing.T) {
 	const validatorsNum = 3
 
 	startEpoch := idx.Epoch(basiccheck.MaxLiableEpochs)
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 	defer env.Close()
 
 	// move epoch further
@@ -159,7 +159,7 @@ func TestMisbehaviourProofsBlockVoteDoublesign(t *testing.T) {
 	const validatorsNum = 3
 
 	startEpoch := idx.Epoch(basiccheck.MaxLiableEpochs)
-	env := newTestEnv(basiccheck.MaxLiableEpochs, validatorsNum)
+	env := newTestEnv(basiccheck.MaxLiableEpochs, validatorsNum, t)
 	defer env.Close()
 
 	// move epoch further
@@ -300,7 +300,7 @@ func TestMisbehaviourProofsWrongBlockVote(t *testing.T) {
 	const validatorsNum = 3
 
 	startEpoch := idx.Epoch(basiccheck.MaxLiableEpochs)
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 	defer env.Close()
 
 	// move epoch further
@@ -446,7 +446,7 @@ func TestMisbehaviourProofsWrongBlockEpoch(t *testing.T) {
 	const validatorsNum = 3
 
 	startEpoch := idx.Epoch(basiccheck.MaxLiableEpochs)
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 	defer env.Close()
 
 	// move epoch further
@@ -599,7 +599,7 @@ func TestMisbehaviourProofsEpochVoteDoublesign(t *testing.T) {
 	const validatorsNum = 3
 
 	startEpoch := idx.Epoch(basiccheck.MaxLiableEpochs)
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 	defer env.Close()
 
 	// move epoch further
@@ -719,7 +719,7 @@ func TestMisbehaviourProofsWrongVote(t *testing.T) {
 	const validatorsNum = 3
 
 	startEpoch := idx.Epoch(basiccheck.MaxLiableEpochs)
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, t)
 	defer env.Close()
 
 	// move epoch further

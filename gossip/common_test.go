@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -130,7 +131,7 @@ func (m testConfirmedEventsModule) Start(bs iblockproc.BlockState, es iblockproc
 	return testConfirmedEventsProcessor{p, m.env}
 }
 
-func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator) *testEnv {
+func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB) *testEnv {
 	rules := opera.FakeNetRules()
 	rules.Epochs.MaxEpochDuration = inter.Timestamp(maxEpochDuration)
 	rules.Blocks.MaxEmptyBlockSkipPeriod = 0
@@ -138,7 +139,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator) *testEnv {
 	genStore := makefakegenesis.FakeGenesisStoreWithRulesAndStart(validatorsNum, utils.ToFtm(genesisBalance), utils.ToFtm(genesisStake), rules, firstEpoch, 2)
 	genesis := genStore.Genesis()
 
-	store := NewMemStore()
+	store := NewMemStore(tb)
 	err := store.ApplyGenesis(genesis)
 	if err != nil {
 		panic(err)
