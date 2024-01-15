@@ -330,7 +330,7 @@ func (env *testEnv) Contract(from idx.ValidatorID, amount *big.Int, hex string) 
 	nonce, _ := env.PendingNonceAt(nil, sender)
 	env.incNonce(sender)
 	key := env.privateKey(from)
-	gp := env.store.GetRules().Economy.MinGasPrice
+	gp := new(big.Int).SetUint64(1e12)
 	data := hexutil.MustDecode(hex)
 	tx := types.NewContractCreation(nonce, amount, maxGasLimit, gp, data)
 	tx, err := types.SignTx(tx, env.EthAPI.signer, key)
@@ -362,7 +362,7 @@ func (env *testEnv) Payer(n idx.ValidatorID, amounts ...*big.Int) *bind.Transact
 		t.Value.Add(t.Value, amount)
 	}
 	t.GasLimit = env.GetEvmStateReader().MaxGasLimit()
-	t.GasPrice = env.GetEvmStateReader().MinGasPrice()
+	t.GasPrice = new(big.Int).SetUint64(1e12)
 
 	return t
 }
