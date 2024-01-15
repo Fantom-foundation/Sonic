@@ -164,7 +164,7 @@ func TestBlockSubscription(t *testing.T) {
 		backend = newTestBackend()
 		api     = NewPublicFilterAPI(backend, testConfig())
 
-		statedb, _  = state.New(common.Hash{}, state.NewDatabase(backend.db), nil)
+		statedb, _  = state.NewLegacyWithSnapLayers(common.Hash{}, state.NewDatabase(backend.db), nil, 128)
 		genesis     = evmcore.MustApplyFakeGenesis(statedb, evmcore.FakeGenesisTime, map[common.Address]*big.Int{})
 		chain, _, _ = evmcore.GenerateChain(
 			params.TestChainConfig, genesis, backend.db, 10, nil)

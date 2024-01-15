@@ -36,7 +36,7 @@ import (
 var FakeGenesisTime = inter.Timestamp(1608600000 * time.Second)
 
 // ApplyFakeGenesis writes or updates the genesis block in db.
-func ApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map[common.Address]*big.Int) (*EvmBlock, error) {
+func ApplyFakeGenesis(statedb state.StateDbInterface, time inter.Timestamp, balances map[common.Address]*big.Int) (*EvmBlock, error) {
 	for acc, balance := range balances {
 		statedb.SetBalance(acc, balance)
 	}
@@ -51,7 +51,7 @@ func ApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map
 	return block, nil
 }
 
-func flush(statedb *state.StateDB, clean bool) (root common.Hash, err error) {
+func flush(statedb state.StateDbInterface, clean bool) (root common.Hash, err error) {
 	root, err = statedb.Commit(clean)
 	if err != nil {
 		return
@@ -84,7 +84,7 @@ func genesisBlock(time inter.Timestamp, root common.Hash) *EvmBlock {
 }
 
 // MustApplyFakeGenesis writes the genesis block and state to db, panicking on error.
-func MustApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map[common.Address]*big.Int) *EvmBlock {
+func MustApplyFakeGenesis(statedb state.StateDbInterface, time inter.Timestamp, balances map[common.Address]*big.Int) *EvmBlock {
 	block, err := ApplyFakeGenesis(statedb, time, balances)
 	if err != nil {
 		log.Crit("ApplyFakeGenesis", "err", err)

@@ -112,7 +112,7 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 }
 
 // StateAndHeaderByNumberOrHash returns evm state and block header by block number or block hash, err if not exists.
-func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *evmcore.EvmHeader, error) {
+func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(blockNrOrHash rpc.BlockNumberOrHash) (state.StateDbInterface, *evmcore.EvmHeader, error) {
 	var header *evmcore.EvmHeader
 	if number, ok := blockNrOrHash.Number(); ok && (number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber) {
 		var err error
@@ -134,7 +134,7 @@ func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockN
 	if header == nil {
 		return nil, nil, errors.New("header not found")
 	}
-	stateDb, err := b.state.RpcStateAt(header.Number, header.Root)
+	stateDb, err := b.state.GetRpcStateDB(header.Number, header.Root)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -320,7 +320,7 @@ func (b *EthAPIBackend) GetTd(_ common.Hash) *big.Int {
 	return big.NewInt(0)
 }
 
-func (b *EthAPIBackend) GetEVM(ctx context.Context, msg evmcore.Message, state *state.StateDB, header *evmcore.EvmHeader, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
+func (b *EthAPIBackend) GetEVM(ctx context.Context, msg evmcore.Message, state state.StateDbInterface, header *evmcore.EvmHeader, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
 	vmError := func() error { return nil }
 
 	if vmConfig == nil {

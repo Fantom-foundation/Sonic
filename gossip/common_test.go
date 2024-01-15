@@ -142,7 +142,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 	store := NewMemStore(tb)
 	err := store.ApplyGenesis(genesis)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("ApplyGenesis failed; %w", err))
 	}
 
 	if err := store.StateDbManager.Open(); err != nil {

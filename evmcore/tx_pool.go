@@ -148,7 +148,7 @@ const (
 type StateReader interface {
 	CurrentBlock() *EvmBlock
 	GetBlock(hash common.Hash, number uint64) *EvmBlock
-	StateAt(root common.Hash) (*state.StateDB, error)
+	GetTxPoolStateDB() (state.StateDbInterface, error)
 	MinGasPrice() *big.Int
 	EffectiveMinTip() *big.Int
 	MaxGasLimit() uint64
@@ -251,7 +251,7 @@ type TxPool struct {
 	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
 	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
 
-	currentState  *state.StateDB // Current state in the blockchain head
+	currentState  state.StateDbInterface // Current state in the blockchain head
 	pendingNonces *txNoncer      // Pending state tracking virtual nonces
 	currentMaxGas uint64         // Current gas limit for transaction caps
 
@@ -1375,13 +1375,9 @@ func (pool *TxPool) reset(oldHead, newHead *EvmHeader) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	statedb, err := pool.chain.StateAt(newHead.Root)
-	if err != nil && pool.currentState == nil {
-		log.Debug("Failed to access EVM state", "block", newHead.Number, "root", newHead.Root, "err", err)
-		statedb, err = pool.chain.StateAt(common.Hash{})
-	}
+	statedb, err := pool.chain.GetTxPoolStateDB()
 	if err != nil {
-		log.Error("Failed to reset txpool state", "block", newHead.Number, "root", newHead.Root, "err", err)
+		log.Error("Failed to get TxPool StateDB", "block", newHead.Number, "root", newHead.Root, "err", err)
 		return
 	}
 	if pool.currentState != nil {

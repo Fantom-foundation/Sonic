@@ -148,12 +148,12 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 	return evmBlock
 }
 
-// StateAt obtains StateDB for TxPool
-func (r *EvmStateReader) StateAt(root common.Hash) (*state.StateDB, error) {
-	return r.store.GetTxPoolStateDb(root, r.store.evm.EvmState, r.store.evm.Snaps)
+// GetTxPoolStateDB obtains StateDB for TxPool
+func (r *EvmStateReader) GetTxPoolStateDB() (state.StateDbInterface, error) {
+	return r.store.GetTxPoolStateDB()
 }
 
-// RpcStateAt obtains archive StateDB for RPC requests evaluation
-func (r *EvmStateReader) RpcStateAt(blockNum *big.Int, stateRoot common.Hash) (*state.StateDB, error) {
-	return r.store.GetRpcStateDb(blockNum, stateRoot, r.store.evm.EvmState, r.store.evm.Snaps)
+// GetRpcStateDB obtains archive StateDB for RPC requests evaluation
+func (r *EvmStateReader) GetRpcStateDB(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
+	return r.store.GetRpcStateDb(blockNum, stateRoot)
 }
