@@ -290,6 +290,7 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 func MemTestStoreConfig(tmpDir string) StoreConfig {
 	cfg := DefaultStoreConfig(cachescale.Ratio{Base: 10, Target: 1})
 	cfg.StateDB.Directory = filepath.Join(tmpDir, "carmen")
+	cfg.StateDB.CacheCapacity = 100 // bytes
 	return cfg
 }
 

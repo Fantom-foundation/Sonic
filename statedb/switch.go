@@ -16,6 +16,7 @@ import (
 
 type Config struct {
 	Directory string
+	CacheCapacity int64
 }
 
 type StateDbManager struct {
@@ -33,6 +34,8 @@ func CreateStateDbManager(cfg Config) *StateDbManager {
 			Variant:   "go-file",
 			Schema:    carmen.StateSchema(5),
 			Archive:   carmen.S5Archive,
+			LiveCache: cfg.CacheCapacity / 2,
+			ArchiveCache: cfg.CacheCapacity / 2,
 		},
 		logger: logger.New("statedb"),
 	}
