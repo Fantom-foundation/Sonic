@@ -15,9 +15,6 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 	if m.carmenState != nil {
 		return fmt.Errorf("carmen state must be closed for the world state verification")
 	}
-	if !(m.doesUseCarmen() && m.parameters.Schema == carmen.StateSchema(5)) {
-		return fmt.Errorf("unable to verify world state data - Carmen S5 not used")
-	}
 
 	observer := verificationObserver{m.logger}
 

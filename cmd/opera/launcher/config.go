@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/Carmen/go/evmstore"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
@@ -431,9 +430,6 @@ func setDBConfig(ctx *cli.Context, cfg integration.DBsConfig, cacheRatio cachesc
 func setStateDBConfig(datadir string) statedb.Config {
 	cfg := statedb.Config{
 		Directory: filepath.Join(datadir, "carmen"),
-		Variant:   "go-file",
-		Schema:    carmen.StateSchema(5),
-		Archive:   carmen.S5Archive,
 	}
 	return cfg
 }

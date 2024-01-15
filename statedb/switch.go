@@ -14,7 +14,9 @@ import (
 	"os"
 )
 
-type Config carmen.Parameters
+type Config struct {
+	Directory string
+}
 
 type StateDbManager struct {
 	opened bool
@@ -22,21 +24,18 @@ type StateDbManager struct {
 	logger logger.Instance
 	carmenState carmen.State
 	liveStateDb carmen.StateDB
-	compatibleHashes bool
-	compatibleArchiveHashes bool
 }
 
 func CreateStateDbManager(cfg Config) *StateDbManager {
 	return &StateDbManager{
-		parameters: carmen.Parameters(cfg),
+		parameters: carmen.Parameters{
+			Directory: cfg.Directory,
+			Variant:   "go-file",
+			Schema:    carmen.StateSchema(5),
+			Archive:   carmen.S5Archive,
+		},
 		logger: logger.New("statedb"),
-		compatibleHashes: cfg.Schema == carmen.StateSchema(5),
-		compatibleArchiveHashes: cfg.Archive == carmen.S5Archive,
 	}
-}
-
-func (m *StateDbManager) doesUseCarmen() bool {
-	return  m.parameters.Directory != ""
 }
 
 func (m *StateDbManager) Open() error {
@@ -69,7 +68,7 @@ func (m *StateDbManager) GetStateDbGeneral(stateRoot hash.Hash, evmState state.D
 	}
 	if m.carmenState != nil {
 		stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
-		if m.compatibleHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
+		if stateDb.GetHash() != cc.Hash(stateRoot) {
 			return nil, fmt.Errorf("unable to get Carmen live StateDB (general) - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
 		}
 		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
@@ -84,7 +83,7 @@ func (m *StateDbManager) GetLiveStateDb(stateRoot hash.Hash, evmState state.Data
 		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
 	}
 	if m.liveStateDb != nil {
-		if m.compatibleHashes && m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
+		if m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
 			return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
 		}
 		return state.NewWrapper(CreateCarmenStateDb(m.liveStateDb, m.carmenState)), nil
@@ -129,7 +128,7 @@ func (m *StateDbManager) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash,
 		if err != nil {
 			return nil, err
 		}
-		if m.compatibleArchiveHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
+		if stateDb.GetHash() != cc.Hash(stateRoot) {
 			return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
 		}
 		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
