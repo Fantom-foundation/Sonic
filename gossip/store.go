@@ -103,7 +103,10 @@ type Store struct {
 func NewMemStore(tb testing.TB) *Store {
 	mems := memorydb.NewProducer("")
 	dbs := flushable.NewSyncedPool(mems, []byte{0})
-	cfg := MemTestStoreConfig(tb.TempDir())
+
+	tmpDir := tb.TempDir()
+	tb.Log("NewMemStore", "dir", tmpDir)
+	cfg := MemTestStoreConfig(tmpDir)
 	return NewStore(dbs, cfg)
 }
 
