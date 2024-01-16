@@ -434,14 +434,10 @@ func (s *Service) Start() error {
 	if s.store.evm.IsEvmSnapshotPaused() && !s.config.AllowSnapsync {
 		return errors.New("cannot halt snapsync and start fullsync")
 	}
-	root := s.store.GetBlockState().FinalizedStateRoot
-	if !s.store.evm.HasStateDB(root) {
-		if !s.config.AllowSnapsync {
-			return errors.New("fullsync isn't possible because state root is missing")
-		}
-		root = hash.Zero
+	blockState := s.store.GetBlockState()
+	if !s.store.evm.CheckLiveStateDbHash(blockState.LastBlock.Idx, blockState.FinalizedStateRoot) {
+		return errors.New("fullsync isn't possible because state root is missing")
 	}
-	//_ = s.store.GenerateSnapshotAt(common.Hash(root), true) // EVM snapshot requires state in the trie - disabled for Carmen integration
 
 	// start blocks processor
 	s.blockProcTasks.Start(1)

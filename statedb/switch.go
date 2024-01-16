@@ -74,7 +74,8 @@ func (m *StateDbManager) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInter
 	return CreateCarmenStateDb(m.liveStateDb, m.carmenState), nil
 }
 
-// GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only
+// GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only.
+// It is also used in emitter for emitterdriver contract reading at the start of an epoch.
 func (m *StateDbManager) GetTxPoolStateDB() (state.StateDbInterface, error) {
 	if !m.opened {
 		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")

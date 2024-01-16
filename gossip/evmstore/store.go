@@ -287,15 +287,12 @@ func (s *Store) Cap() {
 
 // StateDB returns state database.
 func (s *Store) StateDB(from hash.Hash) (state.StateDbInterface, error) {
-	return s.sdbm.GetLiveStateDb(from)
+	return s.sdbm.GetTxPoolStateDB()
 }
 
-// HasStateDB returns if state database exists
-func (s *Store) HasStateDB(from hash.Hash) bool {
-	db, err := s.StateDB(from)
-	if db != nil {
-		db.Release()
-	}
+// CheckLiveStateDbHash returns if the hash of the current live StateDB hash matches (and fullsync is possible)
+func (s *Store) CheckLiveStateDbHash(blockNum idx.Block, from hash.Hash) bool {
+	err := s.sdbm.CheckLiveStateHash(uint64(blockNum), common.Hash(from))
 	return err == nil
 }
 
