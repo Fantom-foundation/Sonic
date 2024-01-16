@@ -3,7 +3,7 @@ module github.com/Fantom-foundation/go-opera
 go 1.21
 
 require (
-	github.com/Fantom-foundation/lachesis-base v0.0.0-20231215134255-2653b301ce62
+	github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/certifi/gocertifi v0.0.0-20191021191039-0944d244cd40 // indirect
 	github.com/cespare/cp v1.1.1
@@ -45,7 +45,7 @@ require (
 
 require (
 	github.com/Fantom-foundation/Carmen/go v0.0.0-20240115153445-bcd32f03c361
-	github.com/Fantom-foundation/Tosca v0.0.0-20231211120117-160cf8af1fde
+	github.com/Fantom-foundation/Tosca v0.0.0-20240112090805-9f3dbad8812c
 )
 
 require (
@@ -120,6 +120,6 @@ require (
 	pgregory.net/rand v1.0.2 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20231003122306-febfe681b4a7
+replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240108151133-c0bb0c72b8e0
 
 replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210201043429-a8e90a2a4f88
