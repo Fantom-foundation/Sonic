@@ -20,9 +20,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 )
 
-// maxEpochsToTry represents amount of last closed epochs to try (in case that the last one has the state unavailable)
-const maxEpochsToTry = 10000
-
 // revertDb is the 'db revert' command.
 func revertDb(ctx *cli.Context) error {
 	if !ctx.Bool(experimentalFlag.Name) {
@@ -103,10 +100,8 @@ func revertGossipDb(producer kvdb.FlushableDBProducer, cfg *config, targetEpoch 
 	if err := gdb.StateDbManager.Open(); err != nil {
 		return nil, 0, fmt.Errorf("failed to open StateDbManager; %w", err)
 	}
-	if !gdb.EvmStore().HasStateDB(blockState.FinalizedStateRoot) {
-		log.Warn("EVM state for the epoch is not available - you need to replace the state db manually",
-			"block", blockState.LastBlock.Idx, "stateRoot", blockState.FinalizedStateRoot)
-	}
+	log.Warn("You will need to replace the Carmen db manually",
+		"block", blockState.LastBlock.Idx, "stateRoot", blockState.FinalizedStateRoot)
 
 	// set the historic state to be the current
 	log.Info("Reverting to epoch state", "epoch", epochState.Epoch, "block", blockState.LastBlock.Idx)

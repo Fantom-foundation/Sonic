@@ -378,10 +378,10 @@ func (mr *MockExternalMockRecorder) Process(arg0 interface{}) *gomock.Call {
 }
 
 // StateDB mocks base method.
-func (m *MockExternal) StateDB() *state.StateDB {
+func (m *MockExternal) StateDB() state.StateDbInterface {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StateDB")
-	ret0, _ := ret[0].(*state.StateDB)
+	ret0, _ := ret[0].(state.StateDbInterface)
 	return ret0
 }
 

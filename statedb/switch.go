@@ -8,7 +8,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/pkg/errors"
 	"math/big"
 	"os"
@@ -62,22 +61,6 @@ func (m *StateDbManager) Open() error {
 	m.liveStateDb = carmen.CreateStateDBUsing(m.carmenState)
 	m.logger.Log.Info("Carmen state successfully opened")
 	return nil
-}
-
-// GetStateDbGeneral is used in evmstore, in situations not covered by following methods - read-only latest state
-func (m *StateDbManager) GetStateDbGeneral(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
-	if !m.opened {
-		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
-	}
-	if m.carmenState != nil {
-		stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
-		if stateDb.GetHash() != cc.Hash(stateRoot) {
-			return nil, fmt.Errorf("unable to get Carmen live StateDB (general) - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
-		}
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
-	} else {
-		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
-	}
 }
 
 // GetLiveStateDb obtains StateDB for block processing - the live writable state

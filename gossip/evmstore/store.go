@@ -286,8 +286,8 @@ func (s *Store) Cap() {
 }
 
 // StateDB returns state database.
-func (s *Store) StateDB(from hash.Hash) (*state.StateDB, error) {
-	return s.sdbm.GetStateDbGeneral(from, s.EvmState, s.Snaps)
+func (s *Store) StateDB(from hash.Hash) (state.StateDbInterface, error) {
+	return s.sdbm.GetLiveStateDb(from)
 }
 
 // HasStateDB returns if state database exists

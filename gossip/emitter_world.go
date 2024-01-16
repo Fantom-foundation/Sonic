@@ -61,7 +61,7 @@ func (ew *emitterWorldProc) IsBusy() bool {
 	return atomic.LoadUint32(&ew.s.eventBusyFlag) != 0 || atomic.LoadUint32(&ew.s.blockBusyFlag) != 0
 }
 
-func (ew *emitterWorldProc) StateDB() *state.StateDB {
+func (ew *emitterWorldProc) StateDB() state.StateDbInterface {
 	statedb, err := ew.s.store.evm.StateDB(ew.s.store.GetBlockState().FinalizedStateRoot)
 	if err != nil {
 		return nil
