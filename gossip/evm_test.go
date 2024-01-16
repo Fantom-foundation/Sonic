@@ -22,7 +22,7 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 	logger.SetTestMode(b)
 	require := require.New(b)
 
-	env := newTestEnv(2, 3)
+	env := newTestEnv(2, 3, b)
 	defer env.Close()
 
 	for bi := 0; bi < b.N; bi++ {

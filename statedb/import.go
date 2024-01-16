@@ -27,9 +27,6 @@ var emptyCodeHash = crypto.Keccak256(nil)
 // so the EVM data import into it should be skipped. Calling CheckImportedStateHash should follow
 // to make sure the directory contains the state with the expected hash.
 func (m *StateDbManager) IsAlreadyImported() bool {
-	if !m.doesUseCarmen() {
-		return false
-	}
 	stats, err := os.Stat(m.parameters.Directory)
 	return err == nil && stats.IsDir()
 }
@@ -37,9 +34,6 @@ func (m *StateDbManager) IsAlreadyImported() bool {
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
 // Must be called before the first StateDbManager.Open call.
 func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
-	if !m.doesUseCarmen() || m.parameters.Schema != carmen.StateSchema(5) {
-		return fmt.Errorf("unable to import FWS data - Carmen S5 not used")
-	}
 	if m.carmenState != nil {
 		return fmt.Errorf("carmen state must be closed before the FWS data import")
 	}
@@ -188,9 +182,6 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 // CheckImportedStateHash reads hash of the Carmen state and compare it with given expected state hash.
 // If it does not match, it returns an error.
 func (m *StateDbManager) CheckImportedStateHash(blockNum uint64, root common.Hash) error {
-	if !m.doesUseCarmen() || !m.compatibleHashes {
-		return nil // applicable ony on Carmen with compatible hashes schema - skip the check
-	}
 	if m.carmenState == nil {
 		if err := m.Open(); err != nil {
 			return fmt.Errorf("failed to open StateDbManager for live state hash checking; %v", err)

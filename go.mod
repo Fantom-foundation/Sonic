@@ -44,7 +44,7 @@ require (
 )
 
 require (
-	github.com/Fantom-foundation/Carmen/go v0.0.0-20231213175008-fd673a1fb1cd
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20240115153445-bcd32f03c361
 	github.com/Fantom-foundation/Tosca v0.0.0-20231211120117-160cf8af1fde
 )
 
@@ -91,6 +91,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.12.0 // indirect

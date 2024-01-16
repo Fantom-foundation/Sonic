@@ -14,6 +14,8 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/eventcheck/basiccheck"
 	"github.com/Fantom-foundation/go-opera/inter"
+
+	_ "github.com/Fantom-foundation/Tosca/go/vm/lfvm"
 )
 
 type LLRBasicCheckTestSuite struct {
@@ -32,7 +34,7 @@ func (s *LLRBasicCheckTestSuite) SetupSuite() {
 		startEpoch    = 1
 	)
 
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, s.T())
 
 	em := env.emitters[0]
 	e, err := em.EmitEvent()

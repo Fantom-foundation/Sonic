@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -130,7 +131,7 @@ func (m testConfirmedEventsModule) Start(bs iblockproc.BlockState, es iblockproc
 	return testConfirmedEventsProcessor{p, m.env}
 }
 
-func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator) *testEnv {
+func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB) *testEnv {
 	rules := opera.FakeNetRules()
 	rules.Epochs.MaxEpochDuration = inter.Timestamp(maxEpochDuration)
 	rules.Blocks.MaxEmptyBlockSkipPeriod = 0
@@ -138,7 +139,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator) *testEnv {
 	genStore := makefakegenesis.FakeGenesisStoreWithRulesAndStart(validatorsNum, utils.ToFtm(genesisBalance), utils.ToFtm(genesisStake), rules, firstEpoch, 2)
 	genesis := genStore.Genesis()
 
-	store := NewMemStore()
+	store := NewMemStore(tb)
 	err := store.ApplyGenesis(genesis)
 	if err != nil {
 		panic(err)
@@ -329,7 +330,7 @@ func (env *testEnv) Contract(from idx.ValidatorID, amount *big.Int, hex string) 
 	nonce, _ := env.PendingNonceAt(nil, sender)
 	env.incNonce(sender)
 	key := env.privateKey(from)
-	gp := env.store.GetRules().Economy.MinGasPrice
+	gp := new(big.Int).SetUint64(1e12)
 	data := hexutil.MustDecode(hex)
 	tx := types.NewContractCreation(nonce, amount, maxGasLimit, gp, data)
 	tx, err := types.SignTx(tx, env.EthAPI.signer, key)
@@ -361,7 +362,7 @@ func (env *testEnv) Payer(n idx.ValidatorID, amounts ...*big.Int) *bind.Transact
 		t.Value.Add(t.Value, amount)
 	}
 	t.GasLimit = env.GetEvmStateReader().MaxGasLimit()
-	t.GasPrice = env.GetEvmStateReader().MinGasPrice()
+	t.GasPrice = new(big.Int).SetUint64(1e12)
 
 	return t
 }
@@ -449,7 +450,7 @@ func (env *testEnv) callContract(
 		call.Value = new(big.Int)
 	}
 	// Set infinite balance to the fake caller account.
-	state.SetBalance(call.From, big.NewInt(math.MaxInt64))
+	state.AddBalance(call.From, big.NewInt(math.MaxInt64))
 
 	msg := callmsg{call}
 

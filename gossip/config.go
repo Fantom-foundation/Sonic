@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
+	"path/filepath"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
@@ -285,9 +286,12 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 	}
 }
 
-// LiteStoreConfig is for tests or inmemory.
-func LiteStoreConfig() StoreConfig {
-	return DefaultStoreConfig(cachescale.Ratio{Base: 10, Target: 1})
+// MemTestStoreConfig is for tests or inmemory.
+func MemTestStoreConfig(tmpDir string) StoreConfig {
+	cfg := DefaultStoreConfig(cachescale.Ratio{Base: 10, Target: 1})
+	cfg.StateDB.Directory = filepath.Join(tmpDir, "carmen")
+	cfg.StateDB.CacheCapacity = 100 // bytes
+	return cfg
 }
 
 func DefaultPeerCacheConfig(scale cachescale.Func) PeerCacheConfig {

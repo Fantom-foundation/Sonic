@@ -31,7 +31,7 @@ func (s *LLRHeavyCheckTestSuite) SetupSuite() {
 		startEpoch    = 1
 	)
 
-	env := newTestEnv(startEpoch, validatorsNum)
+	env := newTestEnv(startEpoch, validatorsNum, s.T())
 
 	em := env.emitters[0]
 	e, err := em.EmitEvent()

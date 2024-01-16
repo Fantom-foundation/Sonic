@@ -4,6 +4,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"sync"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
@@ -98,12 +99,11 @@ type Store struct {
 	*statedb.StateDbManager
 }
 
-// NewMemStore creates store over memory map.
-func NewMemStore() *Store {
+// NewMemStore creates temporary gossip store for testing purposes.
+func NewMemStore(tb testing.TB) *Store {
 	mems := memorydb.NewProducer("")
 	dbs := flushable.NewSyncedPool(mems, []byte{0})
-	cfg := LiteStoreConfig()
-
+	cfg := MemTestStoreConfig(tb.TempDir())
 	return NewStore(dbs, cfg)
 }
 
