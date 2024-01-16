@@ -191,8 +191,6 @@ func (m *StateDbManager) CheckLiveStateHash(blockNum uint64, root common.Hash) e
 	stateHash := m.liveStateDb.GetHash()
 	if cc.Hash(root) != stateHash {
 		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
-	} else {
-		m.logger.Log.Info("StateDB imported successfully, stateRoot matches", "index", blockNum, "root", root)
 	}
 	return nil
 }
