@@ -537,7 +537,7 @@ func TestMisbehaviourProofsWrongBlockEpoch(t *testing.T) {
 		tooLateMp := copyMP(correctMp)
 		tooLateMp.WrongBlockVote.Pals[i].Val.Epoch = 1
 		err = env.ApplyMPs(nextEpoch, tooLateMp)
-		require.ErrorIs(err, basiccheck.ErrMPTooLate) // ErrNoCrimeInMP - Locator equals or different Seq/Epoch
+		require.ErrorIs(err, basiccheck.ErrMPTooLate)
 	}
 
 	for i := range correctMp.WrongBlockVote.Pals {

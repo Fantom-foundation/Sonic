@@ -692,7 +692,7 @@ func (s *PublicBlockChainAPI) BlockNumber() hexutil.Uint64 {
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
 func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (*hexutil.Big, error) {
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -720,7 +720,7 @@ type StorageResult struct {
 
 // GetProof returns the Merkle-proof for a given account and optionally some storage keys.
 func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Address, storageKeys []string, blockNrOrHash rpc.BlockNumberOrHash) (*AccountResult, error) {
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -885,7 +885,7 @@ func (s *PublicBlockChainAPI) GetUncleCountByBlockHash(ctx context.Context, bloc
 
 // GetCode returns the code stored at the given address in the state for the given block number.
 func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (hexutil.Bytes, error) {
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -898,7 +898,7 @@ func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Addres
 // block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta block
 // numbers are also allowed.
 func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumberOrHash) (hexutil.Bytes, error) {
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(blockNr)
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -962,7 +962,7 @@ func (diff *StateOverride) Apply(state state.StateDbInterface) error {
 func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, timeout time.Duration, globalGasCap uint64) (*evmcore.ExecutionResult, error) {
 	defer func(start time.Time) { log.Debug("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
 
-	state, header, err := b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+	state, header, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -1096,7 +1096,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 	}
 	// Recap the highest gas limit with account's available balance.
 	if feeCap.BitLen() != 0 {
-		state, _, err := b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+		state, _, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 		if state == nil || err != nil {
 			return 0, err
 		}
@@ -1485,7 +1485,7 @@ func (s *PublicBlockChainAPI) CreateAccessList(ctx context.Context, args Transac
 // If the transaction itself fails, an vmErr is returned.
 func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrHash, args TransactionArgs) (acl types.AccessList, gasUsed uint64, vmErr error, err error) {
 	// Retrieve the execution context
-	db, header, err := b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+	db, header, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if db == nil || err != nil {
 		return nil, 0, nil, err
 	}
@@ -1632,7 +1632,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 		return (*hexutil.Uint64)(&nonce), nil
 	}
 	// Resolve block number and use its state to ask for the nonce
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(blockNrOrHash)
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -2250,7 +2250,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 	if block.NumberU64() == 0 {
 		return nil, errors.New("genesis is not traceable")
 	}
-	statedb, blockHeader, err := api.b.StateAndHeaderByNumberOrHash(rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
+	statedb, blockHeader, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, err
 	}
@@ -2290,7 +2290,7 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 	}
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
-	statedb, _, err := api.b.StateAndHeaderByNumberOrHash(rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
+	statedb, _, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, nil, err
 	}

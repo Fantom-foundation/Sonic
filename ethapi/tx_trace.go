@@ -114,7 +114,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 
 	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), block.Number))
 
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(rpc.BlockNumberOrHash{BlockNumber: &parentBlockNr})
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHash{BlockNumber: &parentBlockNr})
 	if err != nil {
 		return nil, fmt.Errorf("cannot get state for block %v, error: %v", block.NumberU64(), err.Error())
 	}

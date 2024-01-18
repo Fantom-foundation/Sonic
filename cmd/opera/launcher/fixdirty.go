@@ -100,7 +100,7 @@ func revertGossipDb(producer kvdb.FlushableDBProducer, cfg *config, targetEpoch 
 	if err := gdb.StateDbManager.Open(); err != nil {
 		return nil, 0, fmt.Errorf("failed to open StateDbManager; %w", err)
 	}
-	log.Warn("You will need to replace the Carmen db manually",
+	log.Warn("Carmen db has must be replace manually",
 		"block", blockState.LastBlock.Idx, "stateRoot", blockState.FinalizedStateRoot)
 
 	// set the historic state to be the current

@@ -112,7 +112,7 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 }
 
 // StateAndHeaderByNumberOrHash returns evm state and block header by block number or block hash, err if not exists.
-func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(blockNrOrHash rpc.BlockNumberOrHash) (state.StateDbInterface, *evmcore.EvmHeader, error) {
+func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (state.StateDbInterface, *evmcore.EvmHeader, error) {
 	var header *evmcore.EvmHeader
 	if number, ok := blockNrOrHash.Number(); ok && (number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber) {
 		var err error
