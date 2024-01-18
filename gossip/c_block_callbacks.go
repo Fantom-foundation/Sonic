@@ -120,7 +120,7 @@ func consensusCallbackBeginBlockFn(
 		bs.EpochCheaters = mergeCheaters(bs.EpochCheaters, cBlock.Cheaters)
 
 		// Get stateDB
-		statedb, err := store.GetLiveStateDb(bs.FinalizedStateRoot, store.evm.EvmState, store.evm.Snaps)
+		statedb, err := store.GetLiveStateDb(bs.FinalizedStateRoot)
 		if err != nil {
 			log.Crit("Failed to open StateDB", "err", err)
 		}
@@ -405,17 +405,17 @@ func consensusCallbackBeginBlockFn(
 					updateLowestEpochToFill(es.Epoch, store)
 
 					// Update the metrics touched during block processing
-					accountReadTimer.Update(statedb.AccountReads)
-					storageReadTimer.Update(statedb.StorageReads)
-					accountUpdateTimer.Update(statedb.AccountUpdates)
-					storageUpdateTimer.Update(statedb.StorageUpdates)
-					snapshotAccountReadTimer.Update(statedb.SnapshotAccountReads)
-					snapshotStorageReadTimer.Update(statedb.SnapshotStorageReads)
-					accountHashTimer.Update(statedb.AccountHashes)
-					storageHashTimer.Update(statedb.StorageHashes)
-					triehash := statedb.AccountHashes + statedb.StorageHashes
-					trieproc := statedb.SnapshotAccountReads + statedb.AccountReads + statedb.AccountUpdates
-					trieproc += statedb.SnapshotStorageReads + statedb.StorageReads + statedb.StorageUpdates
+					accountReadTimer.Update(statedb.GetAccountReads())
+					storageReadTimer.Update(statedb.GetStorageReads())
+					accountUpdateTimer.Update(statedb.GetAccountUpdates())
+					storageUpdateTimer.Update(statedb.GetStorageUpdates())
+					snapshotAccountReadTimer.Update(statedb.GetSnapshotAccountReads())
+					snapshotStorageReadTimer.Update(statedb.GetSnapshotStorageReads())
+					accountHashTimer.Update(statedb.GetAccountHashes())
+					storageHashTimer.Update(statedb.GetStorageHashes())
+					triehash := statedb.GetAccountHashes() + statedb.GetStorageHashes()
+					trieproc := statedb.GetSnapshotAccountReads() + statedb.GetAccountReads() + statedb.GetAccountUpdates()
+					trieproc += statedb.GetSnapshotStorageReads() + statedb.GetStorageReads() + statedb.GetStorageUpdates()
 					blockExecutionTimer.Update(time.Since(executionStart) - trieproc - triehash)
 
 					// Update the metrics touched by new block
@@ -439,10 +439,10 @@ func consensusCallbackBeginBlockFn(
 					store.commitEVM(false)
 
 					// Update the metrics touched during block commit
-					accountCommitTimer.Update(statedb.AccountCommits)
-					storageCommitTimer.Update(statedb.StorageCommits)
-					snapshotCommitTimer.Update(statedb.SnapshotCommits)
-					blockWriteTimer.Update(time.Since(commitStart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits)
+					accountCommitTimer.Update(statedb.GetAccountCommits())
+					storageCommitTimer.Update(statedb.GetStorageCommits())
+					snapshotCommitTimer.Update(statedb.GetSnapshotCommits())
+					blockWriteTimer.Update(time.Since(commitStart) - statedb.GetAccountCommits() - statedb.GetStorageCommits() - statedb.GetSnapshotCommits())
 					blockInsertTimer.UpdateSince(start)
 
 					now := time.Now()

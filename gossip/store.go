@@ -18,7 +18,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/utils/adapters/snap2kvdb"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/switchable"
 	"github.com/Fantom-foundation/go-opera/utils/eventid"
 	"github.com/Fantom-foundation/go-opera/utils/randat"
@@ -103,7 +102,10 @@ type Store struct {
 func NewMemStore(tb testing.TB) *Store {
 	mems := memorydb.NewProducer("")
 	dbs := flushable.NewSyncedPool(mems, []byte{0})
-	cfg := MemTestStoreConfig(tb.TempDir())
+
+	tmpDir := tb.TempDir()
+	tb.Log("NewMemStore", "dir", tmpDir)
+	cfg := MemTestStoreConfig(tmpDir)
 	return NewStore(dbs, cfg)
 }
 
@@ -247,50 +249,6 @@ func (s *Store) flushDBs() error {
 }
 
 func (s *Store) EvmStore() *evmstore.Store {
-	return s.evm
-}
-
-func (s *Store) CaptureEvmKvdbSnapshot() {
-	if s.evm.Snaps == nil {
-		return
-	}
-	gen, err := s.evm.Snaps.Generating()
-	if err != nil {
-		s.Log.Error("Failed to check EVM snapshot generation", "err", err)
-		return
-	}
-	if gen {
-		return
-	}
-	newEvmKvdbSnap, err := s.evm.EVMDB().GetSnapshot()
-	if err != nil {
-		s.Log.Error("Failed to initialize frozen KVDB", "err", err)
-		return
-	}
-	if s.snapshotedEVMDB == nil {
-		s.snapshotedEVMDB = switchable.Wrap(newEvmKvdbSnap)
-	} else {
-		old := s.snapshotedEVMDB.SwitchTo(newEvmKvdbSnap)
-		// release only after DB is atomically switched
-		if old != nil {
-			old.Release()
-		}
-	}
-	newStore := s.evm.ResetWithEVMDB(snap2kvdb.Wrap(s.snapshotedEVMDB))
-	newStore.Snaps = nil
-	root := s.GetBlockState().FinalizedStateRoot
-	err = s.generateSnapshotAt(newStore, common.Hash(root), false, false)
-	if err != nil {
-		s.Log.Error("Failed to initialize EVM snapshot for frozen KVDB", "err", err)
-		return
-	}
-	s.cache.KvdbEvmSnap.Store(newStore)
-}
-
-func (s *Store) LastKvdbEvmSnapshot() *evmstore.Store {
-	if v := s.cache.KvdbEvmSnap.Load(); v != nil {
-		return v.(*evmstore.Store)
-	}
 	return s.evm
 }
 

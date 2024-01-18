@@ -167,7 +167,7 @@ func TestMisbehaviourProofsBlockVoteDoublesign(t *testing.T) {
 	require.NoError(err)
 	_, err = env.ApplyTxs(nextEpoch, env.Transfer(1, 1, common.Big0))
 	require.NoError(err)
-	require.Greater(env.store.GetEpoch(), startEpoch)
+	require.Greater(env.store.GetEpoch(), startEpoch + 1)
 
 	correctMp := inter.MisbehaviourProof{
 		BlockVoteDoublesign: &inter.BlockVoteDoublesign{
@@ -308,7 +308,7 @@ func TestMisbehaviourProofsWrongBlockVote(t *testing.T) {
 	require.NoError(err)
 	_, err = env.ApplyTxs(nextEpoch, env.Transfer(1, 1, common.Big0))
 	require.NoError(err)
-	require.Greater(env.store.GetEpoch(), startEpoch)
+	require.Greater(env.store.GetEpoch(), startEpoch + 1)
 
 	correctMp := inter.MisbehaviourProof{
 		WrongBlockVote: &inter.WrongBlockVote{
@@ -454,7 +454,7 @@ func TestMisbehaviourProofsWrongBlockEpoch(t *testing.T) {
 	require.NoError(err)
 	_, err = env.ApplyTxs(nextEpoch, env.Transfer(1, 1, common.Big0))
 	require.NoError(err)
-	require.Greater(env.store.GetEpoch(), startEpoch)
+	require.Greater(env.store.GetEpoch(), startEpoch + 1)
 
 	correctMp := inter.MisbehaviourProof{
 		WrongBlockVote: &inter.WrongBlockVote{
@@ -483,7 +483,6 @@ func TestMisbehaviourProofsWrongBlockEpoch(t *testing.T) {
 			WrongEpoch: true,
 		},
 	}
-	require.Greater(env.store.GetEpoch(), correctMp.WrongBlockVote.Pals[0].Val.Epoch)
 
 	// sign
 	sign := func(mp *inter.MisbehaviourProof) {
@@ -607,7 +606,7 @@ func TestMisbehaviourProofsEpochVoteDoublesign(t *testing.T) {
 	require.NoError(err)
 	_, err = env.ApplyTxs(nextEpoch, env.Transfer(1, 1, common.Big0))
 	require.NoError(err)
-	require.Greater(env.store.GetEpoch(), startEpoch)
+	require.Greater(env.store.GetEpoch(), startEpoch + 1)
 
 	correctMp := inter.MisbehaviourProof{
 		EpochVoteDoublesign: &inter.EpochVoteDoublesign{
@@ -727,7 +726,7 @@ func TestMisbehaviourProofsWrongVote(t *testing.T) {
 	require.NoError(err)
 	_, err = env.ApplyTxs(nextEpoch, env.Transfer(1, 1, common.Big0))
 	require.NoError(err)
-	require.Greater(env.store.GetEpoch(), startEpoch)
+	require.Greater(env.store.GetEpoch(), startEpoch + 1)
 
 	correctMp := inter.MisbehaviourProof{
 		WrongEpochVote: &inter.WrongEpochVote{

@@ -56,7 +56,7 @@ func NewStateProcessor(config *params.ChainConfig, bc DummyChain) *StateProcesso
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(
-	block *EvmBlock, statedb *state.StateDB, cfg vm.Config, usedGas *uint64, onNewLog func(*types.Log, *state.StateDB),
+	block *EvmBlock, statedb state.StateDbInterface, cfg vm.Config, usedGas *uint64, onNewLog func(*types.Log, state.StateDbInterface),
 ) (
 	receipts types.Receipts, allLogs []*types.Log, skipped []uint32, err error,
 ) {
@@ -99,13 +99,13 @@ func applyTransaction(
 	msg types.Message,
 	config *params.ChainConfig,
 	gp *GasPool,
-	statedb *state.StateDB,
+	statedb state.StateDbInterface,
 	blockNumber *big.Int,
 	blockHash common.Hash,
 	tx *types.Transaction,
 	usedGas *uint64,
 	evm *vm.EVM,
-	onNewLog func(*types.Log, *state.StateDB),
+	onNewLog func(*types.Log, state.StateDbInterface),
 ) (
 	*types.Receipt,
 	uint64,

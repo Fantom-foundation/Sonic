@@ -148,7 +148,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	// Generate a chain of b.N blocks using the supplied block
 	// generator function.
 	// state
-	statedb, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	statedb, err := state.NewLegacyWithSnapLayers(common.Hash{}, state.NewDatabase(db), nil, 128)
 	if err != nil {
 		b.Fatalf("cannot create statedb: %v", err)
 	}

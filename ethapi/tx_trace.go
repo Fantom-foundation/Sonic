@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -137,7 +136,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot get message from transaction %s, error %s", tx.Hash().String(), err)
 			}
 
-			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status, s.b.ChainConfig())
+			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get transaction trace for transaction %s, error %s", tx.Hash().String(), err)
 			} else {
@@ -205,8 +204,8 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 // traceTx trace transaction with EVM replay and return processed result
 func (s *PublicTxTraceAPI) traceTx(
 	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg types.Message,
-	state *state.StateDB, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
-	status uint64, chainConfig *params.ChainConfig) (*[]txtrace.ActionTrace, error) {
+	state state.StateDbInterface, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
+	status uint64) (*[]txtrace.ActionTrace, error) {
 
 	// Providing default config with tracer
 	cfg := opera.DefaultVMConfig

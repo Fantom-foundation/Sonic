@@ -142,7 +142,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 	store := NewMemStore(tb)
 	err := store.ApplyGenesis(genesis)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("ApplyGenesis failed; %w", err))
 	}
 
 	if err := store.StateDbManager.Open(); err != nil {
@@ -378,7 +378,7 @@ func (env *testEnv) ReadOnly() *bind.CallOpts {
 	return &bind.CallOpts{}
 }
 
-func (env *testEnv) State() *state.StateDB {
+func (env *testEnv) State() state.StateDbInterface {
 	statedb, _ := env.store.evm.StateDB(env.store.GetBlockState().FinalizedStateRoot)
 	return statedb
 }
@@ -435,7 +435,7 @@ func (env *testEnv) HeaderByNumber(ctx context.Context, number *big.Int) (*types
 // callContract implements common code between normal and pending contract calls.
 // state is modified during execution, make sure to copy it if necessary.
 func (env *testEnv) callContract(
-	ctx context.Context, call ethereum.CallMsg, block *evmcore.EvmBlock, state *state.StateDB,
+	ctx context.Context, call ethereum.CallMsg, block *evmcore.EvmBlock, state state.StateDbInterface,
 ) (
 	ret []byte, usedGas uint64, failed bool, err error,
 ) {

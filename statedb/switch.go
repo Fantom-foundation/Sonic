@@ -8,7 +8,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/pkg/errors"
 	"math/big"
 	"os"
@@ -52,7 +51,7 @@ func (m *StateDbManager) Open() error {
 
 	err := os.MkdirAll(m.parameters.Directory, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create carmen dir; %v", err)
+		return fmt.Errorf("failed to create carmen dir \"%s\"; %v", m.parameters.Directory, err)
 	}
 
 	m.carmenState, err = carmen.NewState(m.parameters)
@@ -64,49 +63,26 @@ func (m *StateDbManager) Open() error {
 	return nil
 }
 
-// GetStateDbGeneral is used in evmstore, in situations not covered by following methods - read-only latest state
-func (m *StateDbManager) GetStateDbGeneral(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
-	if !m.opened {
-		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
-	}
-	if m.carmenState != nil {
-		stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
-		if stateDb.GetHash() != cc.Hash(stateRoot) {
-			return nil, fmt.Errorf("unable to get Carmen live StateDB (general) - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
-		}
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
-	} else {
-		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
-	}
-}
-
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
-func (m *StateDbManager) GetLiveStateDb(stateRoot hash.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
+func (m *StateDbManager) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInterface, error) {
 	if !m.opened {
 		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
 	}
-	if m.liveStateDb != nil {
-		if m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
-			return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
-		}
-		return state.NewWrapper(CreateCarmenStateDb(m.liveStateDb, m.carmenState)), nil
-	} else {
-		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
+	if m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
+		return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
 	}
+	return CreateCarmenStateDb(m.liveStateDb, m.carmenState), nil
 }
 
-// GetTxPoolStateDb obtains StateDB for TxPool evaluation - the latest finalized, read-only
-func (m *StateDbManager) GetTxPoolStateDb(stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
+// GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only.
+// It is also used in emitter for emitterdriver contract reading at the start of an epoch.
+func (m *StateDbManager) GetTxPoolStateDB() (state.StateDbInterface, error) {
 	if !m.opened {
 		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
 	}
-	if m.carmenState != nil {
-		// for TxPool it is ok to provide a newer state (with a different hash)
-		stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
-	} else {
-		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
-	}
+	// for TxPool it is ok to provide a newer state (with a different hash)
+	stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
+	return CreateCarmenStateDb(stateDb, m.carmenState), nil
 }
 
 // GetArchiveBlockHeight provides the last block number available in the archive. Returns 0 if not known.
@@ -121,23 +97,19 @@ func (m *StateDbManager) GetArchiveBlockHeight() (height uint64, empty bool, err
 }
 
 // GetRpcStateDb obtains archive StateDB for RPC requests evaluation
-func (m *StateDbManager) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash, evmState state.Database, snaps *snapshot.Tree) (*state.StateDB, error) {
+func (m *StateDbManager) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
 	if !m.opened {
 		return nil, m.logAndReturnIntegrationErr("reading not opened StateDbManager")
 	}
-	if m.carmenState != nil {
-		// always use archive state (live state may mix data from various block heights)
-		stateDb, err := m.liveStateDb.GetArchiveStateDB(blockNum.Uint64())
-		if err != nil {
-			return nil, err
-		}
-		if stateDb.GetHash() != cc.Hash(stateRoot) {
-			return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
-		}
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
-	} else {
-		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
+	// always use archive state (live state may mix data from various block heights)
+	stateDb, err := m.liveStateDb.GetArchiveStateDB(blockNum.Uint64())
+	if err != nil {
+		return nil, err
 	}
+	if stateDb.GetHash() != cc.Hash(stateRoot) {
+		return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
+	}
+	return CreateCarmenStateDb(stateDb, m.carmenState), nil
 }
 
 func (m *StateDbManager) Close() error {

@@ -35,7 +35,7 @@ type GenesisBuilder struct {
 	dbs kvdb.DBProducer
 
 	tmpEvmStore *evmstore.Store
-	tmpStateDB  *state.StateDB
+	tmpStateDB  state.StateDbInterface
 
 	totalSupply *big.Int
 
@@ -104,7 +104,7 @@ func (b *GenesisBuilder) CurrentHash() hash.Hash {
 
 func NewGenesisBuilder(dbs kvdb.DBProducer) *GenesisBuilder {
 	tmpEvmStore := evmstore.NewStore(dbs, evmstore.LiteStoreConfig(), nil)
-	tmpStateDB, err := state.NewWithSnapLayers(common.Hash(hash.Zero), tmpEvmStore.EvmState, tmpEvmStore.Snaps, 0)
+	tmpStateDB, err := state.NewLegacyWithSnapLayers(common.Hash(hash.Zero), tmpEvmStore.EvmState, tmpEvmStore.Snaps, 0)
 	if err != nil {
 		panic(fmt.Errorf("failed to create StateDB for GenesisBuilder: %v", err))
 	}

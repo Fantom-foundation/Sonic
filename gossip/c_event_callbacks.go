@@ -305,7 +305,4 @@ func (s *Service) commit(epochSealing bool) {
 		s.store.cleanCommitEVM()
 	}
 	_ = s.store.Commit()
-	if epochSealing {
-		s.store.CaptureEvmKvdbSnapshot()
-	}
 }

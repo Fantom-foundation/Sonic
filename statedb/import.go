@@ -24,7 +24,7 @@ import (
 var emptyCodeHash = crypto.Keccak256(nil)
 
 // IsAlreadyImported checks, if there is already a Carmen directory filled with state data,
-// so the EVM data import into it should be skipped. Calling CheckImportedStateHash should follow
+// so the EVM data import into it should be skipped. Calling CheckLiveStateHash should follow
 // to make sure the directory contains the state with the expected hash.
 func (m *StateDbManager) IsAlreadyImported() bool {
 	stats, err := os.Stat(m.parameters.Directory)
@@ -179,9 +179,9 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 	return nil
 }
 
-// CheckImportedStateHash reads hash of the Carmen state and compare it with given expected state hash.
+// CheckLiveStateHash reads hash of the Carmen state and compare it with given expected state hash.
 // If it does not match, it returns an error.
-func (m *StateDbManager) CheckImportedStateHash(blockNum uint64, root common.Hash) error {
+func (m *StateDbManager) CheckLiveStateHash(blockNum uint64, root common.Hash) error {
 	if m.carmenState == nil {
 		if err := m.Open(); err != nil {
 			return fmt.Errorf("failed to open StateDbManager for live state hash checking; %v", err)
@@ -191,8 +191,6 @@ func (m *StateDbManager) CheckImportedStateHash(blockNum uint64, root common.Has
 	stateHash := m.liveStateDb.GetHash()
 	if cc.Hash(root) != stateHash {
 		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
-	} else {
-		m.logger.Log.Info("StateDB imported successfully, stateRoot matches", "index", blockNum, "root", root)
 	}
 	return nil
 }

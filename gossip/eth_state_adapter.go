@@ -21,16 +21,16 @@ func newEthBlockChain(s *Store) (*ethBlockChain, error) {
 
 // StateCache returns the caching database underpinning the blockchain instance.
 func (bc *ethBlockChain) StateCache() state.Database {
-	return bc.store.LastKvdbEvmSnapshot().EvmState
+	return bc.store.EvmStore().EvmState
 }
 
 // ContractCode retrieves a blob of data associated with a contract hash
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *ethBlockChain) ContractCode(hash common.Hash) ([]byte, error) {
-	return bc.store.LastKvdbEvmSnapshot().EvmState.ContractCode(common.Hash{}, hash)
+	return bc.store.EvmStore().EvmState.ContractCode(common.Hash{}, hash)
 }
 
 // Snapshots returns the blockchain snapshot tree to paused it during sync.
 func (bc *ethBlockChain) Snapshots() *snapshot.Tree {
-	return bc.store.LastKvdbEvmSnapshot().Snapshots()
+	return bc.store.EvmStore().Snapshots()
 }

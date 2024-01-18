@@ -925,7 +925,7 @@ type OverrideAccount struct {
 type StateOverride map[common.Address]OverrideAccount
 
 // Apply overrides the fields of specified accounts into the given state.
-func (diff *StateOverride) Apply(state *state.StateDB) error {
+func (diff *StateOverride) Apply(state state.StateDbInterface) error {
 	if diff == nil {
 		return nil
 	}
@@ -2116,7 +2116,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDbInterface, config *TraceConfig) (interface{}, error) {
 	// Assemble the structured logger or the JavaScript tracer
 	var (
 		tracer    vm.Tracer
@@ -2283,7 +2283,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 }
 
 // stateAtTransaction returns the execution environment of a certain transaction.
-func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex int) (evmcore.Message, *state.StateDB, error) {
+func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex int) (evmcore.Message, state.StateDbInterface, error) {
 	// Short circuit if it's genesis block.
 	if block.NumberU64() == 0 {
 		return nil, nil, errors.New("no transaction in genesis")

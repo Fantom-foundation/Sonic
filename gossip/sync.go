@@ -185,7 +185,7 @@ func (h *handler) snapsyncStageTick() {
 			if bs == nil {
 				continue
 			}
-			if !h.store.evm.HasStateDB(bs.FinalizedStateRoot) {
+			if !h.store.evm.CheckLiveStateDbHash(bs.LastBlock.Idx, bs.FinalizedStateRoot) {
 				continue
 			}
 			if llrs.LowestBlockToFill <= bs.LastBlock.Idx {
