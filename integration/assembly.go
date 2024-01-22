@@ -129,17 +129,6 @@ func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) 
 	return nil
 }
 
-func migrate(dbs kvdb.FlushableDBProducer, cfg Configs) error {
-	gdb, cdb := getStores(dbs, cfg)
-	defer gdb.Close()
-	defer cdb.Close()
-	err := gdb.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 	if isInterrupted(chaindataDir) {
 		return errors.New("genesis processing isn't finished")
@@ -201,39 +190,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 		}
 	}
-	// Migration
-	{
-		runtimeProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
-		dbs, err := MakeDirectMultiProducer(runtimeProducers)
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-
-		// drop previous epoch DBs, which do not survive restart
-		epoch := getEpoch(dbs, cfg)
-		leDB, err := dbs.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
-		if err != nil {
-			_ = dbs.Close()
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-		_ = leDB.Close()
-		leDB.Drop()
-		goDB, err := dbs.OpenDB(fmt.Sprintf("gossip-%d", epoch))
-		if err != nil {
-			_ = dbs.Close()
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-		_ = goDB.Close()
-		goDB.Drop()
-
-		err = migrate(dbs, cfg)
-		_ = dbs.Close()
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to migrate state: %v", err)
-		}
-	}
 	// Live setup
-
 	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 	// open flushable DBs
 	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers)
