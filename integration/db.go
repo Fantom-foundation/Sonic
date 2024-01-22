@@ -20,7 +20,6 @@ import (
 )
 
 type DBsConfig struct {
-	Routing       RoutingConfig
 	RuntimeCache  DBCacheConfig
 	GenesisCache  DBCacheConfig
 }

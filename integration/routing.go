@@ -27,7 +27,7 @@ func (a RoutingConfig) Equal(b RoutingConfig) bool {
 	return true
 }
 
-func MakeMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, scopedProducers map[multidb.TypeName]kvdb.FullDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, error) {
+func MakeMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, scopedProducers map[multidb.TypeName]kvdb.FullDBProducer) (kvdb.FullDBProducer, error) {
 	cachedProducers := make(map[multidb.TypeName]kvdb.FullDBProducer)
 	var flushID []byte
 	var err error
@@ -47,10 +47,10 @@ func MakeMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer
 	return threads.CountedFullDBProducer(p), err
 }
 
-func MakeDirectMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, error) {
+func MakeDirectMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer) (kvdb.FullDBProducer, error) {
 	dproducers := map[multidb.TypeName]kvdb.FullDBProducer{}
 	for typ, producer := range rawProducers {
 		dproducers[typ] = &DummyScopedProducer{producer}
 	}
-	return MakeMultiProducer(rawProducers, dproducers, cfg)
+	return MakeMultiProducer(rawProducers, dproducers)
 }

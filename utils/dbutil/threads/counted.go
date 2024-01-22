@@ -29,6 +29,7 @@ func CountedDBProducer(dbs kvdb.DBProducer) kvdb.DBProducer {
 	return &countedDbProducer{dbs}
 }
 
+// CountedFullDBProducer obtains one thread from the GlobalPool for each opened iterator.
 func CountedFullDBProducer(dbs kvdb.FullDBProducer) kvdb.FullDBProducer {
 	return &countedFullDbProducer{dbs}
 }

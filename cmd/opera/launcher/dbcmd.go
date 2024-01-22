@@ -79,8 +79,8 @@ func makeCheckedDBsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBPr
 	return makeUncheckedDBsProducers(cfg)
 }
 
-func makeDirectDBsProducerFrom(dbsList map[multidb.TypeName]kvdb.IterableDBProducer, cfg *config) kvdb.FullDBProducer {
-	multiRawDbs, err := integration.MakeDirectMultiProducer(dbsList, cfg.DBs.Routing)
+func makeDirectDBsProducerFrom(dbsList map[multidb.TypeName]kvdb.IterableDBProducer) kvdb.FullDBProducer {
+	multiRawDbs, err := integration.MakeDirectMultiProducer(dbsList)
 	if err != nil {
 		utils.Fatalf("Failed to initialize multi DB producer: %v", err)
 	}
@@ -89,7 +89,7 @@ func makeDirectDBsProducerFrom(dbsList map[multidb.TypeName]kvdb.IterableDBProdu
 
 func makeDirectDBsProducer(cfg *config) kvdb.FullDBProducer {
 	dbsList := makeCheckedDBsProducers(cfg)
-	return makeDirectDBsProducerFrom(dbsList, cfg)
+	return makeDirectDBsProducerFrom(dbsList)
 }
 
 func makeGossipStore(producer kvdb.FlushableDBProducer, cfg *config) *gossip.Store {

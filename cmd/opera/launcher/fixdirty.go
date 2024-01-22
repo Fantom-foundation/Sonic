@@ -34,7 +34,7 @@ func revertDb(ctx *cli.Context) error {
 
 	log.Info("Opening databases")
 	dbTypes := makeUncheckedDBsProducers(cfg)
-	multiProducer := makeDirectDBsProducerFrom(dbTypes, cfg)
+	multiProducer := makeDirectDBsProducerFrom(dbTypes)
 
 	// reverts the gossip database state
 	epochState, oldTopEpoch, err := revertGossipDb(multiProducer, cfg, targetEpoch)

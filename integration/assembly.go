@@ -145,7 +145,7 @@ func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 		return errors.New("genesis processing isn't finished")
 	}
 	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.RuntimeCache)
-	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers, cfg.Routing)
+	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
-		dbs, err := MakeDirectMultiProducer(genesisProducers, cfg.DBs.Routing)
+		dbs, err := MakeDirectMultiProducer(genesisProducers)
 		if err != nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB multi-producer: %v", err)
 		}
@@ -204,7 +204,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	// Migration
 	{
 		runtimeProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
-		dbs, err := MakeDirectMultiProducer(runtimeProducers, cfg.DBs.Routing)
+		dbs, err := MakeDirectMultiProducer(runtimeProducers)
 		if err != nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 		}
@@ -236,7 +236,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 
 	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 	// open flushable DBs
-	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers, cfg.DBs.Routing)
+	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
