@@ -414,11 +414,11 @@ func setStateDBConfig(datadir string) statedb.Config {
 	return cfg
 }
 
-func setDBConfigDefault(cfg config, cacheRatio cachescale.Func) config {
-	// apply default for DB config if it wasn't touched by config file or flags, and there's no datadir's default value
-	dbDefault := integration.DefaultDBsConfig(cacheRatio.U64)
-	cfg.DBs.GenesisCache = dbDefault.GenesisCache
-	cfg.DBs.RuntimeCache = dbDefault.RuntimeCache
+func setDBConfig(cfg config, cacheRatio cachescale.Func) config {
+	cfg.DBs.RuntimeCache = integration.DBCacheConfig{
+		Cache:   cacheRatio.U64(480 * opt.MiB),
+		Fdlimit: uint64(utils.MakeDatabaseHandles())*480/1400 + 1,
+	}
 	return cfg
 }
 
@@ -540,7 +540,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	setTxPool(ctx, &cfg.TxPool)
 
 	// Process DBs defaults in the end because they are applied only in absence of config or flags
-	cfg = setDBConfigDefault(cfg, cacheRatio)
+	cfg = setDBConfig(cfg, cacheRatio)
 
 	if err := cfg.Opera.Validate(); err != nil {
 		return nil, err

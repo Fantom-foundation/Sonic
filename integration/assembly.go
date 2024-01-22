@@ -167,7 +167,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	if genesisProc {
 		setGenesisProcessing(chaindataDir)
 		// use increased DB cache for genesis processing
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
+		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
@@ -185,7 +185,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	}
 	// Compact DBs after first launch
 	if genesisProc {
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
+		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 		for typ, p := range genesisProducers {
 			for _, name := range p.Names() {
 				if err := compactDB(typ, name, p); err != nil {

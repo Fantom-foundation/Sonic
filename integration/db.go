@@ -21,7 +21,6 @@ import (
 
 type DBsConfig struct {
 	RuntimeCache  DBCacheConfig
-	GenesisCache  DBCacheConfig
 }
 
 type DBCacheConfig struct {
