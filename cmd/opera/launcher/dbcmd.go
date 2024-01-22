@@ -5,7 +5,6 @@ import (
 	"path"
 
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -71,22 +70,6 @@ If Carmen is used, its database must be replaced with appropriate older version 
 func makeUncheckedDBsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBProducer {
 	dbsList, _ := integration.SupportedDBs(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	return dbsList
-}
-
-func makeUncheckedCachedDBsProducers(chaindataDir string) map[multidb.TypeName]kvdb.FullDBProducer {
-	dbTypes, _ := integration.SupportedDBs(chaindataDir, integration.DBsCacheConfig{
-		Table: map[string]integration.DBCacheConfig{
-			"": {
-				Cache:   1024 * opt.MiB,
-				Fdlimit: uint64(utils.MakeDatabaseHandles() / 2),
-			},
-		},
-	})
-	wrappedDbTypes := make(map[multidb.TypeName]kvdb.FullDBProducer)
-	for typ, producer := range dbTypes {
-		wrappedDbTypes[typ] = cachedproducer.WrapAll(&integration.DummyScopedProducer{IterableDBProducer: producer})
-	}
-	return wrappedDbTypes
 }
 
 func makeCheckedDBsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBProducer {

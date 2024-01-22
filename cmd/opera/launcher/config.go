@@ -416,7 +416,7 @@ func setStateDBConfig(datadir string) statedb.Config {
 
 func setDBConfigDefault(cfg config, cacheRatio cachescale.Func) config {
 	// apply default for DB config if it wasn't touched by config file or flags, and there's no datadir's default value
-	dbDefault := integration.DefaultDBsConfig(cacheRatio.U64, uint64(utils.MakeDatabaseHandles()))
+	dbDefault := integration.DefaultDBsConfig(cacheRatio.U64)
 	cfg.DBs.Routing = dbDefault.Routing
 	cfg.DBs.GenesisCache = dbDefault.GenesisCache
 	cfg.DBs.RuntimeCache = dbDefault.RuntimeCache
