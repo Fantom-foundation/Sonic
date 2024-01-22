@@ -133,8 +133,8 @@ func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 	if isInterrupted(chaindataDir) {
 		return errors.New("genesis processing isn't finished")
 	}
-	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.RuntimeCache)
-	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers)
+	runtimeProducers := SupportedDBs(chaindataDir, cfg.RuntimeCache)
+	dbs, err := MakeMultiProducer(runtimeProducers)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	if genesisProc {
 		setGenesisProcessing(chaindataDir)
 		// use increased DB cache for genesis processing
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
+		genesisProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
@@ -174,7 +174,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	}
 	// Compact DBs after first launch
 	if genesisProc {
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
+		genesisProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 		for typ, p := range genesisProducers {
 			for _, name := range p.Names() {
 				if err := compactDB(typ, name, p); err != nil {
@@ -191,9 +191,9 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		}
 	}
 	// Live setup
-	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
+	runtimeProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 	// open flushable DBs
-	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers)
+	dbs, err := MakeMultiProducer(runtimeProducers)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}

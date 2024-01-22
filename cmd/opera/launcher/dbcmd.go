@@ -68,7 +68,7 @@ If Carmen is used, its database must be replaced with appropriate older version 
 )
 
 func makeUncheckedDBsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBProducer {
-	dbsList, _ := integration.SupportedDBs(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
+	dbsList := integration.SupportedDBs(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	return dbsList
 }
 

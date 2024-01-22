@@ -4,7 +4,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -15,7 +14,6 @@ import (
 	"path"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/asyncflushproducer"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 )
 
@@ -32,7 +30,7 @@ type DBsCacheConfig struct {
 	Table map[string]DBCacheConfig
 }
 
-func SupportedDBs(chaindataDir string, cfg DBCacheConfig) (map[multidb.TypeName]kvdb.IterableDBProducer, map[multidb.TypeName]kvdb.FullDBProducer) {
+func SupportedDBs(chaindataDir string, cfg DBCacheConfig) map[multidb.TypeName]kvdb.IterableDBProducer {
 	if chaindataDir == "inmemory" || chaindataDir == "" {
 		chaindataDir, _ = os.MkdirTemp("", "opera-tmp")
 	}
@@ -48,8 +46,6 @@ func SupportedDBs(chaindataDir string, cfg DBCacheConfig) (map[multidb.TypeName]
 
 	return map[multidb.TypeName]kvdb.IterableDBProducer{
 			"pebble-fsh":  pebbleFsh,
-		}, map[multidb.TypeName]kvdb.FullDBProducer{
-			"pebble-fsh":  asyncflushproducer.Wrap(flushable.NewSyncedPool(pebbleFsh, FlushIDKey), 200000),
 		}
 }
 
@@ -90,7 +86,7 @@ func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 }
 
 func MakeDBDirs(chaindataDir string) {
-	dbs, _ := SupportedDBs(chaindataDir, DBCacheConfig{})
+	dbs := SupportedDBs(chaindataDir, DBCacheConfig{})
 	for typ := range dbs {
 		if err := os.MkdirAll(path.Join(chaindataDir, string(typ)), 0700); err != nil {
 			utils.Fatalf("Failed to create chaindata/leveldb directory: %v", err)
