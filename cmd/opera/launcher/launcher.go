@@ -126,8 +126,6 @@ func initFlags() {
 		validatorPasswordFlag,
 		SyncModeFlag,
 		GCModeFlag,
-		DBPresetFlag,
-		DBMigrationModeFlag,
 		disableLogsFlag,
 		disableTxHashesFlag,
 		carmenEvmStoreFlag,
@@ -307,7 +305,6 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		_ = genesisStore.Close()
 	}
 	metrics.SetDataDir(cfg.Node.DataDir)
-	memorizeDBPreset(cfg)
 
 	// substitute default bootnodes if requested
 	networkName := ""

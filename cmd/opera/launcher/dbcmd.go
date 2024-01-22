@@ -48,20 +48,6 @@ will compact all databases under datadir's chaindata.
 `,
 			},
 			{
-				Name:      "transform",
-				Usage:     "Transform DBs layout",
-				ArgsUsage: "",
-				Action:    utils.MigrateFlags(dbTransform),
-				Category:  "DB COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-				},
-				Description: `
-opera db transform
-will migrate tables layout according to the configuration.
-`,
-			},
-			{
 				Name:      "revert",
 				Usage:     "Experimental - revert Opera database to given epoch",
 				ArgsUsage: "",
