@@ -2,7 +2,7 @@ package integration
 
 import (
 	"fmt"
-
+	"github.com/Fantom-foundation/go-opera/integration/fakemultidb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
@@ -39,7 +39,11 @@ func MakeMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer
 		cachedProducers[typ] = cachedproducer.WrapAll(producer)
 	}
 
-	p, err := makeMultiProducer(cachedProducers, cfg)
+	multi, err := fakemultidb.NewProducer(cachedProducers["pebble-fsh"])
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct multidb: %v", err)
+	}
+	p := skipkeys.WrapAllProducer(multi, MetadataPrefix)
 	return threads.CountedFullDBProducer(p), err
 }
 
@@ -49,17 +53,4 @@ func MakeDirectMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBPr
 		dproducers[typ] = &DummyScopedProducer{producer}
 	}
 	return MakeMultiProducer(rawProducers, dproducers, cfg)
-}
-
-func makeMultiProducer(scopedProducers map[multidb.TypeName]kvdb.FullDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, error) {
-	multi, err := multidb.NewProducer(scopedProducers, cfg.Table, TablesKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct multidb: %v", err)
-	}
-
-	err = multi.Verify()
-	if err != nil {
-		return nil, fmt.Errorf("incompatible chainstore DB layout: %v. Try to use 'db transform' to recover", err)
-	}
-	return skipkeys.WrapAllProducer(multi, MetadataPrefix), nil
 }
