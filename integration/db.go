@@ -1,20 +1,23 @@
 package integration
 
 import (
+	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil/asyncflushproducer"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil/threads"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/skipkeys"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"io"
 	"os"
-	"path"
-
-	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 )
 
 type DBsConfig struct {
@@ -26,11 +29,7 @@ type DBCacheConfig struct {
 	Fdlimit uint64
 }
 
-type DBsCacheConfig struct {
-	Table map[string]DBCacheConfig
-}
-
-func SupportedDBs(chaindataDir string, cfg DBCacheConfig) map[multidb.TypeName]kvdb.IterableDBProducer {
+func GetRawDbProducer(chaindataDir string, cfg DBCacheConfig) kvdb.IterableDBProducer {
 	if chaindataDir == "inmemory" || chaindataDir == "" {
 		chaindataDir, _ = os.MkdirTemp("", "opera-tmp")
 	}
@@ -38,15 +37,31 @@ func SupportedDBs(chaindataDir string, cfg DBCacheConfig) map[multidb.TypeName]k
 		return int(cfg.Cache), int(cfg.Fdlimit)
 	}
 
-	pebbleFsh := dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-fsh"), cacher), true)
+	rawProducer := dbcounter.Wrap(pebble.NewProducer(chaindataDir, cacher), true)
 
 	if metrics.Enabled {
-		pebbleFsh = WrapDatabaseWithMetrics(pebbleFsh)
+		rawProducer = WrapDatabaseWithMetrics(rawProducer)
+	}
+	return rawProducer
+}
+
+func GetDbProducer(chaindataDir string, cfg DBCacheConfig, synced bool) (kvdb.FullDBProducer, error) {
+	rawProducer := GetRawDbProducer(chaindataDir, cfg)
+
+	var scopedProducer kvdb.FullDBProducer
+	if synced {
+		scopedProducer = asyncflushproducer.Wrap(flushable.NewSyncedPool(rawProducer, FlushIDKey), 200000)
+	} else {
+		scopedProducer = &DummyScopedProducer{rawProducer}
 	}
 
-	return map[multidb.TypeName]kvdb.IterableDBProducer{
-			"pebble-fsh":  pebbleFsh,
-		}
+	_, err := scopedProducer.Initialize(rawProducer.Names(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open existing databases: %v", err)
+	}
+	cachedProducer := cachedproducer.WrapAll(scopedProducer)
+	skippingProducer := skipkeys.WrapAllProducer(cachedProducer, MetadataPrefix)
+	return threads.CountedFullDBProducer(skippingProducer), err
 }
 
 func isEmpty(dir string) bool {
@@ -86,11 +101,8 @@ func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 }
 
 func MakeDBDirs(chaindataDir string) {
-	dbs := SupportedDBs(chaindataDir, DBCacheConfig{})
-	for typ := range dbs {
-		if err := os.MkdirAll(path.Join(chaindataDir, string(typ)), 0700); err != nil {
-			utils.Fatalf("Failed to create chaindata/leveldb directory: %v", err)
-		}
+	if err := os.MkdirAll(chaindataDir, 0700); err != nil {
+		utils.Fatalf("Failed to create chaindata directory: %v", err)
 	}
 }
 

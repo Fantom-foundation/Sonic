@@ -4,13 +4,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"path"
-
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -133,36 +130,32 @@ func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 	if isInterrupted(chaindataDir) {
 		return errors.New("genesis processing isn't finished")
 	}
-	runtimeProducers := SupportedDBs(chaindataDir, cfg.RuntimeCache)
-	dbs, err := MakeMultiProducer(runtimeProducers)
+	dbs, err := GetDbProducer(chaindataDir, cfg.RuntimeCache, true)
 	if err != nil {
 		return err
 	}
 	return dbs.Close()
 }
 
-func compactDB(typ multidb.TypeName, name string, producer kvdb.DBProducer) error {
-	humanName := path.Join(string(typ), name)
+func compactDB(name string, producer kvdb.DBProducer) error {
 	db, err := producer.OpenDB(name)
 	defer db.Close()
 	if err != nil {
 		return err
 	}
-	return compactdb.Compact(db, humanName, 16*opt.GiB)
+	return compactdb.Compact(db, name, 16*opt.GiB)
 }
 
 func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
 	// Genesis processing
 	if genesisProc {
 		setGenesisProcessing(chaindataDir)
-		// use increased DB cache for genesis processing
-		genesisProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
-		dbs, err := MakeDirectMultiProducer(genesisProducers)
+		dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache, false)
 		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB multi-producer: %v", err)
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB producer: %v", err)
 		}
 		err = applyGenesis(dbs, *g, cfg)
 		if err != nil {
@@ -174,12 +167,10 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	}
 	// Compact DBs after first launch
 	if genesisProc {
-		genesisProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
-		for typ, p := range genesisProducers {
-			for _, name := range p.Names() {
-				if err := compactDB(typ, name, p); err != nil {
-					return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-				}
+		p := GetRawDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
+		for _, name := range p.Names() {
+			if err := compactDB(name, p); err != nil {
+				return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 			}
 		}
 	}
@@ -190,10 +181,8 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 		}
 	}
-	// Live setup
-	runtimeProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
-	// open flushable DBs
-	dbs, err := MakeMultiProducer(runtimeProducers)
+	// Live setup - open flushable DBs
+	dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache, true)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
