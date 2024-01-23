@@ -21,14 +21,9 @@ type index struct {
 	}
 }
 
-func newIndex(dbs kvdb.DBProducer) *index {
+func newIndex(db kvdb.Store) *index {
 	tt := &index{}
-
-	err := table.OpenTables(&tt.table, dbs, "evm-logs")
-	if err != nil {
-		panic(err)
-	}
-
+	table.MigrateTables(&tt.table, db)
 	return tt
 }
 

@@ -18,7 +18,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/switchable"
 	"github.com/Fantom-foundation/go-opera/utils/eventid"
 	"github.com/Fantom-foundation/go-opera/utils/randat"
 	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
@@ -29,7 +28,7 @@ type Store struct {
 	dbs kvdb.FlushableDBProducer
 	cfg StoreConfig
 
-	snapshotedEVMDB *switchable.Snapshot
+	mainDB          kvdb.Store
 	evm             *evmstore.Store
 	table           struct {
 		Version kvdb.Store `table:"_"`
@@ -111,22 +110,24 @@ func NewMemStore(tb testing.TB) *Store {
 
 // NewStore creates store over key-value db.
 func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
+	mainDB, err := dbs.OpenDB("gossip")
+	if err != nil {
+		log.Crit("Failed to open DB", "name", "gossip", "err", err)
+	}
 	s := &Store{
 		dbs:           dbs,
 		cfg:           cfg,
+		mainDB:        mainDB,
 		Instance:      logger.New("gossip-store"),
 		prevFlushTime: time.Now(),
 		rlp:           rlpstore.Helper{logger.New("rlp")},
 		StateDbManager: statedb.CreateStateDbManager(cfg.StateDB),
 	}
 
-	err := table.OpenTables(&s.table, dbs, "gossip")
-	if err != nil {
-		log.Crit("Failed to open DB", "name", "gossip", "err", err)
-	}
+	table.MigrateTables(&s.table, s.mainDB)
 
 	s.initCache()
-	s.evm = evmstore.NewStore(dbs, cfg.EVM, s.StateDbManager)
+	s.evm = evmstore.NewStore(s.mainDB, cfg.EVM, s.StateDbManager)
 
 	if err := s.migrateData(); err != nil {
 		s.Log.Crit("Failed to migrate Gossip DB", "err", err)
@@ -160,17 +161,13 @@ func (s *Store) initCache() {
 
 // Close closes underlying database.
 func (s *Store) Close() {
-	setnil := func() interface{} {
-		return nil
-	}
-
-	if s.snapshotedEVMDB != nil {
-		s.snapshotedEVMDB.Release()
-	}
-	_ = table.CloseTables(&s.table)
+	// set all tables/caches fields to nil
 	table.MigrateTables(&s.table, nil)
-	table.MigrateCaches(&s.cache, setnil)
+	table.MigrateCaches(&s.cache, func() interface{} {
+		return nil
+	})
 
+	_ = s.mainDB.Close()
 	_ = s.closeEpochStore()
 	s.evm.Close()
 

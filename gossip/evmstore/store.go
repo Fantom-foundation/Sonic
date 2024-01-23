@@ -32,6 +32,7 @@ const nominalSize uint = 1
 type Store struct {
 	cfg StoreConfig
 
+	mainDB kvdb.Store
 	table struct {
 		Evm kvdb.Store `table:"M"`
 		// API-only tables
@@ -66,9 +67,10 @@ const (
 )
 
 // NewStore creates store over key-value db.
-func NewStore(dbs kvdb.DBProducer, cfg StoreConfig, sdbm *statedb.StateDbManager) *Store {
+func NewStore(mainDB kvdb.Store, cfg StoreConfig, sdbm *statedb.StateDbManager) *Store {
 	s := &Store{
 		cfg:      cfg,
+		mainDB:   mainDB,
 		Instance: logger.New("evm-store"),
 		rlp:      rlpstore.Helper{logger.New("rlp")},
 		triegc:   prque.New(nil),
@@ -81,16 +83,13 @@ func NewStore(dbs kvdb.DBProducer, cfg StoreConfig, sdbm *statedb.StateDbManager
 		s.backend = legacyBackend{s}
 	}
 
-	err := table.OpenTables(&s.table, dbs, "evm")
-	if err != nil {
-		s.Log.Crit("Failed to open tables", "err", err)
-	}
+	table.MigrateTables(&s.table, s.mainDB)
 
 	s.initEVMDB()
 	if cfg.DisableLogsIndexing {
 		s.EvmLogs = topicsdb.NewDummy()
 	} else {
-		s.EvmLogs = topicsdb.NewWithThreadPool(dbs)
+		s.EvmLogs = topicsdb.NewWithThreadPool(mainDB)
 	}
 	s.initCache()
 
@@ -99,13 +98,11 @@ func NewStore(dbs kvdb.DBProducer, cfg StoreConfig, sdbm *statedb.StateDbManager
 
 // Close closes underlying database.
 func (s *Store) Close() {
-	setnil := func() interface{} {
-		return nil
-	}
-
-	_ = table.CloseTables(&s.table)
+	// set all table/cache fields to nil
 	table.MigrateTables(&s.table, nil)
-	table.MigrateCaches(&s.cache, setnil)
+	table.MigrateCaches(&s.cache, func() interface{} {
+		return nil
+	})
 	s.EvmLogs.Close()
 }
 
@@ -153,15 +150,6 @@ func (s *Store) GenerateEvmSnapshot(root common.Hash, rebuild, async bool) (err 
 		rebuild,
 		false)
 	return
-}
-
-func (s *Store) RebuildEvmSnapshot(root common.Hash) {
-	/*
-		if s.Snaps == nil {
-			return
-		}
-		s.Snaps.Rebuild(root)
-	*/
 }
 
 // CleanCommit clean old state trie and commit changes.
