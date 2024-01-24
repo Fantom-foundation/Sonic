@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"fmt"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"sync"
 	"sync/atomic"
@@ -160,20 +161,25 @@ func (s *Store) initCache() {
 }
 
 // Close closes underlying database.
-func (s *Store) Close() {
+func (s *Store) Close() error {
 	// set all tables/caches fields to nil
 	table.MigrateTables(&s.table, nil)
 	table.MigrateCaches(&s.cache, func() interface{} {
 		return nil
 	})
 
-	_ = s.mainDB.Close()
-	_ = s.closeEpochStore()
+	if err := s.mainDB.Close(); err != nil {
+		return err
+	}
+	if err := s.closeEpochStore(); err != nil {
+		return err
+	}
 	s.evm.Close()
 
 	if err := s.StateDbManager.Close(); err != nil {
-		log.Error("Failed to close Carmen State", "err", err)
+		return fmt.Errorf("failed to close Carmen State: %w", err)
 	}
+	return nil
 }
 
 func (s *Store) IsCommitNeeded() bool {
