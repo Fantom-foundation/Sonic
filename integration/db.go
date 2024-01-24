@@ -3,14 +3,13 @@ package integration
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/asyncflushproducer"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/threads"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/skipkeys"
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -50,9 +49,9 @@ func GetDbProducer(chaindataDir string, cfg DBCacheConfig, synced bool) (kvdb.Fu
 
 	var scopedProducer kvdb.FullDBProducer
 	if synced {
-		scopedProducer = asyncflushproducer.Wrap(flushable.NewSyncedPool(rawProducer, FlushIDKey), 200000)
+		scopedProducer = flaggedproducer.Wrap(rawProducer, FlushIDKey) // pebble-flg
 	} else {
-		scopedProducer = &DummyScopedProducer{rawProducer}
+		scopedProducer = &DummyScopedProducer{rawProducer} // pebble-drc
 	}
 
 	_, err := scopedProducer.Initialize(rawProducer.Names(), nil)

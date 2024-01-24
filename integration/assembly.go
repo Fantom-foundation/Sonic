@@ -75,12 +75,6 @@ func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *
 	return gdb, cdb
 }
 
-func getEpoch(producer kvdb.FlushableDBProducer, cfg Configs) idx.Epoch {
-	gdb := gossip.NewStore(producer, cfg.OperaStore)
-	defer gdb.Close()
-	return gdb.GetEpoch()
-}
-
 func rawApplyGenesis(gdb *gossip.Store, cdb *abft.Store, g genesis.Genesis, cfg Configs) error {
 	_, _, _, err := rawMakeEngine(gdb, cdb, &g, cfg)
 	return err
