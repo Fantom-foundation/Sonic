@@ -154,7 +154,6 @@ func (s *Service) SwitchEpochTo(newEpoch idx.Epoch) error {
 	if newEpoch == s.store.GetEpoch() {
 		return errSameEpoch
 	}
-	s.store.evm.RebuildEvmSnapshot(common.Hash(bs.FinalizedStateRoot))
 	err := s.engine.Reset(newEpoch, es.Validators)
 	if err != nil {
 		return err

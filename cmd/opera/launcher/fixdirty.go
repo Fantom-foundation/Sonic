@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -33,11 +34,13 @@ func revertDb(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
 
 	log.Info("Opening databases")
-	dbTypes := makeUncheckedDBsProducers(cfg)
-	multiProducer := makeDirectDBsProducerFrom(dbTypes, cfg)
+	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
+	if err != nil {
+		utils.Fatalf("Failed to initialize multi DB producer: %v", err)
+	}
 
 	// reverts the gossip database state
-	epochState, oldTopEpoch, err := revertGossipDb(multiProducer, cfg, targetEpoch)
+	epochState, oldTopEpoch, err := revertGossipDb(producer, cfg, targetEpoch)
 	if err != nil {
 		return err
 	}
@@ -49,7 +52,7 @@ func revertDb(ctx *cli.Context) error {
 		fmt.Sprintf("lachesis-%d", oldTopEpoch),
 		"lachesis",
 	} {
-		err = eraseTable(name, multiProducer)
+		err = eraseTable(name, producer)
 		if err != nil {
 			return err
 		}
@@ -57,9 +60,9 @@ func revertDb(ctx *cli.Context) error {
 
 	// prepare consensus database from epochState
 	log.Info("Recreating lachesis DB")
-	cMainDb := mustOpenDB(multiProducer, "lachesis")
+	cMainDb := mustOpenDB(producer, "lachesis")
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
-		return mustOpenDB(multiProducer, fmt.Sprintf("lachesis-%d", epoch))
+		return mustOpenDB(producer, fmt.Sprintf("lachesis-%d", epoch))
 	}
 	cdb := abft.NewStore(cMainDb, cGetEpochDB, panics("Lachesis store"), cfg.LachesisStore)
 	err = cdb.ApplyGenesis(&abft.Genesis{
@@ -73,11 +76,9 @@ func revertDb(ctx *cli.Context) error {
 
 	log.Info("Clearing DBs dirty flags")
 	id := bigendian.Uint64ToBytes(uint64(time.Now().UnixNano()))
-	for typ, producer := range dbTypes {
-		err := clearDirtyFlags(id, producer)
-		if err != nil {
-			log.Crit("Failed to write clean FlushID", "type", typ, "err", err)
-		}
+	err = clearDirtyFlags(id, producer)
+	if err != nil {
+		log.Crit("Failed to write clean FlushID", "err", err)
 	}
 
 	log.Info("Revert is complete")

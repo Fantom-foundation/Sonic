@@ -26,16 +26,9 @@ type Index interface {
 	WrapTablesAsBatched() (unwrap func())
 }
 
-// New Index instance.
-func New(dbs kvdb.DBProducer) Index {
-	tt := newIndex(dbs)
-
-	return tt
-}
-
-// New Index instance consumes limited threads count.
-func NewWithThreadPool(dbs kvdb.DBProducer) Index {
-	tt := newIndex(dbs)
+// NewWithThreadPool creates an Index instance consuming a limited number of threads.
+func NewWithThreadPool(db kvdb.Store) Index {
+	tt := newIndex(db)
 	return &withThreadPool{tt}
 }
 

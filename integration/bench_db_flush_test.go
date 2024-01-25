@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
+	ethutils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
@@ -29,7 +31,12 @@ func BenchmarkFlushDBs(b *testing.B) {
 		Lachesis:      abft.DefaultConfig(),
 		LachesisStore: abft.DefaultStoreConfig(cachescale.Identity),
 		VectorClock:   vecmt.DefaultConfig(cachescale.Identity),
-		DBs:           DefaultDBsConfig(cachescale.Identity.U64, 512),
+		DBs:           DBsConfig{
+			RuntimeCache: DBCacheConfig{
+				Cache:   480 * opt.MiB,
+				Fdlimit: uint64(ethutils.MakeDatabaseHandles())*480/1400 + 1,
+			},
+		},
 	})
 	defer closeDBs()
 	defer store.Close()

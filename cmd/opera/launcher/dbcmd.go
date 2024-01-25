@@ -5,8 +5,6 @@ import (
 	"path"
 
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
@@ -48,20 +46,6 @@ will compact all databases under datadir's chaindata.
 `,
 			},
 			{
-				Name:      "transform",
-				Usage:     "Transform DBs layout",
-				ArgsUsage: "",
-				Action:    utils.MigrateFlags(dbTransform),
-				Category:  "DB COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-				},
-				Description: `
-opera db transform
-will migrate tables layout according to the configuration.
-`,
-			},
-			{
 				Name:      "revert",
 				Usage:     "Experimental - revert Opera database to given epoch",
 				ArgsUsage: "",
@@ -82,45 +66,15 @@ If Carmen is used, its database must be replaced with appropriate older version 
 	}
 )
 
-func makeUncheckedDBsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBProducer {
-	dbsList, _ := integration.SupportedDBs(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
-	return dbsList
-}
-
-func makeUncheckedCachedDBsProducers(chaindataDir string) map[multidb.TypeName]kvdb.FullDBProducer {
-	dbTypes, _ := integration.SupportedDBs(chaindataDir, integration.DBsCacheConfig{
-		Table: map[string]integration.DBCacheConfig{
-			"": {
-				Cache:   1024 * opt.MiB,
-				Fdlimit: uint64(utils.MakeDatabaseHandles() / 2),
-			},
-		},
-	})
-	wrappedDbTypes := make(map[multidb.TypeName]kvdb.FullDBProducer)
-	for typ, producer := range dbTypes {
-		wrappedDbTypes[typ] = cachedproducer.WrapAll(&integration.DummyScopedProducer{IterableDBProducer: producer})
-	}
-	return wrappedDbTypes
-}
-
-func makeCheckedDBsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBProducer {
+func makeDBsProducer(cfg *config) kvdb.FullDBProducer {
 	if err := integration.CheckStateInitialized(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs); err != nil {
 		utils.Fatalf(err.Error())
 	}
-	return makeUncheckedDBsProducers(cfg)
-}
-
-func makeDirectDBsProducerFrom(dbsList map[multidb.TypeName]kvdb.IterableDBProducer, cfg *config) kvdb.FullDBProducer {
-	multiRawDbs, err := integration.MakeDirectMultiProducer(dbsList, cfg.DBs.Routing)
+	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	if err != nil {
-		utils.Fatalf("Failed to initialize multi DB producer: %v", err)
+		utils.Fatalf("Failed to initialize DB producer: %v", err)
 	}
-	return multiRawDbs
-}
-
-func makeDirectDBsProducer(cfg *config) kvdb.FullDBProducer {
-	dbsList := makeCheckedDBsProducers(cfg)
-	return makeDirectDBsProducerFrom(dbsList, cfg)
+	return producer
 }
 
 func makeGossipStore(producer kvdb.FlushableDBProducer, cfg *config) *gossip.Store {
@@ -131,37 +85,34 @@ func compact(ctx *cli.Context) error {
 
 	cfg := makeAllConfigs(ctx)
 
-	producers := makeCheckedDBsProducers(cfg)
-	for typ, p := range producers {
-		for _, name := range p.Names() {
-			if err := compactDB(typ, name, p); err != nil {
-				return err
-			}
+	producer := makeDBsProducer(cfg)
+	for _, name := range producer.Names() {
+		if err := compactDB(name, producer); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func compactDB(typ multidb.TypeName, name string, producer kvdb.DBProducer) error {
-	humanName := path.Join(string(typ), name)
+func compactDB(name string, producer kvdb.DBProducer) error {
 	db, err := producer.OpenDB(name)
 	defer db.Close()
 	if err != nil {
-		log.Error("Cannot open db or db does not exists", "db", humanName)
+		log.Error("Cannot open db or db does not exists", "db", name)
 		return err
 	}
 
-	log.Info("Stats before compaction", "db", humanName)
+	log.Info("Stats before compaction", "db", name)
 	showDbStats(db)
 
-	err = compactdb.Compact(db, humanName, 64*opt.GiB)
+	err = compactdb.Compact(db, name, 64*opt.GiB)
 	if err != nil {
 		log.Error("Database compaction failed", "err", err)
 		return err
 	}
 
-	log.Info("Stats after compaction", "db", humanName)
+	log.Info("Stats after compaction", "db", name)
 	showDbStats(db)
 
 	return nil

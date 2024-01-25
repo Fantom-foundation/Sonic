@@ -1,7 +1,6 @@
 package gossip
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -9,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/Fantom-foundation/go-opera/inter"
-	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/utils/migration"
 )
 
@@ -39,11 +37,11 @@ func (s *Store) migrations() *migration.Migration {
 		Next("DAG heads recovery", unsupportedMigration).
 		Next("DAG last events recovery", unsupportedMigration).
 		Next("BlockState recovery", unsupportedMigration).
-		Next("LlrState recovery", s.recoverLlrState).
-		Next("erase gossip-async db", s.eraseGossipAsyncDB).
-		Next("erase SFC API table", s.eraseSfcApiTable).
-		Next("erase legacy genesis DB", s.eraseGenesisDB).
-		Next("calculate upgrade heights", s.calculateUpgradeHeights)
+		Next("LlrState recovery", unsupportedMigration).
+		Next("erase gossip-async db", unsupportedMigration).
+		Next("erase SFC API table", unsupportedMigration).
+		Next("erase legacy genesis DB", unsupportedMigration).
+		Next("calculate upgrade heights", unsupportedMigration)
 }
 
 func unsupportedMigration() error {
@@ -71,73 +69,4 @@ func fixEventTxHashes(e *inter.EventPayload) {
 	if e.ID() == fixTxEvent2 {
 		e.Txs()[fixTxEventPos2].SetHash(fixTxHash2)
 	}
-}
-
-func (s *Store) recoverLlrState() error {
-	v1, ok := s.rlp.Get(s.table.BlockEpochState, []byte(sKey), &BlockEpochState{}).(*BlockEpochState)
-	if !ok {
-		return errors.New("epoch state reading failed: genesis not applied")
-	}
-
-	epoch := v1.EpochState.Epoch + 1
-	block := v1.BlockState.LastBlock.Idx + 1
-
-	s.setLlrState(LlrState{
-		LowestEpochToDecide: epoch,
-		LowestEpochToFill:   epoch,
-		LowestBlockToDecide: block,
-		LowestBlockToFill:   block,
-	})
-	s.FlushLlrState()
-	return nil
-}
-
-func (s *Store) eraseSfcApiTable() error {
-	sfcapiTable, _ := s.dbs.OpenDB("gossip/S")
-	it := sfcapiTable.NewIterator(nil, nil)
-	defer it.Release()
-	for it.Next() {
-		err := sfcapiTable.Delete(it.Key())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Store) eraseGossipAsyncDB() error {
-	asyncDB, err := s.dbs.OpenDB("gossip-async")
-	if err != nil {
-		return fmt.Errorf("failed to open gossip-async to drop: %v", err)
-	}
-
-	_ = asyncDB.Close()
-	asyncDB.Drop()
-
-	return nil
-}
-
-func (s *Store) eraseGenesisDB() error {
-	genesisDB, err := s.dbs.OpenDB("genesis")
-	if err != nil {
-		return nil
-	}
-
-	_ = genesisDB.Close()
-	genesisDB.Drop()
-	return nil
-}
-
-func (s *Store) calculateUpgradeHeights() error {
-	var prevEs *iblockproc.EpochState
-	s.ForEachHistoryBlockEpochState(func(bs iblockproc.BlockState, es iblockproc.EpochState) bool {
-		s.WriteUpgradeHeight(bs, es, prevEs)
-		prevEs = &es
-		return true
-	})
-	if prevEs == nil {
-		// special case when no history is available
-		s.WriteUpgradeHeight(s.GetBlockState(), s.GetEpochState(), nil)
-	}
-	return nil
 }

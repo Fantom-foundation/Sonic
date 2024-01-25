@@ -10,7 +10,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
 	"github.com/Fantom-foundation/lachesis-base/vecengine"
-	"github.com/Fantom-foundation/lachesis-base/vecengine/vecflushable"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -88,26 +87,13 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 	return vi
 }
 
-func NewIndexWithBase(crit func(error), config IndexConfig, base *vecfc.Index) *Index {
-	vi := &Index{
-		Index:         base,
-		Base:          base,
-		baseCallbacks: base.GetEngineCallbacks(),
-		cfg:           config,
-		crit:          crit,
-	}
-	vi.initCaches()
-
-	return vi
-}
-
 func (vi *Index) initCaches() {
 	vi.cache.HighestBeforeTime, _ = wlru.New(vi.cfg.Caches.HighestBeforeTimeSize, int(vi.cfg.Caches.HighestBeforeTimeSize))
 }
 
 // Reset resets buffers.
 func (vi *Index) Reset(validators *pos.Validators, db kvdb.Store, getEvent func(hash.Event) dag.Event) {
-	fdb := vecflushable.Wrap(db, vi.cfg.Caches.DBCache)
+	fdb := WrapByVecFlushable(db)
 	vi.vecDb = fdb
 	vi.Base.Reset(validators, fdb, getEvent)
 	vi.getEvent = getEvent

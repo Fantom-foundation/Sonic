@@ -4,13 +4,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"path"
-
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -78,12 +75,6 @@ func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *
 	return gdb, cdb
 }
 
-func getEpoch(producer kvdb.FlushableDBProducer, cfg Configs) idx.Epoch {
-	gdb := gossip.NewStore(producer, cfg.OperaStore)
-	defer gdb.Close()
-	return gdb.GetEpoch()
-}
-
 func rawApplyGenesis(gdb *gossip.Store, cdb *abft.Store, g genesis.Genesis, cfg Configs) error {
 	_, _, _, err := rawMakeEngine(gdb, cdb, &g, cfg)
 	return err
@@ -129,51 +120,36 @@ func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) 
 	return nil
 }
 
-func migrate(dbs kvdb.FlushableDBProducer, cfg Configs) error {
-	gdb, cdb := getStores(dbs, cfg)
-	defer gdb.Close()
-	defer cdb.Close()
-	err := gdb.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 	if isInterrupted(chaindataDir) {
 		return errors.New("genesis processing isn't finished")
 	}
-	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.RuntimeCache)
-	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers, cfg.Routing)
+	dbs, err := GetDbProducer(chaindataDir, cfg.RuntimeCache)
 	if err != nil {
 		return err
 	}
 	return dbs.Close()
 }
 
-func compactDB(typ multidb.TypeName, name string, producer kvdb.DBProducer) error {
-	humanName := path.Join(string(typ), name)
+func compactDB(name string, producer kvdb.DBProducer) error {
 	db, err := producer.OpenDB(name)
 	defer db.Close()
 	if err != nil {
 		return err
 	}
-	return compactdb.Compact(db, humanName, 16*opt.GiB)
+	return compactdb.Compact(db, name, 16*opt.GiB)
 }
 
 func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
 	// Genesis processing
 	if genesisProc {
 		setGenesisProcessing(chaindataDir)
-		// use increased DB cache for genesis processing
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
-		dbs, err := MakeDirectMultiProducer(genesisProducers, cfg.DBs.Routing)
+		dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
 		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB multi-producer: %v", err)
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB producer: %v", err)
 		}
 		err = applyGenesis(dbs, *g, cfg)
 		if err != nil {
@@ -185,12 +161,10 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 	}
 	// Compact DBs after first launch
 	if genesisProc {
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
-		for typ, p := range genesisProducers {
-			for _, name := range p.Names() {
-				if err := compactDB(typ, name, p); err != nil {
-					return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-				}
+		p := GetRawDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
+		for _, name := range p.Names() {
+			if err := compactDB(name, p); err != nil {
+				return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 			}
 		}
 	}
@@ -201,42 +175,8 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 		}
 	}
-	// Migration
-	{
-		runtimeProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
-		dbs, err := MakeDirectMultiProducer(runtimeProducers, cfg.DBs.Routing)
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-
-		// drop previous epoch DBs, which do not survive restart
-		epoch := getEpoch(dbs, cfg)
-		leDB, err := dbs.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
-		if err != nil {
-			_ = dbs.Close()
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-		_ = leDB.Close()
-		leDB.Drop()
-		goDB, err := dbs.OpenDB(fmt.Sprintf("gossip-%d", epoch))
-		if err != nil {
-			_ = dbs.Close()
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-		_ = goDB.Close()
-		goDB.Drop()
-
-		err = migrate(dbs, cfg)
-		_ = dbs.Close()
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to migrate state: %v", err)
-		}
-	}
-	// Live setup
-
-	runtimeProducers, runtimeScopedProducers := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
-	// open flushable DBs
-	dbs, err := MakeMultiProducer(runtimeProducers, runtimeScopedProducers, cfg.DBs.Routing)
+	// Live setup - open flushable DBs
+	dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
@@ -287,24 +227,6 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 
 // MakeEngine makes consensus engine from config.
 func MakeEngine(chaindataDir string, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error) {
-	// Legacy DBs migrate
-	if cfg.DBs.MigrationMode != "reformat" && cfg.DBs.MigrationMode != "rebuild" && cfg.DBs.MigrationMode != "" {
-		utils.Fatalf("MigrationMode must be 'reformat' or 'rebuild'")
-	}
-	if !isEmpty(path.Join(chaindataDir, "gossip")) {
-		MakeDBDirs(chaindataDir)
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
-		dbs, err := MakeDirectMultiProducer(genesisProducers, cfg.DBs.Routing)
-		if err != nil {
-			utils.Fatalf("Failed to make engine: %v", err)
-		}
-		err = migrateLegacyDBs(chaindataDir, dbs, cfg.DBs.MigrationMode, cfg.DBs.Routing)
-		_ = dbs.Close()
-		if err != nil {
-			utils.Fatalf("Failed to migrate state: %v", err)
-		}
-	}
-
 	dropAllDBsIfInterrupted(chaindataDir)
 	firstLaunch := isEmpty(chaindataDir)
 	MakeDBDirs(chaindataDir)

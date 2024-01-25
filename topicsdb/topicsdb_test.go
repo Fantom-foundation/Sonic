@@ -26,8 +26,7 @@ func TestMain(m *testing.M) {
 }
 
 func newTestIndex() *index {
-	mem := threads.CountedDBProducer(memorydb.NewProducer(""))
-	return newIndex(mem)
+	return newIndex(memorydb.New())
 }
 
 func TestIndexSearchMultyVariants(t *testing.T) {

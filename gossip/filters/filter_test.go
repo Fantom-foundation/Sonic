@@ -18,13 +18,15 @@ package filters
 
 import (
 	"context"
+	"github.com/Fantom-foundation/go-opera/utils/adapters/ethdb2kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb/leveldb"
+	"github.com/Fantom-foundation/go-opera/topicsdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
@@ -32,9 +34,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-
-	"github.com/Fantom-foundation/go-opera/topicsdb"
 )
 
 func testConfig() Config {
@@ -65,10 +64,7 @@ func BenchmarkFilters(b *testing.B) {
 		b.Fatal(err)
 	}
 	backend.db = rawdb.NewTable(ldb, "a")
-	backend.logIndex = topicsdb.NewWithThreadPool(leveldb.NewProducer(dir, func(string) (int, int) {
-		return 100 * opt.MiB, 1000
-	}))
-	defer backend.logIndex.Close()
+	backend.logIndex = topicsdb.NewWithThreadPool(table.New(ethdb2kvdb.Wrap(ldb), []byte("b")))
 
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")

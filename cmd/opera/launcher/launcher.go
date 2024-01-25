@@ -126,8 +126,6 @@ func initFlags() {
 		validatorPasswordFlag,
 		SyncModeFlag,
 		GCModeFlag,
-		DBPresetFlag,
-		DBMigrationModeFlag,
 		disableLogsFlag,
 		disableTxHashesFlag,
 		carmenEvmStoreFlag,
@@ -307,7 +305,6 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		_ = genesisStore.Close()
 	}
 	metrics.SetDataDir(cfg.Node.DataDir)
-	memorizeDBPreset(cfg)
 
 	// substitute default bootnodes if requested
 	networkName := ""
@@ -388,7 +385,9 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		if err := stack.Close(); err != nil && err != node.ErrNodeStopped {
 			log.Warn("Failed to close stack", "err", err)
 		}
-		gdb.Close()
+		if err := gdb.Close(); err != nil {
+			log.Warn("Failed to close gossip store", "err", err)
+		}
 		if err := cdb.Close(); err != nil {
 			log.Warn("Failed to close consensus database", "err", err)
 		}
