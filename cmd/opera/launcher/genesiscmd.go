@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"compress/gzip"
-	"errors"
 	"fmt"
 	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"io"
@@ -17,11 +16,9 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
@@ -32,7 +29,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/fileshash"
 	"github.com/Fantom-foundation/go-opera/utils/devnullfile"
-	"github.com/Fantom-foundation/go-opera/utils/iodb"
 )
 
 type dropableFile struct {
@@ -225,19 +221,6 @@ func exportGenesis(ctx *cli.Context) error {
 		}
 		to = idx.Epoch(n)
 	}
-	mode := ctx.String(EvmExportMode.Name)
-	if mode != "full" && mode != "ext-mpt" && mode != "mpt" {
-		return errors.New("--export.evm.mode must be one of {full, ext-mpt, mpt}")
-	}
-
-	var excludeEvmDB kvdb.Store
-	if excludeEvmDBPath := ctx.String(EvmExportExclude.Name); len(excludeEvmDBPath) > 0 {
-		db, err := pebble.New(excludeEvmDBPath, 1024*opt.MiB, utils.MakeDatabaseHandles()/2, nil, nil)
-		if err != nil {
-			return err
-		}
-		excludeEvmDB = db
-	}
 
 	sectionsStr := ctx.String(GenesisExportSections.Name)
 	sections := map[string]string{}
@@ -247,12 +230,10 @@ func exportGenesis(ctx *cli.Context) error {
 			sections["brs"] = str
 		} else if strings.HasPrefix(str, "ers") {
 			sections["ers"] = str
-		} else if strings.HasPrefix(str, "evm") {
-			sections["evm"] = str
 		} else if strings.HasPrefix(str, "fws") {
 			sections["fws"] = str
 		} else {
-			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'evm' or 'fws'", str)
+			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'fws'", str)
 		}
 		if len(sections) == before {
 			return fmt.Errorf("duplicate section: '%s'", str)
@@ -291,7 +272,6 @@ func exportGenesis(ctx *cli.Context) error {
 	}
 	var epochsHash hash.Hash
 	var blocksHash hash.Hash
-	var evmHash hash.Hash
 	var fwsHash hash.Hash
 
 	if from < 1 {
@@ -372,37 +352,6 @@ func exportGenesis(ctx *cli.Context) error {
 		}
 		log.Info("Exported blocks")
 		fmt.Printf("- Blocks hash: %v \n", blocksHash.String())
-	}
-
-	if len(sections["evm"]) > 0 {
-		log.Info("Exporting EVM data")
-		writer := newUnitWriter(plain)
-		err := writer.Start(header, sections["evm"], tmpPath)
-		if err != nil {
-			return err
-		}
-		it := gdb.EvmStore().EvmDb.NewIterator(nil, nil)
-		if mode == "mpt" {
-			// iterate only over MPT data
-			it = mptIterator{it}
-		} else if mode == "ext-mpt" {
-			// iterate only over MPT data and preimages
-			it = mptAndPreimageIterator{it}
-		}
-		if excludeEvmDB != nil {
-			it = excludingIterator{it, excludeEvmDB}
-		}
-		defer it.Release()
-		err = iodb.Write(writer, it)
-		if err != nil {
-			return err
-		}
-		evmHash, err = writer.Flush()
-		if err != nil {
-			return err
-		}
-		log.Info("Exported EVM data")
-		fmt.Printf("- EVM hash: %v \n", evmHash.String())
 	}
 
 	if len(sections["fws"]) > 0 {
