@@ -127,12 +127,6 @@ var (
 		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
 	}
 
-	SyncModeFlag = cli.StringFlag{
-		Name:  "syncmode",
-		Usage: `Blockchain sync mode ("full" or "snap")`,
-		Value: "full",
-	}
-
 	GCModeFlag = cli.StringFlag{
 		Name:  "gcmode",
 		Usage: `Blockchain garbage collection mode ("light", "full", "archive")`,
@@ -384,12 +378,6 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) (gossip.Config, 
 	}
 	if ctx.GlobalIsSet(RPCGlobalTimeoutFlag.Name) {
 		cfg.RPCTimeout = ctx.GlobalDuration(RPCGlobalTimeoutFlag.Name)
-	}
-	if ctx.GlobalIsSet(SyncModeFlag.Name) {
-		if syncmode := ctx.GlobalString(SyncModeFlag.Name); syncmode != "full" && syncmode != "snap" {
-			utils.Fatalf("--%s must be either 'full' or 'snap'", SyncModeFlag.Name)
-		}
-		cfg.AllowSnapsync = ctx.GlobalString(SyncModeFlag.Name) == "snap"
 	}
 
 	return cfg, nil

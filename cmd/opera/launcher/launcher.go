@@ -123,7 +123,6 @@ func initFlags() {
 		validatorIDFlag,
 		validatorPubkeyFlag,
 		validatorPasswordFlag,
-		SyncModeFlag,
 		GCModeFlag,
 		disableLogsFlag,
 		disableTxHashesFlag,

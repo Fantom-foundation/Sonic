@@ -165,12 +165,7 @@ func (s *Service) SwitchEpochTo(newEpoch idx.Epoch) error {
 }
 
 func (s *Service) PauseEvmSnapshot() {
-	s.engineMu.Lock()
-	defer s.engineMu.Unlock()
-	s.blockProcWg.Wait()
-	if !s.store.evm.IsEvmSnapshotPaused() {
-		s.store.evm.PauseEvmSnapshot()
-	}
+	// removed
 }
 
 func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.Epoch) {
