@@ -57,7 +57,6 @@ var (
 	networkingFlags  []cli.Flag
 	txpoolFlags      []cli.Flag
 	operaFlags       []cli.Flag
-	legacyRpcFlags   []cli.Flag
 	rpcFlags         []cli.Flag
 	metricsFlags     []cli.Flag
 )
@@ -131,15 +130,6 @@ func initFlags() {
 		carmenEvmStoreFlag,
 		overrideMinGasPriceFlag,
 	}
-	legacyRpcFlags = []cli.Flag{
-		utils.NoUSBFlag,
-		utils.LegacyRPCEnabledFlag,
-		utils.LegacyRPCListenAddrFlag,
-		utils.LegacyRPCPortFlag,
-		utils.LegacyRPCCORSDomainFlag,
-		utils.LegacyRPCVirtualHostsFlag,
-		utils.LegacyRPCApiFlag,
-	}
 
 	rpcFlags = []cli.Flag{
 		utils.HTTPEnabledFlag,
@@ -191,7 +181,6 @@ func initFlags() {
 	nodeFlags = append(nodeFlags, networkingFlags...)
 	nodeFlags = append(nodeFlags, txpoolFlags...)
 	nodeFlags = append(nodeFlags, operaFlags...)
-	nodeFlags = append(nodeFlags, legacyRpcFlags...)
 }
 
 // init the CLI app.
