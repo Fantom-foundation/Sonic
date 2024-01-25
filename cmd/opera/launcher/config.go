@@ -30,7 +30,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
@@ -127,10 +126,10 @@ var (
 		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
 	}
 
-	GCModeFlag = cli.StringFlag{
-		Name:  "gcmode",
-		Usage: `Blockchain garbage collection mode ("light", "full", "archive")`,
-		Value: "archive",
+	ModeFlag = cli.StringFlag{
+		Name:  "mode",
+		Usage: `Mode of the node ("rpc" or "validator")`,
+		Value: "rpc",
 	}
 
 	ExitWhenAgeFlag = cli.DurationFlag{
@@ -317,8 +316,6 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
-func setGPO(ctx *cli.Context, cfg *gasprice.Config) {}
-
 func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) {
 	if ctx.GlobalIsSet(utils.TxPoolLocalsFlag.Name) {
 		locals := strings.Split(ctx.GlobalString(utils.TxPoolLocalsFlag.Name), ",")
@@ -362,10 +359,8 @@ func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) {
 	}
 }
 
-func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) (gossip.Config, error) {
+func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	cfg := src
-
-	setGPO(ctx, &cfg.GPO)
 
 	if ctx.GlobalIsSet(RPCGlobalGasCapFlag.Name) {
 		cfg.RPCGasCap = ctx.GlobalUint64(RPCGlobalGasCapFlag.Name)
@@ -380,26 +375,22 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) (gossip.Config, 
 		cfg.RPCTimeout = ctx.GlobalDuration(RPCGlobalTimeoutFlag.Name)
 	}
 
-	return cfg, nil
-}
-
-func gossipStoreConfigWithFlags(ctx *cli.Context, src gossip.StoreConfig) (gossip.StoreConfig, error) {
-	cfg := src
-	if ctx.GlobalIsSet(utils.GCModeFlag.Name) {
-		if gcmode := ctx.GlobalString(utils.GCModeFlag.Name); gcmode != "light" && gcmode != "full" && gcmode != "archive" {
-			utils.Fatalf("--%s must be 'light', 'full' or 'archive'", GCModeFlag.Name)
-		}
-		cfg.EVM.Cache.TrieDirtyDisabled = ctx.GlobalString(utils.GCModeFlag.Name) == "archive"
-		cfg.EVM.Cache.GreedyGC = ctx.GlobalString(utils.GCModeFlag.Name) == "full"
-	}
-	return cfg, nil
-}
-
-func setStateDBConfig(datadir string) statedb.Config {
-	cfg := statedb.Config{
-		Directory: filepath.Join(datadir, "carmen"),
-	}
 	return cfg
+}
+
+func setStateDBConfig(ctx *cli.Context, datadir string, src statedb.Config) (statedb.Config, error) {
+	cfg := src
+	cfg.Directory = filepath.Join(datadir, "carmen")
+	cfg.EnableArchive = true
+
+	if ctx.GlobalIsSet(ModeFlag.Name) {
+		mode := ctx.GlobalString(ModeFlag.Name)
+		if mode != "rpc" && mode != "validator" {
+			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", ModeFlag.Name)
+		}
+		cfg.EnableArchive = mode == "rpc"
+	}
+	return cfg, nil
 }
 
 func setDBConfig(cfg config, cacheRatio cachescale.Func) config {
@@ -482,16 +473,12 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 
 	// Apply flags (high priority)
 	var err error
-	cfg.Opera, err = gossipConfigWithFlags(ctx, cfg.Opera)
-	if err != nil {
-		return nil, err
-	}
-	cfg.OperaStore, err = gossipStoreConfigWithFlags(ctx, cfg.OperaStore)
-	if err != nil {
-		return nil, err
-	}
+	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
-	cfg.OperaStore.StateDB = setStateDBConfig(cfg.Node.DataDir)
+	cfg.OperaStore.StateDB, err = setStateDBConfig(ctx, cfg.Node.DataDir, cfg.OperaStore.StateDB)
+	if err != nil {
+		return nil, err
+	}
 
 	if overrideMinGasPrice := ctx.GlobalUint64(overrideMinGasPriceFlag.Name); overrideMinGasPrice != 0 {
 		opera.OverrideMinGasPrice = big.NewInt(int64(overrideMinGasPrice))

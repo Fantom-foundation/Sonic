@@ -123,7 +123,7 @@ func initFlags() {
 		validatorIDFlag,
 		validatorPubkeyFlag,
 		validatorPasswordFlag,
-		GCModeFlag,
+		ModeFlag,
 		disableLogsFlag,
 		disableTxHashesFlag,
 		carmenEvmStoreFlag,
