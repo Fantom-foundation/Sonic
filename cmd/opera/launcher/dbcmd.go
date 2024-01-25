@@ -66,11 +66,11 @@ If Carmen is used, its database must be replaced with appropriate older version 
 	}
 )
 
-func makeDirectDBsProducer(cfg *config) kvdb.FullDBProducer {
+func makeDBsProducer(cfg *config) kvdb.FullDBProducer {
 	if err := integration.CheckStateInitialized(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs); err != nil {
 		utils.Fatalf(err.Error())
 	}
-	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache, false)
+	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	if err != nil {
 		utils.Fatalf("Failed to initialize DB producer: %v", err)
 	}
@@ -85,7 +85,7 @@ func compact(ctx *cli.Context) error {
 
 	cfg := makeAllConfigs(ctx)
 
-	producer := makeDirectDBsProducer(cfg)
+	producer := makeDBsProducer(cfg)
 	for _, name := range producer.Names() {
 		if err := compactDB(name, producer); err != nil {
 			return err

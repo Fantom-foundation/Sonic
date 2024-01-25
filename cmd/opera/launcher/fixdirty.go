@@ -34,7 +34,7 @@ func revertDb(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
 
 	log.Info("Opening databases")
-	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache, false)
+	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	if err != nil {
 		utils.Fatalf("Failed to initialize multi DB producer: %v", err)
 	}

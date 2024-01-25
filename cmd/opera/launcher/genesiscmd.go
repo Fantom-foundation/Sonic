@@ -264,7 +264,7 @@ func exportGenesis(ctx *cli.Context) error {
 	_ = os.RemoveAll(tmpPath)
 	defer os.RemoveAll(tmpPath)
 
-	rawDbs := makeDirectDBsProducer(cfg)
+	rawDbs := makeDBsProducer(cfg)
 	gdb := makeGossipStore(rawDbs, cfg)
 	if gdb.GetHighestLamport() != 0 {
 		log.Warn("Attempting genesis export not in a beginning of an epoch. Genesis file output may contain excessive data.")

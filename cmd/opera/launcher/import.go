@@ -36,7 +36,7 @@ func importEvm(ctx *cli.Context) error {
 
 	cfg := makeAllConfigs(ctx)
 
-	rawDbs := makeDirectDBsProducer(cfg)
+	rawDbs := makeDBsProducer(cfg)
 	gdb := makeGossipStore(rawDbs, cfg)
 	defer gdb.Close()
 

@@ -44,16 +44,9 @@ func GetRawDbProducer(chaindataDir string, cfg DBCacheConfig) kvdb.IterableDBPro
 	return rawProducer
 }
 
-func GetDbProducer(chaindataDir string, cfg DBCacheConfig, synced bool) (kvdb.FullDBProducer, error) {
+func GetDbProducer(chaindataDir string, cfg DBCacheConfig) (kvdb.FullDBProducer, error) {
 	rawProducer := GetRawDbProducer(chaindataDir, cfg)
-
-	var scopedProducer kvdb.FullDBProducer
-	if synced {
-		scopedProducer = flaggedproducer.Wrap(rawProducer, FlushIDKey) // pebble-flg
-	} else {
-		scopedProducer = &DummyScopedProducer{rawProducer} // pebble-drc
-	}
-
+	scopedProducer := flaggedproducer.Wrap(rawProducer, FlushIDKey) // pebble-flg
 	_, err := scopedProducer.Initialize(rawProducer.Names(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open existing databases: %v", err)

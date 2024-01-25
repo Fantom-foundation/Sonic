@@ -124,7 +124,7 @@ func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 	if isInterrupted(chaindataDir) {
 		return errors.New("genesis processing isn't finished")
 	}
-	dbs, err := GetDbProducer(chaindataDir, cfg.RuntimeCache, true)
+	dbs, err := GetDbProducer(chaindataDir, cfg.RuntimeCache)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
-		dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache, false)
+		dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
 		if err != nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB producer: %v", err)
 		}
@@ -176,7 +176,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		}
 	}
 	// Live setup - open flushable DBs
-	dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache, true)
+	dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
