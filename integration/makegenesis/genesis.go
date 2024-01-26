@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
+	"github.com/Fantom-foundation/go-opera/statedb"
 	"io"
 	"math/big"
+	"os"
+	"path/filepath"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,7 +24,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/eventmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/evmmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/sealmodule"
-	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
@@ -28,14 +31,12 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-	"github.com/Fantom-foundation/go-opera/utils/iodb"
 )
 
 type GenesisBuilder struct {
-	dbs kvdb.DBProducer
-
-	tmpEvmStore *evmstore.Store
-	tmpStateDB  state.StateDbInterface
+	tmpStateDB    state.StateDbInterface
+	carmenDir     string
+	carmenStateDb carmen.StateDB
 
 	totalSupply *big.Int
 
@@ -102,18 +103,27 @@ func (b *GenesisBuilder) CurrentHash() hash.Hash {
 	return er.Hash()
 }
 
-func NewGenesisBuilder(dbs kvdb.DBProducer) *GenesisBuilder {
-	tmpDB, err := dbs.OpenDB("tmp-gossip")
-	tmpEvmStore := evmstore.NewStore(tmpDB, evmstore.LiteStoreConfig(), nil)
-	tmpStateDB, err := state.NewLegacyWithSnapLayers(common.Hash(hash.Zero), tmpEvmStore.EvmState, nil, 0)
+func NewGenesisBuilder() *GenesisBuilder {
+	carmenDir, err := os.MkdirTemp("", "opera-tmp-genesis")
 	if err != nil {
-		panic(fmt.Errorf("failed to create StateDB for GenesisBuilder: %v", err))
+		panic(fmt.Errorf("failed to create temporary dir for GenesisBuilder: %v", err))
 	}
+	carmenState, err := carmen.NewState(carmen.Parameters{
+		Variant:   "go-file",
+		Schema:    carmen.Schema(5),
+		Directory: carmenDir,
+		LiveCache: 1, // use minimum cache (not default)
+	})
+	if err != nil {
+		panic(fmt.Errorf("failed to create carmen state; %s", err))
+	}
+	carmenStateDb := carmen.CreateStateDBUsing(carmenState)
+	tmpStateDB := statedb.CreateCarmenStateDb(carmenStateDb, carmenState)
 	return &GenesisBuilder{
-		dbs:         dbs,
-		tmpEvmStore: tmpEvmStore,
-		tmpStateDB:  tmpStateDB,
-		totalSupply: new(big.Int),
+		tmpStateDB:    tmpStateDB,
+		carmenDir:     carmenDir,
+		carmenStateDb: carmenStateDb,
+		totalSupply:   new(big.Int),
 	}
 }
 
@@ -214,8 +224,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		Idx: es.Epoch,
 	}
 	b.epochs = append(b.epochs, b.currentEpoch)
-
-	return b.tmpEvmStore.Commit(bs.LastBlock.Idx, bs.FinalizedStateRoot)
+	return nil
 }
 
 type memFile struct {
@@ -228,6 +237,10 @@ func (f *memFile) Close() error {
 }
 
 func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
+	err := b.carmenStateDb.Close()
+	if err != nil {
+		panic(fmt.Errorf("failed to close genesis carmen state; %s", err))
+	}
 	return genesisstore.NewStore(func(name string) (io.Reader, error) {
 		buf := &memFile{bytes.NewBuffer(nil)}
 		if name == genesisstore.BlocksSection(0) {
@@ -242,10 +255,11 @@ func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
 			}
 			return buf, nil
 		}
-		if name == genesisstore.EvmSection(0) {
-			it := b.tmpEvmStore.EvmDb.NewIterator(nil, nil)
-			defer it.Release()
-			_ = iodb.Write(buf, it)
+		if name == genesisstore.FwsSection(0) {
+			err := mptIo.Export(filepath.Join(b.carmenDir, "live"), buf)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if buf.Len() == 0 {
 			return nil, errors.New("not found")

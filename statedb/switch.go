@@ -129,7 +129,6 @@ func (m *StateDbManager) Close() error {
 			return fmt.Errorf("failed to close carmen state; %s", err)
 		}
 		m.carmenState = nil
-		m.liveStateDb = nil
 		m.logger.Log.Info("Carmen state successfully closed")
 	}
 	return nil

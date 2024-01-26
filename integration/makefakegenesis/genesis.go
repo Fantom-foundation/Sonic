@@ -8,7 +8,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -53,7 +52,7 @@ func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules
 }
 
 func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.Int, rules opera.Rules, epoch idx.Epoch, block idx.Block) *genesisstore.Store {
-	builder := makegenesis.NewGenesisBuilder(memorydb.NewProducer(""))
+	builder := makegenesis.NewGenesisBuilder()
 
 	validators := GetFakeValidators(num)
 
