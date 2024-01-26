@@ -180,40 +180,14 @@ func (s *Store) CleanCommit(block iblockproc.BlockState) error {
 }
 
 // Commit changes.
-func (s *Store) Commit(block idx.Block, root hash.Hash, flush bool) error {
+func (s *Store) Commit(block idx.Block, root hash.Hash) error {
 	triedb := s.EvmState.TrieDB()
 	stateRoot := common.Hash(root)
-	// If we're applying genesis or running an archive node, always flush
-	if flush || s.cfg.Cache.TrieDirtyDisabled {
-		err := triedb.Commit(stateRoot, false, nil)
-		if err != nil {
-			s.Log.Error("Failed to flush trie DB into main DB", "err", err)
-		}
-		return err
-	} else {
-		// Full but not archive node, do proper garbage collection
-		triedb.Reference(stateRoot, common.Hash{}) // metadata reference to keep trie alive
-		s.triegc.Push(stateRoot, -int64(block))
-
-		if current := uint64(block); current > TriesInMemory {
-			// If we exceeded our memory allowance, flush matured singleton nodes to disk
-			s.Cap()
-
-			// Find the next state trie we need to commit
-			chosen := current - TriesInMemory
-
-			// Garbage collect all below the chosen block
-			for !s.triegc.Empty() {
-				root, number := s.triegc.Pop()
-				if uint64(-number) > chosen {
-					s.triegc.Push(root, number)
-					break
-				}
-				triedb.Dereference(root.(common.Hash))
-			}
-		}
-		return nil
+	err := triedb.Commit(stateRoot, false, nil)
+	if err != nil {
+		s.Log.Error("Failed to flush trie DB into main DB", "err", err)
 	}
+	return err
 }
 
 func (s *Store) Flush(block iblockproc.BlockState) {

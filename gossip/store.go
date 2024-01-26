@@ -196,9 +196,9 @@ func (s *Store) isCommitNeeded(sc, tc uint64) bool {
 }
 
 // commitEVM commits EVM storage
-func (s *Store) commitEVM(flush bool) {
+func (s *Store) commitEVM() {
 	bs := s.GetBlockState()
-	err := s.evm.Commit(bs.LastBlock.Idx, bs.FinalizedStateRoot, flush)
+	err := s.evm.Commit(bs.LastBlock.Idx, bs.FinalizedStateRoot)
 	if err != nil {
 		s.Log.Crit("Failed to commit EVM storage", "err", err)
 	}

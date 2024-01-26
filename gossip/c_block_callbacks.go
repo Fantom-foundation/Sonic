@@ -436,7 +436,7 @@ func consensusCallbackBeginBlockFn(
 					}
 
 					commitStart := time.Now()
-					store.commitEVM(false)
+					store.commitEVM()
 
 					// Update the metrics touched during block commit
 					accountCommitTimer.Update(statedb.GetAccountCommits())

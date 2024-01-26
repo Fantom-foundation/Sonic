@@ -1003,10 +1003,6 @@ func (h *handler) handleMsg(p *peer) error {
 		})
 
 	case msg.Code == EventsMsg:
-		if !h.syncStatus.AcceptEvents() {
-			break
-		}
-
 		var events inter.EventPayloads
 		if err := msg.Decode(&events); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
@@ -1018,10 +1014,6 @@ func (h *handler) handleMsg(p *peer) error {
 		h.handleEvents(p, events.Bases(), events.Len() > 1)
 
 	case msg.Code == NewEventIDsMsg:
-		// Fresh events arrived, make sure we have a valid and fresh graph to handle them
-		if !h.syncStatus.AcceptEvents() {
-			break
-		}
 		var announces hash.Events
 		if err := msg.Decode(&announces); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
@@ -1084,10 +1076,6 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == EventsStreamResponse:
-		if !h.syncStatus.AcceptEvents() {
-			break
-		}
-
 		var chunk dagChunk
 		if err := msg.Decode(&chunk); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
