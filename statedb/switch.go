@@ -4,6 +4,7 @@ import (
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
@@ -38,7 +39,7 @@ func CreateStateDbManager(cfg Config) *StateDbManager {
 		parameters: carmen.Parameters{
 			Directory: cfg.Directory,
 			Variant:   "go-file",
-			Schema:    carmen.StateSchema(5),
+			Schema:    carmen.Schema(5),
 			Archive:   archive,
 			LiveCache: cfg.CacheCapacity / 2,
 			ArchiveCache: cfg.CacheCapacity / 2,
