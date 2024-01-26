@@ -83,10 +83,6 @@ func calcAppHelpFlagGroups() []flags.FlagGroup {
 			Flags: debug.Flags,
 		},
 		{
-			Name:  "ALIASED (deprecated)",
-			Flags: legacyRpcFlags,
-		},
-		{
 			Name: "MISC",
 			Flags: []cli.Flag{
 				cli.HelpFlag,

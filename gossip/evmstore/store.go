@@ -179,14 +179,6 @@ func (s *Store) CleanCommit(block iblockproc.BlockState) error {
 	return err
 }
 
-func (s *Store) PauseEvmSnapshot() {
-	//s.Snaps.Disable()
-}
-
-func (s *Store) IsEvmSnapshotPaused() bool {
-	return rawdb.ReadSnapshotDisabled(s.table.Evm)
-}
-
 // Commit changes.
 func (s *Store) Commit(block idx.Block, root hash.Hash, flush bool) error {
 	triedb := s.EvmState.TrieDB()
@@ -226,15 +218,6 @@ func (s *Store) Commit(block idx.Block, root hash.Hash, flush bool) error {
 
 func (s *Store) Flush(block iblockproc.BlockState) {
 	// Ensure that the entirety of the state snapshot is journalled to disk.
-	var snapBase common.Hash
-	/* // EVM snapshot requires state in the trie - disabled for Carmen integration
-	if s.Snaps != nil {
-		var err error
-		if snapBase, err = s.Snaps.Journal(common.Hash(block.FinalizedStateRoot)); err != nil {
-			s.Log.Error("Failed to journal state snapshot", "err", err)
-		}
-	}
-	*/
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	if !s.cfg.Cache.TrieDirtyDisabled {
 		triedb := s.EvmState.TrieDB()
@@ -242,12 +225,6 @@ func (s *Store) Flush(block iblockproc.BlockState) {
 		if number := uint64(block.LastBlock.Idx); number > 0 {
 			s.Log.Info("Writing cached state to disk", "block", number, "root", block.FinalizedStateRoot)
 			if err := triedb.Commit(common.Hash(block.FinalizedStateRoot), true, nil); err != nil {
-				s.Log.Error("Failed to commit recent state trie", "err", err)
-			}
-		}
-		if snapBase != (common.Hash{}) {
-			s.Log.Info("Writing snapshot state to disk", "root", snapBase)
-			if err := triedb.Commit(snapBase, true, nil); err != nil {
 				s.Log.Error("Failed to commit recent state trie", "err", err)
 			}
 		}

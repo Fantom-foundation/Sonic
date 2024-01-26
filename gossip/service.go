@@ -430,10 +430,6 @@ func (s *Service) Start() error {
 	s.gpo.Start(&GPOBackend{s.store, s.txpool})
 	// start tflusher before starting snapshots generation
 	s.tflusher.Start()
-	// start snapshots generation
-	if s.store.evm.IsEvmSnapshotPaused() && !s.config.AllowSnapsync {
-		return errors.New("cannot halt snapsync and start fullsync")
-	}
 	blockState := s.store.GetBlockState()
 	if !s.store.evm.CheckLiveStateDbHash(blockState.LastBlock.Idx, blockState.FinalizedStateRoot) {
 		return errors.New("fullsync isn't possible because state root is missing")

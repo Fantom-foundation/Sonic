@@ -15,6 +15,7 @@ import (
 
 type Config struct {
 	Directory string
+	EnableArchive bool
 	CacheCapacity int64
 }
 
@@ -27,16 +28,22 @@ type StateDbManager struct {
 }
 
 func CreateStateDbManager(cfg Config) *StateDbManager {
+	log := logger.New("statedb")
+	var archive = carmen.NoArchive
+	if cfg.EnableArchive {
+		archive = carmen.S5Archive
+	}
+	log.Log.Info("Carmen configured", "archive", archive, "dir", cfg.Directory)
 	return &StateDbManager{
 		parameters: carmen.Parameters{
 			Directory: cfg.Directory,
 			Variant:   "go-file",
 			Schema:    carmen.StateSchema(5),
-			Archive:   carmen.S5Archive,
+			Archive:   archive,
 			LiveCache: cfg.CacheCapacity / 2,
 			ArchiveCache: cfg.CacheCapacity / 2,
 		},
-		logger: logger.New("statedb"),
+		logger: log,
 	}
 }
 

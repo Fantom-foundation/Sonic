@@ -6,19 +6,10 @@ import (
 )
 
 var (
-	EvmExportMode = cli.StringFlag{
-		Name:  "export.evm.mode",
-		Usage: `EVM export mode ("full" or "ext-mpt" or "mpt")`,
-		Value: "mpt",
-	}
-	EvmExportExclude = cli.StringFlag{
-		Name:  "export.evm.exclude",
-		Usage: `DB of EVM keys to exclude from genesis`,
-	}
 	GenesisExportSections = cli.StringFlag{
 		Name:  "export.sections",
 		Usage: `Genesis sections to export separated by comma (e.g. "brs-1" or "ers" or "evm-2" or "fws")`,
-		Value: "brs,ers,evm,fws",
+		Value: "brs,ers,fws",
 	}
 	importCommand = cli.Command{
 		Name:      "import",
@@ -43,19 +34,6 @@ Events are fully verified.`,
 				Description: `
 The import command imports events from RLP-encoded files.
 Events are fully verified.`,
-			},
-			{
-				Action:    utils.MigrateFlags(importEvm),
-				Name:      "evm",
-				Usage:     "Import EVM storage",
-				ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
-				Flags: []cli.Flag{
-					DataDirFlag,
-				},
-				Description: `
-    opera import evm
-
-The import command imports EVM storage (trie nodes, code, preimages) from files.`,
 			},
 		},
 	}
@@ -85,12 +63,10 @@ be gzipped
 			{
 				Name:      "genesis",
 				Usage:     "Export current state into a genesis file",
-				ArgsUsage: "<filename or dry-run> [<epochFrom> <epochTo>] [--export.evm.mode=MODE --export.evm.exclude=DB_PATH --export.sections=A,B,C]",
+				ArgsUsage: "<filename or dry-run> [<epochFrom> <epochTo>] [--export.sections=brs,ers,fws]",
 				Action:    utils.MigrateFlags(exportGenesis),
 				Flags: []cli.Flag{
 					DataDirFlag,
-					EvmExportMode,
-					EvmExportExclude,
 					GenesisExportSections,
 				},
 				Description: `
@@ -101,21 +77,6 @@ Requires a first argument of the file to write to.
 Optional second and third arguments control the first and
 last epoch to write.
 Pass dry-run instead of filename for calculation of hashes without exporting data.
-EVM export mode is configured with --export.evm.mode.
-`,
-			},
-			{
-				Name:      "evm-keys",
-				Usage:     "Export EVM node keys",
-				ArgsUsage: "<directory>",
-				Action:    utils.MigrateFlags(exportEvmKeys),
-				Flags: []cli.Flag{
-					DataDirFlag,
-				},
-				Description: `
-    opera export evm-keys
-
-Requires a first argument of the DB directory to write to.
 `,
 			},
 		},
@@ -136,7 +97,7 @@ Requires a first argument of the DB directory to write to.
 				Description: `
     opera check evm
 
-Checks EVM storage roots and code hashes
+Checks EVM storage roots and code hashes.
 `,
 			},
 		},

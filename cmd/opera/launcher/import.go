@@ -29,48 +29,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
 
-func importEvm(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
-		utils.Fatalf("This command requires an argument.")
-	}
-
-	cfg := makeAllConfigs(ctx)
-
-	rawDbs := makeDBsProducer(cfg)
-	gdb := makeGossipStore(rawDbs, cfg)
-	defer gdb.Close()
-
-	for _, fn := range ctx.Args() {
-		log.Info("Importing EVM storage from file", "file", fn)
-		if err := importEvmFile(fn, gdb); err != nil {
-			log.Error("Import error", "file", fn, "err", err)
-			return err
-		}
-		log.Info("Imported EVM storage from file", "file", fn)
-	}
-
-	return nil
-}
-
-func importEvmFile(fn string, gdb *gossip.Store) error {
-	// Open the file handle and potentially unwrap the gzip stream
-	fh, err := os.Open(fn)
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-
-	var reader io.Reader = fh
-	if strings.HasSuffix(fn, ".gz") {
-		if reader, err = gzip.NewReader(reader); err != nil {
-			return err
-		}
-		defer reader.(*gzip.Reader).Close()
-	}
-
-	return gdb.EvmStore().ImportEvm(reader)
-}
-
 func importEvents(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
