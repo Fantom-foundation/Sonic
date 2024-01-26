@@ -105,7 +105,7 @@ func (b *GenesisBuilder) CurrentHash() hash.Hash {
 func NewGenesisBuilder(dbs kvdb.DBProducer) *GenesisBuilder {
 	tmpDB, err := dbs.OpenDB("tmp-gossip")
 	tmpEvmStore := evmstore.NewStore(tmpDB, evmstore.LiteStoreConfig(), nil)
-	tmpStateDB, err := state.NewLegacyWithSnapLayers(common.Hash(hash.Zero), tmpEvmStore.EvmState, tmpEvmStore.Snaps, 0)
+	tmpStateDB, err := state.NewLegacyWithSnapLayers(common.Hash(hash.Zero), tmpEvmStore.EvmState, nil, 0)
 	if err != nil {
 		panic(fmt.Errorf("failed to create StateDB for GenesisBuilder: %v", err))
 	}
@@ -215,7 +215,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	}
 	b.epochs = append(b.epochs, b.currentEpoch)
 
-	return b.tmpEvmStore.Commit(bs.LastBlock.Idx, bs.FinalizedStateRoot, true)
+	return b.tmpEvmStore.Commit(bs.LastBlock.Idx, bs.FinalizedStateRoot)
 }
 
 type memFile struct {

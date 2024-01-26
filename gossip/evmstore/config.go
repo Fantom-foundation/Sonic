@@ -23,14 +23,8 @@ type (
 		EvmBlocksNum int
 		// Cache size for EvmBlock (size in bytes).
 		EvmBlocksSize uint
-		// Disk journal for saving clean cache entries.
-		TrieCleanJournal string
-		// Whether to disable trie write caching and GC altogether (archive node)
-		TrieDirtyDisabled bool
 		// Memory limit (MB) at which to start flushing dirty trie nodes to disk
 		TrieDirtyLimit uint
-		// Whether to enable greedy gc mode
-		GreedyGC bool
 	}
 	// StoreConfig is a config for store db.
 	StoreConfig struct {
@@ -57,8 +51,6 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 			EvmSnap:           scale.I(32 * opt.MiB),
 			EvmBlocksNum:      scale.I(5000),
 			EvmBlocksSize:     scale.U(6 * opt.MiB),
-			TrieDirtyDisabled: true,
-			GreedyGC:          false,
 			TrieDirtyLimit:    scale.U(256 * opt.MiB),
 		},
 		EnablePreimageRecording: true,

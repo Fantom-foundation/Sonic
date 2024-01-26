@@ -27,7 +27,6 @@ var (
 	errWrongEpochHash   = errors.New("wrong event epoch hash")
 	errNonExistingEpoch = errors.New("epoch doesn't exist")
 	errSameEpoch        = errors.New("epoch hasn't changed")
-	errDirtyEvmSnap     = errors.New("EVM snapshot is dirty")
 )
 var (
 	processedEventsMeter = metrics.GetOrRegisterMeter("chain/events/processed", nil) // txs received into lachesis processing
@@ -164,10 +163,6 @@ func (s *Service) SwitchEpochTo(newEpoch idx.Epoch) error {
 	return nil
 }
 
-func (s *Service) PauseEvmSnapshot() {
-	// removed
-}
-
 func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.Epoch) {
 	// index DAG heads and last events
 	s.store.SetHeads(oldEpoch, processEventHeads(s.store.GetHeads(oldEpoch), e))
@@ -293,10 +288,5 @@ func (s *Service) mayCommit(epochSealing bool) {
 func (s *Service) commit(epochSealing bool) {
 	// s.engineMu is locked here
 	s.blockProcWg.Wait()
-	// if gcmode is full and snapsync is finalized, clean all the old state trie
-	// and commit the state trie at the current block
-	if !s.store.cfg.EVM.Cache.TrieDirtyDisabled && s.handler.syncStatus.AcceptEvents() {
-		s.store.cleanCommitEVM()
-	}
 	_ = s.store.Commit()
 }

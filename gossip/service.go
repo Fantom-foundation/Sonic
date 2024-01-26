@@ -16,7 +16,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -44,7 +43,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/filters"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/gossip/proclogger"
-	snapsync "github.com/Fantom-foundation/go-opera/gossip/protocols/snap"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
@@ -133,7 +131,6 @@ type Service struct {
 	eventBusyFlag uint32
 
 	feed     ServiceFeed
-	eventMux *event.TypeMux
 
 	gpo *gasprice.Oracle
 
@@ -141,7 +138,6 @@ type Service struct {
 	handler *handler
 
 	operaDialCandidates enode.Iterator
-	snapDialCandidates  enode.Iterator
 
 	EthAPI        *EthAPIBackend
 	netRPCService *ethapi.PublicNetAPI
@@ -172,7 +168,6 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 
 	svc.p2pServer = stack.Server()
 	svc.accountManager = stack.AccountManager()
-	svc.eventMux = stack.EventMux()
 	svc.EthAPI.SetExtRPCEnabled(stack.Config().ExtRPCEnabled())
 	// Create the net API service
 	svc.netRPCService = ethapi.NewPublicNetAPI(svc.p2pServer, store.GetRules().NetworkID)
@@ -239,10 +234,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	if err != nil {
 		return nil, err
 	}
-	svc.snapDialCandidates, err = dnsclient.NewIterator(config.SnapDiscoveryURLs...)
-	if err != nil {
-		return nil, err
-	}
 
 	// create protocol manager
 	svc.handler, err = newHandler(handlerConfig{
@@ -259,7 +250,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 				return svc.processEvent(event)
 			},
 			SwitchEpochTo:    svc.SwitchEpochTo,
-			PauseEvmSnapshot: svc.PauseEvmSnapshot,
 			BVs:              svc.ProcessBlockVotes,
 			BR:               svc.ProcessFullBlockRecord,
 			EV:               svc.ProcessEpochVote,
@@ -410,11 +400,6 @@ func (s *Service) APIs() []rpc.API {
 			Service:   filters.NewPublicFilterAPI(s.EthAPI, s.config.FilterAPI),
 			Public:    true,
 		}, {
-			Namespace: "eth",
-			Version:   "1.0",
-			Service:   snapsync.NewPublicDownloaderAPI(s.handler.snapLeecher, s.eventMux),
-			Public:    true,
-		}, {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
@@ -472,11 +457,9 @@ func (s *Service) Stop() error {
 
 	// Stop all the peer-related stuff first.
 	s.operaDialCandidates.Close()
-	s.snapDialCandidates.Close()
 
 	s.handler.Stop()
 	s.feed.scope.Close()
-	s.eventMux.Stop()
 	s.gpo.Stop()
 	// it's safe to stop tflusher only before locking engineMu
 	s.tflusher.Stop()
@@ -488,7 +471,6 @@ func (s *Service) Stop() error {
 
 	s.blockProcWg.Wait()
 	close(s.blockProcTasksDone)
-	s.store.evm.Flush(s.store.GetBlockState())
 	return s.store.Commit()
 }
 
