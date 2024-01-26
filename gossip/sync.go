@@ -1,50 +1,17 @@
 package gossip
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 	"math/rand"
 	"sync/atomic"
-	"time"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 )
 
-var syncStatusGauge = metrics.GetOrRegisterGauge("chain/syncStage", nil)
 var isMaybeSyncedGauge = metrics.GetOrRegisterGauge("chain/maybeSynced", nil)
 
-type syncStage uint32
-
 type syncStatus struct {
-	stage       uint32
 	maybeSynced uint32
-}
-
-const (
-	ssUnknown syncStage = iota
-	ssSnaps
-	ssEvmSnapGen
-	ssEvents
-)
-
-const (
-	snapsyncMinEndAge   = 14 * 24 * time.Hour
-	snapsyncMaxStartAge = 6 * time.Hour
-)
-
-func (ss *syncStatus) Is(s ...syncStage) bool {
-	self := &ss.stage
-	for _, v := range s {
-		if atomic.LoadUint32(self) == uint32(v) {
-			return true
-		}
-	}
-	return false
-}
-
-func (ss *syncStatus) Set(s syncStage) {
-	atomic.StoreUint32(&ss.stage, uint32(s))
-	syncStatusGauge.Update(int64(s))
 }
 
 func (ss *syncStatus) MaybeSynced() bool {
@@ -57,19 +24,19 @@ func (ss *syncStatus) MarkMaybeSynced() {
 }
 
 func (ss *syncStatus) AcceptEvents() bool {
-	return ss.Is(ssEvents)
+	return true
 }
 
 func (ss *syncStatus) AcceptBlockRecords() bool {
-	return !ss.Is(ssEvents)
+	return false
 }
 
 func (ss *syncStatus) AcceptTxs() bool {
-	return ss.MaybeSynced() && ss.Is(ssEvents)
+	return ss.MaybeSynced()
 }
 
 func (ss *syncStatus) RequestLLR() bool {
-	return !ss.Is(ssEvents) || ss.MaybeSynced()
+	return ss.MaybeSynced()
 }
 
 type txsync struct {
