@@ -118,7 +118,7 @@ func NewGenesisBuilder() *GenesisBuilder {
 		panic(fmt.Errorf("failed to create carmen state; %s", err))
 	}
 	carmenStateDb := carmen.CreateStateDBUsing(carmenState)
-	tmpStateDB := statedb.CreateCarmenStateDb(carmenStateDb, carmenState)
+	tmpStateDB := statedb.CreateCarmenStateDb(carmenStateDb)
 	return &GenesisBuilder{
 		tmpStateDB:    tmpStateDB,
 		carmenDir:     carmenDir,
