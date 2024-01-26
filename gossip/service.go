@@ -44,7 +44,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/filters"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/gossip/proclogger"
-	snapsync "github.com/Fantom-foundation/go-opera/gossip/protocols/snap"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
@@ -141,7 +140,6 @@ type Service struct {
 	handler *handler
 
 	operaDialCandidates enode.Iterator
-	snapDialCandidates  enode.Iterator
 
 	EthAPI        *EthAPIBackend
 	netRPCService *ethapi.PublicNetAPI
@@ -172,7 +170,7 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 
 	svc.p2pServer = stack.Server()
 	svc.accountManager = stack.AccountManager()
-	svc.eventMux = stack.EventMux()
+	svc.eventMux = stack.EventMux() // TODO remove?
 	svc.EthAPI.SetExtRPCEnabled(stack.Config().ExtRPCEnabled())
 	// Create the net API service
 	svc.netRPCService = ethapi.NewPublicNetAPI(svc.p2pServer, store.GetRules().NetworkID)
@@ -236,10 +234,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
 	var err error
 	svc.operaDialCandidates, err = dnsclient.NewIterator(config.OperaDiscoveryURLs...)
-	if err != nil {
-		return nil, err
-	}
-	svc.snapDialCandidates, err = dnsclient.NewIterator(config.SnapDiscoveryURLs...)
 	if err != nil {
 		return nil, err
 	}
@@ -410,11 +404,6 @@ func (s *Service) APIs() []rpc.API {
 			Service:   filters.NewPublicFilterAPI(s.EthAPI, s.config.FilterAPI),
 			Public:    true,
 		}, {
-			Namespace: "eth",
-			Version:   "1.0",
-			Service:   snapsync.NewPublicDownloaderAPI(s.handler.snapLeecher, s.eventMux),
-			Public:    true,
-		}, {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
@@ -472,7 +461,6 @@ func (s *Service) Stop() error {
 
 	// Stop all the peer-related stuff first.
 	s.operaDialCandidates.Close()
-	s.snapDialCandidates.Close()
 
 	s.handler.Stop()
 	s.feed.scope.Close()

@@ -10,21 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
-	"github.com/Fantom-foundation/lachesis-base/gossip/itemsfetcher"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	notify "github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/discover/discfilter"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
-
 	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/bvallcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
@@ -47,12 +32,24 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream/epstreamleecher"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream/epstreamseeder"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/snap/snapstream/snapleecher"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
+	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
+	"github.com/Fantom-foundation/lachesis-base/gossip/itemsfetcher"
+	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	notify "github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/ethereum/go-ethereum/p2p/discover/discfilter"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 const (
@@ -110,27 +107,6 @@ type handlerConfig struct {
 	process  processCallback
 }
 
-type snapsyncEpochUpd struct {
-	epoch idx.Epoch
-	root  common.Hash
-}
-
-type snapsyncCancelCmd struct {
-	done chan struct{}
-}
-
-type snapsyncStateUpd struct {
-	snapsyncEpochUpd  *snapsyncEpochUpd
-	snapsyncCancelCmd *snapsyncCancelCmd
-}
-
-type snapsyncState struct {
-	epoch     idx.Epoch
-	cancel    func() error
-	updatesCh chan snapsyncStateUpd
-	quit      chan struct{}
-}
-
 type handler struct {
 	NetworkID uint64
 	config    Config
@@ -184,11 +160,6 @@ type handler struct {
 	txsyncCh chan *txsync
 	quitSync chan struct{}
 
-	// snapsync fields
-	chain       *ethBlockChain
-	snapLeecher *snapleecher.Leecher
-	snapState   snapsyncState
-
 	// wait group is used for graceful shutdowns during downloading
 	// and processing
 	loopsWg sync.WaitGroup
@@ -223,39 +194,9 @@ func newHandler(
 		quitSync:             make(chan struct{}),
 		quitProgressBradcast: make(chan struct{}),
 
-		snapState: snapsyncState{
-			updatesCh: make(chan snapsyncStateUpd, 128),
-			quit:      make(chan struct{}),
-		},
-
 		Instance: logger.New("PM"),
 	}
 	h.started.Add(1)
-
-	// TODO: configure it
-	var (
-		configBloomCache uint64 = 0 // Megabytes to alloc for fast sync bloom
-	)
-
-	var err error
-	h.chain, err = newEthBlockChain(c.s)
-	if err != nil {
-		return nil, err
-	}
-
-	stateDb := h.store.EvmStore().EvmDb
-	var stateBloom *trie.SyncBloom
-	if false {
-		// NOTE: Construct the downloader (long sync) and its backing state bloom if fast
-		// sync is requested. The downloader is responsible for deallocating the state
-		// bloom when it's done.
-		// Note: we don't enable it if snap-sync is performed, since it's very heavy
-		// and the heal-portion of the snap sync is much lighter than fast. What we particularly
-		// want to avoid, is a 90%-finished (but restarted) snap-sync to begin
-		// indexing the entire trie
-		stateBloom = trie.NewSyncBloom(configBloomCache, stateDb)
-	}
-	h.snapLeecher = snapleecher.New(stateDb, stateBloom, h.removePeer)
 
 	h.dagFetcher = itemsfetcher.New(h.config.Protocol.DagFetcher, itemsfetcher.Callback{
 		OnlyInterested: func(ids []interface{}) []interface{} {
@@ -643,18 +584,12 @@ func (h *handler) unregisterPeer(id string) {
 	_ = h.brSeeder.UnregisterPeer(id)
 	_ = h.bvLeecher.UnregisterPeer(id)
 	_ = h.bvSeeder.UnregisterPeer(id)
-	// Remove the `snap` extension if it exists
-	if peer.snapExt != nil {
-		_ = h.snapLeecher.SnapSyncer.Unregister(id)
-	}
 	if err := h.peers.UnregisterPeer(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
 	}
 }
 
 func (h *handler) Start(maxPeers int) {
-	h.snapsyncStageTick()
-
 	h.maxPeers = maxPeers
 
 	// broadcast transactions
@@ -680,9 +615,6 @@ func (h *handler) Start(maxPeers int) {
 
 	// start sync handlers
 	go h.txsyncLoop()
-	h.loopsWg.Add(2)
-	go h.snapsyncStateLoop()
-	go h.snapsyncStageLoop()
 	h.dagFetcher.Start()
 	h.txFetcher.Start()
 	h.checkers.Heavycheck.Start()
@@ -729,7 +661,6 @@ func (h *handler) Stop() {
 	h.dagFetcher.Stop()
 
 	close(h.quitProgressBradcast)
-	close(h.snapState.quit)
 	h.txsSub.Unsubscribe() // quits txBroadcastLoop
 	if h.notifier != nil {
 		h.emittedEventsSub.Unsubscribe() // quits eventBroadcastLoop
@@ -820,7 +751,7 @@ func (h *handler) handle(p *peer) error {
 	p.Log().Debug("Peer connected", "name", p.Name())
 
 	// Register the peer locally
-	if err := h.peers.RegisterPeer(p, nil); err != nil {
+	if err := h.peers.RegisterPeer(p); err != nil {
 		p.Log().Warn("Peer registration failed", "err", err)
 		return err
 	}

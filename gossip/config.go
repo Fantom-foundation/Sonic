@@ -75,12 +75,9 @@ type (
 	Config struct {
 		FilterAPI filters.Config
 
-		// This can be set to list of enrtree:// URLs which will be queried for
+		// This can be set to list of enrtree:// URLs which will be queried
 		// for nodes to connect to.
 		OperaDiscoveryURLs []string
-		SnapDiscoveryURLs  []string
-
-		AllowSnapsync bool
 
 		TxIndex bool // Whether to enable indexing transactions and receipts or not
 

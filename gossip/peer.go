@@ -15,7 +15,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -71,10 +70,6 @@ type peer struct {
 	term                chan struct{} // Termination channel to stop the broadcaster
 
 	progress PeerProgress
-
-	snapExt  *snapPeer     // Satellite `snap` connection
-	syncDrop *time.Timer   // Connection dropper if `eth` sync progress isn't validated in time
-	snapWait chan struct{} // Notification channel for snap connections
 
 	useless uint32
 
@@ -573,27 +568,4 @@ func (p *peer) String() string {
 	return fmt.Sprintf("Peer %s [%s]", p.id,
 		fmt.Sprintf("opera/%2d", p.version),
 	)
-}
-
-// snapPeerInfo represents a short summary of the `snap` sub-protocol metadata known
-// about a connected peer.
-type snapPeerInfo struct {
-	Version uint `json:"version"` // Snapshot protocol version negotiated
-}
-
-// snapPeer is a wrapper around snap.Peer to maintain a few extra metadata.
-type snapPeer struct {
-	*snap.Peer
-}
-
-// info gathers and returns some `snap` protocol metadata known about a peer.
-func (p *snapPeer) info() *snapPeerInfo {
-	return &snapPeerInfo{
-		Version: p.Version(),
-	}
-}
-
-// eligibleForSnap checks eligibility of a peer for a snap protocol. A peer is eligible for a snap if it advertises `snap` sattelite protocol along with `opera` protocol.
-func eligibleForSnap(p *p2p.Peer) bool {
-	return p.RunningCap(ProtocolName, []uint{FTM63}) && p.RunningCap(snap.ProtocolName, snap.ProtocolVersions)
 }

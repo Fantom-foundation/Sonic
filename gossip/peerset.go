@@ -22,7 +22,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/p2p"
 )
 
@@ -38,21 +37,12 @@ var (
 	// errPeerNotRegistered is returned if a peer is attempted to be removed from
 	// a peer set, but no peer with the given id exists.
 	errPeerNotRegistered = errors.New("peer not registered")
-
-	// errSnapWithoutOpera is returned if a peer attempts to connect only on the
-	// snap protocol without advertizing the opera main protocol.
-	errSnapWithoutOpera = errors.New("peer connected on snap without compatible opera support")
 )
 
 // peerSet represents the collection of active peers currently participating in
-// the `eth` protocol, with or without the `snap` extension.
+// the `eth` protocol.
 type peerSet struct {
 	peers     map[string]*peer // Peers connected on the `eth` protocol
-	snapPeers int              // Number of `snap` compatible peers for connection prioritization
-
-	snapWait map[string]chan *snap.Peer // Peers connected on `eth` waiting for their snap extension
-	snapPend map[string]*snap.Peer      // Peers connected on the `snap` protocol, but not yet on `eth`
-
 	lock   sync.RWMutex
 	closed bool
 }
@@ -61,77 +51,12 @@ type peerSet struct {
 func newPeerSet() *peerSet {
 	return &peerSet{
 		peers:    make(map[string]*peer),
-		snapWait: make(map[string]chan *snap.Peer),
-		snapPend: make(map[string]*snap.Peer),
 	}
-}
-
-// RegisterSnapExtension unblocks an already connected `eth` peer waiting for its
-// `snap` extension, or if no such peer exists, tracks the extension for the time
-// being until the `eth` main protocol starts looking for it.
-func (ps *peerSet) RegisterSnapExtension(peer *snap.Peer) error {
-	// Reject the peer if it is not eligible for a snap protocol
-	if !eligibleForSnap(peer.Peer) {
-		return errSnapWithoutOpera
-	}
-	// Ensure nobody can double connect
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-
-	id := peer.ID()
-	if _, ok := ps.peers[id]; ok {
-		return errPeerAlreadyRegistered // avoid connections with the same id as existing ones
-	}
-	if _, ok := ps.snapPend[id]; ok {
-		return errPeerAlreadyRegistered // avoid connections with the same id as pending ones
-	}
-	// Inject the peer into an `eth` counterpart is available, otherwise save for later
-	if wait, ok := ps.snapWait[id]; ok {
-		delete(ps.snapWait, id)
-		wait <- peer
-		return nil
-	}
-	ps.snapPend[id] = peer
-	return nil
-}
-
-// WaitSnapExtension blocks until all satellite protocols are connected and tracked
-// by the peerset.
-func (ps *peerSet) WaitSnapExtension(p *peer) (*snap.Peer, error) {
-	// If the peer is not eligible for a snap protocol`, don't wait
-	if !eligibleForSnap(p.Peer) {
-		return nil, nil
-	}
-	// Ensure nobody can double connect
-	ps.lock.Lock()
-
-	id := p.id
-	if _, ok := ps.peers[id]; ok {
-		ps.lock.Unlock()
-		return nil, errPeerAlreadyRegistered // avoid connections with the same id as existing ones
-	}
-	if _, ok := ps.snapWait[id]; ok {
-		ps.lock.Unlock()
-		return nil, errPeerAlreadyRegistered // avoid connections with the same id as pending ones
-	}
-	// If `snap` already connected, retrieve the peer from the pending set
-	if snap, ok := ps.snapPend[id]; ok {
-		delete(ps.snapPend, id)
-
-		ps.lock.Unlock()
-		return snap, nil
-	}
-	// Otherwise wait for `snap` to connect concurrently
-	wait := make(chan *snap.Peer)
-	ps.snapWait[id] = wait
-	ps.lock.Unlock()
-
-	return <-wait, nil
 }
 
 // RegisterPeer injects a new `eth` peer into the working set, or returns an error
 // if the peer is already known.
-func (ps *peerSet) RegisterPeer(p *peer, ext *snap.Peer) error {
+func (ps *peerSet) RegisterPeer(p *peer) error {
 	// Start tracking the new peer
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
@@ -145,11 +70,6 @@ func (ps *peerSet) RegisterPeer(p *peer, ext *snap.Peer) error {
 		return errPeerAlreadyRegistered
 	}
 
-	if ext != nil {
-		p.snapExt = &snapPeer{ext}
-		ps.snapPeers++
-	}
-
 	ps.peers[id] = p
 	return nil
 }
@@ -160,14 +80,11 @@ func (ps *peerSet) UnregisterPeer(id string) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	peer, ok := ps.peers[id]
+	_, ok := ps.peers[id]
 	if !ok {
 		return errPeerNotRegistered
 	}
 	delete(ps.peers, id)
-	if peer.snapExt != nil {
-		ps.snapPeers--
-	}
 	return nil
 }
 
@@ -234,22 +151,12 @@ func (ps *peerSet) List() []*peer {
 	return list
 }
 
-// Len returns if the current number of `eth` peers in the set. Since the `snap`
-// peers are tied to the existence of an `eth` connection, that will always be a
-// subset of `eth`.
+// Len returns if the current number of `eth` peers in the set.
 func (ps *peerSet) Len() int {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	return len(ps.peers)
-}
-
-// SnapLen returns if the current number of `snap` peers in the set.
-func (ps *peerSet) SnapLen() int {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	return ps.snapPeers
 }
 
 // Close disconnects all peers.
