@@ -14,7 +14,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
@@ -203,29 +202,6 @@ func (s *Store) commitEVM() {
 		s.Log.Crit("Failed to commit EVM storage", "err", err)
 	}
 	s.evm.Cap()
-}
-
-func (s *Store) cleanCommitEVM() {
-	err := s.evm.CleanCommit(s.GetBlockState())
-	if err != nil {
-		s.Log.Crit("Failed to commit EVM storage", "err", err)
-	}
-	s.evm.Cap()
-}
-
-func (s *Store) GenerateSnapshotAt(root common.Hash, async bool) (err error) {
-	err = s.generateSnapshotAt(s.evm, root, true, async)
-	if err != nil {
-		s.Log.Error("EVM snapshot", "at", root, "err", err)
-	} else {
-		gen, _ := s.evm.Snaps.Generating()
-		s.Log.Info("EVM snapshot", "at", root, "generating", gen)
-	}
-	return err
-}
-
-func (s *Store) generateSnapshotAt(evmStore *evmstore.Store, root common.Hash, rebuild, async bool) (err error) {
-	return evmStore.GenerateEvmSnapshot(root, rebuild, async)
 }
 
 // Commit changes.

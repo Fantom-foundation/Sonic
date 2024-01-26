@@ -16,7 +16,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -132,7 +131,6 @@ type Service struct {
 	eventBusyFlag uint32
 
 	feed     ServiceFeed
-	eventMux *event.TypeMux
 
 	gpo *gasprice.Oracle
 
@@ -170,7 +168,6 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 
 	svc.p2pServer = stack.Server()
 	svc.accountManager = stack.AccountManager()
-	svc.eventMux = stack.EventMux() // TODO remove?
 	svc.EthAPI.SetExtRPCEnabled(stack.Config().ExtRPCEnabled())
 	// Create the net API service
 	svc.netRPCService = ethapi.NewPublicNetAPI(svc.p2pServer, store.GetRules().NetworkID)
@@ -253,7 +250,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 				return svc.processEvent(event)
 			},
 			SwitchEpochTo:    svc.SwitchEpochTo,
-			PauseEvmSnapshot: svc.PauseEvmSnapshot,
 			BVs:              svc.ProcessBlockVotes,
 			BR:               svc.ProcessFullBlockRecord,
 			EV:               svc.ProcessEpochVote,
@@ -464,7 +460,6 @@ func (s *Service) Stop() error {
 
 	s.handler.Stop()
 	s.feed.scope.Close()
-	s.eventMux.Stop()
 	s.gpo.Stop()
 	// it's safe to stop tflusher only before locking engineMu
 	s.tflusher.Stop()
@@ -476,7 +471,6 @@ func (s *Service) Stop() error {
 
 	s.blockProcWg.Wait()
 	close(s.blockProcTasksDone)
-	s.store.evm.Flush(s.store.GetBlockState())
 	return s.store.Commit()
 }
 

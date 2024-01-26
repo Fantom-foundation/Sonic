@@ -88,7 +88,6 @@ type dagNotifier interface {
 type processCallback struct {
 	Event            func(*inter.EventPayload) error
 	SwitchEpochTo    func(idx.Epoch) error
-	PauseEvmSnapshot func()
 	BVs              func(inter.LlrSignedBlockVotes) error
 	BR               func(ibr.LlrIdxFullBlockRecord) error
 	EV               func(inter.LlrSignedEpochVote) error

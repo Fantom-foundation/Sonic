@@ -27,7 +27,6 @@ var (
 	errWrongEpochHash   = errors.New("wrong event epoch hash")
 	errNonExistingEpoch = errors.New("epoch doesn't exist")
 	errSameEpoch        = errors.New("epoch hasn't changed")
-	errDirtyEvmSnap     = errors.New("EVM snapshot is dirty")
 )
 var (
 	processedEventsMeter = metrics.GetOrRegisterMeter("chain/events/processed", nil) // txs received into lachesis processing
@@ -162,10 +161,6 @@ func (s *Service) SwitchEpochTo(newEpoch idx.Epoch) error {
 	s.switchEpochTo(newEpoch)
 	s.commit(true)
 	return nil
-}
-
-func (s *Service) PauseEvmSnapshot() {
-	// removed
 }
 
 func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.Epoch) {

@@ -1,7 +1,6 @@
 package evmstore
 
 import (
-	"errors"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -13,13 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/kvdb2ethdb"
@@ -44,7 +41,6 @@ type Store struct {
 	EvmDb    ethdb.Database
 	EvmState state.Database
 	EvmLogs  topicsdb.Index
-	Snaps    *snapshot.Tree
 
 	backend Backend
 
@@ -119,64 +115,12 @@ func (s *Store) initEVMDB() {
 				s.table.Evm)))
 	s.EvmState = state.NewDatabaseWithConfig(s.EvmDb, &trie.Config{
 		Cache:     s.cfg.Cache.EvmDatabase / opt.MiB,
-		Journal:   s.cfg.Cache.TrieCleanJournal,
 		Preimages: s.cfg.EnablePreimageRecording,
-		GreedyGC:  s.cfg.Cache.GreedyGC,
 	})
-}
-
-func (s *Store) ResetWithEVMDB(evmStore kvdb.Store) *Store {
-	cp := *s
-	cp.table.Evm = evmStore
-	cp.initEVMDB()
-	cp.Snaps = nil
-	return &cp
 }
 
 func (s *Store) EVMDB() kvdb.Store {
 	return s.table.Evm
-}
-
-func (s *Store) GenerateEvmSnapshot(root common.Hash, rebuild, async bool) (err error) {
-	if s.Snaps != nil {
-		return errors.New("EVM snapshot is already opened")
-	}
-	s.Snaps, err = snapshot.New(
-		s.EvmDb,
-		s.EvmState.TrieDB(),
-		s.cfg.Cache.EvmSnap/opt.MiB,
-		root,
-		async,
-		rebuild,
-		false)
-	return
-}
-
-// CleanCommit clean old state trie and commit changes.
-func (s *Store) CleanCommit(block iblockproc.BlockState) error {
-	// Don't need to reference the current state root
-	// due to it already be referenced on `Commit()` function
-	triedb := s.EvmState.TrieDB()
-	stateRoot := common.Hash(block.FinalizedStateRoot)
-	if current := uint64(block.LastBlock.Idx); current > TriesInMemory {
-		// Find the next state trie we need to commit
-		chosen := current - TriesInMemory
-		// Garbage collect all below the chosen block
-		for !s.triegc.Empty() {
-			root, number := s.triegc.Pop()
-			if uint64(-number) > chosen {
-				s.triegc.Push(root, number)
-				break
-			}
-			triedb.Dereference(root.(common.Hash))
-		}
-	}
-	// commit the state trie after clean up
-	err := triedb.Commit(stateRoot, false, nil)
-	if err != nil {
-		s.Log.Error("Failed to flush trie DB into main DB", "err", err)
-	}
-	return err
 }
 
 // Commit changes.
@@ -188,27 +132,6 @@ func (s *Store) Commit(block idx.Block, root hash.Hash) error {
 		s.Log.Error("Failed to flush trie DB into main DB", "err", err)
 	}
 	return err
-}
-
-func (s *Store) Flush(block iblockproc.BlockState) {
-	// Ensure that the entirety of the state snapshot is journalled to disk.
-	// Ensure the state of a recent block is also stored to disk before exiting.
-	if !s.cfg.Cache.TrieDirtyDisabled {
-		triedb := s.EvmState.TrieDB()
-
-		if number := uint64(block.LastBlock.Idx); number > 0 {
-			s.Log.Info("Writing cached state to disk", "block", number, "root", block.FinalizedStateRoot)
-			if err := triedb.Commit(common.Hash(block.FinalizedStateRoot), true, nil); err != nil {
-				s.Log.Error("Failed to commit recent state trie", "err", err)
-			}
-		}
-	}
-	// Ensure all live cached entries be saved into disk, so that we can skip
-	// cache warmup when node restarts.
-	if s.cfg.Cache.TrieCleanJournal != "" {
-		triedb := s.EvmState.TrieDB()
-		triedb.SaveCache(s.cfg.Cache.TrieCleanJournal)
-	}
 }
 
 // Cap flush matured singleton nodes to disk
@@ -241,10 +164,6 @@ func (s *Store) IndexLogs(recs ...*types.Log) {
 	if err != nil {
 		s.Log.Crit("DB logs index error", "err", err)
 	}
-}
-
-func (s *Store) Snapshots() *snapshot.Tree {
-	return s.Snaps
 }
 
 /*
