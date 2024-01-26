@@ -1,26 +1,19 @@
 package evmstore
 
 import (
+	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/statedb"
+	"github.com/Fantom-foundation/go-opera/topicsdb"
+	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/nokeyiserr"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-
-	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/topicsdb"
-	"github.com/Fantom-foundation/go-opera/utils/adapters/kvdb2ethdb"
-	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
 )
 
 const nominalSize uint = 1
@@ -31,15 +24,12 @@ type Store struct {
 
 	mainDB kvdb.Store
 	table struct {
-		Evm kvdb.Store `table:"M"`
 		// API-only tables
 		Receipts    kvdb.Store `table:"r"`
 		TxPositions kvdb.Store `table:"x"`
 		Txs         kvdb.Store `table:"X"`
 	}
 
-	EvmDb    ethdb.Database
-	EvmState state.Database
 	EvmLogs  topicsdb.Index
 
 	backend Backend
@@ -57,10 +47,6 @@ type Store struct {
 	logger.Instance
 	sdbm *statedb.StateDbManager
 }
-
-const (
-	TriesInMemory = 16
-)
 
 // NewStore creates store over key-value db.
 func NewStore(mainDB kvdb.Store, cfg StoreConfig, sdbm *statedb.StateDbManager) *Store {
@@ -81,7 +67,6 @@ func NewStore(mainDB kvdb.Store, cfg StoreConfig, sdbm *statedb.StateDbManager) 
 
 	table.MigrateTables(&s.table, s.mainDB)
 
-	s.initEVMDB()
 	if cfg.DisableLogsIndexing {
 		s.EvmLogs = topicsdb.NewDummy()
 	} else {
@@ -106,45 +91,6 @@ func (s *Store) initCache() {
 	s.cache.Receipts = s.makeCache(s.cfg.Cache.ReceiptsSize, s.cfg.Cache.ReceiptsBlocks)
 	s.cache.TxPositions = s.makeCache(nominalSize*uint(s.cfg.Cache.TxPositions), s.cfg.Cache.TxPositions)
 	s.cache.EvmBlocks = s.makeCache(s.cfg.Cache.EvmBlocksSize, s.cfg.Cache.EvmBlocksNum)
-}
-
-func (s *Store) initEVMDB() {
-	s.EvmDb = rawdb.NewDatabase(
-		kvdb2ethdb.Wrap(
-			nokeyiserr.Wrap(
-				s.table.Evm)))
-	s.EvmState = state.NewDatabaseWithConfig(s.EvmDb, &trie.Config{
-		Cache:     s.cfg.Cache.EvmDatabase / opt.MiB,
-		Preimages: s.cfg.EnablePreimageRecording,
-	})
-}
-
-func (s *Store) EVMDB() kvdb.Store {
-	return s.table.Evm
-}
-
-// Commit changes.
-func (s *Store) Commit(block idx.Block, root hash.Hash) error {
-	triedb := s.EvmState.TrieDB()
-	stateRoot := common.Hash(root)
-	err := triedb.Commit(stateRoot, false, nil)
-	if err != nil {
-		s.Log.Error("Failed to flush trie DB into main DB", "err", err)
-	}
-	return err
-}
-
-// Cap flush matured singleton nodes to disk
-func (s *Store) Cap() {
-	triedb := s.EvmState.TrieDB()
-	var (
-		nodes, imgs = triedb.Size()
-		limit       = common.StorageSize(s.cfg.Cache.TrieDirtyLimit)
-	)
-	// If we exceeded our memory allowance, flush matured singleton nodes to disk
-	if nodes > limit+ethdb.IdealBatchSize || imgs > 4*1024*1024 {
-		triedb.Cap(limit)
-	}
 }
 
 // StateDB returns state database.

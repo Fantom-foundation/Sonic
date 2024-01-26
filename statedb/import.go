@@ -6,14 +6,16 @@ import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	io2 "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/go-opera/opera/genesis"
+	"github.com/Fantom-foundation/go-opera/utils/adapters/kvdb2ethdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/nokeyiserr"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"io"
@@ -61,7 +63,7 @@ func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io
 }
 
 // ImportLegacyEvmData reads legacy EVM trie database and imports one state (for one given block) into Carmen state.
-func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.Store, blockNum uint64, root common.Hash) error {
+func (m *StateDbManager) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, root common.Hash) error {
 	if m.carmenState != nil {
 		return fmt.Errorf("carmen state must be closed before the legacy EVM data import")
 	}
@@ -69,9 +71,26 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 		return fmt.Errorf("failed to open StateDbManager for legacy EVM data import; %v", err)
 	}
 	defer m.Close()
-	if m.carmenState == nil {
-		return nil // Carmen not used - skip
+
+	carmenDir, err := os.MkdirTemp("", "opera-tmp-import-legacy-genesis")
+	if err != nil {
+		panic(fmt.Errorf("failed to create temporary dir for legacy EVM data import: %v", err))
 	}
+	defer os.RemoveAll(carmenDir)
+
+	m.logger.Log.Info("Unpacking legacy EVM data into a temporary directory", "dir", carmenDir)
+	db, err := pebble.New(carmenDir, 1024, 100, nil, nil)
+	if err != nil {
+		panic(fmt.Errorf("failed to open temporary database for legacy EVM data import: %v", err))
+	}
+	evmItems.ForEach(func(key, value []byte) bool {
+		err := db.Put(key, value)
+		if err != nil {
+			return false
+		}
+		return true
+	})
+
 	m.logger.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
 
 	var currentBlock uint64 = 1
@@ -89,12 +108,13 @@ func (m *StateDbManager) ImportLegacyEvmData(chaindb ethdb.Database, evmDb kvdb.
 		return nil
 	}
 
+	chaindb := rawdb.NewDatabase(kvdb2ethdb.Wrap(nokeyiserr.Wrap(db)))
 	triedb := trie.NewDatabase(chaindb)
 	t, err := trie.NewSecure(root, triedb)
 	if err != nil {
 		return fmt.Errorf("failed to open trie; %v", err)
 	}
-	preimages := table.New(evmDb, []byte("secure-key-"))
+	preimages := table.New(db, []byte("secure-key-"))
 
 	accIter := t.NodeIterator(nil)
 	for accIter.Next(true) {

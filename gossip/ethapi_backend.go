@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/ethdb"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -440,10 +439,6 @@ func (b *EthAPIBackend) SuggestGasTipCap(ctx context.Context, certainty uint64) 
 
 func (b *EthAPIBackend) EffectiveMinGasPrice(ctx context.Context) *big.Int {
 	return b.svc.gpo.EffectiveMinGasPrice()
-}
-
-func (b *EthAPIBackend) ChainDb() ethdb.Database {
-	return b.svc.store.evm.EvmDb
 }
 
 func (b *EthAPIBackend) AccountManager() *accounts.Manager {

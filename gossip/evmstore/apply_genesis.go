@@ -4,26 +4,8 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/utils/adapters/ethdb2kvdb"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/autocompact"
 )
-
-// ApplyGenesis writes initial state.
-func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
-	db := batched.Wrap(autocompact.Wrap2M(ethdb2kvdb.Wrap(s.EvmDb), opt.GiB, 16*opt.GiB, true, "evm"))
-	g.RawEvmItems.ForEach(func(key, value []byte) bool {
-		err = db.Put(key, value)
-		if err != nil {
-			return false
-		}
-		return true
-	})
-	if err != nil {
-		return err
-	}
-	return db.Write()
-}
 
 func (s *Store) WrapTablesAsBatched() (unwrap func()) {
 	origTables := s.table
