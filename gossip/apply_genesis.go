@@ -75,17 +75,10 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 				return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 			}
 		} else { // no S5 section in the genesis file
-			// write EVM data from genesis into leveldb
-			s.Log.Info("Importing EVM data from genesis into KVDB", "index", lastBlock.Idx)
-			err = s.evm.ApplyGenesis(g)
+			// Import legacy EVM genesis section
+			err = s.StateDbManager.ImportLegacyEvmData(g.RawEvmItems, uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
 			if err != nil {
-				return err
-			}
-
-			// write EVM items into Carmen (if needed)
-			err = s.StateDbManager.ImportLegacyEvmData(s.evm.EvmDb, s.evm.EVMDB(), uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
-			if err != nil {
-				return fmt.Errorf("genesis import into StateDB failed; %v", err)
+				return fmt.Errorf("import of legacy genesis data into StateDB failed; %v", err)
 			}
 		}
 	} else {

@@ -46,14 +46,11 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/tyler-smith/go-bip39"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/go-opera/utils/adapters/ethdb2kvdb"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/signers/internaltx"
 )
@@ -2334,20 +2331,13 @@ func NewPrivateDebugAPI(b Backend) *PrivateDebugAPI {
 
 // ChaindbProperty returns leveldb properties of the key-value database.
 func (api *PrivateDebugAPI) ChaindbProperty(property string) (string, error) {
-	if property == "" {
-		property = "stats"
-	}
-	return api.b.ChainDb().Stat(property)
+	return "", errors.New("carmen database does provide db properties")
 }
 
 // ChaindbCompact flattens the entire key-value database into a single level,
 // removing all unused slots and merging all keys.
 func (api *PrivateDebugAPI) ChaindbCompact() error {
-	if err := compactdb.Compact(ethdb2kvdb.Wrap(api.b.ChainDb()), "EVM", 64*opt.GiB); err != nil {
-		log.Error("Database compaction failed", "err", err)
-		return err
-	}
-	return nil
+	return errors.New("carmen state database does not use compaction")
 }
 
 // SetHead rewinds the head of the blockchain to a previous block.

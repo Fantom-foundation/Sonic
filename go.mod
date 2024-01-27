@@ -19,7 +19,7 @@ require (
 	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
-	github.com/holiman/bloomfilter/v2 v2.0.3
+	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/karalabe/usb v0.0.2 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.8
@@ -37,14 +37,14 @@ require (
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	go.uber.org/atomic v1.5.1 // indirect
-	golang.org/x/crypto v0.14.0
+	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/sys v0.13.0
 	golang.org/x/tools v0.14.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
 require (
-	github.com/Fantom-foundation/Carmen/go v0.0.0-20240115153445-bcd32f03c361
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20240125084539-d6bf4f1cc7ff
 	github.com/Fantom-foundation/Tosca v0.0.0-20240112090805-9f3dbad8812c
 )
 

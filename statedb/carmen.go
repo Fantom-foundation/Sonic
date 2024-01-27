@@ -12,16 +12,14 @@ import (
 	"time"
 )
 
-func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB, state carmen.State) state.StateDbInterface {
+func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDbInterface {
 	return &CarmenStateDB{
 		db: carmenStateDb,
-		state: state,
 	}
 }
 
 type CarmenStateDB struct {
 	db carmen.VmStateDB
-	state carmen.State // required for Copy method
 
 	// current block - set by BeginBlock
 	blockNum uint64
@@ -209,7 +207,11 @@ func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.H
 }
 
 func (c *CarmenStateDB) Copy() state.StateDbInterface {
-	return CreateCarmenStateDb(carmen.CreateNonCommittableStateDBUsing(c.state), c.state)
+	if db, ok := c.db.(carmen.NonCommittableStateDB); ok {
+		return CreateCarmenStateDb(db.Copy())
+	} else {
+		panic("unable to copy committable (live) StateDB")
+	}
 }
 
 func (c *CarmenStateDB) Snapshot() int {

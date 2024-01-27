@@ -4,6 +4,7 @@ import (
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
@@ -38,7 +39,7 @@ func CreateStateDbManager(cfg Config) *StateDbManager {
 		parameters: carmen.Parameters{
 			Directory: cfg.Directory,
 			Variant:   "go-file",
-			Schema:    carmen.StateSchema(5),
+			Schema:    carmen.Schema(5),
 			Archive:   archive,
 			LiveCache: cfg.CacheCapacity / 2,
 			ArchiveCache: cfg.CacheCapacity / 2,
@@ -78,7 +79,7 @@ func (m *StateDbManager) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInter
 	if m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
 		return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
 	}
-	return CreateCarmenStateDb(m.liveStateDb, m.carmenState), nil
+	return CreateCarmenStateDb(m.liveStateDb), nil
 }
 
 // GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only.
@@ -89,7 +90,7 @@ func (m *StateDbManager) GetTxPoolStateDB() (state.StateDbInterface, error) {
 	}
 	// for TxPool it is ok to provide a newer state (with a different hash)
 	stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
-	return CreateCarmenStateDb(stateDb, m.carmenState), nil
+	return CreateCarmenStateDb(stateDb), nil
 }
 
 // GetArchiveBlockHeight provides the last block number available in the archive. Returns 0 if not known.
@@ -116,7 +117,7 @@ func (m *StateDbManager) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash)
 	if stateDb.GetHash() != cc.Hash(stateRoot) {
 		return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
 	}
-	return CreateCarmenStateDb(stateDb, m.carmenState), nil
+	return CreateCarmenStateDb(stateDb), nil
 }
 
 func (m *StateDbManager) Close() error {
@@ -128,7 +129,6 @@ func (m *StateDbManager) Close() error {
 			return fmt.Errorf("failed to close carmen state; %s", err)
 		}
 		m.carmenState = nil
-		m.liveStateDb = nil
 		m.logger.Log.Info("Carmen state successfully closed")
 	}
 	return nil

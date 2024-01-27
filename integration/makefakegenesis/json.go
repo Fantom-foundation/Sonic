@@ -15,7 +15,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -68,7 +67,7 @@ func LoadGenesisJson(filename string) (*GenesisJson, error) {
 }
 
 func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
-	builder := makegenesis.NewGenesisBuilder(memorydb.NewProducer(""))
+	builder := makegenesis.NewGenesisBuilder()
 
 	for _, acc := range json.Accounts {
 		if acc.Balance != nil {
