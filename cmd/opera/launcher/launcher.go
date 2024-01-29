@@ -21,7 +21,6 @@ import (
 
 	evmetrics "github.com/ethereum/go-ethereum/metrics"
 
-	_ "github.com/Fantom-foundation/Tosca/go/vm/lfvm"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/metrics"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/tracing"
 	"github.com/Fantom-foundation/go-opera/debug"

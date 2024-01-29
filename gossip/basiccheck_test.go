@@ -14,8 +14,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/eventcheck/basiccheck"
 	"github.com/Fantom-foundation/go-opera/inter"
-
-	_ "github.com/Fantom-foundation/Tosca/go/vm/lfvm"
 )
 
 type LLRBasicCheckTestSuite struct {
