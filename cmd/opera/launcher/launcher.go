@@ -123,8 +123,6 @@ func initFlags() {
 		validatorPubkeyFlag,
 		validatorPasswordFlag,
 		ModeFlag,
-		disableLogsFlag,
-		disableTxHashesFlag,
 		overrideMinGasPriceFlag,
 	}
 
