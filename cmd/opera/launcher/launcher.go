@@ -125,7 +125,6 @@ func initFlags() {
 		ModeFlag,
 		disableLogsFlag,
 		disableTxHashesFlag,
-		carmenEvmStoreFlag,
 		overrideMinGasPriceFlag,
 	}
 
@@ -381,11 +380,6 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		if closeDBs != nil {
 			if err := closeDBs(); err != nil {
 				log.Warn("Failed to close databases", "err", err)
-			}
-		}
-		if cfg.OperaStore.EVM.CarmenEvmStore != nil {
-			if err := cfg.OperaStore.EVM.CarmenEvmStore.Close(); err != nil {
-				log.Error("Failed to shutdown Carmen EvmStore", "err", err)
 			}
 		}
 	}

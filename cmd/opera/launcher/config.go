@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/Carmen/go/evmstore"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
@@ -71,11 +70,6 @@ var (
 	disableTxHashesFlag = cli.BoolFlag{
 		Name:  "notxhashes",
 		Usage: "Disable indexing of tx hashes",
-	}
-
-	carmenEvmStoreFlag = cli.BoolFlag{
-		Name:  "carmenevmstore",
-		Usage: "Switch to using Carmen EvmStore for receipts and txs.",
 	}
 
 	overrideMinGasPriceFlag = cli.Uint64Flag{
@@ -490,19 +484,6 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 
 	if ctx.GlobalBool(disableTxHashesFlag.Name) {
 		cfg.OperaStore.EVM.DisableTxHashesIndexing = true
-	}
-
-	if ctx.GlobalBool(carmenEvmStoreFlag.Name) {
-		evmStoreDir := filepath.Join(cfg.Node.DataDir, "carmen", "evmstore")
-		err := os.MkdirAll(evmStoreDir, 0700)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create carmen evmstore dir; %v", err)
-		}
-		store, err := evmstore.NewEvmStore(evmstore.Parameters{Directory: evmStoreDir})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create carmen evmstore; %v", err)
-		}
-		cfg.OperaStore.EVM.CarmenEvmStore = store
 	}
 
 	err = setValidator(ctx, &cfg.Emitter)

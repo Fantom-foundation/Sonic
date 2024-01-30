@@ -31,7 +31,7 @@ func (s *Store) SetRawReceipts(n idx.Block, receipts []*types.ReceiptForStorage)
 		s.Log.Crit("Failed to encode rlp", "err", err)
 	}
 
-	if err := s.backend.SetRawReceipts(n, buf); err != nil {
+	if err := s.table.Receipts.Put(n.Bytes(), buf); err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
 	}
 
@@ -42,7 +42,7 @@ func (s *Store) SetRawReceipts(n idx.Block, receipts []*types.ReceiptForStorage)
 }
 
 func (s *Store) GetRawReceiptsRLP(n idx.Block) rlp.RawValue {
-	buf, err := s.backend.GetRawReceipts(n)
+	buf, err := s.table.Receipts.Get(n.Bytes())
 	if err != nil {
 		s.Log.Crit("Failed to get key-value", "err", err)
 	}
