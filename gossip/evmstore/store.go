@@ -1,18 +1,16 @@
 package evmstore
 
 import (
+	"fmt"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
 	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"os"
 )
 
 const nominalSize uint = 1
@@ -40,17 +38,20 @@ type Store struct {
 	rlp rlpstore.Helper
 
 	logger.Instance
-	sdbm *statedb.StateDbManager
+
+	parameters carmen.Parameters
+	carmenState carmen.State
+	liveStateDb carmen.StateDB
 }
 
 // NewStore creates store over key-value db.
-func NewStore(mainDB kvdb.Store, cfg StoreConfig, sdbm *statedb.StateDbManager) *Store {
+func NewStore(mainDB kvdb.Store, cfg StoreConfig, stateDbCfg Config) *Store {
 	s := &Store{
 		cfg:      cfg,
 		mainDB:   mainDB,
 		Instance: logger.New("evm-store"),
 		rlp:      rlpstore.Helper{logger.New("rlp")},
-		sdbm:     sdbm,
+		parameters: createStateDbParams(stateDbCfg),
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)
@@ -65,31 +66,44 @@ func NewStore(mainDB kvdb.Store, cfg StoreConfig, sdbm *statedb.StateDbManager) 
 	return s
 }
 
+// Open the StateDB database (after the genesis import)
+func (s *Store) Open() error {
+	err := os.MkdirAll(s.parameters.Directory, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen dir \"%s\"; %v", s.parameters.Directory, err)
+	}
+	s.carmenState, err = carmen.NewState(s.parameters)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen state; %s", err)
+	}
+	s.liveStateDb = carmen.CreateStateDBUsing(s.carmenState)
+	return nil
+}
+
 // Close closes underlying database.
-func (s *Store) Close() {
+func (s *Store) Close() error {
 	// set all table/cache fields to nil
 	table.MigrateTables(&s.table, nil)
 	table.MigrateCaches(&s.cache, func() interface{} {
 		return nil
 	})
 	s.EvmLogs.Close()
+
+	if s.liveStateDb != nil {
+		err := s.liveStateDb.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close Carmen State: %w", err)
+		}
+		s.carmenState = nil
+		s.liveStateDb = nil
+	}
+	return nil
 }
 
 func (s *Store) initCache() {
 	s.cache.Receipts = s.makeCache(s.cfg.Cache.ReceiptsSize, s.cfg.Cache.ReceiptsBlocks)
 	s.cache.TxPositions = s.makeCache(nominalSize*uint(s.cfg.Cache.TxPositions), s.cfg.Cache.TxPositions)
 	s.cache.EvmBlocks = s.makeCache(s.cfg.Cache.EvmBlocksSize, s.cfg.Cache.EvmBlocksNum)
-}
-
-// StateDB returns state database.
-func (s *Store) StateDB(from hash.Hash) (state.StateDbInterface, error) {
-	return s.sdbm.GetTxPoolStateDB()
-}
-
-// CheckLiveStateDbHash returns if the hash of the current live StateDB hash matches (and fullsync is possible)
-func (s *Store) CheckLiveStateDbHash(blockNum idx.Block, from hash.Hash) bool {
-	err := s.sdbm.CheckLiveStateHash(uint64(blockNum), common.Hash(from))
-	return err == nil
 }
 
 // IndexLogs indexes EVM logs

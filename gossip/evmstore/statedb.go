@@ -1,0 +1,92 @@
+package evmstore
+
+import (
+	"fmt"
+	cc "github.com/Fantom-foundation/Carmen/go/common"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
+	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
+	"math/big"
+)
+
+type Config struct {
+	Directory     string
+	EnableArchive bool
+	CacheCapacity int64
+}
+
+func createStateDbParams(cfg Config) carmen.Parameters {
+	var archive = carmen.NoArchive
+	if cfg.EnableArchive {
+		archive = carmen.S5Archive
+	}
+	return carmen.Parameters{
+		Directory: cfg.Directory,
+		Variant:   "go-file",
+		Schema:    carmen.Schema(5),
+		Archive:   archive,
+		LiveCache: cfg.CacheCapacity / 2,
+		ArchiveCache: cfg.CacheCapacity / 2,
+	}
+}
+
+// GetLiveStateDb obtains StateDB for block processing - the live writable state
+func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInterface, error) {
+	if s.liveStateDb == nil {
+		return nil, fmt.Errorf("unable to get live StateDb - EvmStore is not open")
+	}
+	if s.liveStateDb.GetHash() != cc.Hash(stateRoot) {
+		return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", s.liveStateDb.GetHash(), stateRoot)
+	}
+	return CreateCarmenStateDb(s.liveStateDb), nil
+}
+
+// GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only.
+// It is also used in emitter for emitterdriver contract reading at the start of an epoch.
+func (s *Store) GetTxPoolStateDB() (state.StateDbInterface, error) {
+	// for TxPool and emitter it is ok to provide the newest state (and ignore the expected hash)
+	if s.carmenState == nil {
+		return nil, fmt.Errorf("unable to get TxPool StateDb - EvmStore is not open")
+	}
+	stateDb := carmen.CreateNonCommittableStateDBUsing(s.carmenState)
+	return CreateCarmenStateDb(stateDb), nil
+}
+
+// GetArchiveBlockHeight provides the last block number available in the archive. Returns 0 if not known.
+func (s *Store) GetArchiveBlockHeight() (height uint64, empty bool, err error) {
+	if s.liveStateDb == nil {
+		return 0, true, fmt.Errorf("unable to get archive block height - EvmStore is not open")
+	}
+	return s.liveStateDb.GetArchiveBlockHeight()
+}
+
+// GetRpcStateDb obtains archive StateDB for RPC requests evaluation
+func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
+	// always use archive state (live state may mix data from various block heights)
+	if s.liveStateDb == nil {
+		return nil, fmt.Errorf("unable to get RPC StateDb - EvmStore is not open")
+	}
+	stateDb, err := s.liveStateDb.GetArchiveStateDB(blockNum.Uint64())
+	if err != nil {
+		return nil, err
+	}
+	if stateDb.GetHash() != cc.Hash(stateRoot) {
+		return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
+	}
+	return CreateCarmenStateDb(stateDb), nil
+}
+
+// CheckLiveStateHash returns if the hash of the current live StateDB hash matches (and fullsync is possible)
+func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
+	if s.liveStateDb == nil {
+		return fmt.Errorf("unable to get live state - EvmStore is not open")
+	}
+	stateHash := s.liveStateDb.GetHash()
+	if cc.Hash(root) != stateHash {
+		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
+	}
+	return nil
+}

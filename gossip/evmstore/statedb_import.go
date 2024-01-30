@@ -1,4 +1,4 @@
-package statedb
+package evmstore
 
 import (
 	"bytes"
@@ -25,22 +25,10 @@ import (
 
 var emptyCodeHash = crypto.Keccak256(nil)
 
-// IsAlreadyImported checks, if there is already a Carmen directory filled with state data,
-// so the EVM data import into it should be skipped. Calling CheckLiveStateHash should follow
-// to make sure the directory contains the state with the expected hash.
-func (m *StateDbManager) IsAlreadyImported() bool {
-	stats, err := os.Stat(m.parameters.Directory)
-	return err == nil && stats.IsDir()
-}
-
 // ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
-// Must be called before the first StateDbManager.Open call.
-func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
-	if m.carmenState != nil {
-		return fmt.Errorf("carmen state must be closed before the FWS data import")
-	}
-
-	liveDir := filepath.Join(m.parameters.Directory, "live")
+// Must be called before the first Open call.
+func (s *Store) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
+	liveDir := filepath.Join(s.parameters.Directory, "live")
 	if err := os.MkdirAll(liveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
@@ -48,29 +36,25 @@ func (m *StateDbManager) ImportWorldState(liveReader io.Reader, archiveReader io
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
 
-	if m.parameters.Archive == carmen.S5Archive {
-		archiveDir := filepath.Join(m.parameters.Directory, "archive")
+	if s.parameters.Archive == carmen.S5Archive {
+		archiveDir := filepath.Join(s.parameters.Directory, "archive")
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
 		if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
-	} else if m.parameters.Archive != carmen.NoArchive {
+	} else if s.parameters.Archive != carmen.NoArchive {
 		return fmt.Errorf("archive is used, but cannot be initialized from FWS genesis section")
 	}
 	return nil
 }
 
-// ImportLegacyEvmData reads legacy EVM trie database and imports one state (for one given block) into Carmen state.
-func (m *StateDbManager) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, root common.Hash) error {
-	if m.carmenState != nil {
-		return fmt.Errorf("carmen state must be closed before the legacy EVM data import")
+func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, root common.Hash) error {
+	if err := s.Open(); err != nil {
+		return fmt.Errorf("failed to open EvmStore for legacy EVM data import; %v", err)
 	}
-	if err := m.Open(); err != nil {
-		return fmt.Errorf("failed to open StateDbManager for legacy EVM data import; %v", err)
-	}
-	defer m.Close()
+	defer s.Close()
 
 	carmenDir, err := os.MkdirTemp("", "opera-tmp-import-legacy-genesis")
 	if err != nil {
@@ -78,7 +62,7 @@ func (m *StateDbManager) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum
 	}
 	defer os.RemoveAll(carmenDir)
 
-	m.logger.Log.Info("Unpacking legacy EVM data into a temporary directory", "dir", carmenDir)
+	s.Log.Info("Unpacking legacy EVM data into a temporary directory", "dir", carmenDir)
 	db, err := pebble.New(carmenDir, 1024, 100, nil, nil)
 	if err != nil {
 		panic(fmt.Errorf("failed to open temporary database for legacy EVM data import: %v", err))
@@ -91,11 +75,11 @@ func (m *StateDbManager) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum
 		return true
 	})
 
-	m.logger.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
+	s.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)
 
 	var currentBlock uint64 = 1
 	var accountsCount, slotsCount uint64 = 0, 0
-	bulk := m.liveStateDb.StartBulkLoad(currentBlock)
+	bulk := s.liveStateDb.StartBulkLoad(currentBlock)
 
 	restartBulkIfNeeded := func () error {
 		if (accountsCount + slotsCount) % 1_000_000 == 0 && currentBlock < blockNum {
@@ -103,7 +87,7 @@ func (m *StateDbManager) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum
 				return err
 			}
 			currentBlock++
-			bulk = m.liveStateDb.StartBulkLoad(currentBlock)
+			bulk = s.liveStateDb.StartBulkLoad(currentBlock)
 		}
 		return nil
 	}
@@ -191,26 +175,10 @@ func (m *StateDbManager) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum
 	}
 	// add the empty genesis block into archive
 	if currentBlock < blockNum {
-		bulk = m.liveStateDb.StartBulkLoad(blockNum)
+		bulk = s.liveStateDb.StartBulkLoad(blockNum)
 		if err := bulk.Close(); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-// CheckLiveStateHash reads hash of the Carmen state and compare it with given expected state hash.
-// If it does not match, it returns an error.
-func (m *StateDbManager) CheckLiveStateHash(blockNum uint64, root common.Hash) error {
-	if m.carmenState == nil {
-		if err := m.Open(); err != nil {
-			return fmt.Errorf("failed to open StateDbManager for live state hash checking; %v", err)
-		}
-		defer m.Close()
-	}
-	stateHash := m.liveStateDb.GetHash()
-	if cc.Hash(root) != stateHash {
-		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
 	}
 	return nil
 }

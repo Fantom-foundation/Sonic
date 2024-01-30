@@ -78,7 +78,7 @@ func (r *EvmStateReader) LastHeaderWithArchiveState() (*evmcore.EvmHeader, error
 	latestBlock := r.store.GetLatestBlockIndex()
 
 	// make sure the block is present in the archive
-	latestArchiveBlock, empty, err := r.store.GetArchiveBlockHeight()
+	latestArchiveBlock, empty, err := r.store.evm.GetArchiveBlockHeight()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest archive block; %v", err)
 	}
@@ -150,10 +150,10 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 
 // GetTxPoolStateDB obtains StateDB for TxPool
 func (r *EvmStateReader) GetTxPoolStateDB() (state.StateDbInterface, error) {
-	return r.store.GetTxPoolStateDB()
+	return r.store.evm.GetTxPoolStateDB()
 }
 
 // GetRpcStateDB obtains archive StateDB for RPC requests evaluation
 func (r *EvmStateReader) GetRpcStateDB(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
-	return r.store.GetRpcStateDb(blockNum, stateRoot)
+	return r.store.evm.GetRpcStateDb(blockNum, stateRoot)
 }

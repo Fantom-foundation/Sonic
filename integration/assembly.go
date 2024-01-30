@@ -75,11 +75,6 @@ func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *
 	return gdb, cdb
 }
 
-func rawApplyGenesis(gdb *gossip.Store, cdb *abft.Store, g genesis.Genesis, cfg Configs) error {
-	_, _, _, err := rawMakeEngine(gdb, cdb, &g, cfg)
-	return err
-}
-
 func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, gossip.BlockProc, error) {
 	blockProc := gossip.DefaultBlockProc()
 
@@ -109,7 +104,7 @@ func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) 
 	defer gdb.Close()
 	defer cdb.Close()
 	log.Info("Applying genesis state")
-	err := rawApplyGenesis(gdb, cdb, g, cfg)
+	_, _, _, err := rawMakeEngine(gdb, cdb, &g, cfg)
 	if err != nil {
 		return err
 	}
@@ -190,6 +185,12 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		}
 	}()
 
+	err = gdb.EvmStore().Open()
+	if err != nil {
+		err = fmt.Errorf("failed to open EvmStore: %v", err)
+		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
+	}
+
 	// compare genesis with the input
 	genesisID := gdb.GetGenesisID()
 	if genesisID == nil {
@@ -201,11 +202,6 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 			err = &GenesisMismatchError{*genesisID, g.GenesisID}
 			return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
 		}
-	}
-
-	if err := gdb.StateDbManager.Open(); err != nil {
-		err = fmt.Errorf("failed to open StateDbManager: %v", err)
-		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
 	}
 
 	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, nil, cfg)

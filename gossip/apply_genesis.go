@@ -58,7 +58,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	})
 
 	// write EVM items
-	if !s.StateDbManager.IsAlreadyImported() {
+	if !s.isStateDbAlreadyImported {
 		liveReader, err := g.FwsSection.GetReader()
 		if err != nil {
 			s.Log.Info("Fantom World State data not available in the genesis", "err", err)
@@ -70,13 +70,13 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 			if err != nil {
 				return fmt.Errorf("failed to get second FWS section reader; %v", err)
 			}
-			err = s.StateDbManager.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
+			err = s.evm.ImportWorldState(liveReader, archiveReader, uint64(lastBlock.Idx))
 			if err != nil {
 				return fmt.Errorf("failed to import Fantom World State data from genesis; %v", err)
 			}
 		} else { // no S5 section in the genesis file
 			// Import legacy EVM genesis section
-			err = s.StateDbManager.ImportLegacyEvmData(g.RawEvmItems, uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
+			err = s.evm.ImportLegacyEvmData(g.RawEvmItems, uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
 			if err != nil {
 				return fmt.Errorf("import of legacy genesis data into StateDB failed; %v", err)
 			}
@@ -85,8 +85,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		s.Log.Info("EVM data import skipped - data already present")
 	}
 
-	if err := s.StateDbManager.CheckLiveStateHash(uint64(lastBlock.Idx), common.Hash(lastBlock.Root)); err != nil {
-		return err
+	if err := s.evm.Open(); err != nil {
+		return fmt.Errorf("unable to open EvmStore to check imported state: %w", err)
+	}
+	if err := s.evm.CheckLiveStateHash(lastBlock.Idx, lastBlock.Root); err != nil {
+		return fmt.Errorf("checking imported live state failed: %w", err)
 	} else {
 		s.Log.Info("StateDB imported successfully, stateRoot matches", "index", lastBlock.Idx, "root", lastBlock.Root)
 	}

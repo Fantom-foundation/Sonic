@@ -1,4 +1,4 @@
-package statedb
+package evmstore
 
 import (
 	"encoding/json"
