@@ -12,18 +12,12 @@ import (
 
 // SetTx stores non-event transaction.
 func (s *Store) SetTx(txid common.Hash, tx *types.Transaction) {
-	if err := s.backend.SetTx(txid, tx); err != nil {
-		s.Log.Crit("Failed to put tx", "err", err)
-	}
+	s.rlp.Set(s.table.Txs, txid.Bytes(), tx)
 }
 
 // GetTx returns stored non-event transaction.
 func (s *Store) GetTx(txid common.Hash) *types.Transaction {
-	tx, err := s.backend.GetTx(txid)
-	if err != nil {
-		s.Log.Crit("Failed to get tx", "err", err)
-		return nil
-	}
+	tx, _ := s.rlp.Get(s.table.Txs, txid.Bytes(), &types.Transaction{}).(*types.Transaction)
 	return tx
 }
 
@@ -45,7 +39,7 @@ func (s *Store) GetBlockTxs(n idx.Block, block inter.Block, getEventPayload func
 		tx := s.GetTx(txid)
 		if tx == nil {
 			log.Crit("Tx not found", "tx", txid.String())
-			return nil
+			continue
 		}
 		transactions = append(transactions, tx)
 	}

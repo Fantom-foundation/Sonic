@@ -11,7 +11,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -32,8 +31,6 @@ type Store struct {
 
 	EvmLogs  topicsdb.Index
 
-	backend Backend
-
 	cache struct {
 		TxPositions *wlru.Cache `cache:"-"` // store by pointer
 		Receipts    *wlru.Cache `cache:"-"` // store by value
@@ -41,8 +38,6 @@ type Store struct {
 	}
 
 	rlp rlpstore.Helper
-
-	triegc *prque.Prque // Priority queue mapping block numbers to tries to gc
 
 	logger.Instance
 	sdbm *statedb.StateDbManager
@@ -55,14 +50,7 @@ func NewStore(mainDB kvdb.Store, cfg StoreConfig, sdbm *statedb.StateDbManager) 
 		mainDB:   mainDB,
 		Instance: logger.New("evm-store"),
 		rlp:      rlpstore.Helper{logger.New("rlp")},
-		triegc:   prque.New(nil),
 		sdbm:     sdbm,
-	}
-
-	if cfg.CarmenEvmStore != nil {
-		s.backend = carmenBackend{cfg.CarmenEvmStore}
-	} else {
-		s.backend = legacyBackend{s}
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)

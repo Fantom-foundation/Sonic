@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/Carmen/go/evmstore"
 	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
 	"os"
 	"path"
@@ -62,20 +60,6 @@ var (
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
-	}
-
-	disableLogsFlag = cli.BoolFlag{
-		Name:  "noevmlogs",
-		Usage: "Disable recording of EVM logs",
-	}
-	disableTxHashesFlag = cli.BoolFlag{
-		Name:  "notxhashes",
-		Usage: "Disable indexing of tx hashes",
-	}
-
-	carmenEvmStoreFlag = cli.BoolFlag{
-		Name:  "carmenevmstore",
-		Usage: "Switch to using Carmen EvmStore for receipts and txs.",
 	}
 
 	overrideMinGasPriceFlag = cli.Uint64Flag{
@@ -378,17 +362,21 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	return cfg
 }
 
-func setStateDBConfig(ctx *cli.Context, datadir string, src statedb.Config) (statedb.Config, error) {
+func setOperaStoreMode(ctx *cli.Context, datadir string, src gossip.StoreConfig) (gossip.StoreConfig, error) {
 	cfg := src
-	cfg.Directory = filepath.Join(datadir, "carmen")
-	cfg.EnableArchive = true
+	cfg.StateDB.Directory = filepath.Join(datadir, "carmen")
+	cfg.StateDB.EnableArchive = true
 
 	if ctx.GlobalIsSet(ModeFlag.Name) {
 		mode := ctx.GlobalString(ModeFlag.Name)
 		if mode != "rpc" && mode != "validator" {
 			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", ModeFlag.Name)
 		}
-		cfg.EnableArchive = mode == "rpc"
+		if mode == "validator" {
+			cfg.StateDB.EnableArchive = false
+			cfg.EVM.DisableLogsIndexing = true
+			cfg.EVM.DisableTxHashesIndexing = true
+		}
 	}
 	return cfg, nil
 }
@@ -475,34 +463,13 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	var err error
 	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
-	cfg.OperaStore.StateDB, err = setStateDBConfig(ctx, cfg.Node.DataDir, cfg.OperaStore.StateDB)
+	cfg.OperaStore, err = setOperaStoreMode(ctx, cfg.Node.DataDir, cfg.OperaStore)
 	if err != nil {
 		return nil, err
 	}
 
 	if overrideMinGasPrice := ctx.GlobalUint64(overrideMinGasPriceFlag.Name); overrideMinGasPrice != 0 {
 		opera.OverrideMinGasPrice = big.NewInt(int64(overrideMinGasPrice))
-	}
-
-	if ctx.GlobalBool(disableLogsFlag.Name) {
-		cfg.OperaStore.EVM.DisableLogsIndexing = true
-	}
-
-	if ctx.GlobalBool(disableTxHashesFlag.Name) {
-		cfg.OperaStore.EVM.DisableTxHashesIndexing = true
-	}
-
-	if ctx.GlobalBool(carmenEvmStoreFlag.Name) {
-		evmStoreDir := filepath.Join(cfg.Node.DataDir, "carmen", "evmstore")
-		err := os.MkdirAll(evmStoreDir, 0700)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create carmen evmstore dir; %v", err)
-		}
-		store, err := evmstore.NewEvmStore(evmstore.Parameters{Directory: evmStoreDir})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create carmen evmstore; %v", err)
-		}
-		cfg.OperaStore.EVM.CarmenEvmStore = store
 	}
 
 	err = setValidator(ctx, &cfg.Emitter)
