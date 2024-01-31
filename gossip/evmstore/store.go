@@ -45,13 +45,13 @@ type Store struct {
 }
 
 // NewStore creates store over key-value db.
-func NewStore(mainDB kvdb.Store, cfg StoreConfig, stateDbCfg Config) *Store {
+func NewStore(mainDB kvdb.Store, cfg StoreConfig) *Store {
 	s := &Store{
 		cfg:      cfg,
 		mainDB:   mainDB,
 		Instance: logger.New("evm-store"),
 		rlp:      rlpstore.Helper{logger.New("rlp")},
-		parameters: createStateDbParams(stateDbCfg),
+		parameters: cfg.StateDb,
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)

@@ -120,13 +120,13 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
 		Instance:      logger.New("gossip-store"),
 		prevFlushTime: time.Now(),
 		rlp:           rlpstore.Helper{logger.New("rlp")},
-		isStateDbAlreadyImported: doesDirExists(cfg.StateDB.Directory),
+		isStateDbAlreadyImported: doesDirExists(cfg.EVM.StateDb.Directory),
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)
 
 	s.initCache()
-	s.evm = evmstore.NewStore(s.mainDB, cfg.EVM, cfg.StateDB)
+	s.evm = evmstore.NewStore(s.mainDB, cfg.EVM)
 
 	if err := s.migrateData(); err != nil {
 		s.Log.Crit("Failed to migrate Gossip DB", "err", err)

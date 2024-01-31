@@ -1,6 +1,7 @@
 package evmstore
 
 import (
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -22,6 +23,8 @@ type (
 	// StoreConfig is a config for store db.
 	StoreConfig struct {
 		Cache StoreCacheConfig
+		// Carmen StateDB config
+		StateDb carmen.Parameters
 		// Disables EVM logs indexing
 		DisableLogsIndexing bool
 		// Disables storing of txs positions
@@ -38,6 +41,11 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 			TxPositions:       scale.I(20000),
 			EvmBlocksNum:      scale.I(5000),
 			EvmBlocksSize:     scale.U(6 * opt.MiB),
+		},
+		StateDb: carmen.Parameters{
+			Variant:   "go-file",
+			Schema:    carmen.Schema(5),
+			Archive:   carmen.S5Archive,
 		},
 	}
 }
