@@ -107,7 +107,6 @@ func NewMemStore(tb testing.TB) *Store {
 }
 
 // NewStore creates store over key-value db.
-// If isGenesis flags is true, StateDbManager will not be open, to avoid premature initialization.
 func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
 	mainDB, err := dbs.OpenDB("gossip")
 	if err != nil {
