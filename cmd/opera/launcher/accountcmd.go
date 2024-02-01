@@ -19,7 +19,6 @@ package launcher
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -199,7 +198,10 @@ nodes.
 
 func accountList(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
@@ -328,7 +330,10 @@ func accountUpdate(ctx *cli.Context) error {
 	}
 
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args() {
@@ -349,13 +354,16 @@ func importWallet(ctx *cli.Context) error {
 	if len(keyfile) == 0 {
 		utils.Fatalf("keyfile must be given as argument")
 	}
-	keyJSON, err := ioutil.ReadFile(keyfile)
+	keyJSON, err := os.ReadFile(keyfile)
 	if err != nil {
 		utils.Fatalf("Could not read wallet file: %v", err)
 	}
 
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -378,7 +386,10 @@ func accountImport(ctx *cli.Context) error {
 	}
 
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	passphrase := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)

@@ -272,18 +272,28 @@ func lachesisMain(ctx *cli.Context) error {
 
 	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize the node: %w", err)
 	}
 	defer nodeClose()
 
 	if err := startNode(ctx, node); err != nil {
-		return err
+		return fmt.Errorf("failed to start the node: %w", err)
 	}
 	node.Wait()
 	return nil
 }
 
 func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (*node.Node, *gossip.Service, func(), error) {
+	var success bool
+	var cleanup []func()
+	defer func() { // if the function fails, clean-up in defer, otherwise return cleaning function
+		if !success {
+			for i := len(cleanup) - 1; i >= 0 ; i-- {
+				cleanup[i]()
+			}
+		}
+	}()
+
 	// check errlock file
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
@@ -296,6 +306,20 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 
 	// applies genesis
 	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), g, cfg.AppConfigs())
+	cleanup = append(cleanup, func() {
+		if err := gdb.Close(); err != nil {
+			log.Warn("Failed to close gossip store", "err", err)
+		}
+		if err := cdb.Close(); err != nil {
+			log.Warn("Failed to close consensus database", "err", err)
+		}
+		if closeDBs != nil {
+			if err := closeDBs(); err != nil {
+				log.Warn("Failed to close databases", "err", err)
+			}
+		}
+	})
+
 	if genesisStore != nil {
 		_ = genesisStore.Close()
 	}
@@ -317,7 +341,15 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		setBootnodes(ctx, bootnodes, &cfg.Node)
 	}
 
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to unlock validator key: %w", err)
+	}
+	cleanup = append(cleanup, func() {
+		if err := stack.Close(); err != nil && err != node.ErrNodeStopped {
+			log.Warn("Failed to close stack", "err", err)
+		}
+	})
 
 	valKeystore := valkeystore.NewDefaultFileKeystore(path.Join(getValKeystoreDir(cfg.Node), "validator"))
 	valPubkey := cfg.Emitter.Validator.PubKey
@@ -382,31 +414,20 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	stack.RegisterProtocols(svc.Protocols())
 	stack.RegisterLifecycle(svc)
 
+	success = true // skip cleanup in defer - keep it for the returned cleanup function
 	return stack, svc, func() {
-		if err := stack.Close(); err != nil && err != node.ErrNodeStopped {
-			log.Warn("Failed to close stack", "err", err)
-		}
-		if err := gdb.Close(); err != nil {
-			log.Warn("Failed to close gossip store", "err", err)
-		}
-		if err := cdb.Close(); err != nil {
-			log.Warn("Failed to close consensus database", "err", err)
-		}
-		if closeDBs != nil {
-			if err := closeDBs(); err != nil {
-				log.Warn("Failed to close databases", "err", err)
-			}
+		for i := len(cleanup) - 1; i >= 0 ; i-- {
+			cleanup[i]()
 		}
 	}, nil
 }
 
-func makeConfigNode(ctx *cli.Context, cfg *node.Config) *node.Node {
+func makeNetworkStack(ctx *cli.Context, cfg *node.Config) (*node.Node, error) {
 	stack, err := node.New(cfg)
 	if err != nil {
-		utils.Fatalf("Failed to create the protocol stack: %v", err)
+		return nil, fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
-
-	return stack
+	return stack, nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
