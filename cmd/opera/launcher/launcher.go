@@ -463,7 +463,6 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 	// Unlock any account specifically requested
 	err := unlockAccounts(ctx, stack)
 	if err != nil {
-		_, _ = fmt.Printf("Fatal: %v\n", err) // for compatibility with tests expecting exact match
 		return fmt.Errorf("failed to unlock accounts: %w", err)
 	}
 

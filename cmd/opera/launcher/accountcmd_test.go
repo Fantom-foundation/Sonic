@@ -172,9 +172,12 @@ Unlocking account f466859ead1932d743d622cb74fc058882e8648a | Attempt 2/3
 Passphrase: {{.InputLine "wrong2"}}
 Unlocking account f466859ead1932d743d622cb74fc058882e8648a | Attempt 3/3
 Passphrase: {{.InputLine "wrong3"}}
-Fatal: Failed to unlock account f466859ead1932d743d622cb74fc058882e8648a (could not decrypt key with given password)
 `)
 	cli.ExpectExit()
+	expected := "failed to unlock account f466859ead1932d743d622cb74fc058882e8648a (could not decrypt key with given password)"
+	if !strings.Contains(cli.StderrText(), expected) {
+		t.Errorf("stderr text does not contain %q", expected)
+	}
 }
 
 // https://github.com/ethereum/go-ethereum/issues/1785
@@ -233,10 +236,11 @@ func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
 
-	cli.Expect(`
-Fatal: Failed to unlock account 0 (could not decrypt key with given password)
-`)
 	cli.ExpectExit()
+	expected := "failed to unlock account 0 (could not decrypt key with given password)"
+	if !strings.Contains(cli.StderrText(), expected) {
+		t.Errorf("stderr text does not contain %q", expected)
+	}
 }
 
 func TestUnlockFlagAmbiguous(t *testing.T) {

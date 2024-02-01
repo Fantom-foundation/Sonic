@@ -236,7 +236,7 @@ func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 		}
 	}
 	// All trials expended to unlock account, bail out
-	return accounts.Account{}, "", fmt.Errorf("Failed to unlock account %s (%w)", address, err)
+	return accounts.Account{}, "", fmt.Errorf("failed to unlock account %s (%w)", address, err)
 }
 
 // getPassPhrase retrieves the password associated with an account, either fetched
