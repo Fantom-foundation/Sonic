@@ -2,9 +2,14 @@ package launcher
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/diskusage"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"os"
+	"os/signal"
 	"path"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -265,14 +270,20 @@ func lachesisMain(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
 	genesisStore := mayGetGenesisStore(ctx, cfg)
 
-	node, _, nodeClose := makeNode(ctx, cfg, genesisStore)
+	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	if err != nil {
+		return err
+	}
 	defer nodeClose()
-	startNode(ctx, node)
+
+	if err := startNode(ctx, node); err != nil {
+		return err
+	}
 	node.Wait()
 	return nil
 }
 
-func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (*node.Node, *gossip.Service, func()) {
+func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (*node.Node, *gossip.Service, func(), error) {
 	// check errlock file
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
@@ -320,7 +331,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	if !valPubkey.Empty() {
 		err := unlockValidatorKey(ctx, valPubkey, valKeystore)
 		if err != nil {
-			utils.Fatalf("Failed to unlock validator key: %v", err)
+			return nil, nil, nil, fmt.Errorf("failed to unlock validator key: %w", err)
 		}
 	}
 	signer := valkeystore.NewSigner(valKeystore)
@@ -346,15 +357,15 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	}
 	svc, err := gossip.NewService(stack, cfg.Opera, gdb, blockProc, engine, dagIndex, newTxPool, haltCheck)
 	if err != nil {
-		utils.Fatalf("Failed to create the service: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to create the gossip service: %w", err)
 	}
 	err = engine.Bootstrap(svc.GetConsensusCallbacks())
 	if err != nil {
-		utils.Fatalf("Failed to bootstrap the engine: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to bootstrap the consensus engine: %w", err)
 	}
 	err = engine.Reset(gdb.GetEpoch(), gdb.GetValidators())
 	if err != nil {
-		utils.Fatalf("Failed to reset the engine: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to reset the consensus engine: %w", err)
 	}
 	svc.ReprocessEpochEvents()
 	if cfg.Emitter.Validator.ID != 0 {
@@ -380,7 +391,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 				log.Warn("Failed to close databases", "err", err)
 			}
 		}
-	}
+	}, nil
 }
 
 func makeConfigNode(ctx *cli.Context, cfg *node.Config) *node.Node {
@@ -394,14 +405,40 @@ func makeConfigNode(ctx *cli.Context, cfg *node.Config) *node.Node {
 
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces.
-func startNode(ctx *cli.Context, stack *node.Node) {
+func startNode(ctx *cli.Context, stack *node.Node) error {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
-	utils.StartNode(ctx, stack)
+	if err := stack.Start(); err != nil {
+		return fmt.Errorf("error starting protocol stack: %w", err)
+	}
+	go func() {
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
+		defer signal.Stop(sigc)
+
+		startFreeDiskSpaceMonitor(ctx, sigc, stack.InstanceDir())
+
+		<-sigc
+		log.Info("Got interrupt, shutting down...")
+		go stack.Close()
+		for i := 10; i > 0; i-- {
+			<-sigc
+			if i > 1 {
+				log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
+			}
+		}
+		// received 10 interrupts - kill the node forcefully
+		debug.Exit() // ensure trace and CPU profile data is flushed.
+		debug.LoudPanic("boom")
+	}()
 
 	// Unlock any account specifically requested
-	unlockAccounts(ctx, stack)
+	err := unlockAccounts(ctx, stack)
+	if err != nil {
+		_, _ = fmt.Printf("Fatal: %v\n", err) // for compatibility with tests expecting exact match
+		return fmt.Errorf("failed to unlock accounts: %w", err)
+	}
 
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
@@ -410,7 +447,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// Create a client to interact with local opera node.
 	rpcClient, err := stack.Attach()
 	if err != nil {
-		utils.Fatalf("Failed to attach to self: %v", err)
+		return fmt.Errorf("failed to attach to self: %w", err)
 	}
 	ethClient := ethclient.NewClient(rpcClient)
 	go func() {
@@ -445,10 +482,24 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 			}
 		}
 	}()
+
+	return nil
+}
+
+func startFreeDiskSpaceMonitor(ctx *cli.Context, sigc chan os.Signal, path string) {
+	minFreeDiskSpace := ethconfig.Defaults.TrieDirtyCache
+	if ctx.GlobalIsSet(utils.MinFreeDiskSpaceFlag.Name) {
+		minFreeDiskSpace = ctx.GlobalInt(utils.MinFreeDiskSpaceFlag.Name)
+	} else {
+		minFreeDiskSpace = 8192
+	}
+	if minFreeDiskSpace > 0 {
+		go diskusage.MonitorFreeDiskSpace(sigc, path, uint64(minFreeDiskSpace)*1024*1024)
+	}
 }
 
 // unlockAccounts unlocks any account specifically requested.
-func unlockAccounts(ctx *cli.Context, stack *node.Node) {
+func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 	var unlocks []string
 	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {
@@ -458,16 +509,19 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	}
 	// Short circuit if there is no account to unlock.
 	if len(unlocks) == 0 {
-		return
+		return nil
 	}
 	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
 	// Print warning log to user and skip unlocking.
 	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
-		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+		return fmt.Errorf("account unlock with HTTP access is forbidden")
 	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	passwords := utils.MakePasswordList(ctx)
 	for i, account := range unlocks {
-		unlockAccount(ks, account, i, passwords)
+		if _, _, err := unlockAccount(ks, account, i, passwords); err != nil {
+			return err
+		}
 	}
+	return nil
 }

@@ -211,10 +211,10 @@ func accountList(ctx *cli.Context) error {
 }
 
 // tries unlocking the specified account a few times.
-func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []string) (accounts.Account, string) {
+func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []string) (accounts.Account, string, error) {
 	account, err := utils.MakeAddress(ks, address)
 	if err != nil {
-		utils.Fatalf("Could not list accounts: %v", err)
+		return accounts.Account{}, "", fmt.Errorf("could not list accounts: %w", err)
 	}
 	for trials := 0; trials < 3; trials++ {
 		prompt := fmt.Sprintf("Unlocking account %s | Attempt %d/%d", address, trials+1, 3)
@@ -222,11 +222,11 @@ func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 		err = ks.Unlock(account, password)
 		if err == nil {
 			log.Info("Unlocked account", "address", account.Address.Hex())
-			return account, password
+			return account, password, nil
 		}
 		if err, ok := err.(*keystore.AmbiguousAddrError); ok {
 			log.Info("Unlocked account", "address", account.Address.Hex())
-			return ambiguousAddrRecovery(ks, err, password), password
+			return ambiguousAddrRecovery(ks, err, password), password, nil
 		}
 		if err != keystore.ErrDecrypt {
 			// No need to prompt again if the error is not decryption-related.
@@ -234,9 +234,7 @@ func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 		}
 	}
 	// All trials expended to unlock account, bail out
-	utils.Fatalf("Failed to unlock account %s (%v)", address, err)
-
-	return accounts.Account{}, ""
+	return accounts.Account{}, "", fmt.Errorf("Failed to unlock account %s (%w)", address, err)
 }
 
 // getPassPhrase retrieves the password associated with an account, either fetched
@@ -326,7 +324,7 @@ func accountCreate(ctx *cli.Context) error {
 // one, also providing the possibility to change the pass-phrase.
 func accountUpdate(ctx *cli.Context) error {
 	if len(ctx.Args()) == 0 {
-		utils.Fatalf("No accounts specified to update")
+		return fmt.Errorf("no accounts specified to update")
 	}
 
 	cfg := makeAllConfigs(ctx)
@@ -334,10 +332,13 @@ func accountUpdate(ctx *cli.Context) error {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args() {
-		account, oldPassword := unlockAccount(ks, addr, 0, nil)
+		account, oldPassword, err := unlockAccount(ks, addr, 0, nil)
+		if err != nil {
+			return err
+		}
 		newPassword := getPassPhrase("Please give a new password. Do not forget this password.", true, 0, nil)
 		if err := ks.Update(account, oldPassword, newPassword); err != nil {
-			utils.Fatalf("Could not update the account: %v", err)
+			return fmt.Errorf("could not update the account: %w", err)
 		}
 	}
 	return nil

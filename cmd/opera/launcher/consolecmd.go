@@ -78,9 +78,14 @@ func localConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
 	cfg := makeAllConfigs(ctx)
 	genesisStore := mayGetGenesisStore(ctx, cfg)
-	node, _, nodeClose := makeNode(ctx, cfg, genesisStore)
-	startNode(ctx, node)
+	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	if err != nil {
+		return err
+	}
 	defer nodeClose()
+	if err := startNode(ctx, node); err != nil {
+		return err
+	}
 
 	// Attach to the newly started node and start the JavaScript console
 	client, err := node.Attach()
@@ -173,9 +178,14 @@ func ephemeralConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
 	cfg := makeAllConfigs(ctx)
 	genesisStore := mayGetGenesisStore(ctx, cfg)
-	node, _, nodeClose := makeNode(ctx, cfg, genesisStore)
-	startNode(ctx, node)
+	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	if err != nil {
+		return err
+	}
 	defer nodeClose()
+	if err := startNode(ctx, node); err != nil {
+		return err
+	}
 
 	// Attach to the newly started node and start the JavaScript console
 	client, err := node.Attach()
