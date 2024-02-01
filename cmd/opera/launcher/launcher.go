@@ -368,6 +368,12 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		return nil, nil, nil, fmt.Errorf("failed to reset the consensus engine: %w", err)
 	}
 	svc.ReprocessEpochEvents()
+
+	// commit dbs to avoid dirty state when the rest of the startup fails
+	if err := gdb.Commit(); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to commit gossip store: %w", err)
+	}
+
 	if cfg.Emitter.Validator.ID != 0 {
 		svc.RegisterEmitter(emitter.NewEmitter(cfg.Emitter, svc.EmitterWorld(signer)))
 	}
