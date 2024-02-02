@@ -6,7 +6,7 @@ import (
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
-	"github.com/Fantom-foundation/go-opera/statedb"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"io"
 	"math/big"
 	"os"
@@ -118,7 +118,7 @@ func NewGenesisBuilder() *GenesisBuilder {
 		panic(fmt.Errorf("failed to create carmen state; %s", err))
 	}
 	carmenStateDb := carmen.CreateStateDBUsing(carmenState)
-	tmpStateDB := statedb.CreateCarmenStateDb(carmenStateDb)
+	tmpStateDB := evmstore.CreateCarmenStateDb(carmenStateDb)
 	return &GenesisBuilder{
 		tmpStateDB:    tmpStateDB,
 		carmenDir:     carmenDir,

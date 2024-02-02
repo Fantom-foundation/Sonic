@@ -1,6 +1,7 @@
 package evmstore
 
 import (
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -14,22 +15,16 @@ type (
 		ReceiptsBlocks int
 		// Cache size for TxPositions.
 		TxPositions int
-		// Cache size for EVM database.
-		EvmDatabase int
-		// Cache size for EVM snapshot.
-		EvmSnap int
 		// Cache size for EvmBlock (number of blocks).
 		EvmBlocksNum int
 		// Cache size for EvmBlock (size in bytes).
 		EvmBlocksSize uint
-		// Memory limit (MB) at which to start flushing dirty trie nodes to disk
-		TrieDirtyLimit uint
 	}
 	// StoreConfig is a config for store db.
 	StoreConfig struct {
 		Cache StoreCacheConfig
-		// Enables tracking of SHA3 preimages in the VM
-		EnablePreimageRecording bool
+		// Carmen StateDB config
+		StateDb carmen.Parameters
 		// Disables EVM logs indexing
 		DisableLogsIndexing bool
 		// Disables storing of txs positions
@@ -44,13 +39,14 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 			ReceiptsSize:      scale.U(4 * opt.MiB),
 			ReceiptsBlocks:    scale.I(4000),
 			TxPositions:       scale.I(20000),
-			EvmDatabase:       scale.I(32 * opt.MiB),
-			EvmSnap:           scale.I(32 * opt.MiB),
 			EvmBlocksNum:      scale.I(5000),
 			EvmBlocksSize:     scale.U(6 * opt.MiB),
-			TrieDirtyLimit:    scale.U(256 * opt.MiB),
 		},
-		EnablePreimageRecording: true,
+		StateDb: carmen.Parameters{
+			Variant:   "go-file",
+			Schema:    carmen.Schema(5),
+			Archive:   carmen.S5Archive,
+		},
 	}
 }
 

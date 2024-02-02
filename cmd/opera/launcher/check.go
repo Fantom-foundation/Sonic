@@ -1,7 +1,6 @@
 package launcher
 
 import (
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"time"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -21,8 +20,6 @@ func checkEvm(ctx *cli.Context) error {
 	gdb := makeGossipStore(rawDbs, cfg)
 	defer gdb.Close()
 
-	sdbm := statedb.CreateStateDbManager(cfg.OperaStore.StateDB)
-
 	start := time.Now()
 
 	lastBlockIdx := gdb.GetLatestBlockIndex()
@@ -31,7 +28,7 @@ func checkEvm(ctx *cli.Context) error {
 		log.Crit("Verification of the database failed - unable to get the last block")
 	}
 
-	err := sdbm.VerifyWorldState(uint64(lastBlockIdx), common.Hash(lastBlock.Root))
+	err := gdb.EvmStore().VerifyWorldState(uint64(lastBlockIdx), common.Hash(lastBlock.Root))
 	if err != nil {
 		log.Crit("Verification of the Fantom World State failed", "err", err)
 	}

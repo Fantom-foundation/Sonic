@@ -1,8 +1,7 @@
 package gossip
 
 import (
-	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -94,7 +93,7 @@ type Store struct {
 	rlp rlpstore.Helper
 
 	logger.Instance
-	*statedb.StateDbManager
+	isStateDbAlreadyImported bool
 }
 
 // NewMemStore creates temporary gossip store for testing purposes.
@@ -103,7 +102,6 @@ func NewMemStore(tb testing.TB) *Store {
 	dbs := flushable.NewSyncedPool(mems, []byte{0})
 
 	tmpDir := tb.TempDir()
-	tb.Log("NewMemStore", "dir", tmpDir)
 	cfg := MemTestStoreConfig(tmpDir)
 	return NewStore(dbs, cfg)
 }
@@ -121,13 +119,13 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
 		Instance:      logger.New("gossip-store"),
 		prevFlushTime: time.Now(),
 		rlp:           rlpstore.Helper{logger.New("rlp")},
-		StateDbManager: statedb.CreateStateDbManager(cfg.StateDB),
+		isStateDbAlreadyImported: doesDirExists(cfg.EVM.StateDb.Directory),
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)
 
 	s.initCache()
-	s.evm = evmstore.NewStore(s.mainDB, cfg.EVM, s.StateDbManager)
+	s.evm = evmstore.NewStore(s.mainDB, cfg.EVM)
 
 	if err := s.migrateData(); err != nil {
 		s.Log.Crit("Failed to migrate Gossip DB", "err", err)
@@ -173,10 +171,8 @@ func (s *Store) Close() error {
 	if err := s.closeEpochStore(); err != nil {
 		return err
 	}
-	s.evm.Close()
-
-	if err := s.StateDbManager.Close(); err != nil {
-		return fmt.Errorf("failed to close Carmen State: %w", err)
+	if err := s.evm.Close(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -237,4 +233,9 @@ func (s *Store) makeCache(weight uint, size int) *wlru.Cache {
 		return nil
 	}
 	return cache
+}
+
+func doesDirExists(dir string) bool {
+	stats, err := os.Stat(dir)
+	return err == nil && stats.IsDir()
 }

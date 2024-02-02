@@ -62,9 +62,14 @@ func importEvents(ctx *cli.Context) error {
 }
 
 func importEventsToNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store, args ...string) error {
-	node, svc, nodeClose := makeNode(ctx, cfg, genesisStore)
+	node, svc, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	if err != nil {
+		return err
+	}
 	defer nodeClose()
-	startNode(ctx, node)
+	if err := startNode(ctx, node); err != nil {
+		return err
+	}
 
 	for _, fn := range args {
 		log.Info("Importing events from file", "file", fn)

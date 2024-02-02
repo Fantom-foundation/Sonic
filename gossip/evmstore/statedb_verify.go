@@ -1,4 +1,4 @@
-package statedb
+package evmstore
 
 import (
 	"fmt"
@@ -6,26 +6,26 @@ import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/mpt"
 	"github.com/Fantom-foundation/Carmen/go/state/mpt/io"
-	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 	"path/filepath"
 )
 
-func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Hash) error {
-	if m.carmenState != nil {
+func (s *Store) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Hash) error {
+	if s.carmenState != nil {
 		return fmt.Errorf("carmen state must be closed for the world state verification")
 	}
 
-	observer := verificationObserver{m.logger}
+	observer := verificationObserver{s.Log}
 
 	// check hash of the live state / last state in the archive
-	if err := verifyLastState(m.parameters, expectedBlockNum, expectedHash); err != nil {
+	if err := verifyLastState(s.parameters, expectedBlockNum, expectedHash); err != nil {
 		return fmt.Errorf("verification of the last block failed: %w", err)
 	}
-	m.logger.Log.Info("State hash matches the last block state root.")
+	s.Log.Info("State hash matches the last block state root.")
 
 	// verify the live world state
-	liveDir := filepath.Join(m.parameters.Directory, "live")
+	liveDir := filepath.Join(s.parameters.Directory, "live")
 	info, err := io.CheckMptDirectoryAndGetInfo(liveDir)
 	if err != nil {
 		return fmt.Errorf("failed to check live state dir: %w", err)
@@ -33,13 +33,13 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 	if err := mpt.VerifyFileLiveTrie(liveDir, info.Config, observer); err != nil {
 		return fmt.Errorf("live state verification failed: %w", err)
 	}
-	m.logger.Log.Info("Live state verified successfully.")
+	s.Log.Info("Live state verified successfully.")
 
 	// verify the archive
-	if m.parameters.Archive != carmen.S5Archive {
+	if s.parameters.Archive != carmen.S5Archive {
 		return nil // skip archive checks when S5 archive is not used
 	}
-	archiveDir := filepath.Join(m.parameters.Directory, "archive")
+	archiveDir := filepath.Join(s.parameters.Directory, "archive")
 	archiveInfo, err := io.CheckMptDirectoryAndGetInfo(archiveDir)
 	if err != nil {
 		return fmt.Errorf("failed to check archive dir: %w", err)
@@ -47,7 +47,7 @@ func (m *StateDbManager) VerifyWorldState(expectedBlockNum uint64, expectedHash 
 	if err := mpt.VerifyArchive(archiveDir, archiveInfo.Config, observer); err != nil {
 		return fmt.Errorf("archive verification failed: %w", err)
 	}
-	m.logger.Log.Info("Archive verified successfully.")
+	s.Log.Info("Archive verified successfully.")
 	return nil
 }
 
@@ -95,13 +95,13 @@ func checkStateHash(state carmen.State, expectedHash common.Hash) error {
 }
 
 type verificationObserver struct {
-	logger.Instance
+	log.Logger
 }
 
 func (o verificationObserver) StartVerification() {}
 
 func (o verificationObserver) Progress(msg string) {
-	o.Log.Info(msg)
+	o.Info(msg)
 }
 
 func (o verificationObserver) EndVerification(res error) {}

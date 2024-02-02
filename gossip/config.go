@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/statedb"
 	"math/big"
 	"path/filepath"
 	"time"
@@ -128,9 +127,8 @@ type (
 	StoreConfig struct {
 		Cache StoreCacheConfig
 		// EVM is EVM store config
-		EVM                 evmstore.StoreConfig
-		StateDB             statedb.Config
-		MaxNonFlushedSize   int
+		EVM               evmstore.StoreConfig
+		MaxNonFlushedSize int
 		MaxNonFlushedPeriod time.Duration
 	}
 )
@@ -286,8 +284,9 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 // MemTestStoreConfig is for tests or inmemory.
 func MemTestStoreConfig(tmpDir string) StoreConfig {
 	cfg := DefaultStoreConfig(cachescale.Ratio{Base: 10, Target: 1})
-	cfg.StateDB.Directory = filepath.Join(tmpDir, "carmen")
-	cfg.StateDB.CacheCapacity = 100 // bytes
+	cfg.EVM.StateDb.Directory = filepath.Join(tmpDir, "carmen")
+	cfg.EVM.StateDb.LiveCache = 100 // bytes, to be overridden by the minimal value
+	cfg.EVM.StateDb.ArchiveCache = 100 // bytes, to be overridden by the minimal value
 	return cfg
 }
 

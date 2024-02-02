@@ -2,9 +2,14 @@ package launcher
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/diskusage"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"os"
+	"os/signal"
 	"path"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -265,14 +270,30 @@ func lachesisMain(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
 	genesisStore := mayGetGenesisStore(ctx, cfg)
 
-	node, _, nodeClose := makeNode(ctx, cfg, genesisStore)
+	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	if err != nil {
+		return fmt.Errorf("failed to initialize the node: %w", err)
+	}
 	defer nodeClose()
-	startNode(ctx, node)
+
+	if err := startNode(ctx, node); err != nil {
+		return fmt.Errorf("failed to start the node: %w", err)
+	}
 	node.Wait()
 	return nil
 }
 
-func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (*node.Node, *gossip.Service, func()) {
+func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (*node.Node, *gossip.Service, func(), error) {
+	var success bool
+	var cleanup []func()
+	defer func() { // if the function fails, clean-up in defer, otherwise return cleaning function
+		if !success {
+			for i := len(cleanup) - 1; i >= 0 ; i-- {
+				cleanup[i]()
+			}
+		}
+	}()
+
 	// check errlock file
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
@@ -285,6 +306,20 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 
 	// applies genesis
 	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), g, cfg.AppConfigs())
+	cleanup = append(cleanup, func() {
+		if err := gdb.Close(); err != nil {
+			log.Warn("Failed to close gossip store", "err", err)
+		}
+		if err := cdb.Close(); err != nil {
+			log.Warn("Failed to close consensus database", "err", err)
+		}
+		if closeDBs != nil {
+			if err := closeDBs(); err != nil {
+				log.Warn("Failed to close databases", "err", err)
+			}
+		}
+	})
+
 	if genesisStore != nil {
 		_ = genesisStore.Close()
 	}
@@ -306,7 +341,15 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		setBootnodes(ctx, bootnodes, &cfg.Node)
 	}
 
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to unlock validator key: %w", err)
+	}
+	cleanup = append(cleanup, func() {
+		if err := stack.Close(); err != nil && err != node.ErrNodeStopped {
+			log.Warn("Failed to close stack", "err", err)
+		}
+	})
 
 	valKeystore := valkeystore.NewDefaultFileKeystore(path.Join(getValKeystoreDir(cfg.Node), "validator"))
 	valPubkey := cfg.Emitter.Validator.PubKey
@@ -320,7 +363,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	if !valPubkey.Empty() {
 		err := unlockValidatorKey(ctx, valPubkey, valKeystore)
 		if err != nil {
-			utils.Fatalf("Failed to unlock validator key: %v", err)
+			return nil, nil, nil, fmt.Errorf("failed to unlock validator key: %w", err)
 		}
 	}
 	signer := valkeystore.NewSigner(valKeystore)
@@ -346,17 +389,23 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	}
 	svc, err := gossip.NewService(stack, cfg.Opera, gdb, blockProc, engine, dagIndex, newTxPool, haltCheck)
 	if err != nil {
-		utils.Fatalf("Failed to create the service: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to create the gossip service: %w", err)
 	}
 	err = engine.Bootstrap(svc.GetConsensusCallbacks())
 	if err != nil {
-		utils.Fatalf("Failed to bootstrap the engine: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to bootstrap the consensus engine: %w", err)
 	}
 	err = engine.Reset(gdb.GetEpoch(), gdb.GetValidators())
 	if err != nil {
-		utils.Fatalf("Failed to reset the engine: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to reset the consensus engine: %w", err)
 	}
 	svc.ReprocessEpochEvents()
+
+	// commit dbs to avoid dirty state when the rest of the startup fails
+	if err := gdb.Commit(); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to commit gossip store: %w", err)
+	}
+
 	if cfg.Emitter.Validator.ID != 0 {
 		svc.RegisterEmitter(emitter.NewEmitter(cfg.Emitter, svc.EmitterWorld(signer)))
 	}
@@ -365,43 +414,57 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	stack.RegisterProtocols(svc.Protocols())
 	stack.RegisterLifecycle(svc)
 
+	success = true // skip cleanup in defer - keep it for the returned cleanup function
 	return stack, svc, func() {
-		if err := stack.Close(); err != nil && err != node.ErrNodeStopped {
-			log.Warn("Failed to close stack", "err", err)
+		for i := len(cleanup) - 1; i >= 0 ; i-- {
+			cleanup[i]()
 		}
-		if err := gdb.Close(); err != nil {
-			log.Warn("Failed to close gossip store", "err", err)
-		}
-		if err := cdb.Close(); err != nil {
-			log.Warn("Failed to close consensus database", "err", err)
-		}
-		if closeDBs != nil {
-			if err := closeDBs(); err != nil {
-				log.Warn("Failed to close databases", "err", err)
-			}
-		}
-	}
+	}, nil
 }
 
-func makeConfigNode(ctx *cli.Context, cfg *node.Config) *node.Node {
+func makeNetworkStack(ctx *cli.Context, cfg *node.Config) (*node.Node, error) {
 	stack, err := node.New(cfg)
 	if err != nil {
-		utils.Fatalf("Failed to create the protocol stack: %v", err)
+		return nil, fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
-
-	return stack
+	return stack, nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces.
-func startNode(ctx *cli.Context, stack *node.Node) {
+func startNode(ctx *cli.Context, stack *node.Node) error {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
-	utils.StartNode(ctx, stack)
+	if err := stack.Start(); err != nil {
+		return fmt.Errorf("error starting protocol stack: %w", err)
+	}
+	go func() {
+		stopNodeSig := make(chan os.Signal, 1)
+		signal.Notify(stopNodeSig, syscall.SIGINT, syscall.SIGTERM)
+		defer signal.Stop(stopNodeSig)
+
+		startFreeDiskSpaceMonitor(ctx, stopNodeSig, stack.InstanceDir())
+
+		<-stopNodeSig
+		log.Info("Got interrupt, shutting down...")
+		go stack.Close()
+		for i := 10; i > 0; i-- {
+			<-stopNodeSig
+			if i > 1 {
+				log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
+			}
+		}
+		// received 10 interrupts - kill the node forcefully
+		debug.Exit() // ensure trace and CPU profile data is flushed.
+		debug.LoudPanic("boom")
+	}()
 
 	// Unlock any account specifically requested
-	unlockAccounts(ctx, stack)
+	err := unlockAccounts(ctx, stack)
+	if err != nil {
+		return fmt.Errorf("failed to unlock accounts: %w", err)
+	}
 
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
@@ -410,7 +473,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// Create a client to interact with local opera node.
 	rpcClient, err := stack.Attach()
 	if err != nil {
-		utils.Fatalf("Failed to attach to self: %v", err)
+		return fmt.Errorf("failed to attach to self: %w", err)
 	}
 	ethClient := ethclient.NewClient(rpcClient)
 	go func() {
@@ -445,10 +508,24 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 			}
 		}
 	}()
+
+	return nil
+}
+
+func startFreeDiskSpaceMonitor(ctx *cli.Context, stopNodeSig chan os.Signal, path string) {
+	minFreeDiskSpace := ethconfig.Defaults.TrieDirtyCache
+	if ctx.GlobalIsSet(utils.MinFreeDiskSpaceFlag.Name) {
+		minFreeDiskSpace = ctx.GlobalInt(utils.MinFreeDiskSpaceFlag.Name)
+	} else {
+		minFreeDiskSpace = 8192
+	}
+	if minFreeDiskSpace > 0 {
+		go diskusage.MonitorFreeDiskSpace(stopNodeSig, path, uint64(minFreeDiskSpace)*1024*1024)
+	}
 }
 
 // unlockAccounts unlocks any account specifically requested.
-func unlockAccounts(ctx *cli.Context, stack *node.Node) {
+func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 	var unlocks []string
 	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {
@@ -458,16 +535,19 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	}
 	// Short circuit if there is no account to unlock.
 	if len(unlocks) == 0 {
-		return
+		return nil
 	}
 	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
 	// Print warning log to user and skip unlocking.
 	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
-		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+		return fmt.Errorf("account unlock with HTTP access is forbidden")
 	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	passwords := utils.MakePasswordList(ctx)
 	for i, account := range unlocks {
-		unlockAccount(ks, account, i, passwords)
+		if _, _, err := unlockAccount(ks, account, i, passwords); err != nil {
+			return err
+		}
 	}
+	return nil
 }

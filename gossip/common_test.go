@@ -145,10 +145,6 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 		panic(fmt.Errorf("ApplyGenesis failed; %w", err))
 	}
 
-	if err := store.StateDbManager.Open(); err != nil {
-		panic(err)
-	}
-
 	// install blockProc callbacks
 	env := &testEnv{
 		t:      store.GetGenesisTime().Time(),
@@ -378,7 +374,10 @@ func (env *testEnv) ReadOnly() *bind.CallOpts {
 }
 
 func (env *testEnv) State() state.StateDbInterface {
-	statedb, _ := env.store.evm.StateDB(env.store.GetBlockState().FinalizedStateRoot)
+	statedb, err := env.store.evm.GetTxPoolStateDB()
+	if err != nil {
+		panic(err)
+	}
 	return statedb
 }
 

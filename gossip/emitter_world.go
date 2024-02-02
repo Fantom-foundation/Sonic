@@ -62,7 +62,7 @@ func (ew *emitterWorldProc) IsBusy() bool {
 }
 
 func (ew *emitterWorldProc) StateDB() state.StateDbInterface {
-	statedb, err := ew.s.store.evm.StateDB(ew.s.store.GetBlockState().FinalizedStateRoot)
+	statedb, err := ew.s.store.evm.GetTxPoolStateDB()
 	if err != nil {
 		return nil
 	}

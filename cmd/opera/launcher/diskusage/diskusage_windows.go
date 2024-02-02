@@ -14,31 +14,25 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-//go:build openbsd
-// +build openbsd
-
-package integration
+package diskusage
 
 import (
 	"fmt"
 
-	"golang.org/x/sys/unix"
+	"golang.org/x/sys/windows"
 )
 
 func getFreeDiskSpace(path string) (uint64, error) {
-	var stat unix.Statfs_t
-	if err := unix.Statfs(path, &stat); err != nil {
-		return 0, fmt.Errorf("failed to call Statfs: %v", err)
+
+	cwd, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return 0, fmt.Errorf("failed to call UTF16PtrFromString: %v", err)
 	}
 
-	// Available blocks * size per block = available space in bytes
-	var bavail = stat.F_bavail
-	// Not sure if the following check is necessary for OpenBSD
-	if stat.F_bavail < 0 {
-		// FreeBSD can have a negative number of blocks available
-		// because of the grace limit.
-		bavail = 0
+	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
+	if err := windows.GetDiskFreeSpaceEx(cwd, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes); err != nil {
+		return 0, fmt.Errorf("failed to call GetDiskFreeSpaceEx: %v", err)
 	}
-	//nolint:unconvert
-	return uint64(bavail) * uint64(stat.F_bsize), nil
+
+	return freeBytesAvailableToCaller, nil
 }

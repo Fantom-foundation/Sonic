@@ -19,7 +19,6 @@ package launcher
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -199,7 +198,10 @@ nodes.
 
 func accountList(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
@@ -211,10 +213,10 @@ func accountList(ctx *cli.Context) error {
 }
 
 // tries unlocking the specified account a few times.
-func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []string) (accounts.Account, string) {
+func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []string) (accounts.Account, string, error) {
 	account, err := utils.MakeAddress(ks, address)
 	if err != nil {
-		utils.Fatalf("Could not list accounts: %v", err)
+		return accounts.Account{}, "", fmt.Errorf("could not list accounts: %w", err)
 	}
 	for trials := 0; trials < 3; trials++ {
 		prompt := fmt.Sprintf("Unlocking account %s | Attempt %d/%d", address, trials+1, 3)
@@ -222,11 +224,11 @@ func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 		err = ks.Unlock(account, password)
 		if err == nil {
 			log.Info("Unlocked account", "address", account.Address.Hex())
-			return account, password
+			return account, password, nil
 		}
 		if err, ok := err.(*keystore.AmbiguousAddrError); ok {
 			log.Info("Unlocked account", "address", account.Address.Hex())
-			return ambiguousAddrRecovery(ks, err, password), password
+			return ambiguousAddrRecovery(ks, err, password), password, nil
 		}
 		if err != keystore.ErrDecrypt {
 			// No need to prompt again if the error is not decryption-related.
@@ -234,9 +236,7 @@ func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 		}
 	}
 	// All trials expended to unlock account, bail out
-	utils.Fatalf("Failed to unlock account %s (%v)", address, err)
-
-	return accounts.Account{}, ""
+	return accounts.Account{}, "", fmt.Errorf("failed to unlock account %s (%w)", address, err)
 }
 
 // getPassPhrase retrieves the password associated with an account, either fetched
@@ -326,18 +326,24 @@ func accountCreate(ctx *cli.Context) error {
 // one, also providing the possibility to change the pass-phrase.
 func accountUpdate(ctx *cli.Context) error {
 	if len(ctx.Args()) == 0 {
-		utils.Fatalf("No accounts specified to update")
+		return fmt.Errorf("no accounts specified to update")
 	}
 
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args() {
-		account, oldPassword := unlockAccount(ks, addr, 0, nil)
+		account, oldPassword, err := unlockAccount(ks, addr, 0, nil)
+		if err != nil {
+			return err
+		}
 		newPassword := getPassPhrase("Please give a new password. Do not forget this password.", true, 0, nil)
 		if err := ks.Update(account, oldPassword, newPassword); err != nil {
-			utils.Fatalf("Could not update the account: %v", err)
+			return fmt.Errorf("could not update the account: %w", err)
 		}
 	}
 	return nil
@@ -348,13 +354,16 @@ func importWallet(ctx *cli.Context) error {
 	if len(keyfile) == 0 {
 		utils.Fatalf("keyfile must be given as argument")
 	}
-	keyJSON, err := ioutil.ReadFile(keyfile)
+	keyJSON, err := os.ReadFile(keyfile)
 	if err != nil {
 		utils.Fatalf("Could not read wallet file: %v", err)
 	}
 
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -377,7 +386,10 @@ func accountImport(ctx *cli.Context) error {
 	}
 
 	cfg := makeAllConfigs(ctx)
-	stack := makeConfigNode(ctx, &cfg.Node)
+	stack, err := makeNetworkStack(ctx, &cfg.Node)
+	if err != nil {
+		return err
+	}
 	passphrase := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)

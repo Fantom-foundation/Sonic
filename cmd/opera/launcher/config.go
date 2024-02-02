@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"math/big"
 	"os"
@@ -362,10 +364,9 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	return cfg
 }
 
-func setOperaStoreMode(ctx *cli.Context, datadir string, src gossip.StoreConfig) (gossip.StoreConfig, error) {
+func setEvmStoreMode(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (evmstore.StoreConfig, error) {
 	cfg := src
-	cfg.StateDB.Directory = filepath.Join(datadir, "carmen")
-	cfg.StateDB.EnableArchive = true
+	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
 
 	if ctx.GlobalIsSet(ModeFlag.Name) {
 		mode := ctx.GlobalString(ModeFlag.Name)
@@ -373,9 +374,9 @@ func setOperaStoreMode(ctx *cli.Context, datadir string, src gossip.StoreConfig)
 			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", ModeFlag.Name)
 		}
 		if mode == "validator" {
-			cfg.StateDB.EnableArchive = false
-			cfg.EVM.DisableLogsIndexing = true
-			cfg.EVM.DisableTxHashesIndexing = true
+			cfg.StateDb.Archive = carmen.NoArchive
+			cfg.DisableLogsIndexing = true
+			cfg.DisableTxHashesIndexing = true
 		}
 	}
 	return cfg, nil
@@ -463,7 +464,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	var err error
 	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
-	cfg.OperaStore, err = setOperaStoreMode(ctx, cfg.Node.DataDir, cfg.OperaStore)
+	cfg.OperaStore.EVM, err = setEvmStoreMode(ctx, cfg.Node.DataDir, cfg.OperaStore.EVM)
 	if err != nil {
 		return nil, err
 	}
