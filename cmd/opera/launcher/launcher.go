@@ -440,17 +440,17 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 		return fmt.Errorf("error starting protocol stack: %w", err)
 	}
 	go func() {
-		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
-		defer signal.Stop(sigc)
+		stopNodeSig := make(chan os.Signal, 1)
+		signal.Notify(stopNodeSig, syscall.SIGINT, syscall.SIGTERM)
+		defer signal.Stop(stopNodeSig)
 
-		startFreeDiskSpaceMonitor(ctx, sigc, stack.InstanceDir())
+		startFreeDiskSpaceMonitor(ctx, stopNodeSig, stack.InstanceDir())
 
-		<-sigc
+		<-stopNodeSig
 		log.Info("Got interrupt, shutting down...")
 		go stack.Close()
 		for i := 10; i > 0; i-- {
-			<-sigc
+			<-stopNodeSig
 			if i > 1 {
 				log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
 			}
@@ -512,7 +512,7 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 	return nil
 }
 
-func startFreeDiskSpaceMonitor(ctx *cli.Context, sigc chan os.Signal, path string) {
+func startFreeDiskSpaceMonitor(ctx *cli.Context, stopNodeSig chan os.Signal, path string) {
 	minFreeDiskSpace := ethconfig.Defaults.TrieDirtyCache
 	if ctx.GlobalIsSet(utils.MinFreeDiskSpaceFlag.Name) {
 		minFreeDiskSpace = ctx.GlobalInt(utils.MinFreeDiskSpaceFlag.Name)
@@ -520,7 +520,7 @@ func startFreeDiskSpaceMonitor(ctx *cli.Context, sigc chan os.Signal, path strin
 		minFreeDiskSpace = 8192
 	}
 	if minFreeDiskSpace > 0 {
-		go diskusage.MonitorFreeDiskSpace(sigc, path, uint64(minFreeDiskSpace)*1024*1024)
+		go diskusage.MonitorFreeDiskSpace(stopNodeSig, path, uint64(minFreeDiskSpace)*1024*1024)
 	}
 }
 
