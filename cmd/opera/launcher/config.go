@@ -287,19 +287,12 @@ func setBootnodes(ctx *cli.Context, urls []string, cfg *node.Config) {
 	cfg.P2P.BootstrapNodes = cfg.P2P.BootstrapNodesV5
 }
 
-func setDataDir(ctx *cli.Context, cfg *node.Config) {
-	defaultDataDir := DefaultDataDir()
-
-	switch {
-	case ctx.GlobalIsSet(DataDirFlag.Name):
-		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalIsSet(FakeNetFlag.Name):
-		_, num, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
-		if err != nil {
-			log.Crit("Invalid flag", "flag", FakeNetFlag.Name, "err", err)
-		}
-		cfg.DataDir = filepath.Join(defaultDataDir, fmt.Sprintf("fakenet-%d", num))
+func setDataDir(ctx *cli.Context, cfg *node.Config) error {
+	if !ctx.GlobalIsSet(DataDirFlag.Name) {
+		return fmt.Errorf("the --%s flag is missing", DataDirFlag.Name)
 	}
+	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
+	return nil
 }
 
 func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) {
@@ -364,7 +357,7 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	return cfg
 }
 
-func setEvmStoreMode(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (evmstore.StoreConfig, error) {
+func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (evmstore.StoreConfig, error) {
 	cfg := src
 	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
 
@@ -390,11 +383,11 @@ func setDBConfig(cfg config, cacheRatio cachescale.Func) config {
 	return cfg
 }
 
-func nodeConfigWithFlags(ctx *cli.Context, cfg node.Config) node.Config {
+func nodeConfigWithFlags(ctx *cli.Context, cfg node.Config) (node.Config, error) {
 	utils.SetNodeConfig(ctx, &cfg)
 
-	setDataDir(ctx, &cfg)
-	return cfg
+	err := setDataDir(ctx, &cfg)
+	return cfg, err
 }
 
 func cacheScaler(ctx *cli.Context) cachescale.Func {
@@ -463,8 +456,11 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	// Apply flags (high priority)
 	var err error
 	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
-	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
-	cfg.OperaStore.EVM, err = setEvmStoreMode(ctx, cfg.Node.DataDir, cfg.OperaStore.EVM)
+	cfg.Node, err = nodeConfigWithFlags(ctx, cfg.Node)
+	if err != nil {
+		return nil, err
+	}
+	cfg.OperaStore.EVM, err = setEvmStore(ctx, cfg.Node.DataDir, cfg.OperaStore.EVM)
 	if err != nil {
 		return nil, err
 	}
