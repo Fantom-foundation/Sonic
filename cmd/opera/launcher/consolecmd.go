@@ -123,11 +123,10 @@ func remoteConsole(ctx *cli.Context) error {
 	// Attach to a remotely running opera instance and start the JavaScript console
 	endpoint := ctx.Args().First()
 	if endpoint == "" {
-		path := DefaultDataDir()
-		if ctx.GlobalIsSet(DataDirFlag.Name) {
-			path = ctx.GlobalString(DataDirFlag.Name)
+		if !ctx.GlobalIsSet(DataDirFlag.Name) {
+			return fmt.Errorf("the --%s flag is missing and the IPC endpoint path is not specified", DataDirFlag.Name)
 		}
-		endpoint = fmt.Sprintf("%s/opera.ipc", path)
+		endpoint = fmt.Sprintf("%s/opera.ipc", ctx.GlobalString(DataDirFlag.Name))
 	}
 	client, err := dialRPC(endpoint)
 	if err != nil {

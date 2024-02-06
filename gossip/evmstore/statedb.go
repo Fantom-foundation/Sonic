@@ -12,27 +12,6 @@ import (
 	"math/big"
 )
 
-type Config struct {
-	Directory     string
-	EnableArchive bool
-	CacheCapacity int64
-}
-
-func createStateDbParams(cfg Config) carmen.Parameters {
-	var archive = carmen.NoArchive
-	if cfg.EnableArchive {
-		archive = carmen.S5Archive
-	}
-	return carmen.Parameters{
-		Directory: cfg.Directory,
-		Variant:   "go-file",
-		Schema:    carmen.Schema(5),
-		Archive:   archive,
-		LiveCache: cfg.CacheCapacity / 2,
-		ArchiveCache: cfg.CacheCapacity / 2,
-	}
-}
-
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
 func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInterface, error) {
 	if s.liveStateDb == nil {

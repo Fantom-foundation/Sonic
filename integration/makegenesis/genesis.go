@@ -266,7 +266,8 @@ func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
 		}
 		return buf, nil
 	}, head, func() error {
+		err := os.RemoveAll(b.carmenDir)
 		*b = GenesisBuilder{}
-		return os.RemoveAll(b.carmenDir)
+		return err
 	})
 }
