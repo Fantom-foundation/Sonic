@@ -346,7 +346,7 @@ func (em *Emitter) createEvent(sortedTxs *types.TransactionsByPriceAndNonce) (*i
 	prevEmitted := em.readLastEmittedEventID()
 	if prevEmitted != nil && prevEmitted.Epoch() >= em.epoch {
 		if selfParent == nil || *selfParent != *prevEmitted {
-			errlock.Permanent(errors.New("Local database is corrupted, which may lead to a doublesign"))
+			errlock.Permanent(errors.New("Local database does not contain last emitted event - sync the node before enabling validation to avoid doublesign"))
 		}
 	}
 
