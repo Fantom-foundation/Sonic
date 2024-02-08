@@ -6,19 +6,26 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/opera/genesisstore/filelog"
 	"github.com/ethereum/go-ethereum/log"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-func SonicImport(dataDir string, genesisReader *os.File) error {
+func SonicImport(dataDir string, genesisFile *os.File) error {
+	info, err := genesisFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get genesis file stats: %w", err)
+	}
+
 	if err := removeDatabase(dataDir); err != nil {
 		return fmt.Errorf("failed to remove existing data from the datadir: %w", err)
 	}
 
 	chaindataDir := filepath.Join(dataDir, "chaindata")
-	err := os.MkdirAll(chaindataDir, 0700)
+	err = os.MkdirAll(chaindataDir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create chaindataDir directory: %w", err)
 	}
@@ -26,7 +33,8 @@ func SonicImport(dataDir string, genesisReader *os.File) error {
 
 	log.Info("Unpacking Sonic genesis")
 	hasher := sha256.New()
-	teeReader := io.TeeReader(genesisReader, hasher)
+	reader := filelog.Wrap(genesisFile, "sonic-genesis", uint64(info.Size()), time.Minute)
+	teeReader := io.TeeReader(reader, hasher)
 	uncompressedStream, err := gzip.NewReader(teeReader)
 	if err != nil {
 		return err
@@ -60,12 +68,13 @@ func SonicImport(dataDir string, genesisReader *os.File) error {
 		}
 	}
 	hash := hex.EncodeToString(hasher.Sum(nil))
-	if !allowedSonicGenesisHashes[hash] {
+	name, ok := allowedSonicGenesisHashes[hash]
+	if !ok {
 		_ = removeDatabase(dataDir)
 		return fmt.Errorf("hash of the genesis file does not match any allowed value: %s", hash)
 	}
 
 	setGenesisComplete(chaindataDir)
-	log.Info("Successfully imported Sonic genesis")
+	log.Info("Successfully imported Sonic genesis", "name", name)
 	return nil
 }

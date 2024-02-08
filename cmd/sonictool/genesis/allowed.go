@@ -7,8 +7,8 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 )
 
-var allowedSonicGenesisHashes = map[string]bool{
-	"663d6a2ca8e235a4127cf03f8a00f4e055a45259f73181cb98cec7e657c2ab14": true, // mainnet-archive.tar.gz
+var allowedSonicGenesisHashes = map[string]string{
+	"663d6a2ca8e235a4127cf03f8a00f4e055a45259f73181cb98cec7e657c2ab14": "mainnet-archive",
 }
 
 type GenesisTemplate struct {
