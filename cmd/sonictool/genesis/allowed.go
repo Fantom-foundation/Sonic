@@ -8,7 +8,7 @@ import (
 )
 
 var allowedSonicGenesisHashes = map[string]string{
-	"663d6a2ca8e235a4127cf03f8a00f4e055a45259f73181cb98cec7e657c2ab14": "mainnet-archive",
+	"663d6a2ca8e235a4127cf03f8a00f4e055a45259f73181cb98cec7e657c2ab14": "mainnet-263695-archive.tar.gz",
 }
 
 type GenesisTemplate struct {
