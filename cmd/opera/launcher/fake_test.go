@@ -14,11 +14,14 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 )
 
+
 func TestFakeNetFlag_NonValidator(t *testing.T) {
 	// Start an opera console, make sure it's cleaned up and terminate the console
+	dataDir := tmpdir(t)
+	initFakenetDatadir(dataDir, 3)
 	cli := exec(t,
 		"--fakenet", "0/3",
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
 		"console")
 
 	// Gather all the infos the welcome message needs to contain
@@ -58,9 +61,11 @@ To exit, press ctrl-d
 
 func TestFakeNetFlag_Validator(t *testing.T) {
 	// Start an opera console, make sure it's cleaned up and terminate the console
+	dataDir := tmpdir(t)
+	initFakenetDatadir(dataDir, 3)
 	cli := exec(t,
 		"--fakenet", "3/3",
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
 		"console")
 
 	// Gather all the infos the welcome message needs to contain

@@ -25,7 +25,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/inter"
-	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
 
@@ -36,7 +35,6 @@ func importEvents(ctx *cli.Context) error {
 
 	// avoid P2P interaction, API calls and events emitting
 	cfg := makeAllConfigs(ctx)
-	genesisStore := mayGetGenesisStore(ctx, cfg)
 	cfg.Opera.Protocol.EventsSemaphoreLimit.Size = math.MaxUint32
 	cfg.Opera.Protocol.EventsSemaphoreLimit.Num = math.MaxUint32
 	cfg.Emitter.Validator = emitter.ValidatorConfig{}
@@ -53,7 +51,7 @@ func importEvents(ctx *cli.Context) error {
 	cfg.Node.P2P.StaticNodes = nil
 	cfg.Node.P2P.TrustedNodes = nil
 
-	err := importEventsToNode(ctx, cfg, genesisStore, ctx.Args()...)
+	err := importEventsToNode(ctx, cfg, ctx.Args()...)
 	if err != nil {
 		return err
 	}
@@ -61,8 +59,8 @@ func importEvents(ctx *cli.Context) error {
 	return nil
 }
 
-func importEventsToNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store, args ...string) error {
-	node, svc, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+func importEventsToNode(ctx *cli.Context, cfg *config, args ...string) error {
+	node, svc, nodeClose, err := makeNode(ctx, cfg)
 	if err != nil {
 		return err
 	}

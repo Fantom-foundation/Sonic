@@ -25,8 +25,10 @@ const (
 // then terminated by closing the input stream.
 func TestConsoleWelcome(t *testing.T) {
 	// Start an opera console, make sure it's cleaned up and terminate the console
+	dataDir := tmpdir(t)
+	initFakenetDatadir(dataDir, 3)
 	cli := exec(t,
-		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
 		"console")
 
 	// Gather all the infos the welcome message needs to contain
@@ -64,8 +66,10 @@ func TestIPCAttachWelcome(t *testing.T) {
 		defer os.RemoveAll(ws)
 		ipc = filepath.Join(ws, "opera.ipc")
 	}
+	dataDir := tmpdir(t)
+	initFakenetDatadir(dataDir, 1)
 	cli := exec(t,
-		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
 		"--ipcpath", ipc)
 
 	waitForEndpoint(t, ipc, 60*time.Second)
@@ -77,8 +81,10 @@ func TestIPCAttachWelcome(t *testing.T) {
 
 func TestHTTPAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
+	dataDir := tmpdir(t)
+	initFakenetDatadir(dataDir, 1)
 	cli := exec(t,
-		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
 		"--http", "--http.port", port)
 
 	endpoint := "http://127.0.0.1:" + port
@@ -91,9 +97,10 @@ func TestHTTPAttachWelcome(t *testing.T) {
 
 func TestWSAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
-
+	dataDir := tmpdir(t)
+	initFakenetDatadir(dataDir, 1)
 	cli := exec(t,
-		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
 		"--ws", "--ws.port", port)
 
 	endpoint := "ws://127.0.0.1:" + port

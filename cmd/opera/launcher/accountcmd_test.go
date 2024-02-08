@@ -33,6 +33,7 @@ func TestAccountListEmpty(t *testing.T) {
 
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t, "--fakenet", "0/1", "account", "list", "--datadir", datadir)
 
 	if runtime.GOOS == "windows" {
@@ -135,6 +136,7 @@ Fatal: could not decrypt key with given password
 
 func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a",
@@ -160,6 +162,7 @@ Passphrase: {{.InputLine "foobar"}}
 
 func TestUnlockFlagWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a")
@@ -183,6 +186,7 @@ Passphrase: {{.InputLine "wrong3"}}
 // https://github.com/ethereum/go-ethereum/issues/1785
 func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "0,2",
@@ -211,6 +215,7 @@ Passphrase: {{.InputLine "foobar"}}
 
 func TestUnlockFlagPasswordFile(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--password", "testdata/passwords.txt", "--unlock", "0,2",
@@ -232,6 +237,7 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 
 func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
@@ -245,8 +251,10 @@ func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 
 func TestUnlockFlagAmbiguous(t *testing.T) {
 	store := filepath.Join("testdata", "dupes")
+	datadir := tmpdir(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
-		"--fakenet", "0/1", "--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--fakenet", "0/1", "--datadir", datadir, "--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a",
 		"js", "testdata/empty.js")
 
@@ -282,8 +290,10 @@ In order to avoid this warning, you need to remove the following duplicate key f
 
 func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 	store := filepath.Join("testdata", "dupes")
+	datadir := tmpdir(t)
+	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
-		"--fakenet", "0/1", "--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
+		"--fakenet", "0/1", "--datadir", datadir, "--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a")
 
 	// Helper for the expect template, returns absolute keystore path.

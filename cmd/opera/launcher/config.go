@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -31,10 +30,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
-	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 )
@@ -80,15 +76,6 @@ var (
 		Name:  "cache",
 		Usage: "Megabytes of memory allocated to internal caching",
 		Value: DefaultCacheSize,
-	}
-	// GenesisFlag specifies network genesis configuration
-	GenesisFlag = cli.StringFlag{
-		Name:  "genesis",
-		Usage: "'path to genesis file' - sets the network genesis configuration.",
-	}
-	ExperimentalGenesisFlag = cli.BoolFlag{
-		Name:  "genesis.allowExperimental",
-		Usage: "Allow to use experimental genesis file.",
 	}
 
 	RPCGlobalGasCapFlag = cli.Uint64Flag{
@@ -195,81 +182,6 @@ func loadAllConfigs(file string, cfg *config) error {
 			"If node was recently upgraded and a previous network config file is used, then check updates for the config file.", err))
 	}
 	return err
-}
-
-func mayGetGenesisStore(ctx *cli.Context, cfg *config) *genesisstore.Store {
-	if futils.FileExists(path.Join(cfg.Node.DataDir, "chaindata")) {
-		log.Info("chaindata already exist, skipping genesis")
-		// repeated genesis processing is no-op for geth, but it collides with existing Carmen database
-		return nil
-	}
-
-	switch {
-	case ctx.GlobalIsSet(JsonGenesisFlag.Name):
-		genesisPath := ctx.GlobalString(JsonGenesisFlag.Name)
-		genesisJson, err := makefakegenesis.LoadGenesisJson(genesisPath)
-		if err != nil {
-			log.Crit("Invalid flag", "flag", JsonGenesisFlag.Name, "err", err)
-		}
-		genesisStore, err := makefakegenesis.ApplyGenesisJson(genesisJson)
-		if err != nil {
-			log.Crit("Failed to apply genesis JSON", "flag", JsonGenesisFlag.Name, "err", err)
-		}
-		log.Info("Fake genesis JSON used")
-		return genesisStore
-	case ctx.GlobalIsSet(FakeNetFlag.Name):
-		_, num, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
-		if err != nil {
-			log.Crit("Invalid flag", "flag", FakeNetFlag.Name, "err", err)
-		}
-
-		fakeNetGasPower := ctx.GlobalString(FakeNetGasPowerFlag.Name)
-		if fakeNetGasPower != "" {
-			fakeNetGasPowerInt, err := strconv.ParseUint(fakeNetGasPower, 10, 64)
-			if err != nil {
-				log.Crit("Invalid flag", "flag", FakeNetGasPowerFlag.Name, "err", err)
-			}
-			opera.FakeGasPowerCoefficient = fakeNetGasPowerInt
-			log.Info("Fakenet gas power coefficient will be used", "coef", fakeNetGasPowerInt)
-		}
-
-		return makefakegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
-	case ctx.GlobalIsSet(GenesisFlag.Name):
-		genesisPath := ctx.GlobalString(GenesisFlag.Name)
-
-		f, err := os.Open(genesisPath)
-		if err != nil {
-			utils.Fatalf("Failed to open genesis file: %v", err)
-		}
-		genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(f)
-		if err != nil {
-			utils.Fatalf("Failed to read genesis file: %v", err)
-		}
-
-		// check if it's a trusted preset
-		{
-			g := genesisStore.Genesis()
-			gHeader := genesis.Header{
-				GenesisID:   g.GenesisID,
-				NetworkID:   g.NetworkID,
-				NetworkName: g.NetworkName,
-			}
-			for _, allowed := range AllowedOperaGenesis {
-				if allowed.Hashes.Equal(genesisHashes) && allowed.Header.Equal(gHeader) {
-					log.Info("Genesis file is a known preset", "name", allowed.Name)
-					goto notExperimental
-				}
-			}
-			if ctx.GlobalBool(ExperimentalGenesisFlag.Name) {
-				log.Warn("Genesis file doesn't refer to any trusted preset")
-			} else {
-				utils.Fatalf("Genesis file doesn't refer to any trusted preset. Enable experimental genesis with --genesis.allowExperimental")
-			}
-		notExperimental:
-		}
-		return genesisStore
-	}
-	return nil
 }
 
 func setBootnodes(ctx *cli.Context, urls []string, cfg *node.Config) {

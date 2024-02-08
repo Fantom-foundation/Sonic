@@ -12,8 +12,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/skipkeys"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"io"
 	"os"
@@ -69,17 +67,6 @@ func isEmpty(dir string) bool {
 	return false
 }
 
-func dropAllDBs(chaindataDir string) {
-	_ = os.RemoveAll(chaindataDir)
-}
-
-func dropAllDBsIfInterrupted(chaindataDir string) {
-	if isInterrupted(chaindataDir) {
-		log.Info("Restarting genesis processing")
-		dropAllDBs(chaindataDir)
-	}
-}
-
 type GossipStoreAdapter struct {
 	*gossip.Store
 }
@@ -90,30 +77,4 @@ func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 		return nil
 	}
 	return e
-}
-
-func MakeDBDirs(chaindataDir string) {
-	if err := os.MkdirAll(chaindataDir, 0700); err != nil {
-		utils.Fatalf("Failed to create chaindata directory: %v", err)
-	}
-}
-
-type DummyScopedProducer struct {
-	kvdb.IterableDBProducer
-}
-
-func (d DummyScopedProducer) NotFlushedSizeEst() int {
-	return 0
-}
-
-func (d DummyScopedProducer) Flush(_ []byte) error {
-	return nil
-}
-
-func (d DummyScopedProducer) Initialize(_ []string, flushID []byte) ([]byte, error) {
-	return flushID, nil
-}
-
-func (d DummyScopedProducer) Close() error {
-	return nil
 }

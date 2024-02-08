@@ -18,16 +18,15 @@ package launcher
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
-
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 	"gopkg.in/urfave/cli.v1"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
 var (
@@ -77,8 +76,7 @@ JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Cons
 func localConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
 	cfg := makeAllConfigs(ctx)
-	genesisStore := mayGetGenesisStore(ctx, cfg)
-	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	node, _, nodeClose, err := makeNode(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -176,8 +174,7 @@ func dialRPC(endpoint string) (*rpc.Client, error) {
 func ephemeralConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
 	cfg := makeAllConfigs(ctx)
-	genesisStore := mayGetGenesisStore(ctx, cfg)
-	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	node, _, nodeClose, err := makeNode(ctx, cfg)
 	if err != nil {
 		return err
 	}

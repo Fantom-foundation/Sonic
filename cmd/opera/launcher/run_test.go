@@ -3,7 +3,11 @@ package launcher
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
+	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
+	futils "github.com/Fantom-foundation/go-opera/utils"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"os"
 	"strings"
 	"testing"
@@ -17,11 +21,15 @@ import (
 )
 
 func tmpdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "opera-test")
-	if err != nil {
-		t.Fatal(err)
+	return t.TempDir()
+}
+
+func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
+	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	defer genesisStore.Close()
+	if err := genesis.ImportGenesisStore(genesisStore, dataDir, false, cachescale.Identity); err != nil {
+		panic(err)
 	}
-	return dir
 }
 
 type testcli struct {
