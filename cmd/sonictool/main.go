@@ -39,6 +39,7 @@ func main() {
 						GenesisFlag,
 					},
 					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "legacy",
@@ -50,6 +51,7 @@ func main() {
 						ExperimentalFlag,
 					},
 					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "json",
@@ -61,6 +63,7 @@ func main() {
 						ExperimentalFlag,
 					},
 					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "fake",
@@ -72,6 +75,7 @@ func main() {
 						FakeNetGasPowerFlag,
 					},
 					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
 				},
 			},
 		},
