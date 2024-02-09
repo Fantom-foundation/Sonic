@@ -123,10 +123,10 @@ func main() {
 			},
 			CustomHelpTemplate: AppHelpTemplate,
 			Description: `
-The opera console is an interactive shell for the JavaScript runtime environment
+The Sonic console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Dapp JavaScript API.
 See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.
-This command allows to open a console on a running opera node.`,
+This command allows to open a console attached to a running Sonic node.`,
 		},
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
