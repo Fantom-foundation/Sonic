@@ -51,7 +51,7 @@ func GetDbProducer(chaindataDir string, cfg DBCacheConfig) (kvdb.FullDBProducer,
 	}
 	cachedProducer := cachedproducer.WrapAll(scopedProducer)
 	skippingProducer := skipkeys.WrapAllProducer(cachedProducer, MetadataPrefix)
-	return threads.CountedFullDBProducer(skippingProducer), err
+	return threads.CountedFullDBProducer(skippingProducer), nil
 }
 
 func isEmpty(dir string) bool {

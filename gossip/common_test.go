@@ -139,8 +139,11 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 	genStore := makefakegenesis.FakeGenesisStoreWithRulesAndStart(validatorsNum, utils.ToFtm(genesisBalance), utils.ToFtm(genesisStake), rules, firstEpoch, 2)
 	genesis := genStore.Genesis()
 
-	store := NewMemStore(tb)
-	err := store.ApplyGenesis(genesis)
+	store, err := NewMemStore(tb)
+	if err != nil {
+		panic(fmt.Errorf("NewMemStore failed; %w", err))
+	}
+	err = store.ApplyGenesis(genesis)
 	if err != nil {
 		panic(fmt.Errorf("ApplyGenesis failed; %w", err))
 	}

@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -37,7 +38,10 @@ func exportEvents(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
 
 	rawDbs := makeDBsProducer(cfg)
-	gdb := makeGossipStore(rawDbs, cfg)
+	gdb, err := gossip.NewStore(rawDbs, cfg.OperaStore)
+	if err != nil {
+		return fmt.Errorf("failed to create gossip store: %w", err)
+	}
 	defer gdb.Close()
 
 	fn := ctx.Args().First()

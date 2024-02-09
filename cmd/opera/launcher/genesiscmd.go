@@ -246,11 +246,14 @@ func exportGenesis(ctx *cli.Context) error {
 	defer os.RemoveAll(tmpPath)
 
 	rawDbs := makeDBsProducer(cfg)
-	gdb := makeGossipStore(rawDbs, cfg)
+	gdb, err := gossip.NewStore(rawDbs, cfg.OperaStore)
+	if err != nil {
+		return fmt.Errorf("failed to create gossip store: %w", err)
+	}
+	defer gdb.Close()
 	if gdb.GetHighestLamport() != 0 {
 		log.Warn("Attempting genesis export not in a beginning of an epoch. Genesis file output may contain excessive data.")
 	}
-	defer gdb.Close()
 
 	fn := ctx.Args().First()
 

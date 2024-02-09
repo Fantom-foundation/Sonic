@@ -11,7 +11,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
 )
@@ -75,10 +74,6 @@ func makeDBsProducer(cfg *config) kvdb.FullDBProducer {
 		utils.Fatalf("Failed to initialize DB producer: %v", err)
 	}
 	return producer
-}
-
-func makeGossipStore(producer kvdb.FlushableDBProducer, cfg *config) *gossip.Store {
-	return gossip.NewStore(producer, cfg.OperaStore)
 }
 
 func compact(ctx *cli.Context) error {

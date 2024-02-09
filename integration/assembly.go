@@ -60,15 +60,18 @@ func mustOpenDB(producer kvdb.DBProducer, name string) kvdb.Store {
 	return db
 }
 
-func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *abft.Store) {
-	gdb := gossip.NewStore(producer, cfg.OperaStore)
+func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *abft.Store, error) {
+	gdb, err := gossip.NewStore(producer, cfg.OperaStore)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	cMainDb := mustOpenDB(producer, "lachesis")
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
 		return mustOpenDB(producer, fmt.Sprintf("lachesis-%d", epoch))
 	}
 	cdb := abft.NewStore(cMainDb, cGetEpochDB, panics("Lachesis store"), cfg.LachesisStore)
-	return gdb, cdb
+	return gdb, cdb, err
 }
 
 func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, cfg Configs) (*abft.Lachesis, *vecmt.Index, gossip.BlockProc, error) {
@@ -96,7 +99,11 @@ func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index,
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 
-	gdb, cdb := getStores(dbs, cfg)
+	gdb, cdb, err := getStores(dbs, cfg)
+	if err != nil {
+		err = fmt.Errorf("failed to get stores: %w", err)
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+	}
 	defer func() {
 		if err != nil {
 			gdb.Close()
