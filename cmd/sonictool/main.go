@@ -140,6 +140,17 @@ func main() {
 			},
 		},
 		{
+			Name:     "compact",
+			Usage:    "Compact all pebble databases",
+			Action: compactDbs,
+			Flags: []cli.Flag{
+				DataDirFlag,
+				CacheFlag,
+			},
+			Description: "TBD",
+			CustomHelpTemplate: AppHelpTemplate,
+		},
+		{
 			Name:     "cli",
 			Usage:    "Start an interactive JavaScript environment, attach to a node",
 			ArgsUsage: "[endpoint]",
