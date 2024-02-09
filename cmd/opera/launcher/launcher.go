@@ -203,8 +203,6 @@ func init() {
 		importCommand,
 		exportCommand,
 		checkCommand,
-		// See dbcmd.go
-		dbCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
