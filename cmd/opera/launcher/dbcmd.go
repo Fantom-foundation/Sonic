@@ -16,14 +16,6 @@ import (
 )
 
 var (
-	experimentalFlag = cli.BoolFlag{
-		Name:  "experimental",
-		Usage: "Allow experimental DB fixing",
-	}
-	targetEpochFlag = cli.Uint64Flag{
-		Name:  "target.epoch",
-		Usage: "The target epoch number to revert the db state to",
-	}
 	dbCommand = cli.Command{
 		Name:        "db",
 		Usage:       "A set of commands related to leveldb database",
@@ -42,23 +34,6 @@ var (
 				Description: `
 opera db compact
 will compact all databases under datadir's chaindata.
-`,
-			},
-			{
-				Name:      "revert",
-				Usage:     "Experimental - revert Opera database to given epoch",
-				ArgsUsage: "",
-				Action:    utils.MigrateFlags(revertDb),
-				Category:  "DB COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					experimentalFlag,
-					targetEpochFlag,
-				},
-				Description: `
-opera db revert --experimental --target.epoch 123
-Experimental - revert the DB state to given epoch.
-If Carmen is used, its database must be replaced with appropriate older version manually.
 `,
 			},
 		},
