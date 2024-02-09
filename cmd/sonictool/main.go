@@ -50,6 +50,7 @@ func main() {
 						GenesisFlag,
 						ExperimentalFlag,
 						CacheFlag,
+						ModeFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
@@ -63,6 +64,7 @@ func main() {
 						GenesisFlag,
 						ExperimentalFlag,
 						CacheFlag,
+						ModeFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
@@ -104,6 +106,7 @@ func main() {
 					Flags: []cli.Flag{
 						DataDirFlag,
 						CacheFlag,
+						ModeFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,

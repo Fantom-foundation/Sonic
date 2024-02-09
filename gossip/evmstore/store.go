@@ -11,6 +11,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
 	"github.com/ethereum/go-ethereum/core/types"
 	"os"
+	"path/filepath"
 )
 
 const nominalSize uint = 1
@@ -68,9 +69,9 @@ func NewStore(mainDB kvdb.Store, cfg StoreConfig) *Store {
 
 // Open the StateDB database (after the genesis import)
 func (s *Store) Open() error {
-	err := os.MkdirAll(s.parameters.Directory, 0700)
+	err := initCarmen(s.parameters)
 	if err != nil {
-		return fmt.Errorf("failed to create carmen dir \"%s\"; %v", s.parameters.Directory, err)
+		return err
 	}
 	s.carmenState, err = carmen.NewState(s.parameters)
 	if err != nil {
@@ -125,4 +126,27 @@ func (s *Store) makeCache(weight uint, size int) *wlru.Cache {
 		return nil
 	}
 	return cache
+}
+
+func initCarmen(params carmen.Parameters) error {
+	err := os.MkdirAll(params.Directory, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create carmen dir \"%s\"; %v", params.Directory, err)
+	}
+	liveDir := filepath.Join(params.Directory, "live")
+	liveInfo, err := os.Stat(liveDir)
+	liveExists := err == nil && liveInfo.IsDir()
+	archiveDir := filepath.Join(params.Directory, "archive")
+	archiveInfo, err := os.Stat(archiveDir)
+	archiveExists := err == nil && archiveInfo.IsDir()
+
+	if liveExists { // not checked if the datadir is empty
+		if archiveExists && params.Archive == carmen.NoArchive {
+			return fmt.Errorf("starting node with disabled archive (validator mode), but the archive database exists - terminated to avoid archive-live states inconsistencies (remove the datadir/carmen/archive to enforce starting as a validator)")
+		}
+		if !archiveExists && params.Archive != carmen.NoArchive {
+			return fmt.Errorf("starting node with enabled archive (rpc mode), but the archive database does exists - terminated to avoid creating an inconsistent archive database (re-apply genesis and resync the node to switch to archive configuration)")
+		}
+	}
+	return nil
 }
