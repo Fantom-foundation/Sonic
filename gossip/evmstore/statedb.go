@@ -69,3 +69,24 @@ func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
 	}
 	return nil
 }
+
+// CheckArchiveStateHash returns if the hash of the given archive StateDB hash matches
+func (s *Store) CheckArchiveStateHash(blockNum idx.Block, root hash.Hash) error {
+	if s.carmenState == nil {
+		return fmt.Errorf("unable to get live state - EvmStore is not open")
+	}
+	archiveState, err := s.carmenState.GetArchiveState(uint64(blockNum))
+	if err != nil {
+		return fmt.Errorf("unable to get archive state: %w", err)
+	}
+	defer archiveState.Close()
+
+	stateHash, err := archiveState.GetHash()
+	if err != nil {
+		return fmt.Errorf("unable to get archive state hash: %w", err)
+	}
+	if cc.Hash(root) != stateHash {
+		return fmt.Errorf("hash of the archive EVM state is incorrect: blockNum: %d expected: %x actual: %x", blockNum, root, stateHash)
+	}
+	return nil
+}

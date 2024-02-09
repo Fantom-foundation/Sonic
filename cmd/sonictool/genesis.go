@@ -192,14 +192,14 @@ func parseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
 }
 
 func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
-	targetCache := ctx.GlobalInt(CacheFlag.Name)
+	targetCache := ctx.Int(CacheFlag.Name)
 	baseSize := genesis.DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
 	maxCache := totalMemory * 3 / 5
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
-	if !ctx.GlobalIsSet(CacheFlag.Name) {
+	if !ctx.IsSet(CacheFlag.Name) {
 		recommendedCache := totalMemory / 2
 		if recommendedCache > baseSize {
 			log.Warn(fmt.Sprintf("Please add '--%s %d' flag to allocate more cache for the database. Total memory is %d MB.", CacheFlag.Name, recommendedCache, totalMemory))

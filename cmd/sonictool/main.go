@@ -49,6 +49,7 @@ func main() {
 						DataDirFlag,
 						GenesisFlag,
 						ExperimentalFlag,
+						CacheFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
@@ -61,6 +62,7 @@ func main() {
 						DataDirFlag,
 						GenesisFlag,
 						ExperimentalFlag,
+						CacheFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
@@ -72,6 +74,36 @@ func main() {
 					Flags: []cli.Flag{
 						DataDirFlag,
 						FakeNetFlag,
+						CacheFlag,
+					},
+					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
+				},
+			},
+		},
+		{
+			Name:     "check",
+			Usage:    "Check EVM database consistency",
+			Description: "TBD",
+			Subcommands: []cli.Command{
+				{
+					Name:   "live",
+					Usage:  "Check EVM live state database",
+					Action: checkLive,
+					Flags: []cli.Flag{
+						DataDirFlag,
+						CacheFlag,
+					},
+					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
+				},
+				{
+					Name:   "archive",
+					Usage:  "Check EVM archive states database",
+					Action: checkArchive,
+					Flags: []cli.Flag{
+						DataDirFlag,
+						CacheFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
