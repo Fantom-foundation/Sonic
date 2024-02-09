@@ -110,6 +110,24 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:     "cli",
+			Usage:    "Start an interactive JavaScript environment, attach to a node",
+			ArgsUsage: "[endpoint]",
+			Action: remoteConsole,
+			Flags: []cli.Flag{
+				DataDirFlag,
+				JSpathFlag,
+				PreloadJSFlag,
+				ExecFlag,
+			},
+			CustomHelpTemplate: AppHelpTemplate,
+			Description: `
+The opera console is an interactive shell for the JavaScript runtime environment
+which exposes a node admin interface as well as the Dapp JavaScript API.
+See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.
+This command allows to open a console on a running opera node.`,
+		},
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
