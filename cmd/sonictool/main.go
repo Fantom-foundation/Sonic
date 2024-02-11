@@ -72,7 +72,6 @@ func main() {
 					Flags: []cli.Flag{
 						DataDirFlag,
 						FakeNetFlag,
-						FakeNetGasPowerFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,

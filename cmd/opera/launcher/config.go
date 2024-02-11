@@ -6,8 +6,6 @@ import (
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
-	"github.com/Fantom-foundation/go-opera/opera"
-	"math/big"
 	"os"
 	"path"
 	"path/filepath"
@@ -375,10 +373,6 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	cfg.OperaStore.EVM, err = setEvmStore(ctx, cfg.Node.DataDir, cfg.OperaStore.EVM)
 	if err != nil {
 		return nil, err
-	}
-
-	if overrideMinGasPrice := ctx.GlobalUint64(overrideMinGasPriceFlag.Name); overrideMinGasPrice != 0 {
-		opera.OverrideMinGasPrice = big.NewInt(int64(overrideMinGasPrice))
 	}
 
 	err = setValidator(ctx, &cfg.Emitter)

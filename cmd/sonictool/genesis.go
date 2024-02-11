@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
-	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
@@ -31,10 +30,6 @@ var (
 	FakeNetFlag = cli.StringFlag{
 		Name:  "fakenet",
 		Usage: "'n/N' - sets coinbase as fake n-th key from genesis of N validators.",
-	}
-	FakeNetGasPowerFlag = cli.StringFlag{
-		Name:  "fakenetgaspower",
-		Usage: "coefficient multiplying max gas per block, per event and per second and validator",
 	}
 	ExperimentalFlag = cli.BoolFlag{
 		Name:  "experimental",
@@ -152,15 +147,6 @@ func fakeGenesisImport(ctx *cli.Context) error {
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
 		return err
-	}
-
-	fakeNetGasPower := ctx.GlobalString(FakeNetGasPowerFlag.Name)
-	if fakeNetGasPower != "" {
-		fakeNetGasPowerInt, err := strconv.ParseUint(fakeNetGasPower, 10, 64)
-		if err != nil {
-			return fmt.Errorf("--%s invalid: %w", FakeNetGasPowerFlag.Name, err)
-		}
-		opera.FakeGasPowerCoefficient = fakeNetGasPowerInt // used in FakeGenesisStore
 	}
 
 	genesisStore := makefakegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
