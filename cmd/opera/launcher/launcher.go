@@ -67,7 +67,6 @@ func initFlags() {
 	// Flags for testing purpose.
 	testFlags = []cli.Flag{
 		FakeNetFlag,
-		overrideMinGasPriceFlag,
 	}
 
 	// Flags that configure the node.
@@ -175,7 +174,7 @@ func initFlags() {
 }
 
 // init the CLI app.
-func init() {
+func initApp() {
 	discfilter.Enable()
 	overrideFlags()
 	overrideParams()
@@ -232,6 +231,8 @@ func init() {
 }
 
 func Launch(args []string) error {
+	initApp()
+	initAppHelp()
 	return app.Run(args)
 }
 

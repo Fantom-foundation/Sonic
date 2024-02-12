@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/utils"
 	"github.com/Fantom-foundation/go-opera/flags"
 	_ "github.com/Fantom-foundation/go-opera/version"
 	"gopkg.in/urfave/cli.v1"
@@ -20,12 +21,18 @@ var (
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
 	}
+	CacheFlag = cli.IntFlag{
+		Name:  "cache",
+		Usage: "Megabytes of memory allocated to internal pebble caching",
+		Value: utils.DefaultCacheSize,
+	}
 )
 
 func main() {
 	app := flags.NewApp(gitCommit, gitDate, "the Sonic management tool")
 	app.Flags = []cli.Flag{
 		DataDirFlag,
+		CacheFlag,
 	}
 	app.Commands = []cli.Command{
 		{
@@ -36,22 +43,17 @@ func main() {
 				{
 					Name:   "sonic",
 					Usage:  "Initialize the database from a tar.gz genesis file",
+					ArgsUsage: "<filename>",
 					Action: sonicGenesisImport,
-					Flags: []cli.Flag{
-						DataDirFlag,
-						GenesisFlag,
-					},
 					Description: "TBD",
 				},
 				{
 					Name:   "legacy",
 					Usage:  "Initialize the database from a legacy genesis file",
+					ArgsUsage: "<filename>",
 					Action: legacyGenesisImport,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						GenesisFlag,
 						ExperimentalFlag,
-						CacheFlag,
 						ModeFlag,
 					},
 					Description: "TBD",
@@ -59,12 +61,10 @@ func main() {
 				{
 					Name:   "json",
 					Usage:  "Initialize the database from a testing JSON genesis file",
+					ArgsUsage: "<filename>",
 					Action: jsonGenesisImport,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						GenesisFlag,
 						ExperimentalFlag,
-						CacheFlag,
 						ModeFlag,
 					},
 					Description: "TBD",
@@ -72,11 +72,10 @@ func main() {
 				{
 					Name:   "fake",
 					Usage:  "Initialize the database for a fakenet testing network",
+					ArgsUsage: "<validators>",
 					Action: fakeGenesisImport,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						FakeNetFlag,
-						CacheFlag,
+						ModeFlag,
 					},
 					Description: "TBD",
 				},
@@ -91,20 +90,12 @@ func main() {
 					Name:   "live",
 					Usage:  "Check EVM live state database",
 					Action: checkLive,
-					Flags: []cli.Flag{
-						DataDirFlag,
-						CacheFlag,
-					},
 					Description: "TBD",
 				},
 				{
 					Name:   "archive",
 					Usage:  "Check EVM archive states database",
 					Action: checkArchive,
-					Flags: []cli.Flag{
-						DataDirFlag,
-						CacheFlag,
-					},
 					Description: "TBD",
 				},
 			},
@@ -113,10 +104,6 @@ func main() {
 			Name:     "compact",
 			Usage:    "Compact all pebble databases",
 			Action: compactDbs,
-			Flags: []cli.Flag{
-				DataDirFlag,
-				CacheFlag,
-			},
 			Description: "TBD",
 		},
 		{
@@ -125,7 +112,6 @@ func main() {
 			ArgsUsage: "[endpoint]",
 			Action: remoteConsole,
 			Flags: []cli.Flag{
-				DataDirFlag,
 				JSpathFlag,
 				PreloadJSFlag,
 				ExecFlag,
@@ -153,9 +139,6 @@ Events are fully verified.`,
 					Name:      "events",
 					Usage:     "Import blockchain events",
 					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
-					Flags: []cli.Flag{
-						DataDirFlag,
-					},
 					Description: `
 The import command imports events from RLP-encoded files.
 Events are fully verified.`,
@@ -173,9 +156,6 @@ Events are fully verified.`,
 					Usage:     "Export blockchain events",
 					ArgsUsage: "<filename> [<epochFrom> <epochTo>]",
 					Action:    exportEvents,
-					Flags: []cli.Flag{
-						DataDirFlag,
-					},
 					Description: `
     sonictool export events
 

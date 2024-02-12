@@ -58,11 +58,6 @@ var (
 		Usage: "TOML configuration file",
 	}
 
-	overrideMinGasPriceFlag = cli.Uint64Flag{
-		Name: "overridemingasprice",
-		Usage: "Override the MinGasPrice with given value",
-	}
-
 	// DataDirFlag defines directory to store Lachesis state and user's wallets
 	DataDirFlag = utils.DirectoryFlag{
 		Name:  "datadir",

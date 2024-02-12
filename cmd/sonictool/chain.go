@@ -14,22 +14,14 @@ import (
 	"strings"
 )
 
-var (
-	GenesisExportSections = cli.StringFlag{
-		Name:  "export.sections",
-		Usage: `Genesis sections to export separated by comma (e.g. "brs-1" or "ers" or "evm-2" or "fws")`,
-		Value: "brs,ers,fws",
-	}
-)
-
 func exportEvents(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
-		utils.Fatalf("This command requires an argument.")
+		return fmt.Errorf("this command requires an argument - the output file")
 	}
 
 	fn := ctx.Args().First()
 
-	dataDir := ctx.String(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	if dataDir == "" {
 		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
 	}
@@ -75,7 +67,7 @@ func exportEvents(ctx *cli.Context) error {
 
 func importEvents(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
-		utils.Fatalf("This command requires an argument.")
+		return fmt.Errorf("this command requires an argument - the input file")
 	}
 
 	err := chain.EventsImport(ctx, ctx.Args()...)
