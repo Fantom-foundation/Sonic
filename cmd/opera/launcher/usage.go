@@ -59,10 +59,6 @@ func calcAppHelpFlagGroups() []flags.FlagGroup {
 			Flags: rpcFlags,
 		},
 		{
-			Name:  "CONSOLE",
-			Flags: consoleFlags,
-		},
-		{
 			Name:  "NETWORKING",
 			Flags: networkingFlags,
 		},

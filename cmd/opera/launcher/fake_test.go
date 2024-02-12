@@ -1,19 +1,20 @@
 package launcher
 
 import (
-	"path/filepath"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/params"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
-
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 )
 
+const (
+	ipcAPIs  = "abft:1.0 admin:1.0 dag:1.0 debug:1.0 ftm:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
+)
 
 func TestFakeNetFlag_NonValidator(t *testing.T) {
 	// Start an opera console, make sure it's cleaned up and terminate the console
@@ -22,7 +23,7 @@ func TestFakeNetFlag_NonValidator(t *testing.T) {
 	cli := exec(t,
 		"--fakenet", "0/3",
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
-		"console")
+		"--exitwhensynced.epoch", "1")
 
 	// Gather all the infos the welcome message needs to contain
 	cli.SetTemplateFunc("goos", func() string { return runtime.GOOS })
@@ -31,22 +32,6 @@ func TestFakeNetFlag_NonValidator(t *testing.T) {
 	cli.SetTemplateFunc("version", func() string { return params.VersionWithCommit("", "") })
 	cli.SetTemplateFunc("niltime", genesisStart)
 	cli.SetTemplateFunc("apis", func() string { return ipcAPIs })
-
-	waitForEndpoint(t, filepath.Join(cli.Datadir, "opera.ipc"), 60*time.Second)
-
-	// Verify the actual welcome message to the required template
-	cli.Expect(`
-Welcome to the Lachesis JavaScript console!
-
-instance: go-opera/v{{version}}/{{goos}}-{{goarch}}/{{gover}}
-coinbase: {{.Coinbase}}
-at block: 1 ({{niltime}})
- datadir: {{.Datadir}}
- modules: {{apis}}
-
-To exit, press ctrl-d
-> {{.InputLine "exit"}}
-`)
 	cli.ExpectExit()
 
 	wantMessages := []string{
@@ -66,7 +51,7 @@ func TestFakeNetFlag_Validator(t *testing.T) {
 	cli := exec(t,
 		"--fakenet", "3/3",
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--datadir", dataDir,
-		"console")
+		"--exitwhensynced.epoch", "1")
 
 	// Gather all the infos the welcome message needs to contain
 	va := readFakeValidator("3/3")
@@ -77,22 +62,6 @@ func TestFakeNetFlag_Validator(t *testing.T) {
 	cli.SetTemplateFunc("version", func() string { return params.VersionWithCommit("", "") })
 	cli.SetTemplateFunc("niltime", genesisStart)
 	cli.SetTemplateFunc("apis", func() string { return ipcAPIs })
-
-	waitForEndpoint(t, filepath.Join(cli.Datadir, "opera.ipc"), 60*time.Second)
-
-	// Verify the actual welcome message to the required template
-	cli.Expect(`
-Welcome to the Lachesis JavaScript console!
-
-instance: go-opera/v{{version}}/{{goos}}-{{goarch}}/{{gover}}
-coinbase: {{.Coinbase}}
-at block: 1 ({{niltime}})
- datadir: {{.Datadir}}
- modules: {{apis}}
-
-To exit, press ctrl-d
-> {{.InputLine "exit"}}
-`)
 	cli.ExpectExit()
 
 	wantMessages := []string{
@@ -120,4 +89,8 @@ func readFakeValidator(fakenet string) *validatorpk.PubKey {
 		Raw:  crypto.FromECDSAPub(&makefakegenesis.FakeKey(n).PublicKey),
 		Type: validatorpk.Types.Secp256k1,
 	}
+}
+
+func genesisStart() string {
+	return time.Unix(int64(makefakegenesis.FakeGenesisTime.Unix()), 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 }

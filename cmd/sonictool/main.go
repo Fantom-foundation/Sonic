@@ -111,6 +111,46 @@ func main() {
 			},
 		},
 		{
+			Name:     "check",
+			Usage:    "Check EVM database consistency",
+			Description: "TBD",
+			Subcommands: []cli.Command{
+				{
+					Name:   "live",
+					Usage:  "Check EVM live state database",
+					Action: checkLive,
+					Flags: []cli.Flag{
+						DataDirFlag,
+						CacheFlag,
+					},
+					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
+				},
+				{
+					Name:   "archive",
+					Usage:  "Check EVM archive states database",
+					Action: checkArchive,
+					Flags: []cli.Flag{
+						DataDirFlag,
+						CacheFlag,
+					},
+					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
+				},
+			},
+		},
+		{
+			Name:     "compact",
+			Usage:    "Compact all pebble databases",
+			Action: compactDbs,
+			Flags: []cli.Flag{
+				DataDirFlag,
+				CacheFlag,
+			},
+			Description: "TBD",
+			CustomHelpTemplate: AppHelpTemplate,
+		},
+		{
 			Name:     "cli",
 			Usage:    "Start an interactive JavaScript environment, attach to a node",
 			ArgsUsage: "[endpoint]",

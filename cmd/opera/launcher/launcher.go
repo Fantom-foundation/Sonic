@@ -193,10 +193,6 @@ func init() {
 		walletCommand,
 		// see validatorcmd.go:
 		validatorCommand,
-		// See consolecmd.go:
-		consoleCommand,
-		attachCommand,
-		javascriptCommand,
 		// See config.go:
 		dumpConfigCommand,
 		checkConfigCommand,
@@ -207,15 +203,12 @@ func init() {
 		importCommand,
 		exportCommand,
 		checkCommand,
-		// See dbcmd.go
-		dbCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
 	app.Flags = append(app.Flags, testFlags...)
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
-	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
