@@ -49,6 +49,7 @@ func main() {
 						DataDirFlag,
 						GenesisFlag,
 						ExperimentalFlag,
+						CacheFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
@@ -61,6 +62,7 @@ func main() {
 						DataDirFlag,
 						GenesisFlag,
 						ExperimentalFlag,
+						CacheFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
@@ -72,11 +74,59 @@ func main() {
 					Flags: []cli.Flag{
 						DataDirFlag,
 						FakeNetFlag,
+						CacheFlag,
 					},
 					Description: "TBD",
 					CustomHelpTemplate: AppHelpTemplate,
 				},
 			},
+		},
+		{
+			Name:     "check",
+			Usage:    "Check EVM database consistency",
+			Description: "TBD",
+			Subcommands: []cli.Command{
+				{
+					Name:   "live",
+					Usage:  "Check EVM live state database",
+					Action: checkLive,
+					Flags: []cli.Flag{
+						DataDirFlag,
+						CacheFlag,
+					},
+					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
+				},
+				{
+					Name:   "archive",
+					Usage:  "Check EVM archive states database",
+					Action: checkArchive,
+					Flags: []cli.Flag{
+						DataDirFlag,
+						CacheFlag,
+					},
+					Description: "TBD",
+					CustomHelpTemplate: AppHelpTemplate,
+				},
+			},
+		},
+		{
+			Name:     "cli",
+			Usage:    "Start an interactive JavaScript environment, attach to a node",
+			ArgsUsage: "[endpoint]",
+			Action: remoteConsole,
+			Flags: []cli.Flag{
+				DataDirFlag,
+				JSpathFlag,
+				PreloadJSFlag,
+				ExecFlag,
+			},
+			CustomHelpTemplate: AppHelpTemplate,
+			Description: `
+The Sonic console is an interactive shell for the JavaScript runtime environment
+which exposes a node admin interface as well as the Dapp JavaScript API.
+See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.
+This command allows to open a console attached to a running Sonic node.`,
 		},
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))

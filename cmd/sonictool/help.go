@@ -1,23 +1,18 @@
 package main
 
 var AppHelpTemplate = `NAME:
-   {{.Name}}{{if .Usage}} - {{.Usage}}{{end}}
+   {{.HelpName}} - {{.Usage}}
 
 USAGE:
-   {{if .UsageText}}{{.UsageText}}{{else}}{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
+   {{if .UsageText}}{{.UsageText}}{{else}}{{.HelpName}}{{if .VisibleFlags}} [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{end}}{{end}}{{if .Category}}
 
-VERSION:
-   {{.Version}}{{end}}{{end}}{{if .Description}}
+CATEGORY:
+   {{.Category}}{{end}}{{if .Description}}
 
 DESCRIPTION:
-   {{.Description}}{{end}}{{if .VisibleCommands}}
+   {{.Description}}{{end}}{{if .VisibleFlags}}
 
-COMMANDS:{{range .VisibleCategories}}{{if .Name}}
-   {{.Name}}:{{end}}{{range .VisibleCommands}}
-     {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
-
-GLOBAL OPTIONS:
-   {{range $index, $option := .VisibleFlags}}{{if $index}}
-   {{end}}{{$option}}{{end}}{{end}}
+OPTIONS:
+   {{range .VisibleFlags}}{{.}}
+   {{end}}{{end}}
 `
-
