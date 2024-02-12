@@ -25,6 +25,8 @@ type (
 		Cache StoreCacheConfig
 		// Carmen StateDB config
 		StateDb carmen.Parameters
+		// Skip running with a different archive mode prevention
+		SkipArchiveCheck bool
 		// Disables EVM logs indexing
 		DisableLogsIndexing bool
 		// Disables storing of txs positions

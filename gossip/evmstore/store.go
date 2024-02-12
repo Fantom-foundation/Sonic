@@ -69,7 +69,7 @@ func NewStore(mainDB kvdb.Store, cfg StoreConfig) *Store {
 
 // Open the StateDB database (after the genesis import)
 func (s *Store) Open() error {
-	err := initCarmen(s.parameters)
+	err := s.initCarmen()
 	if err != nil {
 		return err
 	}
@@ -128,10 +128,14 @@ func (s *Store) makeCache(weight uint, size int) *wlru.Cache {
 	return cache
 }
 
-func initCarmen(params carmen.Parameters) error {
+func (s *Store) initCarmen() error {
+	params := s.parameters
 	err := os.MkdirAll(params.Directory, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen dir \"%s\"; %v", params.Directory, err)
+	}
+	if s.cfg.SkipArchiveCheck {
+		return nil // skip the following check (like for verification)
 	}
 	liveDir := filepath.Join(params.Directory, "live")
 	liveInfo, err := os.Stat(liveDir)

@@ -30,7 +30,7 @@ func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 }
 
 func checkLiveBlockRoot(dataDir string, cacheRatio cachescale.Func) error {
-	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.NoArchive)
+	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.NoArchive, true)
 	if err != nil {
 		return err
 	}
