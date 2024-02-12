@@ -34,25 +34,6 @@ import (
 )
 
 var (
-	dumpConfigCommand = cli.Command{
-		Action:      utils.MigrateFlags(dumpConfig),
-		Name:        "dumpconfig",
-		Usage:       "Show configuration values",
-		ArgsUsage:   "",
-		Flags:       append(nodeFlags, testFlags...),
-		Category:    "MISCELLANEOUS COMMANDS",
-		Description: `The dumpconfig command shows configuration values.`,
-	}
-	checkConfigCommand = cli.Command{
-		Action:      utils.MigrateFlags(checkConfig),
-		Name:        "checkconfig",
-		Usage:       "Checks configuration file",
-		ArgsUsage:   "",
-		Flags:       append(nodeFlags, testFlags...),
-		Category:    "MISCELLANEOUS COMMANDS",
-		Description: `The checkconfig checks configuration file.`,
-	}
-
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
@@ -122,7 +103,7 @@ const (
 )
 
 // These settings ensure that TOML keys use the same names as Go struct fields.
-var tomlSettings = toml.Config{
+var TomlSettings = toml.Config{
 	NormFieldName: func(rt reflect.Type, key string) string {
 		return key
 	},
@@ -164,7 +145,7 @@ func loadAllConfigs(file string, cfg *config) error {
 	}
 	defer f.Close()
 
-	err = tomlSettings.NewDecoder(bufio.NewReader(f)).Decode(cfg)
+	err = TomlSettings.NewDecoder(bufio.NewReader(f)).Decode(cfg)
 	// Add file name to errors that have a line number.
 	if _, ok := err.(*toml.LineError); ok {
 		err = errors.New(file + ", " + err.Error())
@@ -324,7 +305,7 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 	}
 }
 
-func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
+func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	// Defaults (low priority)
 	cacheRatio := cacheScaler(ctx)
 	cfg := config{
@@ -352,8 +333,8 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	}
 
 	// Load config file (medium priority)
-	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
-		if err := loadAllConfigs(file, &cfg); err != nil {
+	if configFile != "" {
+		if err := loadAllConfigs(configFile, &cfg); err != nil {
 			return &cfg, err
 		}
 	}
@@ -390,7 +371,7 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 }
 
 func MakeAllConfigs(ctx *cli.Context) *config {
-	cfg, err := mayMakeAllConfigs(ctx)
+	cfg, err := MayMakeAllConfigs(ctx, ctx.GlobalString(configFileFlag.Name))
 	if err != nil {
 		utils.Fatalf("%v", err)
 	}
@@ -406,33 +387,4 @@ func defaultNodeConfig() node.Config {
 	cfg.IPCPath = "opera.ipc"
 	cfg.DataDir = DefaultDataDir()
 	return cfg
-}
-
-// dumpConfig is the dumpconfig command.
-func dumpConfig(ctx *cli.Context) error {
-	cfg := MakeAllConfigs(ctx)
-	comment := ""
-
-	out, err := tomlSettings.Marshal(&cfg)
-	if err != nil {
-		return err
-	}
-
-	dump := os.Stdout
-	if ctx.NArg() > 0 {
-		dump, err = os.OpenFile(ctx.Args().Get(0), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			return err
-		}
-		defer dump.Close()
-	}
-	dump.WriteString(comment)
-	dump.Write(out)
-
-	return nil
-}
-
-func checkConfig(ctx *cli.Context) error {
-	_, err := mayMakeAllConfigs(ctx)
-	return err
 }

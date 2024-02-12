@@ -192,9 +192,6 @@ func initApp() {
 		walletCommand,
 		// see validatorcmd.go:
 		validatorCommand,
-		// See config.go:
-		dumpConfigCommand,
-		checkConfigCommand,
 		// See misccmd.go:
 		versionCommand,
 		licenseCommand,

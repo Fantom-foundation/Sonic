@@ -167,6 +167,22 @@ be gzipped.
 				},
 			},
 		},
+		{
+			Action:      checkConfig,
+			Name:        "checkconfig",
+			Usage:       "Checks configuration file",
+			ArgsUsage:   "",
+			Category:    "MISCELLANEOUS COMMANDS",
+			Description: `The checkconfig checks configuration file.`,
+		},
+		{
+			Action:      dumpConfig,
+			Name:        "dumpconfig",
+			Usage:       "Show configuration values",
+			ArgsUsage:   "",
+			Category:    "MISCELLANEOUS COMMANDS",
+			Description: `The dumpconfig command shows configuration values.`,
+		},
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
