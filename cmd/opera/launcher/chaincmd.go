@@ -1,7 +1,6 @@
 package launcher
 
 import (
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -24,7 +23,7 @@ Events are fully verified.`,
 
 		Subcommands: []cli.Command{
 			{
-				Action:    utils.MigrateFlags(importEvents),
+				Action:    importEvents,
 				Name:      "events",
 				Usage:     "Import blockchain events",
 				ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
@@ -47,7 +46,7 @@ Events are fully verified.`,
 				Name:      "events",
 				Usage:     "Export blockchain events",
 				ArgsUsage: "<filename> [<epochFrom> <epochTo>]",
-				Action:    utils.MigrateFlags(exportEvents),
+				Action:    exportEvents,
 				Flags: []cli.Flag{
 					DataDirFlag,
 				},
@@ -64,7 +63,7 @@ be gzipped
 				Name:      "genesis",
 				Usage:     "Export current state into a genesis file",
 				ArgsUsage: "<filename or dry-run> [<epochFrom> <epochTo>] [--export.sections=brs,ers,fws]",
-				Action:    utils.MigrateFlags(exportGenesis),
+				Action:    exportGenesis,
 				Flags: []cli.Flag{
 					DataDirFlag,
 					GenesisExportSections,

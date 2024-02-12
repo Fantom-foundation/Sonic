@@ -243,9 +243,9 @@ func lachesisMain(ctx *cli.Context) error {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 
-	node, _, nodeClose, err := makeNode(ctx, cfg)
+	node, _, nodeClose, err := MakeNode(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize the node: %w", err)
 	}
@@ -258,7 +258,7 @@ func lachesisMain(ctx *cli.Context) error {
 	return nil
 }
 
-func makeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(), error) {
+func MakeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(), error) {
 	var success bool
 	var cleanup []func()
 	defer func() { // if the function fails, clean-up in defer, otherwise return cleaning function

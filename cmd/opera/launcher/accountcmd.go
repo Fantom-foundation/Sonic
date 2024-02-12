@@ -197,7 +197,7 @@ nodes.
 )
 
 func accountList(ctx *cli.Context) error {
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 	stack, err := makeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return err
@@ -297,7 +297,7 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 	utils.SetNodeConfig(ctx, &cfg.Node)
 	scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()
 
@@ -329,7 +329,7 @@ func accountUpdate(ctx *cli.Context) error {
 		return fmt.Errorf("no accounts specified to update")
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 	stack, err := makeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return err
@@ -359,7 +359,7 @@ func importWallet(ctx *cli.Context) error {
 		utils.Fatalf("Could not read wallet file: %v", err)
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 	stack, err := makeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return err
@@ -385,7 +385,7 @@ func accountImport(ctx *cli.Context) error {
 		utils.Fatalf("Failed to load the private key: %v", err)
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 	stack, err := makeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return err

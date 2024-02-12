@@ -35,7 +35,7 @@ func exportEvents(ctx *cli.Context) error {
 		utils.Fatalf("This command requires an argument.")
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 
 	rawDbs, err := makeDBsProducer(cfg)
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/utils"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
@@ -38,7 +39,7 @@ var (
 	CacheFlag = cli.IntFlag{
 		Name:  "cache",
 		Usage: "Megabytes of memory allocated to internal pebble caching",
-		Value: genesis.DefaultCacheSize,
+		Value: utils.DefaultCacheSize,
 	}
 )
 
@@ -193,7 +194,7 @@ func parseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
 
 func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
 	targetCache := ctx.Int(CacheFlag.Name)
-	baseSize := genesis.DefaultCacheSize
+	baseSize := utils.DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
 	maxCache := totalMemory * 3 / 5
 	if maxCache < baseSize {
@@ -215,7 +216,7 @@ func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
 	}
 
 	return cachescale.Ratio{
-		Base:   uint64(baseSize - genesis.ConstantCacheSize),
-		Target: uint64(targetCache - genesis.ConstantCacheSize),
+		Base:   uint64(baseSize - utils.ConstantCacheSize),
+		Target: uint64(targetCache - utils.ConstantCacheSize),
 	}, nil
 }
