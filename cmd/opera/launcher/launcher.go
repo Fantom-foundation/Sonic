@@ -34,8 +34,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/go-opera/utils/errlock"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
 	_ "github.com/Fantom-foundation/go-opera/version"
@@ -69,8 +67,7 @@ func initFlags() {
 	// Flags for testing purpose.
 	testFlags = []cli.Flag{
 		FakeNetFlag,
-		FakeNetGasPowerFlag,
-		JsonGenesisFlag,
+		overrideMinGasPriceFlag,
 	}
 
 	// Flags that configure the node.
@@ -112,8 +109,6 @@ func initFlags() {
 		utils.TxPoolLifetimeFlag,
 	}
 	operaFlags = []cli.Flag{
-		GenesisFlag,
-		ExperimentalGenesisFlag,
 		utils.IdentityFlag,
 		DataDirFlag,
 		utils.MinFreeDiskSpaceFlag,
@@ -128,7 +123,6 @@ func initFlags() {
 		validatorPubkeyFlag,
 		validatorPasswordFlag,
 		ModeFlag,
-		overrideMinGasPriceFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -257,17 +251,9 @@ func lachesisMain(ctx *cli.Context) error {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 
-	// TODO: tracing flags
-	//tracingStop, err := tracing.Start(ctx)
-	//if err != nil {
-	//	return err
-	//}
-	//defer tracingStop()
-
 	cfg := makeAllConfigs(ctx)
-	genesisStore := mayGetGenesisStore(ctx, cfg)
 
-	node, _, nodeClose, err := makeNode(ctx, cfg, genesisStore)
+	node, _, nodeClose, err := makeNode(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize the node: %w", err)
 	}
@@ -280,7 +266,7 @@ func lachesisMain(ctx *cli.Context) error {
 	return nil
 }
 
-func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (*node.Node, *gossip.Service, func(), error) {
+func makeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(), error) {
 	var success bool
 	var cleanup []func()
 	defer func() { // if the function fails, clean-up in defer, otherwise return cleaning function
@@ -295,14 +281,11 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
 
-	var g *genesis.Genesis
-	if genesisStore != nil {
-		gv := genesisStore.Genesis()
-		g = &gv
-	}
-
 	// applies genesis
-	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), g, cfg.AppConfigs())
+	engine, dagIndex, gdb, cdb, blockProc, closeDBs, err := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), cfg.AppConfigs())
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to make consensus engine: %w", err)
+	}
 	cleanup = append(cleanup, func() {
 		if err := gdb.Close(); err != nil {
 			log.Warn("Failed to close gossip store", "err", err)
@@ -317,18 +300,12 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		}
 	})
 
-	if genesisStore != nil {
-		_ = genesisStore.Close()
-	}
 	metrics.SetDataDir(cfg.Node.DataDir)
 
 	// substitute default bootnodes if requested
 	networkName := ""
 	if gdb.HasBlockEpochState() {
 		networkName = gdb.GetRules().Name
-	}
-	if len(networkName) == 0 && genesisStore != nil {
-		networkName = genesisStore.Header().NetworkName
 	}
 	if needDefaultBootnodes(cfg.Node.P2P.BootstrapNodes) {
 		bootnodes := Bootnodes[networkName]

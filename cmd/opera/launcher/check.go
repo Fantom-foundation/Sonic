@@ -1,6 +1,8 @@
 package launcher
 
 import (
+	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip"
 	"time"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -17,7 +19,10 @@ func checkEvm(ctx *cli.Context) error {
 	cfg := makeAllConfigs(ctx)
 
 	rawDbs := makeDBsProducer(cfg)
-	gdb := makeGossipStore(rawDbs, cfg)
+	gdb, err := gossip.NewStore(rawDbs, cfg.OperaStore)
+	if err != nil {
+		return fmt.Errorf("failed to create gossip store: %w", err)
+	}
 	defer gdb.Close()
 
 	start := time.Now()
@@ -28,7 +33,7 @@ func checkEvm(ctx *cli.Context) error {
 		log.Crit("Verification of the database failed - unable to get the last block")
 	}
 
-	err := gdb.EvmStore().VerifyWorldState(uint64(lastBlockIdx), common.Hash(lastBlock.Root))
+	err = gdb.EvmStore().VerifyWorldState(uint64(lastBlockIdx), common.Hash(lastBlock.Root))
 	if err != nil {
 		log.Crit("Verification of the Fantom World State failed", "err", err)
 	}

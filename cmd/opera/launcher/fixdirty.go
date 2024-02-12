@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip"
 	"path"
 	"time"
 
@@ -86,9 +87,12 @@ func revertDb(ctx *cli.Context) error {
 }
 
 // revertGossipDb reverts the gossip database into state, when was one of last epochs sealed
-func revertGossipDb(producer kvdb.FlushableDBProducer, cfg *config, targetEpoch idx.Epoch) (
+func revertGossipDb(rawDbs kvdb.FlushableDBProducer, cfg *config, targetEpoch idx.Epoch) (
 	epochState *iblockproc.EpochState, oldTopEpoch idx.Epoch, err error) {
-	gdb := makeGossipStore(producer, cfg) // requires FlushIDKey present (not clean) in all dbs
+	gdb, err := gossip.NewStore(rawDbs, cfg.OperaStore)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create gossip store: %w", err)
+	}
 	defer gdb.Close()
 	oldTopEpoch = gdb.GetEpoch()
 

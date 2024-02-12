@@ -31,13 +31,6 @@ var DefaultVMConfig = vm.Config{
 	InterpreterImpl: "geth",
 }
 
-// OverrideMinGasPrice is a Norma specific override of MinGasPrice
-var OverrideMinGasPrice *big.Int
-
-// FakeGasPowerCoefficient multiplies gas limits in Fakenet - allows to increase the network throughput
-// by increasing the amount of gas per block, event, epoch and for each validator per second
-var FakeGasPowerCoefficient = uint64(1)
-
 type RulesRLP struct {
 	Name      string
 	NetworkID uint64
@@ -194,7 +187,7 @@ func FakeNetRules() Rules {
 		Epochs:    FakeNetEpochsRules(),
 		Economy:   FakeEconomyRules(),
 		Blocks: BlocksRules{
-			MaxBlockGas:             20500000 * FakeGasPowerCoefficient,
+			MaxBlockGas:             20500000,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(3 * time.Second),
 		},
 		Upgrades: Upgrades{
@@ -214,17 +207,12 @@ func DefaultEconomyRules() EconomyRules {
 		ShortGasPower:    DefaultShortGasPowerRules(),
 		LongGasPower:     DefaulLongGasPowerRules(),
 	}
-	// hack for performance testing
-	if OverrideMinGasPrice != nil && OverrideMinGasPrice.Sign() > 0 {
-		rules.MinGasPrice = OverrideMinGasPrice
-	}
 	return rules
 }
 
 // FakeEconomyRules returns fakenet economy
 func FakeEconomyRules() EconomyRules {
 	cfg := DefaultEconomyRules()
-	cfg.Gas.MaxEventGas *= FakeGasPowerCoefficient
 	cfg.ShortGasPower = FakeShortGasPowerRules()
 	cfg.LongGasPower = FakeLongGasPowerRules()
 	return cfg
@@ -260,7 +248,7 @@ func DefaultGasRules() GasRules {
 
 func FakeNetEpochsRules() EpochsRules {
 	cfg := DefaultEpochsRules()
-	cfg.MaxEpochGas = cfg.MaxEpochGas * FakeGasPowerCoefficient / 5
+	cfg.MaxEpochGas /= 5
 	cfg.MaxEpochDuration = inter.Timestamp(10 * time.Minute)
 	return cfg
 }
@@ -288,14 +276,14 @@ func DefaultShortGasPowerRules() GasPowerRules {
 // FakeLongGasPowerRules is fake long-window config
 func FakeLongGasPowerRules() GasPowerRules {
 	config := DefaulLongGasPowerRules()
-	config.AllocPerSec *= 1000 * FakeGasPowerCoefficient
+	config.AllocPerSec *= 1000
 	return config
 }
 
 // FakeShortGasPowerRules is fake short-window config
 func FakeShortGasPowerRules() GasPowerRules {
 	config := DefaultShortGasPowerRules()
-	config.AllocPerSec *= 1000 * FakeGasPowerCoefficient
+	config.AllocPerSec *= 1000
 	return config
 }
 

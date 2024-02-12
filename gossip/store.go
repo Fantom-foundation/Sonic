@@ -1,25 +1,24 @@
 package gossip
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/logger"
+	"github.com/Fantom-foundation/go-opera/utils/eventid"
+	"github.com/Fantom-foundation/go-opera/utils/randat"
+	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
-	"github.com/ethereum/go-ethereum/log"
-
-	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
-	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/utils/eventid"
-	"github.com/Fantom-foundation/go-opera/utils/randat"
-	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
 )
 
 // Store is a node persistent storage working over physical key-value database.
@@ -97,7 +96,7 @@ type Store struct {
 }
 
 // NewMemStore creates temporary gossip store for testing purposes.
-func NewMemStore(tb testing.TB) *Store {
+func NewMemStore(tb testing.TB) (*Store, error) {
 	mems := memorydb.NewProducer("")
 	dbs := flushable.NewSyncedPool(mems, []byte{0})
 
@@ -107,10 +106,10 @@ func NewMemStore(tb testing.TB) *Store {
 }
 
 // NewStore creates store over key-value db.
-func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
+func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) (*Store, error) {
 	mainDB, err := dbs.OpenDB("gossip")
 	if err != nil {
-		log.Crit("Failed to open DB", "name", "gossip", "err", err)
+		return nil, fmt.Errorf("failed to open gossip db: %w", err)
 	}
 	s := &Store{
 		dbs:           dbs,
@@ -128,10 +127,10 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) *Store {
 	s.evm = evmstore.NewStore(s.mainDB, cfg.EVM)
 
 	if err := s.migrateData(); err != nil {
-		s.Log.Crit("Failed to migrate Gossip DB", "err", err)
+		return nil, fmt.Errorf("failed to migrate gossip db: %w", err)
 	}
 
-	return s
+	return s, nil
 }
 
 func (s *Store) initCache() {

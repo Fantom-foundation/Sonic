@@ -72,10 +72,13 @@ func makeFuzzedHandler() (h *handler, err error) {
 	genesis := genStore.Genesis()
 
 	config := DefaultConfig(cachescale.Identity)
-	store := NewMemStore()
+	store, err := NewMemStore()
+	if err != nil {
+		return err
+	}
 	err = store.ApplyGenesis(genesis, statedb.Config{})
 	if err != nil {
-		return
+		return err
 	}
 
 	var (
@@ -111,11 +114,11 @@ func makeFuzzedHandler() (h *handler, err error) {
 			},
 		})
 	if err != nil {
-		return
+		return err
 	}
 
 	h.Start(3)
-	return
+	return nil
 }
 
 func randomID() (id enode.ID) {

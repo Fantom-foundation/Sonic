@@ -47,7 +47,10 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 		gdbConfig.EVM.DisableTxHashesIndexing = true
 	}
 
-	gdb := gossip.NewStore(dbs, gdbConfig)
+	gdb, err := gossip.NewStore(dbs, gdbConfig)
+	if err != nil {
+		fmt.Errorf("failed to create gossip store: %w", err)
+	}
 	defer gdb.Close()
 
 	err = gdb.ApplyGenesis(genesisStore.Genesis())

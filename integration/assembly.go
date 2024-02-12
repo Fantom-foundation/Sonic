@@ -4,6 +4,9 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip"
+	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
+	"github.com/Fantom-foundation/go-opera/vecmt"
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -15,13 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/status-im/keycard-go/hexutils"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-
-	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 var (
@@ -64,55 +60,26 @@ func mustOpenDB(producer kvdb.DBProducer, name string) kvdb.Store {
 	return db
 }
 
-func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *abft.Store) {
-	gdb := gossip.NewStore(producer, cfg.OperaStore)
+func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *abft.Store, error) {
+	gdb, err := gossip.NewStore(producer, cfg.OperaStore)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	cMainDb := mustOpenDB(producer, "lachesis")
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
 		return mustOpenDB(producer, fmt.Sprintf("lachesis-%d", epoch))
 	}
 	cdb := abft.NewStore(cMainDb, cGetEpochDB, panics("Lachesis store"), cfg.LachesisStore)
-	return gdb, cdb
+	return gdb, cdb, err
 }
 
-func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, gossip.BlockProc, error) {
+func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, cfg Configs) (*abft.Lachesis, *vecmt.Index, gossip.BlockProc, error) {
 	blockProc := gossip.DefaultBlockProc()
-
-	if g != nil {
-		err := gdb.ApplyGenesis(*g)
-		if err != nil {
-			return nil, nil, blockProc, fmt.Errorf("failed to write Gossip genesis state: %v", err)
-		}
-
-		err = cdb.ApplyGenesis(&abft.Genesis{
-			Epoch:      gdb.GetEpoch(),
-			Validators: gdb.GetValidators(),
-		})
-		if err != nil {
-			return nil, nil, blockProc, fmt.Errorf("failed to write Lachesis genesis state: %v", err)
-		}
-	}
-
 	// create consensus
 	vecClock := vecmt.NewIndex(panics("Vector clock"), cfg.VectorClock)
 	engine := abft.NewLachesis(cdb, &GossipStoreAdapter{gdb}, vecmt2dagidx.Wrap(vecClock), panics("Lachesis"), cfg.Lachesis)
 	return engine, vecClock, blockProc, nil
-}
-
-func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) error {
-	gdb, cdb := getStores(dbs, cfg)
-	defer gdb.Close()
-	defer cdb.Close()
-	log.Info("Applying genesis state")
-	_, _, _, err := rawMakeEngine(gdb, cdb, &g, cfg)
-	if err != nil {
-		return err
-	}
-	err = gdb.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
@@ -126,57 +93,17 @@ func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
 	return dbs.Close()
 }
 
-func compactDB(name string, producer kvdb.DBProducer) error {
-	db, err := producer.OpenDB(name)
-	defer db.Close()
-	if err != nil {
-		return err
-	}
-	return compactdb.Compact(db, name, 16*opt.GiB)
-}
-
-func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
-	// Genesis processing
-	if genesisProc {
-		setGenesisProcessing(chaindataDir)
-		if g == nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
-		}
-		dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB producer: %v", err)
-		}
-		err = applyGenesis(dbs, *g, cfg)
-		if err != nil {
-			_ = dbs.Close()
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to apply genesis state: %v", err)
-		}
-		_ = dbs.Close()
-		setGenesisComplete(chaindataDir)
-	}
-	// Compact DBs after first launch
-	if genesisProc {
-		p := GetRawDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
-		for _, name := range p.Names() {
-			if err := compactDB(name, p); err != nil {
-				return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-			}
-		}
-	}
-	// Check DBs are synced
-	{
-		err := CheckStateInitialized(chaindataDir, cfg.DBs)
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-		}
-	}
-	// Live setup - open flushable DBs
+func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
 	dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 
-	gdb, cdb := getStores(dbs, cfg)
+	gdb, cdb, err := getStores(dbs, cfg)
+	if err != nil {
+		err = fmt.Errorf("failed to get stores: %w", err)
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+	}
 	defer func() {
 		if err != nil {
 			gdb.Close()
@@ -191,59 +118,31 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
 	}
 
-	// compare genesis with the input
-	genesisID := gdb.GetGenesisID()
-	if genesisID == nil {
-		err = errors.New("malformed chainstore: genesis ID is not written")
-		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
-	}
-	if g != nil {
-		if *genesisID != g.GenesisID {
-			err = &GenesisMismatchError{*genesisID, g.GenesisID}
-			return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
-		}
-	}
-
-	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, nil, cfg)
+	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, cfg)
 	if err != nil {
 		err = fmt.Errorf("failed to make engine: %v", err)
 		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
-	}
-
-	if genesisProc {
-		err = gdb.Commit()
-		if err != nil {
-			err = fmt.Errorf("failed to commit DBs: %v", err)
-			return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
-		}
 	}
 
 	return engine, vecClock, gdb, cdb, blockProc, dbs.Close, nil
 }
 
 // MakeEngine makes consensus engine from config.
-func MakeEngine(chaindataDir string, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error) {
-	dropAllDBsIfInterrupted(chaindataDir)
-	firstLaunch := isEmpty(chaindataDir)
-	MakeDBDirs(chaindataDir)
+func MakeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
+	if isEmpty(chaindataDir) || isInterrupted(chaindataDir) {
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("database is empty or the genesis import interrupted")
+	}
 
-	engine, vecClock, gdb, cdb, blockProc, closeDBs, err := makeEngine(chaindataDir, g, firstLaunch, cfg)
+	engine, vecClock, gdb, cdb, blockProc, closeDBs, err := makeEngine(chaindataDir, cfg)
 	if err != nil {
-		if firstLaunch {
-			dropAllDBs(chaindataDir)
-		}
-		utils.Fatalf("Failed to make engine: %v", err)
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 
 	rules := gdb.GetRules()
 	genesisID := gdb.GetGenesisID()
-	if firstLaunch {
-		log.Info("Applied genesis state", "name", rules.Name, "id", rules.NetworkID, "genesis", genesisID.String())
-	} else {
-		log.Info("Genesis is already written", "name", rules.Name, "id", rules.NetworkID, "genesis", genesisID.String())
-	}
+	log.Info("Genesis is written", "name", rules.Name, "id", rules.NetworkID, "genesis", genesisID.String())
 
-	return engine, vecClock, gdb, cdb, blockProc, closeDBs
+	return engine, vecClock, gdb, cdb, blockProc, closeDBs, nil
 }
 
 // SetAccountKey sets key into accounts manager and unlocks it with pswd.
