@@ -245,7 +245,10 @@ func exportGenesis(ctx *cli.Context) error {
 	_ = os.RemoveAll(tmpPath)
 	defer os.RemoveAll(tmpPath)
 
-	rawDbs := makeDBsProducer(cfg)
+	rawDbs, err := makeDBsProducer(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to make DB producer: %w", err)
+	}
 	gdb, err := gossip.NewStore(rawDbs, cfg.OperaStore)
 	if err != nil {
 		return fmt.Errorf("failed to create gossip store: %w", err)

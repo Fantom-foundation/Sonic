@@ -81,25 +81,4 @@ Pass dry-run instead of filename for calculation of hashes without exporting dat
 			},
 		},
 	}
-	checkCommand = cli.Command{
-		Name:     "check",
-		Usage:    "Check blockchain",
-		Category: "MISCELLANEOUS COMMANDS",
-
-		Subcommands: []cli.Command{
-			{
-				Name:   "evm",
-				Usage:  "Check EVM storage",
-				Action: utils.MigrateFlags(checkEvm),
-				Flags: []cli.Flag{
-					DataDirFlag,
-				},
-				Description: `
-    opera check evm
-
-Checks EVM storage roots and code hashes.
-`,
-			},
-		},
-	}
 )

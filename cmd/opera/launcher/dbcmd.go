@@ -1,20 +1,20 @@
 package launcher
 
 import (
+	"fmt"
 	"path"
 
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 )
 
-func makeDBsProducer(cfg *config) kvdb.FullDBProducer {
+func makeDBsProducer(cfg *config) (kvdb.FullDBProducer, error) {
 	if err := integration.CheckStateInitialized(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs); err != nil {
-		utils.Fatalf(err.Error())
+		return nil, err
 	}
 	producer, err := integration.GetDbProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	if err != nil {
-		utils.Fatalf("Failed to initialize DB producer: %v", err)
+		return nil, fmt.Errorf("failed to initialize DB producer: %w", err)
 	}
-	return producer
+	return producer, nil
 }

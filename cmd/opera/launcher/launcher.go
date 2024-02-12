@@ -202,7 +202,6 @@ func init() {
 		// See chaincmd.go
 		importCommand,
 		exportCommand,
-		checkCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -272,9 +271,10 @@ func makeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(
 
 	// check errlock file
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
-	errlock.Check()
+	if err := errlock.Check(); err != nil {
+		return nil, nil, nil, err
+	}
 
-	// applies genesis
 	engine, dagIndex, gdb, cdb, blockProc, closeDBs, err := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), cfg.AppConfigs())
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to make consensus engine: %w", err)

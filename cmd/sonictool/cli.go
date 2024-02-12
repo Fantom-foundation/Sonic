@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/rpc"
 	"gopkg.in/urfave/cli.v1"
@@ -10,10 +9,10 @@ import (
 )
 
 var (
-	JSpathFlag = utils.DirectoryFlag{
+	JSpathFlag = cli.StringFlag{
 		Name:  "jspath",
 		Usage: "JavaScript root path for `loadScript`",
-		Value: utils.DirectoryString("."),
+		Value: ".",
 	}
 	PreloadJSFlag = cli.StringFlag{
 		Name:  "preload",

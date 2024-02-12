@@ -39,7 +39,6 @@ func main() {
 						GenesisFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "legacy",
@@ -53,7 +52,6 @@ func main() {
 						ModeFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "json",
@@ -67,7 +65,6 @@ func main() {
 						ModeFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "fake",
@@ -79,7 +76,6 @@ func main() {
 						CacheFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 			},
 		},
@@ -97,7 +93,6 @@ func main() {
 						CacheFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "archive",
@@ -109,7 +104,6 @@ func main() {
 						ModeFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 			},
 		},
@@ -127,7 +121,6 @@ func main() {
 						CacheFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 				{
 					Name:   "archive",
@@ -138,7 +131,6 @@ func main() {
 						CacheFlag,
 					},
 					Description: "TBD",
-					CustomHelpTemplate: AppHelpTemplate,
 				},
 			},
 		},
@@ -151,7 +143,6 @@ func main() {
 				CacheFlag,
 			},
 			Description: "TBD",
-			CustomHelpTemplate: AppHelpTemplate,
 		},
 		{
 			Name:     "cli",
@@ -164,7 +155,6 @@ func main() {
 				PreloadJSFlag,
 				ExecFlag,
 			},
-			CustomHelpTemplate: AppHelpTemplate,
 			Description: `
 The Sonic console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Dapp JavaScript API.

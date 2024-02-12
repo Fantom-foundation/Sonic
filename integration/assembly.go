@@ -13,7 +13,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -52,26 +51,25 @@ func panics(name string) func(error) {
 	}
 }
 
-func mustOpenDB(producer kvdb.DBProducer, name string) kvdb.Store {
-	db, err := producer.OpenDB(name)
-	if err != nil {
-		utils.Fatalf("Failed to open '%s' database: %v", name, err)
-	}
-	return db
-}
-
 func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *abft.Store, error) {
 	gdb, err := gossip.NewStore(producer, cfg.OperaStore)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to open gossip store: %w", err)
 	}
 
-	cMainDb := mustOpenDB(producer, "lachesis")
+	cMainDb, err := producer.OpenDB("lachesis")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open lachesis database: %w", err)
+	}
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
-		return mustOpenDB(producer, fmt.Sprintf("lachesis-%d", epoch))
+		cEpochDb, err := producer.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
+		if err != nil {
+			panic(fmt.Errorf("failed to open lachesis-%d database: %w", epoch, err))
+		}
+		return cEpochDb
 	}
 	cdb := abft.NewStore(cMainDb, cGetEpochDB, panics("Lachesis store"), cfg.LachesisStore)
-	return gdb, cdb, err
+	return gdb, cdb, nil
 }
 
 func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, cfg Configs) (*abft.Lachesis, *vecmt.Index, gossip.BlockProc, error) {
