@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
@@ -14,14 +15,9 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"strconv"
-	"strings"
 )
 
 var (
-	GenesisFlag = cli.StringFlag{
-		Name:  "genesis",
-		Usage: "The genesis file path",
-	}
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
 		Usage: `Mode of the node ("rpc" or "validator")`,
@@ -35,23 +31,17 @@ var (
 		Name:  "experimental",
 		Usage: "Allow experimental features",
 	}
-	CacheFlag = cli.IntFlag{
-		Name:  "cache",
-		Usage: "Megabytes of memory allocated to internal pebble caching",
-		Value: genesis.DefaultCacheSize,
-	}
 )
 
 func sonicGenesisImport(ctx *cli.Context) error {
-	dataDir := ctx.String(DataDirFlag.Name)
+	if len(ctx.Args()) < 1 {
+		return fmt.Errorf("this command requires an argument - the genesis file to import")
+	}
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	if dataDir == "" {
 		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
 	}
-	genesisPath := ctx.String(GenesisFlag.Name)
-	if genesisPath == "" {
-		return fmt.Errorf("--%s need to be set", GenesisFlag.Name)
-	}
-	genesisReader, err := os.Open(genesisPath)
+	genesisReader, err := os.Open(ctx.Args().First())
 	if err != nil {
 		return err
 	}
@@ -60,13 +50,12 @@ func sonicGenesisImport(ctx *cli.Context) error {
 }
 
 func legacyGenesisImport(ctx *cli.Context) error {
-	dataDir := ctx.String(DataDirFlag.Name)
+	if len(ctx.Args()) < 1 {
+		return fmt.Errorf("this command requires an argument - the genesis file to import")
+	}
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	if dataDir == "" {
 		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
-	}
-	genesisPath := ctx.String(GenesisFlag.Name)
-	if genesisPath == "" {
-		return fmt.Errorf("--%s need to be set", GenesisFlag.Name)
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
@@ -77,7 +66,7 @@ func legacyGenesisImport(ctx *cli.Context) error {
 		return err
 	}
 
-	genesisReader, err := os.Open(genesisPath)
+	genesisReader, err := os.Open(ctx.Args().First())
 	if err != nil {
 		return fmt.Errorf("failed to open the legacy genesis file: %w", err)
 	}
@@ -99,16 +88,15 @@ func legacyGenesisImport(ctx *cli.Context) error {
 }
 
 func jsonGenesisImport(ctx *cli.Context) error {
+	if len(ctx.Args()) < 1 {
+		return fmt.Errorf("this command requires an argument - the genesis file to import")
+	}
 	if !ctx.IsSet(ExperimentalFlag.Name) {
 		return fmt.Errorf("using JSON genesis is for experimental usage only and requires --%s flag", ExperimentalFlag.Name)
 	}
-	dataDir := ctx.String(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	if dataDir == "" {
 		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
-	}
-	genesisPath := ctx.String(GenesisFlag.Name)
-	if genesisPath == "" {
-		return fmt.Errorf("--%s need to be set", GenesisFlag.Name)
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
@@ -119,7 +107,7 @@ func jsonGenesisImport(ctx *cli.Context) error {
 		return err
 	}
 
-	genesisJson, err := makefakegenesis.LoadGenesisJson(genesisPath)
+	genesisJson, err := makefakegenesis.LoadGenesisJson(ctx.Args().First())
 	if err != nil {
 		return fmt.Errorf("failed to load JSON genesis: %w", err)
 	}
@@ -132,13 +120,16 @@ func jsonGenesisImport(ctx *cli.Context) error {
 }
 
 func fakeGenesisImport(ctx *cli.Context) error {
-	dataDir := ctx.String(DataDirFlag.Name)
+	if len(ctx.Args()) < 1 {
+		return fmt.Errorf("this command requires an argument - the number of validators in the fake network")
+	}
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	if dataDir == "" {
 		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
 	}
-	_, num, err := parseFakeGen(ctx.String(FakeNetFlag.Name))
-	if err != nil {
-		return fmt.Errorf("--%s invalid: %w", FakeNetFlag.Name, err)
+	validatorsNumber, err := strconv.ParseUint(ctx.Args().First(), 10, 32)
+	if validatorsNumber < 1 {
+		return fmt.Errorf("the number of validators must be at least 1")
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
@@ -149,7 +140,7 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		return err
 	}
 
-	genesisStore := makefakegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	genesisStore := makefakegenesis.FakeGenesisStore(idx.Validator(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
 	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio)
 }
@@ -167,39 +158,15 @@ func isValidatorModeSet(ctx *cli.Context) (bool, error) {
 	return false, nil
 }
 
-func parseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
-	parts := strings.SplitN(s, "/", 2)
-	if len(parts) != 2 {
-		err = fmt.Errorf("use %%d/%%d format")
-		return
-	}
-
-	var u32 uint64
-	u32, err = strconv.ParseUint(parts[0], 10, 32)
-	if err != nil {
-		return
-	}
-	id = idx.ValidatorID(u32)
-
-	u32, err = strconv.ParseUint(parts[1], 10, 32)
-	num = idx.Validator(u32)
-	if num < 0 || idx.Validator(id) > num {
-		err = fmt.Errorf("key-num should be in range from 1 to validators (<key-num>/<validators>), or should be zero for non-validator node")
-		return
-	}
-
-	return
-}
-
 func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
-	targetCache := ctx.Int(CacheFlag.Name)
-	baseSize := genesis.DefaultCacheSize
+	targetCache := ctx.GlobalInt(CacheFlag.Name)
+	baseSize := db.DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
 	maxCache := totalMemory * 3 / 5
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
-	if !ctx.IsSet(CacheFlag.Name) {
+	if !ctx.GlobalIsSet(CacheFlag.Name) {
 		recommendedCache := totalMemory / 2
 		if recommendedCache > baseSize {
 			log.Warn(fmt.Sprintf("Please add '--%s %d' flag to allocate more cache for the database. Total memory is %d MB.", CacheFlag.Name, recommendedCache, totalMemory))
@@ -215,7 +182,7 @@ func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
 	}
 
 	return cachescale.Ratio{
-		Base:   uint64(baseSize - genesis.ConstantCacheSize),
-		Target: uint64(targetCache - genesis.ConstantCacheSize),
+		Base:   uint64(baseSize - db.ConstantCacheSize),
+		Target: uint64(targetCache - db.ConstantCacheSize),
 	}, nil
 }

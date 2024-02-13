@@ -3,7 +3,7 @@ package launcher
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -37,7 +37,7 @@ func getValKeystoreDir(cfg node.Config) string {
 // makeValidatorPasswordList reads password lines from the file specified by the global --validator.password flag.
 func makeValidatorPasswordList(ctx *cli.Context) []string {
 	if path := ctx.GlobalString(validatorPasswordFlag.Name); path != "" {
-		text, err := ioutil.ReadFile(path)
+		text, err := os.ReadFile(path)
 		if err != nil {
 			utils.Fatalf("Failed to read password file: %v", err)
 		}

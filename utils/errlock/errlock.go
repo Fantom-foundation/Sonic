@@ -1,20 +1,19 @@
 package errlock
 
 import (
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
-
-	"github.com/ethereum/go-ethereum/cmd/utils"
 )
 
 // Check if errlock is written
-func Check() {
+func Check() error {
 	locked, reason, eLockPath, _ := read(datadir)
 	if locked {
-		utils.Fatalf("Node isn't allowed to start due to a previous error. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, reason)
+		return fmt.Errorf("Node isn't allowed to start due to a previous error. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, reason)
 	}
+	return nil
 }
 
 var (
@@ -29,7 +28,7 @@ func SetDefaultDatadir(dir string) {
 // Permanent error
 func Permanent(err error) {
 	eLockPath, _ := write(datadir, err.Error())
-	utils.Fatalf("Node is permanently stopping due to an issue. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, err.Error())
+	panic(fmt.Errorf("Node is permanently stopping due to an issue. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, err.Error()))
 }
 
 func readAll(reader io.Reader, max int) ([]byte, error) {
@@ -70,5 +69,5 @@ func read(dir string) (bool, string, string, error) {
 func write(dir string, eLockStr string) (string, error) {
 	eLockPath := path.Join(dir, "errlock")
 
-	return eLockPath, ioutil.WriteFile(eLockPath, []byte(eLockStr), 0666) // assume no custom encoding needed
+	return eLockPath, os.WriteFile(eLockPath, []byte(eLockStr), 0666) // assume no custom encoding needed
 }

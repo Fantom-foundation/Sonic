@@ -53,11 +53,11 @@ func TestConfigFile(t *testing.T) {
 			src.Node.P2P.BootstrapNodes = val
 			src.Node.P2P.BootstrapNodesV5 = val
 
-			stream, err := tomlSettings.Marshal(&src)
+			stream, err := TomlSettings.Marshal(&src)
 			require.NoError(err)
 
 			var got config
-			err = tomlSettings.NewDecoder(bytes.NewReader(stream)).Decode(&got)
+			err = TomlSettings.NewDecoder(bytes.NewReader(stream)).Decode(&got)
 			require.NoError(err)
 
 			{ // toml workaround

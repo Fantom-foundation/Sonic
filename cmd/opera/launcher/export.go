@@ -35,9 +35,12 @@ func exportEvents(ctx *cli.Context) error {
 		utils.Fatalf("This command requires an argument.")
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 
-	rawDbs := makeDBsProducer(cfg)
+	rawDbs, err := makeDBsProducer(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to make DB producer: %w", err)
+	}
 	gdb, err := gossip.NewStore(rawDbs, cfg.OperaStore)
 	if err != nil {
 		return fmt.Errorf("failed to create gossip store: %w", err)

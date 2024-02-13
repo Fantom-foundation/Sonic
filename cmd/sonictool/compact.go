@@ -13,7 +13,7 @@ import (
 )
 
 func compactDbs(ctx *cli.Context) error {
-	dataDir := ctx.String(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	if dataDir == "" {
 		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
 	}

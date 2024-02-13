@@ -2,9 +2,7 @@ package genesis
 
 import (
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -12,44 +10,25 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-	"os"
 	"path/filepath"
 )
 
 func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func) error {
-	if err := removeDatabase(dataDir); err != nil {
+	if err := db.RemoveDatabase(dataDir); err != nil {
 		return fmt.Errorf("failed to remove existing data from the datadir: %w", err)
 	}
 
 	chaindataDir := filepath.Join(dataDir, "chaindata")
-	carmenDir := filepath.Join(dataDir, "carmen")
-	err := os.MkdirAll(chaindataDir, 0700)
+	dbs, err := db.MakeDbProducer(chaindataDir, cacheRatio)
 	if err != nil {
-		return fmt.Errorf("failed to create datadir directory: %w", err)
-	}
-	setGenesisProcessing(chaindataDir)
-
-	dbs, err := integration.GetDbProducer(chaindataDir, integration.DBCacheConfig{
-		Cache:   cacheRatio.U64(480 * opt.MiB),
-		Fdlimit: makeDatabaseHandles(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to make DB producer: %v", err)
+		return err
 	}
 	defer dbs.Close()
+	setGenesisProcessing(chaindataDir)
 
-	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
-	gdbConfig.EVM.StateDb.Directory = carmenDir
-	if validatorMode {
-		gdbConfig.EVM.StateDb.Archive = carmen.NoArchive
-		gdbConfig.EVM.DisableLogsIndexing = true
-		gdbConfig.EVM.DisableTxHashesIndexing = true
-	}
-
-	gdb, err := gossip.NewStore(dbs, gdbConfig)
+	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio)
 	if err != nil {
-		fmt.Errorf("failed to create gossip store: %w", err)
+		return err
 	}
 	defer gdb.Close()
 

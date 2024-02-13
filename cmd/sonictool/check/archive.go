@@ -31,7 +31,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 }
 
 func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
-	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.S5Archive)
+	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.S5Archive, false)
 	if err != nil {
 		return err
 	}

@@ -1,10 +1,22 @@
-package launcher
+package chain
 
 import (
 	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/gossip"
+	"github.com/Fantom-foundation/go-opera/gossip/emitter"
+	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/utils/ioread"
+	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/status-im/keycard-go/hexutils"
+	"gopkg.in/urfave/cli.v1"
 	"io"
 	"math"
 	"os"
@@ -12,29 +24,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/status-im/keycard-go/hexutils"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/gossip/emitter"
-	"github.com/Fantom-foundation/go-opera/inter"
-	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
 
-func importEvents(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
-		utils.Fatalf("This command requires an argument.")
-	}
-
+func EventsImport(ctx *cli.Context, files ...string) error {
 	// avoid P2P interaction, API calls and events emitting
-	cfg := MakeAllConfigs(ctx)
+	cfg := launcher.MakeAllConfigs(ctx)
 	cfg.Opera.Protocol.EventsSemaphoreLimit.Size = math.MaxUint32
 	cfg.Opera.Protocol.EventsSemaphoreLimit.Num = math.MaxUint32
 	cfg.Emitter.Validator = emitter.ValidatorConfig{}
@@ -51,25 +45,17 @@ func importEvents(ctx *cli.Context) error {
 	cfg.Node.P2P.StaticNodes = nil
 	cfg.Node.P2P.TrustedNodes = nil
 
-	err := importEventsToNode(ctx, cfg, ctx.Args()...)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func importEventsToNode(ctx *cli.Context, cfg *config, args ...string) error {
-	node, svc, nodeClose, err := MakeNode(ctx, cfg)
+	node, svc, nodeClose, err := launcher.MakeNode(ctx, cfg)
 	if err != nil {
 		return err
 	}
 	defer nodeClose()
-	if err := startNode(ctx, node); err != nil {
-		return err
+
+	if err := node.Start(); err != nil {
+		return fmt.Errorf("error starting protocol stack: %w", err)
 	}
 
-	for _, fn := range args {
+	for _, fn := range files {
 		log.Info("Importing events from file", "file", fn)
 		if err := importEventsFile(svc, fn); err != nil {
 			log.Error("Import error", "file", fn, "err", err)

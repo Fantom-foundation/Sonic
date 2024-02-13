@@ -67,7 +67,6 @@ func initFlags() {
 	// Flags for testing purpose.
 	testFlags = []cli.Flag{
 		FakeNetFlag,
-		overrideMinGasPriceFlag,
 	}
 
 	// Flags that configure the node.
@@ -175,7 +174,7 @@ func initFlags() {
 }
 
 // init the CLI app.
-func init() {
+func initApp() {
 	discfilter.Enable()
 	overrideFlags()
 	overrideParams()
@@ -193,16 +192,9 @@ func init() {
 		walletCommand,
 		// see validatorcmd.go:
 		validatorCommand,
-		// See config.go:
-		dumpConfigCommand,
-		checkConfigCommand,
 		// See misccmd.go:
 		versionCommand,
 		licenseCommand,
-		// See chaincmd.go
-		importCommand,
-		exportCommand,
-		checkCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -233,6 +225,8 @@ func init() {
 }
 
 func Launch(args []string) error {
+	initApp()
+	initAppHelp()
 	return app.Run(args)
 }
 
@@ -244,9 +238,9 @@ func lachesisMain(ctx *cli.Context) error {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 
-	cfg := makeAllConfigs(ctx)
+	cfg := MakeAllConfigs(ctx)
 
-	node, _, nodeClose, err := makeNode(ctx, cfg)
+	node, _, nodeClose, err := MakeNode(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize the node: %w", err)
 	}
@@ -259,7 +253,7 @@ func lachesisMain(ctx *cli.Context) error {
 	return nil
 }
 
-func makeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(), error) {
+func MakeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(), error) {
 	var success bool
 	var cleanup []func()
 	defer func() { // if the function fails, clean-up in defer, otherwise return cleaning function
@@ -272,9 +266,10 @@ func makeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(
 
 	// check errlock file
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
-	errlock.Check()
+	if err := errlock.Check(); err != nil {
+		return nil, nil, nil, err
+	}
 
-	// applies genesis
 	engine, dagIndex, gdb, cdb, blockProc, closeDBs, err := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), cfg.AppConfigs())
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to make consensus engine: %w", err)

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 )
 
-func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.ArchiveType) (*gossip.Store, kvdb.FullDBProducer, error) {
+func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.ArchiveType, skipArchiveCheck bool) (*gossip.Store, kvdb.FullDBProducer, error) {
 	chaindataDir := filepath.Join(dataDir, "chaindata")
 	carmenDir := filepath.Join(dataDir, "carmen")
 
@@ -35,6 +35,7 @@ func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.Archiv
 	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
 	gdbConfig.EVM.StateDb.Directory = carmenDir
 	gdbConfig.EVM.StateDb.Archive = archive
+	gdbConfig.EVM.SkipArchiveCheck = skipArchiveCheck // skip archive mode check (allow "check live" to run with archive enabled)
 
 	gdb, err := gossip.NewStore(dbs, gdbConfig)
 	if err != nil {
