@@ -1,7 +1,7 @@
 package chain
 
 import (
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/utils"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"io"
 	"path/filepath"
@@ -26,13 +26,13 @@ const statsReportLimit = 8 * time.Second
 
 func ExportEvents(w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
 	chaindataDir := filepath.Join(dataDir, "chaindata")
-	dbs, err := utils.MakeDbProducer(chaindataDir, cachescale.Identity)
+	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
 		return err
 	}
 	defer dbs.Close()
 
-	gdb, err := utils.MakeGossipDb(dbs, dataDir, false, cachescale.Identity)
+	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity)
 	if err != nil {
 		return err
 	}

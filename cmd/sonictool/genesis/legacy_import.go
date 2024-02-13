@@ -2,7 +2,7 @@ package genesis
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/utils"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -14,19 +14,19 @@ import (
 )
 
 func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func) error {
-	if err := utils.RemoveDatabase(dataDir); err != nil {
+	if err := db.RemoveDatabase(dataDir); err != nil {
 		return fmt.Errorf("failed to remove existing data from the datadir: %w", err)
 	}
 
 	chaindataDir := filepath.Join(dataDir, "chaindata")
-	dbs, err := utils.MakeDbProducer(chaindataDir, cacheRatio)
+	dbs, err := db.MakeDbProducer(chaindataDir, cacheRatio)
 	if err != nil {
 		return err
 	}
 	defer dbs.Close()
 	setGenesisProcessing(chaindataDir)
 
-	gdb, err := utils.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio)
+	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio)
 	if err != nil {
 		return err
 	}

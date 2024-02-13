@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/utils"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/filelog"
 	"github.com/ethereum/go-ethereum/log"
 	"io"
@@ -21,7 +21,7 @@ func SonicImport(dataDir string, genesisFile *os.File) error {
 		return fmt.Errorf("failed to get genesis file stats: %w", err)
 	}
 
-	if err := utils.RemoveDatabase(dataDir); err != nil {
+	if err := db.RemoveDatabase(dataDir); err != nil {
 		return fmt.Errorf("failed to remove existing data from the datadir: %w", err)
 	}
 
@@ -71,7 +71,7 @@ func SonicImport(dataDir string, genesisFile *os.File) error {
 	hash := hex.EncodeToString(hasher.Sum(nil))
 	name, ok := allowedSonicGenesisHashes[hash]
 	if !ok {
-		_ = utils.RemoveDatabase(dataDir)
+		_ = db.RemoveDatabase(dataDir)
 		return fmt.Errorf("hash of the genesis file does not match any allowed value: %s", hash)
 	}
 

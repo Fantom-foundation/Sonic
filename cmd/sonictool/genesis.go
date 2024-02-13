@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/utils"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
@@ -160,7 +160,7 @@ func isValidatorModeSet(ctx *cli.Context) (bool, error) {
 
 func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
 	targetCache := ctx.GlobalInt(CacheFlag.Name)
-	baseSize := utils.DefaultCacheSize
+	baseSize := db.DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
 	maxCache := totalMemory * 3 / 5
 	if maxCache < baseSize {
@@ -182,7 +182,7 @@ func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
 	}
 
 	return cachescale.Ratio{
-		Base:   uint64(baseSize - utils.ConstantCacheSize),
-		Target: uint64(targetCache - utils.ConstantCacheSize),
+		Base:   uint64(baseSize - db.ConstantCacheSize),
+		Target: uint64(targetCache - db.ConstantCacheSize),
 	}, nil
 }
