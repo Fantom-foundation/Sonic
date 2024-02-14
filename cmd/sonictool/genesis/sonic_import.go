@@ -2,13 +2,13 @@ package genesis
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/filelog"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/klauspost/pgzip"
 	"io"
 	"os"
 	"path/filepath"
@@ -33,10 +33,11 @@ func SonicImport(dataDir string, genesisFile *os.File) error {
 	setGenesisProcessing(chaindataDir)
 
 	log.Info("Unpacking Sonic genesis")
+	start := time.Now()
 	hasher := sha256.New()
 	reader := filelog.Wrap(genesisFile, "sonic-genesis", uint64(info.Size()), time.Minute)
 	teeReader := io.TeeReader(reader, hasher)
-	uncompressedStream, err := gzip.NewReader(teeReader)
+	uncompressedStream, err := pgzip.NewReaderN(teeReader, 2621440, 64) // 30% faster than native gzip
 	if err != nil {
 		return err
 	}
@@ -69,6 +70,8 @@ func SonicImport(dataDir string, genesisFile *os.File) error {
 		}
 	}
 	hash := hex.EncodeToString(hasher.Sum(nil))
+	log.Info("Unpacking finished", "elapsed", time.Since(start))
+
 	name, ok := allowedSonicGenesisHashes[hash]
 	if !ok {
 		_ = db.RemoveDatabase(dataDir)
