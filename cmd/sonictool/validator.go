@@ -1,10 +1,15 @@
-package launcher
+package main
 
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/ethereum/go-ethereum/node"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -17,77 +22,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/valkeystore/encryption"
 )
 
-var (
-	validatorCommand = cli.Command{
-		Name:     "validator",
-		Usage:    "Manage validators",
-		Category: "VALIDATOR COMMANDS",
-		Description: `
-
-Create a new validator private key.
-
-It supports interactive mode, when you are prompted for password as well as
-non-interactive mode where passwords are supplied via a given password file.
-Non-interactive mode is only meant for scripted use on test networks or known
-safe environments.
-
-Make sure you remember the password you gave when creating a new validator key.
-Without it you are not able to unlock your validator key.
-
-Note that exporting your key in unencrypted format is NOT supported.
-
-Keys are stored under <DATADIR>/keystore/validator.
-It is safe to transfer the entire directory or the individual keys therein
-between Opera nodes by simply copying.
-
-Make sure you backup your keys regularly.`,
-		Subcommands: []cli.Command{
-			{
-				Name:   "new",
-				Usage:  "Create a new validator key",
-				Action: utils.MigrateFlags(validatorKeyCreate),
-				Flags: []cli.Flag{
-					DataDirFlag,
-					utils.KeyStoreDirFlag,
-					utils.PasswordFileFlag,
-				},
-				Description: `
-    opera validator new
-
-Creates a new validator private key and prints the public key.
-
-The key is saved in encrypted format, you are prompted for a passphrase.
-
-You must remember this passphrase to unlock your key in the future.
-
-For non-interactive use the passphrase can be specified with the --validator.password flag:
-
-Note, this is meant to be used for testing only, it is a bad idea to save your
-password to file or expose in any other way.
-`,
-			},
-			{
-				Name:   "convert",
-				Usage:  "Convert an account key to a validator key",
-				Action: utils.MigrateFlags(validatorKeyConvert),
-				Flags: []cli.Flag{
-					DataDirFlag,
-					utils.KeyStoreDirFlag,
-				},
-				ArgsUsage: "<account address> <validator pubkey>",
-				Description: `
-    opera validator convert
-
-Converts an account private key to a validator private key and saves in the validator keystore.
-`,
-			},
-		},
-	}
-)
-
 // validatorKeyCreate creates a new validator key into the keystore defined by the CLI flags.
 func validatorKeyCreate(ctx *cli.Context) error {
-	cfg := MakeAllConfigs(ctx)
+	cfg := launcher.MakeAllConfigs(ctx)
 	utils.SetNodeConfig(ctx, &cfg.Node)
 
 	password := getPassPhrase("Your new validator key is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
@@ -130,7 +67,7 @@ func validatorKeyConvert(ctx *cli.Context) error {
 	if len(ctx.Args()) < 2 {
 		utils.Fatalf("This command requires 2 arguments.")
 	}
-	cfg := MakeAllConfigs(ctx)
+	cfg := launcher.MakeAllConfigs(ctx)
 	utils.SetNodeConfig(ctx, &cfg.Node)
 
 	_, _, keydir, _ := cfg.Node.AccountConfig()
@@ -143,7 +80,7 @@ func validatorKeyConvert(ctx *cli.Context) error {
 
 	var acckeypath string
 	if strings.HasPrefix(ctx.Args().First(), "0x") {
-		acckeypath, err = FindAccountKeypath(common.HexToAddress(ctx.Args().First()), keydir)
+		acckeypath, err = findAccountKeypath(common.HexToAddress(ctx.Args().First()), keydir)
 		if err != nil {
 			utils.Fatalf("Failed to find the account: %v", err)
 		}
@@ -158,4 +95,35 @@ func validatorKeyConvert(ctx *cli.Context) error {
 	}
 	fmt.Println("\nYour key was converted and saved to " + valkeypath)
 	return nil
+}
+
+func findAccountKeypath(addr common.Address, keydir string) (keypath string, err error) {
+	addrStr := strings.ToLower(addr.String())[2:]
+	// find key path
+	err = filepath.Walk(keydir, func(walk string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		_, filename := filepath.Split(walk)
+		if strings.Contains(strings.ToLower(filename), addrStr) {
+			keypath = walk
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	if err != nil {
+		return keypath, err
+	}
+	if len(keypath) == 0 {
+		return keypath, errors.New("account not found")
+	}
+	return keypath, nil
+}
+
+func getValKeystoreDir(cfg node.Config) string {
+	_, _, keydir, err := cfg.AccountConfig()
+	if err != nil {
+		utils.Fatalf("Failed to setup account config: %v", err)
+	}
+	return keydir
 }

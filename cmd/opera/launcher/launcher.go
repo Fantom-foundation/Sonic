@@ -8,13 +8,11 @@ import (
 	"os/signal"
 	"path"
 	"sort"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/console/prompt"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -187,12 +185,6 @@ func initApp() {
 	app.Version = params.VersionWithCommit(gitCommit, gitDate)
 	app.HideVersion = true // we have a command to print the version
 	app.Commands = []cli.Command{
-		// See accountcmd.go:
-		accountCommand,
-		walletCommand,
-		// see validatorcmd.go:
-		validatorCommand,
-		// See misccmd.go:
 		versionCommand,
 		licenseCommand,
 	}
@@ -484,32 +476,4 @@ func startFreeDiskSpaceMonitor(ctx *cli.Context, stopNodeSig chan os.Signal, pat
 	if minFreeDiskSpace > 0 {
 		go diskusage.MonitorFreeDiskSpace(stopNodeSig, path, uint64(minFreeDiskSpace)*1024*1024)
 	}
-}
-
-// unlockAccounts unlocks any account specifically requested.
-func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
-	var unlocks []string
-	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
-	for _, input := range inputs {
-		if trimmed := strings.TrimSpace(input); trimmed != "" {
-			unlocks = append(unlocks, trimmed)
-		}
-	}
-	// Short circuit if there is no account to unlock.
-	if len(unlocks) == 0 {
-		return nil
-	}
-	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
-	// Print warning log to user and skip unlocking.
-	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
-		return fmt.Errorf("account unlock with HTTP access is forbidden")
-	}
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	passwords := utils.MakePasswordList(ctx)
-	for i, account := range unlocks {
-		if _, _, err := unlockAccount(ks, account, i, passwords); err != nil {
-			return err
-		}
-	}
-	return nil
 }
