@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p/discover/discfilter"
-	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
 
 	evmetrics "github.com/ethereum/go-ethereum/metrics"
@@ -30,17 +29,9 @@ import (
 	_ "github.com/Fantom-foundation/go-opera/version"
 )
 
-const (
-	// clientIdentifier to advertise over the network.
-	clientIdentifier = "go-opera"
-)
-
 var (
-	// Git SHA1 commit hash of the release (set via linker flags).
-	gitCommit = ""
-	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = cmdhelper.NewApp(gitCommit, gitDate, "the go-opera command line interface")
+	app = cmdhelper.NewApp(config.GitCommit, config.GitDate, "the go-opera command line interface")
 
 	nodeFlags        []cli.Flag
 	testFlags        []cli.Flag
@@ -171,10 +162,7 @@ func initApp() {
 
 	initFlags()
 
-	// App.
-
 	app.Action = lachesisMain
-	app.Version = params.VersionWithCommit(gitCommit, gitDate)
 	app.HideVersion = true // we have a command to print the version
 	app.Commands = []cli.Command{
 		versionCommand,

@@ -4,16 +4,11 @@ import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/cmdhelper"
+	"github.com/Fantom-foundation/go-opera/config"
 	_ "github.com/Fantom-foundation/go-opera/version"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"sort"
-)
-
-var (
-	// Git SHA1 commit hash of the release (set via linker flags).
-	gitCommit = ""
-	gitDate   = ""
 )
 
 // TODO: reuse flags from opera/launcher/flags
@@ -43,7 +38,7 @@ var (
 )
 
 func main() {
-	app := cmdhelper.NewApp(gitCommit, gitDate, "the Sonic management tool")
+	app := cmdhelper.NewApp(config.GitCommit, config.GitDate, "the Sonic management tool")
 	app.Flags = []cli.Flag{
 		DataDirFlag,
 		CacheFlag,

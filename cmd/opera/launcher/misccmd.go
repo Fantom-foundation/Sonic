@@ -2,12 +2,11 @@ package launcher
 
 import (
 	"fmt"
-	"os"
-	"runtime"
-	"strings"
-
+	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
+	"os"
+	"runtime"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
 )
@@ -34,13 +33,13 @@ The output of this command is supposed to be machine-readable.
 )
 
 func version(ctx *cli.Context) error {
-	fmt.Println(strings.Title(clientIdentifier))
+	fmt.Println(config.ClientIdentifier)
 	fmt.Println("Version:", params.VersionWithMeta())
-	if gitCommit != "" {
-		fmt.Println("Git Commit:", gitCommit)
+	if config.GitCommit != "" {
+		fmt.Println("Git Commit:", config.GitCommit)
 	}
-	if gitDate != "" {
-		fmt.Println("Git Commit Date:", gitDate)
+	if config.GitDate != "" {
+		fmt.Println("Git Commit Date:", config.GitDate)
 	}
 	fmt.Println("Architecture:", runtime.GOARCH)
 	fmt.Println("Protocol Versions:", []uint{gossip.ProtocolVersion})

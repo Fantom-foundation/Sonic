@@ -34,14 +34,14 @@ import (
 )
 
 const (
-	// clientIdentifier to advertise over the network.
-	clientIdentifier = "go-opera"
+	// ClientIdentifier to advertise over the network.
+	ClientIdentifier = "go-opera"
 )
 
 var (
 	// Git SHA1 commit hash of the release (set via linker flags).
-	gitCommit = ""
-	gitDate   = ""
+	GitCommit = ""
+	GitDate   = ""
 )
 
 // These settings ensure that TOML keys use the same names as Go struct fields.
@@ -334,8 +334,8 @@ func MakeAllConfigs(ctx *cli.Context) (*Config, error) {
 
 func DefaultNodeConfig() node.Config {
 	cfg := NodeDefaultConfig
-	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit, gitDate)
+	cfg.Name = ClientIdentifier
+	cfg.Version = params.VersionWithCommit(GitCommit, GitDate)
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.WSModules = append(cfg.WSModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.IPCPath = "opera.ipc"
