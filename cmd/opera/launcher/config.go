@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"os"
 	"path"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -38,20 +38,11 @@ var (
 		Name:  "config",
 		Usage: "TOML configuration file",
 	}
-
-	// DataDirFlag defines directory to store Lachesis state and user's wallets
-	DataDirFlag = utils.DirectoryFlag{
-		Name:  "datadir",
-		Usage: "Data directory for the databases and keystore",
-		Value: utils.DirectoryString(DefaultDataDir()),
-	}
-
 	CacheFlag = cli.IntFlag{
 		Name:  "cache",
 		Usage: "Megabytes of memory allocated to internal caching",
 		Value: DefaultCacheSize,
 	}
-
 	RPCGlobalGasCapFlag = cli.Uint64Flag{
 		Name:  "rpc.gascap",
 		Usage: "Sets a cap on gas that can be used in ftm_call/estimateGas (0=infinite)",
@@ -72,13 +63,11 @@ var (
 		Usage: "Time limit for RPC calls execution",
 		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
 	}
-
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
 		Usage: `Mode of the node ("rpc" or "validator")`,
 		Value: "rpc",
 	}
-
 	ExitWhenAgeFlag = cli.DurationFlag{
 		Name:  "exitwhensynced.age",
 		Usage: "Exits after synchronisation reaches the required age",
@@ -173,20 +162,12 @@ func setBootnodes(ctx *cli.Context, urls []string, cfg *node.Config) {
 	cfg.P2P.BootstrapNodes = cfg.P2P.BootstrapNodesV5
 }
 
-func setDataDir(ctx *cli.Context, cfg *node.Config) error {
-	if !ctx.GlobalIsSet(DataDirFlag.Name) {
-		return fmt.Errorf("the --%s flag is missing", DataDirFlag.Name)
-	}
-	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	return nil
-}
-
-func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) {
+func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) error {
 	if ctx.GlobalIsSet(utils.TxPoolLocalsFlag.Name) {
 		locals := strings.Split(ctx.GlobalString(utils.TxPoolLocalsFlag.Name), ",")
 		for _, account := range locals {
 			if trimmed := strings.TrimSpace(account); !common.IsHexAddress(trimmed) {
-				utils.Fatalf("Invalid account in --txpool.locals: %s", trimmed)
+				return fmt.Errorf("invalid account in --%s: %s", utils.TxPoolLocalsFlag.Name, trimmed)
 			} else {
 				cfg.Locals = append(cfg.Locals, common.HexToAddress(account))
 			}
@@ -222,6 +203,7 @@ func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) {
 	if ctx.GlobalIsSet(utils.TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(utils.TxPoolLifetimeFlag.Name)
 	}
+	return nil
 }
 
 func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
@@ -261,19 +243,16 @@ func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (e
 	return cfg, nil
 }
 
-func setDBConfig(cfg config, cacheRatio cachescale.Func) config {
+func setDBConfig(cfg config, cacheRatio cachescale.Func) (config, error) {
+	handles, err := utils.MakeDatabaseHandles()
+	if err != nil {
+		return config{}, err
+	}
 	cfg.DBs.RuntimeCache = integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
-		Fdlimit: uint64(utils.MakeDatabaseHandles())*480/1400 + 1,
+		Fdlimit: handles*480/1400 + 1,
 	}
-	return cfg
-}
-
-func nodeConfigWithFlags(ctx *cli.Context, cfg node.Config) (node.Config, error) {
-	utils.SetNodeConfig(ctx, &cfg)
-
-	err := setDataDir(ctx, &cfg)
-	return cfg, err
+	return cfg, nil
 }
 
 func cacheScaler(ctx *cli.Context) cachescale.Func {
@@ -305,7 +284,7 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 	}
 }
 
-func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
+func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*config, error) {
 	// Defaults (low priority)
 	cacheRatio := cacheScaler(ctx)
 	cfg := config{
@@ -342,7 +321,7 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	// Apply flags (high priority)
 	var err error
 	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
-	cfg.Node, err = nodeConfigWithFlags(ctx, cfg.Node)
+	err = utils.SetNodeConfig(ctx, &cfg.Node)
 	if err != nil {
 		return nil, err
 	}
@@ -358,10 +337,15 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	if cfg.Emitter.Validator.ID != 0 && len(cfg.Emitter.PrevEmittedEventFile.Path) == 0 {
 		cfg.Emitter.PrevEmittedEventFile.Path = cfg.Node.ResolvePath(path.Join("emitter", fmt.Sprintf("last-%d", cfg.Emitter.Validator.ID)))
 	}
-	setTxPool(ctx, &cfg.TxPool)
+	if err := setTxPool(ctx, &cfg.TxPool); err != nil {
+		return nil, err
+	}
 
 	// Process DBs defaults in the end because they are applied only in absence of config or flags
-	cfg = setDBConfig(cfg, cacheRatio)
+	cfg, err = setDBConfig(cfg, cacheRatio)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := cfg.Opera.Validate(); err != nil {
 		return nil, err
@@ -370,12 +354,8 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	return &cfg, nil
 }
 
-func MakeAllConfigs(ctx *cli.Context) *config {
-	cfg, err := MayMakeAllConfigs(ctx, ctx.GlobalString(configFileFlag.Name))
-	if err != nil {
-		utils.Fatalf("%v", err)
-	}
-	return cfg
+func MakeAllConfigs(ctx *cli.Context) (*config, error) {
+	return MakeAllConfigsFromFile(ctx, ctx.GlobalString(configFileFlag.Name))
 }
 
 func defaultNodeConfig() node.Config {
@@ -385,6 +365,5 @@ func defaultNodeConfig() node.Config {
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.WSModules = append(cfg.WSModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.IPCPath = "opera.ipc"
-	cfg.DataDir = DefaultDataDir()
 	return cfg
 }

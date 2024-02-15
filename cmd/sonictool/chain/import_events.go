@@ -28,7 +28,10 @@ import (
 
 func EventsImport(ctx *cli.Context, files ...string) error {
 	// avoid P2P interaction, API calls and events emitting
-	cfg := launcher.MakeAllConfigs(ctx)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 	cfg.Opera.Protocol.EventsSemaphoreLimit.Size = math.MaxUint32
 	cfg.Opera.Protocol.EventsSemaphoreLimit.Num = math.MaxUint32
 	cfg.Emitter.Validator = emitter.ValidatorConfig{}

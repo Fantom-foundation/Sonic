@@ -78,14 +78,14 @@ func TestUnlockFlagMultiIndex(t *testing.T) {
 	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
-		"--unlock", "0,2",
+		"--unlock", "7EF5A6135f1FD6a02593eEdC869c6D41D934aef8,289d485D9771714CCe91D3393D764E1311907ACc",
 		"--exitwhensynced.epoch", "1")
 
 	cli.Expect(`
-Unlocking account 0 | Attempt 1/3
+Unlocking account 7EF5A6135f1FD6a02593eEdC869c6D41D934aef8 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Passphrase: {{.InputLine "foobar"}}
-Unlocking account 2 | Attempt 1/3
+Unlocking account 289d485D9771714CCe91D3393D764E1311907ACc | Attempt 1/3
 Passphrase: {{.InputLine "foobar"}}
 `)
 	cli.ExpectExit()
@@ -107,7 +107,7 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
-		"--password", "testdata/passwords.txt", "--unlock", "0,2", "--exitwhensynced.epoch", "1")
+		"--password", "testdata/passwords.txt", "--unlock", "7EF5A6135f1FD6a02593eEdC869c6D41D934aef8,289d485D9771714CCe91D3393D764E1311907ACc", "--exitwhensynced.epoch", "1")
 
 	cli.ExpectExit()
 
@@ -128,10 +128,10 @@ func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 	initFakenetDatadir(datadir, 1)
 	cli := exec(t,
 		"--fakenet", "0/1", "--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
-		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
+		"--password", "testdata/wrong-passwords.txt", "--unlock", "7EF5A6135f1FD6a02593eEdC869c6D41D934aef8,289d485D9771714CCe91D3393D764E1311907ACc")
 
 	cli.ExpectExit()
-	expected := "failed to unlock account 0 (could not decrypt key with given password)"
+	expected := "failed to unlock account 7EF5A6135f1FD6a02593eEdC869c6D41D934aef8 (could not decrypt key with given password)"
 	if !strings.Contains(cli.StderrText(), expected) {
 		t.Errorf("stderr text does not contain %q", expected)
 	}
@@ -197,7 +197,9 @@ Multiple key files exist for address f466859ead1932d743d622cb74fc058882e8648a:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
 Testing your passphrase against all of them...
-Fatal: None of the listed files could be unlocked.
 `)
 	cli.ExpectExit()
+	if !strings.Contains(cli.StderrText(), "none of the listed files could be unlocked") {
+		t.Errorf("stderr text does not contain expected error")
+	}
 }

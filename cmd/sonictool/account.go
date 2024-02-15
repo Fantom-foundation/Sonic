@@ -19,16 +19,19 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/console/prompt"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/node"
 	"gopkg.in/urfave/cli.v1"
 )
 
 func accountList(ctx *cli.Context) error {
-	cfg := launcher.MakeAllConfigs(ctx)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
@@ -43,52 +46,34 @@ func accountList(ctx *cli.Context) error {
 	return nil
 }
 
-// getPassPhrase retrieves the password associated with an account, either fetched
-// from a list of preloaded passphrases, or requested interactively from the user.
-func getPassPhrase(msg string, confirmation bool, i int, passwords []string) string {
-	// If a list of passwords was supplied, retrieve from them
-	if len(passwords) > 0 {
-		if i < len(passwords) {
-			return passwords[i]
-		}
-		return passwords[len(passwords)-1]
-	}
-	// Otherwise prompt the user for the password
-	if msg != "" {
-		fmt.Println(msg)
-	}
-	password, err := prompt.Stdin.PromptPassword("Passphrase: ")
-	if err != nil {
-		utils.Fatalf("Failed to read passphrase: %v", err)
-	}
-	if confirmation {
-		confirm, err := prompt.Stdin.PromptPassword("Repeat passphrase: ")
-		if err != nil {
-			utils.Fatalf("Failed to read passphrase confirmation: %v", err)
-		}
-		if password != confirm {
-			utils.Fatalf("Passphrases do not match")
-		}
-	}
-	return password
-}
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	cfg := launcher.MakeAllConfigs(ctx)
-	utils.SetNodeConfig(ctx, &cfg.Node)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
+	if err := utils.SetNodeConfig(ctx, &cfg.Node); err != nil {
+		return err
+	}
 	scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()
 
 	if err != nil {
-		utils.Fatalf("Failed to read configuration: %v", err)
+		return fmt.Errorf("failed to read configuration: %w", err)
 	}
 
-	password := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
+	passwordList, err := utils.MakePasswordList(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get password list: %w", err)
+	}
+	password, err := launcher.GetPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
+	if err != nil {
+		return fmt.Errorf("failed to get passphrase: %w", err)
+	}
 
 	account, err := keystore.StoreKey(keydir, password, scryptN, scryptP)
-
 	if err != nil {
-		utils.Fatalf("Failed to create account: %v", err)
+		return fmt.Errorf("failed to create account: %w", err)
 	}
 	fmt.Printf("\nYour new key was generated\n\n")
 	fmt.Printf("Public address of the key:   %s\n", account.Address.Hex())
@@ -107,7 +92,10 @@ func accountUpdate(ctx *cli.Context) error {
 		return fmt.Errorf("no accounts specified to update")
 	}
 
-	cfg := launcher.MakeAllConfigs(ctx)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
@@ -119,7 +107,10 @@ func accountUpdate(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		newPassword := getPassPhrase("Please give a new password. Do not forget this password.", true, 0, nil)
+		newPassword, err := launcher.GetPassPhrase("Please give a new password. Do not forget this password.", true, 0, nil)
+		if err != nil {
+			return fmt.Errorf("failed to get passphrase: %w", err)
+		}
 		if err := ks.Update(account, oldPassword, newPassword); err != nil {
 			return fmt.Errorf("could not update the account: %w", err)
 		}
@@ -130,24 +121,34 @@ func accountUpdate(ctx *cli.Context) error {
 func accountImport(ctx *cli.Context) error {
 	keyfile := ctx.Args().First()
 	if len(keyfile) == 0 {
-		utils.Fatalf("keyfile must be given as argument")
+		return fmt.Errorf("keyfile must be given as argument")
 	}
 	key, err := crypto.LoadECDSA(keyfile)
 	if err != nil {
-		utils.Fatalf("Failed to load the private key: %v", err)
+		return fmt.Errorf("failed to load the private key: %v", err)
 	}
 
-	cfg := launcher.MakeAllConfigs(ctx)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
-	passphrase := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
+	passwordList, err := utils.MakePasswordList(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get password list: %w", err)
+	}
+	passphrase, err := launcher.GetPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
+	if err != nil {
+		return fmt.Errorf("failed to get passphrase: %w", err)
+	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	acct, err := ks.ImportECDSA(key, passphrase)
 	if err != nil {
-		utils.Fatalf("Could not create the account: %v", err)
+		return fmt.Errorf("could not create the account: %v", err)
 	}
 	fmt.Printf("Address: {%x}\n", acct.Address)
 	return nil

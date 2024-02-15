@@ -12,13 +12,16 @@ func checkConfig(ctx *cli.Context) error {
 		return fmt.Errorf("this command requires an argument - the config toml file")
 	}
 	configFile := ctx.Args().Get(0)
-	_, err := launcher.MayMakeAllConfigs(ctx, configFile)
+	_, err := launcher.MakeAllConfigsFromFile(ctx, configFile)
 	return err
 }
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	cfg := launcher.MakeAllConfigs(ctx)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 	comment := ""
 
 	out, err := launcher.TomlSettings.Marshal(&cfg)

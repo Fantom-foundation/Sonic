@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
 
@@ -15,7 +14,7 @@ import (
 
 var (
 	versionCommand = cli.Command{
-		Action:    utils.MigrateFlags(version),
+		Action:    version,
 		Name:      "version",
 		Usage:     "Print version numbers",
 		ArgsUsage: " ",
@@ -26,7 +25,7 @@ The output of this command is supposed to be machine-readable.
 	}
 
 	licenseCommand = cli.Command{
-		Action:    utils.MigrateFlags(license),
+		Action:    license,
 		Name:      "license",
 		Usage:     "Display license information",
 		ArgsUsage: " ",

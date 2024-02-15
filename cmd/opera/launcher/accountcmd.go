@@ -18,9 +18,11 @@ package launcher
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/ethereum/go-ethereum/console/prompt"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -47,7 +49,10 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 		return fmt.Errorf("account unlock with HTTP access is forbidden")
 	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	passwords := utils.MakePasswordList(ctx)
+	passwords, err := utils.MakePasswordList(ctx)
+	if err != nil {
+		return err
+	}
 	for i, account := range unlocks {
 		if _, _, err := UnlockAccount(ks, account, i, passwords); err != nil {
 			return err
@@ -58,13 +63,17 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 
 // UnlockAccount tries unlocking the specified account a few times.
 func UnlockAccount(ks *keystore.KeyStore, address string, i int, passwords []string) (accounts.Account, string, error) {
-	account, err := utils.MakeAddress(ks, address)
-	if err != nil {
-		return accounts.Account{}, "", fmt.Errorf("could not list accounts: %w", err)
+	if !common.IsHexAddress(address) {
+		return accounts.Account{}, "", fmt.Errorf("could not unlock account - '%s' is not an address", address)
 	}
+	account := accounts.Account{Address: common.HexToAddress(address)}
+	var err error
 	for trials := 0; trials < 3; trials++ {
 		prompt := fmt.Sprintf("Unlocking account %s | Attempt %d/%d", address, trials+1, 3)
-		password := getPassPhrase(prompt, false, i, passwords)
+		password, errPass := GetPassPhrase(prompt, false, i, passwords)
+		if errPass != nil {
+			return accounts.Account{}, "", errPass
+		}
 		err = ks.Unlock(account, password)
 		if err == nil {
 			log.Info("Unlocked account", "address", account.Address.Hex())
@@ -72,7 +81,11 @@ func UnlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 		}
 		if err, ok := err.(*keystore.AmbiguousAddrError); ok {
 			log.Info("Unlocked account", "address", account.Address.Hex())
-			return ambiguousAddrRecovery(ks, err, password), password, nil
+			accountRecovered, errRecovery := ambiguousAddrRecovery(ks, err, password)
+			if errRecovery != nil {
+				return accounts.Account{}, "", errRecovery
+			}
+			return accountRecovered, password, nil
 		}
 		if err != keystore.ErrDecrypt {
 			// No need to prompt again if the error is not decryption-related.
@@ -83,15 +96,15 @@ func UnlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 	return accounts.Account{}, "", fmt.Errorf("failed to unlock account %s (%w)", address, err)
 }
 
-// getPassPhrase retrieves the password associated with an account, either fetched
+// GetPassPhrase retrieves the password associated with an account, either fetched
 // from a list of preloaded passphrases, or requested interactively from the user.
-func getPassPhrase(msg string, confirmation bool, i int, passwords []string) string {
+func GetPassPhrase(msg string, confirmation bool, i int, passwords []string) (string, error) {
 	// If a list of passwords was supplied, retrieve from them
 	if len(passwords) > 0 {
 		if i < len(passwords) {
-			return passwords[i]
+			return passwords[i], nil
 		}
-		return passwords[len(passwords)-1]
+		return passwords[len(passwords)-1], nil
 	}
 	// Otherwise prompt the user for the password
 	if msg != "" {
@@ -99,22 +112,21 @@ func getPassPhrase(msg string, confirmation bool, i int, passwords []string) str
 	}
 	password, err := prompt.Stdin.PromptPassword("Passphrase: ")
 	if err != nil {
-		utils.Fatalf("Failed to read passphrase: %v", err)
+		return "", fmt.Errorf("failed to read passphrase: %v", err)
 	}
 	if confirmation {
 		confirm, err := prompt.Stdin.PromptPassword("Repeat passphrase: ")
 		if err != nil {
-			utils.Fatalf("Failed to read passphrase confirmation: %v", err)
+			return "", fmt.Errorf("failed to read passphrase confirmation: %v", err)
 		}
 		if password != confirm {
-			utils.Fatalf("Passphrases do not match")
+			return "", fmt.Errorf("passphrases do not match")
 		}
 	}
-	return password
+	return password, nil
 }
 
-
-func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrError, auth string) accounts.Account {
+func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrError, auth string) (accounts.Account, error) {
 	fmt.Printf("Multiple key files exist for address %x:\n", err.Addr)
 	for _, a := range err.Matches {
 		fmt.Println("  ", a.URL)
@@ -128,7 +140,7 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 		}
 	}
 	if match == nil {
-		utils.Fatalf("None of the listed files could be unlocked.")
+		return accounts.Account{}, fmt.Errorf("none of the listed files could be unlocked")
 	}
 	fmt.Printf("Your passphrase unlocked %s\n", match.URL)
 	fmt.Println("In order to avoid this warning, you need to remove the following duplicate key files:")
@@ -137,5 +149,5 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 			fmt.Println("  ", a.URL)
 		}
 	}
-	return *match
+	return *match, nil
 }

@@ -3,6 +3,7 @@ package launcher
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/diskusage"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"os"
 	"os/signal"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/console/prompt"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
@@ -107,7 +107,7 @@ func initFlags() {
 	}
 	operaFlags = []cli.Flag{
 		utils.IdentityFlag,
-		DataDirFlag,
+		utils.DataDirFlag,
 		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
 		utils.USBFlag,
@@ -174,7 +174,6 @@ func initFlags() {
 // init the CLI app.
 func initApp() {
 	discfilter.Enable()
-	overrideFlags()
 	overrideParams()
 
 	initFlags()
@@ -230,7 +229,10 @@ func lachesisMain(ctx *cli.Context) error {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 
-	cfg := MakeAllConfigs(ctx)
+	cfg, err := MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 
 	node, _, nodeClose, err := MakeNode(ctx, cfg)
 	if err != nil {
@@ -305,10 +307,16 @@ func MakeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(
 		}
 	})
 
-	valKeystore := valkeystore.NewDefaultFileKeystore(path.Join(getValKeystoreDir(cfg.Node), "validator"))
+	_, _, keystoreDir, err := cfg.Node.AccountConfig()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to setup account config: %w", err)
+	}
+	valKeystore := valkeystore.NewDefaultFileKeystore(path.Join(keystoreDir, "validator"))
 	valPubkey := cfg.Emitter.Validator.PubKey
 	if key := getFakeValidatorKey(ctx); key != nil && cfg.Emitter.Validator.ID != 0 {
-		addFakeValidatorKey(ctx, key, valPubkey, valKeystore)
+		if err := addFakeValidatorKey(ctx, key, valPubkey, valKeystore); err != nil {
+			return nil, nil, nil, err
+		}
 		coinbase := integration.SetAccountKey(stack.AccountManager(), key, "fakepassword")
 		log.Info("Unlocked fake validator account", "address", coinbase.Address.Hex())
 	}

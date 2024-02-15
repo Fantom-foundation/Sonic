@@ -6,32 +6,41 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
-	"github.com/ethereum/go-ethereum/node"
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
+	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
+	"github.com/Fantom-foundation/go-opera/valkeystore"
+	"github.com/Fantom-foundation/go-opera/valkeystore/encryption"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"gopkg.in/urfave/cli.v1"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
-	"github.com/Fantom-foundation/go-opera/valkeystore"
-	"github.com/Fantom-foundation/go-opera/valkeystore/encryption"
 )
 
 // validatorKeyCreate creates a new validator key into the keystore defined by the CLI flags.
 func validatorKeyCreate(ctx *cli.Context) error {
-	cfg := launcher.MakeAllConfigs(ctx)
-	utils.SetNodeConfig(ctx, &cfg.Node)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
+	if err := utils.SetNodeConfig(ctx, &cfg.Node); err != nil {
+		return err
+	}
 
-	password := getPassPhrase("Your new validator key is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
+	passwordList, err := utils.MakePasswordList(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get password list: %w", err)
+	}
+	password, err := launcher.GetPassPhrase("Your new validator key is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
+	if err != nil {
+		return fmt.Errorf("failed to get passphrase: %w", err)
+	}
 
 	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
 	if err != nil {
-		utils.Fatalf("Failed to create account: %v", err)
+		return fmt.Errorf("failed to create account: %w", err)
 	}
 	privateKey := crypto.FromECDSA(privateKeyECDSA)
 	publicKey := validatorpk.PubKey{
@@ -39,16 +48,21 @@ func validatorKeyCreate(ctx *cli.Context) error {
 		Type: validatorpk.Types.Secp256k1,
 	}
 
-	valKeystore := valkeystore.NewDefaultFileRawKeystore(path.Join(getValKeystoreDir(cfg.Node), "validator"))
+	_, _, keystoreDir, err := cfg.Node.AccountConfig()
+	if err != nil {
+		return fmt.Errorf("failed to setup account config: %w", err)
+	}
+
+	valKeystore := valkeystore.NewDefaultFileRawKeystore(path.Join(keystoreDir, "validator"))
 	err = valKeystore.Add(publicKey, privateKey, password)
 	if err != nil {
-		utils.Fatalf("Failed to create account: %v", err)
+		return fmt.Errorf("failed to create account: %w", err)
 	}
 
 	// Sanity check
 	_, err = valKeystore.Get(publicKey, password)
 	if err != nil {
-		utils.Fatalf("Failed to decrypt the account: %v", err)
+		return fmt.Errorf("failed to decrypt the account: %w", err)
 	}
 
 	fmt.Printf("\nYour new key was generated\n\n")
@@ -65,24 +79,29 @@ func validatorKeyCreate(ctx *cli.Context) error {
 // validatorKeyConvert converts account key to validator key.
 func validatorKeyConvert(ctx *cli.Context) error {
 	if len(ctx.Args()) < 2 {
-		utils.Fatalf("This command requires 2 arguments.")
+		return fmt.Errorf("this command requires 2 arguments")
 	}
-	cfg := launcher.MakeAllConfigs(ctx)
-	utils.SetNodeConfig(ctx, &cfg.Node)
+	cfg, err := launcher.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
+	if err := utils.SetNodeConfig(ctx, &cfg.Node); err != nil {
+		return err
+	}
 
 	_, _, keydir, _ := cfg.Node.AccountConfig()
 
 	pubkeyStr := ctx.Args().Get(1)
 	pubkey, err := validatorpk.FromString(pubkeyStr)
 	if err != nil {
-		utils.Fatalf("Failed to decode the validator pubkey: %v", err)
+		return fmt.Errorf("failed to decode the validator pubkey: %w", err)
 	}
 
 	var acckeypath string
 	if strings.HasPrefix(ctx.Args().First(), "0x") {
 		acckeypath, err = findAccountKeypath(common.HexToAddress(ctx.Args().First()), keydir)
 		if err != nil {
-			utils.Fatalf("Failed to find the account: %v", err)
+			return fmt.Errorf("failed to find the account: %w", err)
 		}
 	} else {
 		acckeypath = ctx.Args().First()
@@ -91,7 +110,7 @@ func validatorKeyConvert(ctx *cli.Context) error {
 	valkeypath := path.Join(keydir, "validator", common.Bytes2Hex(pubkey.Bytes()))
 	err = encryption.MigrateAccountToValidatorKey(acckeypath, valkeypath, pubkey)
 	if err != nil {
-		utils.Fatalf("Failed to migrate the account key: %v", err)
+		return fmt.Errorf("failed to migrate the account key: %w", err)
 	}
 	fmt.Println("\nYour key was converted and saved to " + valkeypath)
 	return nil
@@ -118,12 +137,4 @@ func findAccountKeypath(addr common.Address, keydir string) (keypath string, err
 		return keypath, errors.New("account not found")
 	}
 	return keypath, nil
-}
-
-func getValKeystoreDir(cfg node.Config) string {
-	_, _, keydir, err := cfg.AccountConfig()
-	if err != nil {
-		utils.Fatalf("Failed to setup account config: %v", err)
-	}
-	return keydir
 }

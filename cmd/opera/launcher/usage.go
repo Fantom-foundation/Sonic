@@ -22,7 +22,6 @@ import (
 	"io"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/debug"
@@ -33,7 +32,6 @@ import (
 var AppHelpFlagGroups = calcAppHelpFlagGroups()
 
 func calcAppHelpFlagGroups() []flags.FlagGroup {
-	overrideFlags()
 	overrideParams()
 
 	initFlags()
@@ -102,21 +100,14 @@ func initAppHelp() {
 					categorized[flag.String()] = struct{}{}
 				}
 			}
-			deprecated := make(map[string]struct{})
-			for _, flag := range utils.DeprecatedFlags {
-				deprecated[flag.String()] = struct{}{}
-			}
-			// Only add uncategorized flags if they are not deprecated
 			var uncategorized []cli.Flag
 			for _, flag := range data.(*cli.App).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					if _, ok := deprecated[flag.String()]; !ok {
-						uncategorized = append(uncategorized, flag)
-					}
+					uncategorized = append(uncategorized, flag)
 				}
 			}
 			if len(uncategorized) > 0 {
-				// Append all ungategorized options to the misc group
+				// Append all uncategorized options to the misc group
 				miscs := len(AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags)
 				AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags = append(AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags, uncategorized...)
 
