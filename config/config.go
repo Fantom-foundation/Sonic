@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"bufio"
@@ -29,16 +29,20 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
-type GenesisTemplate struct {
-	Name   string
-	Header genesis.Header
-	Hashes genesis.Hashes
-}
+const (
+	// clientIdentifier to advertise over the network.
+	clientIdentifier = "go-opera"
+)
+
+var (
+	// Git SHA1 commit hash of the release (set via linker flags).
+	gitCommit = ""
+	gitDate   = ""
+)
 
 // These settings ensure that TOML keys use the same names as Go struct fields.
 var TomlSettings = toml.Config{
@@ -53,7 +57,7 @@ var TomlSettings = toml.Config{
 	},
 }
 
-type config struct {
+type Config struct {
 	Node          node.Config
 	Opera         gossip.Config
 	Emitter       emitter.Config
@@ -65,7 +69,7 @@ type config struct {
 	DBs           integration.DBsConfig
 }
 
-func (c *config) AppConfigs() integration.Configs {
+func (c *Config) AppConfigs() integration.Configs {
 	return integration.Configs{
 		Opera:         c.Opera,
 		OperaStore:    c.OperaStore,
@@ -76,7 +80,7 @@ func (c *config) AppConfigs() integration.Configs {
 	}
 }
 
-func loadAllConfigs(file string, cfg *config) error {
+func loadAllConfigs(file string, cfg *Config) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -206,10 +210,10 @@ func makeDatabaseHandles() (uint64, error) {
 	return raised / 2, nil // Leave half for networking and other stuff
 }
 
-func setDBConfig(cfg config, cacheRatio cachescale.Func) (config, error) {
+func setDBConfig(cfg Config, cacheRatio cachescale.Func) (Config, error) {
 	handles, err := makeDatabaseHandles()
 	if err != nil {
-		return config{}, err
+		return Config{}, err
 	}
 	cfg.DBs.RuntimeCache = integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
@@ -254,11 +258,11 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 	}
 }
 
-func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*config, error) {
+func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error) {
 	// Defaults (low priority)
 	cacheRatio := cacheScaler(ctx)
-	cfg := config{
-		Node:          defaultNodeConfig(),
+	cfg := Config{
+		Node:          DefaultNodeConfig(),
 		Opera:         gossip.DefaultConfig(cacheRatio),
 		Emitter:       emitter.DefaultConfig(),
 		TxPool:        evmcore.DefaultTxPoolConfig,
@@ -269,7 +273,7 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*config, error
 	}
 
 	if ctx.GlobalIsSet(FakeNetFlag.Name) {
-		_, num, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
+		_, num, err := ParseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
 		if err != nil {
 			return nil, fmt.Errorf("invalid fakenet flag")
 		}
@@ -324,11 +328,11 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*config, error
 	return &cfg, nil
 }
 
-func MakeAllConfigs(ctx *cli.Context) (*config, error) {
+func MakeAllConfigs(ctx *cli.Context) (*Config, error) {
 	return MakeAllConfigsFromFile(ctx, ctx.GlobalString(flags.ConfigFileFlag.Name))
 }
 
-func defaultNodeConfig() node.Config {
+func DefaultNodeConfig() node.Config {
 	cfg := NodeDefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit, gitDate)

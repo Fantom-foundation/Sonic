@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
@@ -21,7 +21,7 @@ import (
 
 // validatorKeyCreate creates a new validator key into the keystore defined by the CLI flags.
 func validatorKeyCreate(ctx *cli.Context) error {
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func validatorKeyCreate(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
 	}
-	password, err := launcher.GetPassPhrase("Your new validator key is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
+	password, err := config.GetPassPhrase("Your new validator key is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
 	if err != nil {
 		return fmt.Errorf("failed to get passphrase: %w", err)
 	}
@@ -81,7 +81,7 @@ func validatorKeyConvert(ctx *cli.Context) error {
 	if len(ctx.Args()) < 2 {
 		return fmt.Errorf("this command requires 2 arguments")
 	}
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}

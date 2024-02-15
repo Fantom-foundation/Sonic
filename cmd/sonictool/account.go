@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
@@ -28,7 +28,7 @@ import (
 )
 
 func accountList(ctx *cli.Context) error {
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -46,10 +46,9 @@ func accountList(ctx *cli.Context) error {
 	return nil
 }
 
-
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,7 +65,7 @@ func accountCreate(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
 	}
-	password, err := launcher.GetPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
+	password, err := config.GetPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
 	if err != nil {
 		return fmt.Errorf("failed to get passphrase: %w", err)
 	}
@@ -92,7 +91,7 @@ func accountUpdate(ctx *cli.Context) error {
 		return fmt.Errorf("no accounts specified to update")
 	}
 
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,11 +102,11 @@ func accountUpdate(ctx *cli.Context) error {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args() {
-		account, oldPassword, err := launcher.UnlockAccount(ks, addr, 0, nil)
+		account, oldPassword, err := config.UnlockAccount(ks, addr, 0, nil)
 		if err != nil {
 			return err
 		}
-		newPassword, err := launcher.GetPassPhrase("Please give a new password. Do not forget this password.", true, 0, nil)
+		newPassword, err := config.GetPassPhrase("Please give a new password. Do not forget this password.", true, 0, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get passphrase: %w", err)
 		}
@@ -128,7 +127,7 @@ func accountImport(ctx *cli.Context) error {
 		return fmt.Errorf("failed to load the private key: %v", err)
 	}
 
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -140,7 +139,7 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
 	}
-	passphrase, err := launcher.GetPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
+	passphrase, err := config.GetPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, passwordList)
 	if err != nil {
 		return fmt.Errorf("failed to get passphrase: %w", err)
 	}

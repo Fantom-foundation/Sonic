@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -28,7 +28,7 @@ import (
 
 func EventsImport(ctx *cli.Context, files ...string) error {
 	// avoid P2P interaction, API calls and events emitting
-	cfg, err := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func EventsImport(ctx *cli.Context, files ...string) error {
 	cfg.Node.P2P.StaticNodes = nil
 	cfg.Node.P2P.TrustedNodes = nil
 
-	node, svc, nodeClose, err := launcher.MakeNode(ctx, cfg)
+	node, svc, nodeClose, err := config.MakeNode(ctx, cfg)
 	if err != nil {
 		return err
 	}

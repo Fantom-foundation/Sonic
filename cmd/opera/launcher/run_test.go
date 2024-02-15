@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
+	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -41,7 +42,7 @@ type testcli struct {
 }
 
 func (tt *testcli) readConfig() {
-	cfg := defaultNodeConfig()
+	cfg := config.DefaultNodeConfig()
 	cfg.DataDir = tt.Datadir
 	addr := common.Address{} // TODO: addr = emitter coinbase
 	tt.Coinbase = strings.ToLower(addr.String())

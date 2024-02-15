@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"crypto/ecdsa"

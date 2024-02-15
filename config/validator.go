@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"github.com/Fantom-foundation/go-opera/flags"
@@ -19,7 +19,7 @@ import (
 func setValidator(ctx *cli.Context, cfg *emitter.Config) error {
 	// Extract the current validator address, new flag overriding legacy one
 	if ctx.GlobalIsSet(FakeNetFlag.Name) {
-		id, num, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
+		id, num, err := ParseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
 		if err != nil {
 			return err
 		}

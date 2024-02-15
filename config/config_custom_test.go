@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"bytes"
@@ -21,8 +21,8 @@ func TestConfigFile(t *testing.T) {
 		Target: uint64(DefaultCacheSize*2 - ConstantCacheSize),
 	}
 
-	src := config{
-		Node:          defaultNodeConfig(),
+	src := Config{
+		Node:          DefaultNodeConfig(),
 		Opera:         gossip.DefaultConfig(cacheRatio),
 		Emitter:       emitter.DefaultConfig(),
 		TxPool:        evmcore.DefaultTxPoolConfig,
@@ -56,7 +56,7 @@ func TestConfigFile(t *testing.T) {
 			stream, err := TomlSettings.Marshal(&src)
 			require.NoError(err)
 
-			var got config
+			var got Config
 			err = TomlSettings.NewDecoder(bytes.NewReader(stream)).Decode(&got)
 			require.NoError(err)
 
