@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/config"
-	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
 	"github.com/Fantom-foundation/go-opera/valkeystore/encryption"
@@ -25,11 +24,11 @@ func validatorKeyCreate(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := flags.SetNodeConfig(ctx, &cfg.Node); err != nil {
+	if err := config.SetNodeConfig(ctx, &cfg.Node); err != nil {
 		return err
 	}
 
-	passwordList, err := flags.MakePasswordList(ctx)
+	passwordList, err := config.MakePasswordList(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
 	}
@@ -85,7 +84,7 @@ func validatorKeyConvert(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := flags.SetNodeConfig(ctx, &cfg.Node); err != nil {
+	if err := config.SetNodeConfig(ctx, &cfg.Node); err != nil {
 		return err
 	}
 

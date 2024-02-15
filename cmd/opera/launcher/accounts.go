@@ -19,7 +19,7 @@ package launcher
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/config"
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/node"
 	"gopkg.in/urfave/cli.v1"
@@ -45,7 +45,7 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 		return fmt.Errorf("account unlock with HTTP access is forbidden")
 	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	passwords, err := flags.MakePasswordList(ctx)
+	passwords, err := config.MakePasswordList(ctx)
 	if err != nil {
 		return err
 	}

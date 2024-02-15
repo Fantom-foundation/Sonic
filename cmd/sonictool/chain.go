@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
@@ -20,9 +21,9 @@ func exportEvents(ctx *cli.Context) error {
 
 	fn := ctx.Args().First()
 
-	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
+		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
 	}
 
 	// Open the file handle and potentially wrap with a gzip stream

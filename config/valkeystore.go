@@ -3,7 +3,7 @@ package config
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"os"
 	"strings"
 

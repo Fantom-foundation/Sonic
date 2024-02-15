@@ -2,46 +2,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/cmdhelper"
 	"github.com/Fantom-foundation/go-opera/config"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	_ "github.com/Fantom-foundation/go-opera/version"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"sort"
 )
 
-// TODO: reuse flags from opera/launcher/flags
-var (
-	DataDirFlag = cli.StringFlag{
-		Name:  "datadir",
-		Usage: "Data directory for the databases and keystore",
-	}
-	KeyStoreDirFlag = cli.StringFlag{
-		Name:  "keystore",
-		Usage: "Directory for the keystore (default = inside the datadir)",
-	}
-	PasswordFileFlag = cli.StringFlag{
-		Name:  "password",
-		Usage: "Password file to use for non-interactive password input",
-		Value: "",
-	}
-	LightKDFFlag = cli.BoolFlag{
-		Name:  "lightkdf",
-		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
-	}
-	CacheFlag = cli.IntFlag{
-		Name:  "cache",
-		Usage: "Megabytes of memory allocated to internal pebble caching",
-		Value: db.DefaultCacheSize,
-	}
-)
-
 func main() {
 	app := cmdhelper.NewApp(config.GitCommit, config.GitDate, "the Sonic management tool")
 	app.Flags = []cli.Flag{
-		DataDirFlag,
-		CacheFlag,
+		flags.DataDirFlag,
+		flags.CacheFlag,
 	}
 	app.Commands = []cli.Command{
 		{
@@ -223,8 +197,8 @@ Make sure you backup your keys regularly.`,
 					Usage:  "Print summary of existing accounts",
 					Action: accountList,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						KeyStoreDirFlag,
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
 					},
 					Description: `
 Print a short summary of all accounts`,
@@ -234,10 +208,10 @@ Print a short summary of all accounts`,
 					Usage:  "Create a new account",
 					Action: accountCreate,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						KeyStoreDirFlag,
-						PasswordFileFlag,
-						LightKDFFlag,
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.PasswordFileFlag,
+						flags.LightKDFFlag,
 					},
 					Description: `
     sonictool account new
@@ -260,9 +234,9 @@ password to file or expose in any other way.
 					Action:    accountUpdate,
 					ArgsUsage: "<address>",
 					Flags: []cli.Flag{
-						DataDirFlag,
-						KeyStoreDirFlag,
-						LightKDFFlag,
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.LightKDFFlag,
 					},
 					Description: `
     sonictool account update <address>
@@ -288,10 +262,10 @@ changing your password is only possible interactively.
 					Usage:  "Import a private key into a new account",
 					Action: accountImport,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						KeyStoreDirFlag,
-						PasswordFileFlag,
-						LightKDFFlag,
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.PasswordFileFlag,
+						flags.LightKDFFlag,
 					},
 					ArgsUsage: "<keyFile>",
 					Description: `
@@ -348,9 +322,9 @@ Make sure you backup your keys regularly.`,
 					Usage:  "Create a new validator key",
 					Action: validatorKeyCreate,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						KeyStoreDirFlag,
-						PasswordFileFlag,
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.PasswordFileFlag,
 					},
 					Description: `
     sonictool validator new
@@ -372,8 +346,8 @@ password to file or expose in any other way.
 					Usage:  "Convert an account key to a validator key",
 					Action: validatorKeyConvert,
 					Flags: []cli.Flag{
-						DataDirFlag,
-						KeyStoreDirFlag,
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
 					},
 					ArgsUsage: "<account address> <validator pubkey>",
 					Description: `

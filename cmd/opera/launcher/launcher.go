@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/diskusage"
 	"github.com/Fantom-foundation/go-opera/config"
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"os"
 	"os/signal"

@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/config"
-	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -52,7 +51,7 @@ func accountCreate(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := flags.SetNodeConfig(ctx, &cfg.Node); err != nil {
+	if err := config.SetNodeConfig(ctx, &cfg.Node); err != nil {
 		return err
 	}
 	scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()
@@ -61,7 +60,7 @@ func accountCreate(ctx *cli.Context) error {
 		return fmt.Errorf("failed to read configuration: %w", err)
 	}
 
-	passwordList, err := flags.MakePasswordList(ctx)
+	passwordList, err := config.MakePasswordList(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
 	}
@@ -135,7 +134,7 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
-	passwordList, err := flags.MakePasswordList(ctx)
+	passwordList, err := config.MakePasswordList(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
 	}

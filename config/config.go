@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"os"
@@ -295,7 +295,7 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 	// Apply flags (high priority)
 	var err error
 	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
-	err = flags.SetNodeConfig(ctx, &cfg.Node)
+	err = SetNodeConfig(ctx, &cfg.Node)
 	if err != nil {
 		return nil, err
 	}

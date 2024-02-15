@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/pkg/errors"
 	cli "gopkg.in/urfave/cli.v1"
 
