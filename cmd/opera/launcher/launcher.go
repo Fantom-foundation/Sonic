@@ -3,7 +3,7 @@ package launcher
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/diskusage"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
+	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"os"
 	"os/signal"
@@ -26,9 +26,9 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/metrics"
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/tracing"
+	"github.com/Fantom-foundation/go-opera/cmdhelper"
 	"github.com/Fantom-foundation/go-opera/debug"
 	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
@@ -47,7 +47,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = flags.NewApp(gitCommit, gitDate, "the go-opera command line interface")
+	app = cmdhelper.NewApp(gitCommit, gitDate, "the go-opera command line interface")
 
 	nodeFlags        []cli.Flag
 	testFlags        []cli.Flag
@@ -70,95 +70,95 @@ func initFlags() {
 	// Flags that configure the node.
 	gpoFlags = []cli.Flag{}
 	accountFlags = []cli.Flag{
-		utils.UnlockedAccountFlag,
-		utils.PasswordFileFlag,
-		utils.ExternalSignerFlag,
-		utils.InsecureUnlockAllowedFlag,
+		flags.UnlockedAccountFlag,
+		flags.PasswordFileFlag,
+		flags.ExternalSignerFlag,
+		flags.InsecureUnlockAllowedFlag,
 	}
 	performanceFlags = []cli.Flag{
-		CacheFlag,
+		flags.CacheFlag,
 	}
 	networkingFlags = []cli.Flag{
-		utils.BootnodesFlag,
-		utils.ListenPortFlag,
-		utils.MaxPeersFlag,
-		utils.MaxPendingPeersFlag,
-		utils.NATFlag,
-		utils.NoDiscoverFlag,
-		utils.DiscoveryV5Flag,
-		utils.NetrestrictFlag,
-		utils.IPrestrictFlag,
-		utils.PrivateNodeFlag,
-		utils.NodeKeyFileFlag,
-		utils.NodeKeyHexFlag,
+		flags.BootnodesFlag,
+		flags.ListenPortFlag,
+		flags.MaxPeersFlag,
+		flags.MaxPendingPeersFlag,
+		flags.NATFlag,
+		flags.NoDiscoverFlag,
+		flags.DiscoveryV5Flag,
+		flags.NetrestrictFlag,
+		flags.IPrestrictFlag,
+		flags.PrivateNodeFlag,
+		flags.NodeKeyFileFlag,
+		flags.NodeKeyHexFlag,
 	}
 	txpoolFlags = []cli.Flag{
-		utils.TxPoolLocalsFlag,
-		utils.TxPoolNoLocalsFlag,
-		utils.TxPoolJournalFlag,
-		utils.TxPoolRejournalFlag,
-		utils.TxPoolPriceLimitFlag,
-		utils.TxPoolPriceBumpFlag,
-		utils.TxPoolAccountSlotsFlag,
-		utils.TxPoolGlobalSlotsFlag,
-		utils.TxPoolAccountQueueFlag,
-		utils.TxPoolGlobalQueueFlag,
-		utils.TxPoolLifetimeFlag,
+		flags.TxPoolLocalsFlag,
+		flags.TxPoolNoLocalsFlag,
+		flags.TxPoolJournalFlag,
+		flags.TxPoolRejournalFlag,
+		flags.TxPoolPriceLimitFlag,
+		flags.TxPoolPriceBumpFlag,
+		flags.TxPoolAccountSlotsFlag,
+		flags.TxPoolGlobalSlotsFlag,
+		flags.TxPoolAccountQueueFlag,
+		flags.TxPoolGlobalQueueFlag,
+		flags.TxPoolLifetimeFlag,
 	}
 	operaFlags = []cli.Flag{
-		utils.IdentityFlag,
-		utils.DataDirFlag,
-		utils.MinFreeDiskSpaceFlag,
-		utils.KeyStoreDirFlag,
-		utils.USBFlag,
-		utils.SmartCardDaemonPathFlag,
-		ExitWhenAgeFlag,
-		ExitWhenEpochFlag,
-		utils.LightKDFFlag,
-		configFileFlag,
-		validatorIDFlag,
-		validatorPubkeyFlag,
-		validatorPasswordFlag,
-		ModeFlag,
+		flags.IdentityFlag,
+		flags.DataDirFlag,
+		flags.MinFreeDiskSpaceFlag,
+		flags.KeyStoreDirFlag,
+		flags.USBFlag,
+		flags.SmartCardDaemonPathFlag,
+		flags.ExitWhenAgeFlag,
+		flags.ExitWhenEpochFlag,
+		flags.LightKDFFlag,
+		flags.ConfigFileFlag,
+		flags.ValidatorIDFlag,
+		flags.ValidatorPubkeyFlag,
+		flags.ValidatorPasswordFlag,
+		flags.ModeFlag,
 	}
 
 	rpcFlags = []cli.Flag{
-		utils.HTTPEnabledFlag,
-		utils.HTTPListenAddrFlag,
-		utils.HTTPPortFlag,
-		utils.HTTPCORSDomainFlag,
-		utils.HTTPVirtualHostsFlag,
-		utils.HTTPApiFlag,
-		utils.HTTPPathPrefixFlag,
-		utils.WSEnabledFlag,
-		utils.WSListenAddrFlag,
-		utils.WSPortFlag,
-		utils.WSApiFlag,
-		utils.WSAllowedOriginsFlag,
-		utils.WSPathPrefixFlag,
-		utils.IPCDisabledFlag,
-		utils.IPCPathFlag,
-		RPCGlobalGasCapFlag,
-		RPCGlobalEVMTimeoutFlag,
-		RPCGlobalTxFeeCapFlag,
-		RPCGlobalTimeoutFlag,
+		flags.HTTPEnabledFlag,
+		flags.HTTPListenAddrFlag,
+		flags.HTTPPortFlag,
+		flags.HTTPCORSDomainFlag,
+		flags.HTTPVirtualHostsFlag,
+		flags.HTTPApiFlag,
+		flags.HTTPPathPrefixFlag,
+		flags.WSEnabledFlag,
+		flags.WSListenAddrFlag,
+		flags.WSPortFlag,
+		flags.WSApiFlag,
+		flags.WSAllowedOriginsFlag,
+		flags.WSPathPrefixFlag,
+		flags.IPCDisabledFlag,
+		flags.IPCPathFlag,
+		flags.RPCGlobalGasCapFlag,
+		flags.RPCGlobalEVMTimeoutFlag,
+		flags.RPCGlobalTxFeeCapFlag,
+		flags.RPCGlobalTimeoutFlag,
 	}
 
 	metricsFlags = []cli.Flag{
-		utils.MetricsEnabledFlag,
-		utils.MetricsEnabledExpensiveFlag,
-		utils.MetricsHTTPFlag,
-		utils.MetricsPortFlag,
-		utils.MetricsEnableInfluxDBFlag,
-		utils.MetricsInfluxDBEndpointFlag,
-		utils.MetricsInfluxDBDatabaseFlag,
-		utils.MetricsInfluxDBUsernameFlag,
-		utils.MetricsInfluxDBPasswordFlag,
-		utils.MetricsInfluxDBTagsFlag,
-		utils.MetricsEnableInfluxDBV2Flag,
-		utils.MetricsInfluxDBTokenFlag,
-		utils.MetricsInfluxDBBucketFlag,
-		utils.MetricsInfluxDBOrganizationFlag,
+		metrics.MetricsEnabledFlag,
+		metrics.MetricsEnabledExpensiveFlag,
+		metrics.MetricsHTTPFlag,
+		metrics.MetricsPortFlag,
+		metrics.MetricsEnableInfluxDBFlag,
+		metrics.MetricsInfluxDBEndpointFlag,
+		metrics.MetricsInfluxDBDatabaseFlag,
+		metrics.MetricsInfluxDBUsernameFlag,
+		metrics.MetricsInfluxDBPasswordFlag,
+		metrics.MetricsInfluxDBTagsFlag,
+		metrics.MetricsEnableInfluxDBV2Flag,
+		metrics.MetricsInfluxDBTokenFlag,
+		metrics.MetricsInfluxDBBucketFlag,
+		metrics.MetricsInfluxDBOrganizationFlag,
 		tracing.EnableFlag,
 	}
 
@@ -201,7 +201,7 @@ func initApp() {
 		}
 
 		// Start metrics export if enabled
-		utils.SetupMetrics(ctx)
+		metrics.SetupMetrics(ctx)
 		// Start system runtime metrics collection
 		go evmetrics.CollectProcessMetrics(3 * time.Second)
 		return nil
@@ -338,8 +338,8 @@ func MakeNode(ctx *cli.Context, cfg *config) (*node.Node, *gossip.Service, func(
 		return evmcore.NewTxPool(cfg.TxPool, reader.Config(), reader)
 	}
 	haltCheck := func(oldEpoch, newEpoch idx.Epoch, age time.Time) bool {
-		stop := ctx.GlobalIsSet(ExitWhenAgeFlag.Name) && ctx.GlobalDuration(ExitWhenAgeFlag.Name) >= time.Since(age)
-		stop = stop || ctx.GlobalIsSet(ExitWhenEpochFlag.Name) && idx.Epoch(ctx.GlobalUint64(ExitWhenEpochFlag.Name)) <= newEpoch
+		stop := ctx.GlobalIsSet(flags.ExitWhenAgeFlag.Name) && ctx.GlobalDuration(flags.ExitWhenAgeFlag.Name) >= time.Since(age)
+		stop = stop || ctx.GlobalIsSet(flags.ExitWhenEpochFlag.Name) && idx.Epoch(ctx.GlobalUint64(flags.ExitWhenEpochFlag.Name)) <= newEpoch
 		if stop {
 			go func() {
 				// do it in a separate thread to avoid deadlock
@@ -476,8 +476,8 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 
 func startFreeDiskSpaceMonitor(ctx *cli.Context, stopNodeSig chan os.Signal, path string) {
 	minFreeDiskSpace := ethconfig.Defaults.TrieDirtyCache
-	if ctx.GlobalIsSet(utils.MinFreeDiskSpaceFlag.Name) {
-		minFreeDiskSpace = ctx.GlobalInt(utils.MinFreeDiskSpaceFlag.Name)
+	if ctx.GlobalIsSet(flags.MinFreeDiskSpaceFlag.Name) {
+		minFreeDiskSpace = ctx.GlobalInt(flags.MinFreeDiskSpaceFlag.Name)
 	} else {
 		minFreeDiskSpace = 8192
 	}

@@ -2,7 +2,7 @@ package launcher
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
+	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/nat"
@@ -26,7 +26,7 @@ var NodeDefaultConfig = node.Config{
 	P2P: p2p.Config{
 		NoDiscovery: false, // enable discovery v4 by default
 		DiscoveryV5: true,  // enable discovery v5 by default
-		ListenAddr:  fmt.Sprintf(":%d", utils.ListenPortFlag.Value),
+		ListenAddr:  fmt.Sprintf(":%d", flags.ListenPortFlag.Value),
 		MaxPeers:    50,
 		NAT:         nat.Any(),
 	},

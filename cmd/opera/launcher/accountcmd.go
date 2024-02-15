@@ -18,7 +18,7 @@ package launcher
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/utils"
+	"github.com/Fantom-foundation/go-opera/flags"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -33,7 +33,7 @@ import (
 // unlockAccounts unlocks any account specifically requested.
 func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 	var unlocks []string
-	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
+	inputs := strings.Split(ctx.GlobalString(flags.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {
 		if trimmed := strings.TrimSpace(input); trimmed != "" {
 			unlocks = append(unlocks, trimmed)
@@ -49,7 +49,7 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) error {
 		return fmt.Errorf("account unlock with HTTP access is forbidden")
 	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	passwords, err := utils.MakePasswordList(ctx)
+	passwords, err := flags.MakePasswordList(ctx)
 	if err != nil {
 		return err
 	}

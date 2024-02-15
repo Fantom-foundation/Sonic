@@ -3,6 +3,7 @@ package launcher
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/flags"
 	"os"
 	"strings"
 
@@ -27,7 +28,7 @@ func addFakeValidatorKey(ctx *cli.Context, key *ecdsa.PrivateKey, pubkey validat
 
 // makeValidatorPasswordList reads password lines from the file specified by the global --validator.password flag.
 func makeValidatorPasswordList(ctx *cli.Context) ([]string, error) {
-	if path := ctx.GlobalString(validatorPasswordFlag.Name); path != "" {
+	if path := ctx.GlobalString(flags.ValidatorPasswordFlag.Name); path != "" {
 		text, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read validator password file: %w", err)

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/cmdhelper"
 	_ "github.com/Fantom-foundation/go-opera/version"
 	"gopkg.in/urfave/cli.v1"
 	"os"
@@ -16,6 +16,7 @@ var (
 	gitDate   = ""
 )
 
+// TODO: reuse flags from opera/launcher/flags
 var (
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
@@ -42,7 +43,7 @@ var (
 )
 
 func main() {
-	app := flags.NewApp(gitCommit, gitDate, "the Sonic management tool")
+	app := cmdhelper.NewApp(gitCommit, gitDate, "the Sonic management tool")
 	app.Flags = []cli.Flag{
 		DataDirFlag,
 		CacheFlag,
