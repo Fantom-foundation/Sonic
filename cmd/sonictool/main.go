@@ -114,7 +114,7 @@ This command allows to open a console attached to a running Sonic node.`,
 			ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 			Category:  "MISCELLANEOUS COMMANDS",
 			Description: `
-    opera import events
+    sonictool import events
 
 The import command imports events from an RLP-encoded files.
 Events are fully verified.`,
