@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	DefaultHTTPPort = 8545 // Default TCP port for the HTTP RPC server
-	DefaultWSPort   = 8546 // Default TCP port for the websocket RPC server
+	DefaultHTTPPort = 18545 // Default TCP port for the HTTP RPC server
+	DefaultWSPort   = 18546 // Default TCP port for the websocket RPC server
 )
 
 // NodeDefaultConfig contains reasonable default settings.
