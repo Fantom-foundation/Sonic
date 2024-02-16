@@ -407,6 +407,18 @@ func (s *Service) APIs() []rpc.API {
 		},
 	}...)
 
+	// eth-namespace is doubled as ftm-namespace for branding purpose
+	for _, api := range apis {
+		if api.Namespace == "eth" {
+			apis = append(apis, rpc.API{
+				Namespace: "ftm",
+				Version:   api.Version,
+				Service:   api.Service,
+				Public:    api.Public,
+			})
+		}
+	}
+
 	return apis
 }
 
