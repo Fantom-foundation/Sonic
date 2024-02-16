@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmdhelper"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	_ "github.com/Fantom-foundation/go-opera/version"
+	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"sort"
 )
 
 func main() {
-	app := cmdhelper.NewApp(config.GitCommit, config.GitDate, "the Sonic management tool")
+	app := cli.NewApp()
+	app.Name = "sonictool"
+	app.Usage = "the Sonic management tool"
+	app.Version = params.VersionWithCommit(config.GitCommit, config.GitDate)
 	app.Flags = []cli.Flag{
 		flags.DataDirFlag,
 		flags.CacheFlag,

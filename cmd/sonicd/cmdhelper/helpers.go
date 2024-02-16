@@ -17,10 +17,6 @@
 package cmdhelper
 
 import (
-	"os"
-	"path/filepath"
-
-	"github.com/ethereum/go-ethereum/params"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -76,7 +72,7 @@ type FlagGroup struct {
 	Flags []cli.Flag
 }
 
-// byCategory sorts an array of FlagGroup by Name in the order
+// ByCategory sorts an array of FlagGroup by Name in the order
 // defined in AppHelpFlagGroups.
 type ByCategory []FlagGroup
 
@@ -107,15 +103,4 @@ func FlagCategory(flag cli.Flag, flagGroups []FlagGroup) string {
 		}
 	}
 	return "MISC"
-}
-
-// NewApp creates an app with sane defaults.
-func NewApp(gitCommit, gitDate, usage string) *cli.App {
-	app := cli.NewApp()
-	app.Name = filepath.Base(os.Args[0])
-	app.Author = ""
-	app.Email = ""
-	app.Version = params.VersionWithCommit(gitCommit, gitDate)
-	app.Usage = usage
-	return app
 }

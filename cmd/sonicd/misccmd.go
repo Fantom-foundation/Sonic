@@ -1,4 +1,4 @@
-package launcher
+package main
 
 import (
 	"fmt"
@@ -22,14 +22,6 @@ var (
 The output of this command is supposed to be machine-readable.
 `,
 	}
-
-	licenseCommand = cli.Command{
-		Action:    license,
-		Name:      "license",
-		Usage:     "Display license information",
-		ArgsUsage: " ",
-		Category:  "MISCELLANEOUS COMMANDS",
-	}
 )
 
 func version(ctx *cli.Context) error {
@@ -47,11 +39,5 @@ func version(ctx *cli.Context) error {
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))
 	fmt.Printf("GOROOT=%s\n", runtime.GOROOT())
-	return nil
-}
-
-func license(_ *cli.Context) error {
-	// TODO: license text
-	fmt.Println(``)
 	return nil
 }

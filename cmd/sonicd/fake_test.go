@@ -1,4 +1,4 @@
-package launcher
+package main
 
 import (
 	"github.com/Fantom-foundation/go-opera/config"

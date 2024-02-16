@@ -1,11 +1,14 @@
-package launcher
+package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/diskusage"
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/diskusage"
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/metrics"
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/tracing"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"github.com/ethereum/go-ethereum/params"
 	"os"
 	"os/signal"
 	"sort"
@@ -20,18 +23,15 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/discover/discfilter"
 	"gopkg.in/urfave/cli.v1"
 
-	evmetrics "github.com/ethereum/go-ethereum/metrics"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/metrics"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher/tracing"
-	"github.com/Fantom-foundation/go-opera/cmdhelper"
 	"github.com/Fantom-foundation/go-opera/debug"
 	_ "github.com/Fantom-foundation/go-opera/version"
 )
 
 var (
 	// The app that holds all commands and flags.
-	app = cmdhelper.NewApp(config.GitCommit, config.GitDate, "the go-opera command line interface")
+	app *cli.App
 
 	nodeFlags        []cli.Flag
 	testFlags        []cli.Flag
@@ -162,11 +162,14 @@ func initApp() {
 
 	initFlags()
 
+	app = cli.NewApp()
+	app.Name = "sonicd"
+	app.Usage = "the go-sonic service"
+	app.Version = params.VersionWithCommit(config.GitCommit, config.GitDate)
 	app.Action = lachesisMain
 	app.HideVersion = true // we have a command to print the version
 	app.Commands = []cli.Command{
 		versionCommand,
-		licenseCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -184,7 +187,7 @@ func initApp() {
 		// Start metrics export if enabled
 		metrics.SetupMetrics(ctx)
 		// Start system runtime metrics collection
-		go evmetrics.CollectProcessMetrics(3 * time.Second)
+		go ethmetrics.CollectProcessMetrics(3 * time.Second)
 		return nil
 	}
 
@@ -194,12 +197,6 @@ func initApp() {
 
 		return nil
 	}
-}
-
-func Launch(args []string) error {
-	initApp()
-	initAppHelp()
-	return app.Run(args)
 }
 
 // opera is the main entry point into the system if no special subcommand is ran.
