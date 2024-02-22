@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/rpc"
 	"gopkg.in/urfave/cli.v1"
@@ -30,10 +31,10 @@ func remoteConsole(ctx *cli.Context) error {
 	// Attach to a remotely running opera instance and start the JavaScript console
 	endpoint := ctx.Args().First()
 	if endpoint == "" {
-		if !ctx.GlobalIsSet(DataDirFlag.Name) {
-			return fmt.Errorf("the --%s flag is missing and the IPC endpoint path is not specified", DataDirFlag.Name)
+		if !ctx.GlobalIsSet(flags.DataDirFlag.Name) {
+			return fmt.Errorf("the --%s flag is missing and the IPC endpoint path is not specified", flags.DataDirFlag.Name)
 		}
-		endpoint = fmt.Sprintf("%s/opera.ipc", ctx.GlobalString(DataDirFlag.Name))
+		endpoint = fmt.Sprintf("%s/opera.ipc", ctx.GlobalString(flags.DataDirFlag.Name))
 	}
 	client, err := rpc.Dial(endpoint)
 	if err != nil {
@@ -41,13 +42,13 @@ func remoteConsole(ctx *cli.Context) error {
 	}
 	defer client.Close()
 
-	if !ctx.GlobalIsSet(DataDirFlag.Name) {
-		return fmt.Errorf("please specify the --%s flag to a directory, where should be the console history stored", DataDirFlag.Name)
+	if !ctx.GlobalIsSet(flags.DataDirFlag.Name) {
+		return fmt.Errorf("please specify the --%s flag to a directory, where should be the console history stored", flags.DataDirFlag.Name)
 	}
 
 	config := console.Config{
-		DataDir: ctx.GlobalString(DataDirFlag.Name), // console history will be stored here
-		DocRoot: ctx.String(JSpathFlag.Name), // from where to load scripts
+		DataDir: ctx.GlobalString(flags.DataDirFlag.Name), // console history will be stored here
+		DocRoot: ctx.String(JSpathFlag.Name),              // from where to load scripts
 		Client:  client,
 		Preload: makeConsolePreloads(ctx.String(PreloadJSFlag.Name)),
 	}

@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"github.com/ethereum/go-ethereum/params"
@@ -27,7 +27,7 @@ var (
 	}
 )
 
-func overrideParams() {
+func OverrideParams() {
 	params.MainnetBootnodes = []string{}
 	params.RopstenBootnodes = []string{}
 	params.RinkebyBootnodes = []string{}

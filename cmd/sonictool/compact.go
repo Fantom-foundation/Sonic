@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
@@ -13,9 +14,9 @@ import (
 )
 
 func compactDbs(ctx *cli.Context) error {
-	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
+		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {

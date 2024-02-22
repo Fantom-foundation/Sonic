@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
@@ -37,9 +38,9 @@ func sonicGenesisImport(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the genesis file to import")
 	}
-	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
+		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
 	}
 	genesisReader, err := os.Open(ctx.Args().First())
 	if err != nil {
@@ -53,9 +54,9 @@ func legacyGenesisImport(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the genesis file to import")
 	}
-	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
+		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
@@ -94,9 +95,9 @@ func jsonGenesisImport(ctx *cli.Context) error {
 	if !ctx.IsSet(ExperimentalFlag.Name) {
 		return fmt.Errorf("using JSON genesis is for experimental usage only and requires --%s flag", ExperimentalFlag.Name)
 	}
-	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
+		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
@@ -123,9 +124,9 @@ func fakeGenesisImport(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the number of validators in the fake network")
 	}
-	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", DataDirFlag.Name)
+		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
 	}
 	validatorsNumber, err := strconv.ParseUint(ctx.Args().First(), 10, 32)
 	if validatorsNumber < 1 {
@@ -159,22 +160,22 @@ func isValidatorModeSet(ctx *cli.Context) (bool, error) {
 }
 
 func cacheScaler(ctx *cli.Context) (cachescale.Func, error) {
-	targetCache := ctx.GlobalInt(CacheFlag.Name)
+	targetCache := ctx.GlobalInt(flags.CacheFlag.Name)
 	baseSize := db.DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
 	maxCache := totalMemory * 3 / 5
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
-	if !ctx.GlobalIsSet(CacheFlag.Name) {
+	if !ctx.GlobalIsSet(flags.CacheFlag.Name) {
 		recommendedCache := totalMemory / 2
 		if recommendedCache > baseSize {
-			log.Warn(fmt.Sprintf("Please add '--%s %d' flag to allocate more cache for the database. Total memory is %d MB.", CacheFlag.Name, recommendedCache, totalMemory))
+			log.Warn(fmt.Sprintf("Please add '--%s %d' flag to allocate more cache for the database. Total memory is %d MB.", flags.CacheFlag.Name, recommendedCache, totalMemory))
 		}
 		return cachescale.Identity, nil
 	}
 	if targetCache < baseSize {
-		return nil, fmt.Errorf("invalid flag %s - minimum cache size is %d MB", CacheFlag.Name, baseSize)
+		return nil, fmt.Errorf("invalid flag %s - minimum cache size is %d MB", flags.CacheFlag.Name, baseSize)
 	}
 	if totalMemory != 0 && targetCache > maxCache {
 		log.Warn(fmt.Sprintf("Requested cache size exceeds 60%% of available memory. Reducing cache size to %d MB.", maxCache))

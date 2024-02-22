@@ -1,6 +1,7 @@
-package launcher
+package main
 
 import (
+	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"runtime"
@@ -76,7 +77,7 @@ func TestFakeNetFlag_Validator(t *testing.T) {
 }
 
 func readFakeValidator(fakenet string) *validatorpk.PubKey {
-	n, _, err := parseFakeGen(fakenet)
+	n, _, err := config.ParseFakeGen(fakenet)
 	if err != nil {
 		panic(err)
 	}

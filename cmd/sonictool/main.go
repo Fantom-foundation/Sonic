@@ -2,37 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
-	"github.com/Fantom-foundation/go-opera/flags"
+	"github.com/Fantom-foundation/go-opera/config"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	_ "github.com/Fantom-foundation/go-opera/version"
+	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"sort"
 )
 
-var (
-	// Git SHA1 commit hash of the release (set via linker flags).
-	gitCommit = ""
-	gitDate   = ""
-)
-
-var (
-	DataDirFlag = cli.StringFlag{
-		Name:  "datadir",
-		Usage: "Data directory for the databases and keystore",
-	}
-	CacheFlag = cli.IntFlag{
-		Name:  "cache",
-		Usage: "Megabytes of memory allocated to internal pebble caching",
-		Value: db.DefaultCacheSize,
-	}
-)
-
 func main() {
-	app := flags.NewApp(gitCommit, gitDate, "the Sonic management tool")
+	app := cli.NewApp()
+	app.Name = "sonictool"
+	app.Usage = "the Sonic management tool"
+	app.Version = params.VersionWithCommit(config.GitCommit, config.GitDate)
 	app.Flags = []cli.Flag{
-		DataDirFlag,
-		CacheFlag,
+		flags.DataDirFlag,
+		flags.CacheFlag,
 	}
 	app.Commands = []cli.Command{
 		{
@@ -128,7 +114,7 @@ This command allows to open a console attached to a running Sonic node.`,
 			ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 			Category:  "MISCELLANEOUS COMMANDS",
 			Description: `
-    opera import events
+    sonictool import events
 
 The import command imports events from an RLP-encoded files.
 Events are fully verified.`,
@@ -171,7 +157,7 @@ be gzipped.
 			Action:      checkConfig,
 			Name:        "checkconfig",
 			Usage:       "Checks configuration file",
-			ArgsUsage:   "",
+			ArgsUsage:   "<filename>",
 			Category:    "MISCELLANEOUS COMMANDS",
 			Description: `The checkconfig checks configuration file.`,
 		},
@@ -179,9 +165,201 @@ be gzipped.
 			Action:      dumpConfig,
 			Name:        "dumpconfig",
 			Usage:       "Show configuration values",
-			ArgsUsage:   "",
+			ArgsUsage:   "<filename>",
 			Category:    "MISCELLANEOUS COMMANDS",
 			Description: `The dumpconfig command shows configuration values.`,
+		},
+
+		{
+			Name:     "account",
+			Usage:    "Manage accounts",
+			Category: "ACCOUNT COMMANDS",
+			Description: `
+
+Manage accounts, list all existing accounts, import a private key into a new
+account, create a new account or update an existing account.
+
+It supports interactive mode, when you are prompted for password as well as
+non-interactive mode where passwords are supplied via a given password file.
+Non-interactive mode is only meant for scripted use on test networks or known
+safe environments.
+
+Make sure you remember the password you gave when creating a new account (with
+either new or import). Without it you are not able to unlock your account.
+
+Note that exporting your key in unencrypted format is NOT supported.
+
+Keys are stored under <DATADIR>/keystore.
+It is safe to transfer the entire directory or the individual keys therein
+between ethereum nodes by simply copying.
+
+Make sure you backup your keys regularly.`,
+			Subcommands: []cli.Command{
+				{
+					Name:   "list",
+					Usage:  "Print summary of existing accounts",
+					Action: accountList,
+					Flags: []cli.Flag{
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+					},
+					Description: `
+Print a short summary of all accounts`,
+				},
+				{
+					Name:   "new",
+					Usage:  "Create a new account",
+					Action: accountCreate,
+					Flags: []cli.Flag{
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.PasswordFileFlag,
+						flags.LightKDFFlag,
+					},
+					Description: `
+    sonictool account new
+
+Creates a new account and prints the address.
+
+The account is saved in encrypted format, you are prompted for a passphrase.
+
+You must remember this passphrase to unlock your account in the future.
+
+For non-interactive use the passphrase can be specified with the --password flag:
+
+Note, this is meant to be used for testing only, it is a bad idea to save your
+password to file or expose in any other way.
+`,
+				},
+				{
+					Name:      "update",
+					Usage:     "Update an existing account",
+					Action:    accountUpdate,
+					ArgsUsage: "<address>",
+					Flags: []cli.Flag{
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.LightKDFFlag,
+					},
+					Description: `
+    sonictool account update <address>
+
+Update an existing account.
+
+The account is saved in the newest version in encrypted format, you are prompted
+for a passphrase to unlock the account and another to save the updated file.
+
+This same command can therefore be used to migrate an account of a deprecated
+format to the newest format or change the password for an account.
+
+For non-interactive use the passphrase can be specified with the --password flag:
+
+    sonictool account update [options] <address>
+
+Since only one password can be given, only format update can be performed,
+changing your password is only possible interactively.
+`,
+				},
+				{
+					Name:   "import",
+					Usage:  "Import a private key into a new account",
+					Action: accountImport,
+					Flags: []cli.Flag{
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.PasswordFileFlag,
+						flags.LightKDFFlag,
+					},
+					ArgsUsage: "<keyFile>",
+					Description: `
+    sonictool account import <keyfile>
+
+Imports an unencrypted private key from <keyfile> and creates a new account.
+Prints the address.
+
+The keyfile is assumed to contain an unencrypted private key in hexadecimal format.
+
+The account is saved in encrypted format, you are prompted for a passphrase.
+
+You must remember this passphrase to unlock your account in the future.
+
+For non-interactive use the passphrase can be specified with the -password flag:
+
+    sonictool account import [options] <keyfile>
+
+Note:
+As you can directly copy your encrypted accounts to another ethereum instance,
+this import mechanism is not needed when you transfer an account between
+nodes.
+`,
+				},
+			},
+		},
+
+		{
+			Name:     "validator",
+			Usage:    "Manage validators",
+			Category: "VALIDATOR COMMANDS",
+			Description: `
+
+Create a new validator private key.
+
+It supports interactive mode, when you are prompted for password as well as
+non-interactive mode where passwords are supplied via a given password file.
+Non-interactive mode is only meant for scripted use on test networks or known
+safe environments.
+
+Make sure you remember the password you gave when creating a new validator key.
+Without it you are not able to unlock your validator key.
+
+Note that exporting your key in unencrypted format is NOT supported.
+
+Keys are stored under <DATADIR>/keystore/validator.
+It is safe to transfer the entire directory or the individual keys therein
+between Opera nodes by simply copying.
+
+Make sure you backup your keys regularly.`,
+			Subcommands: []cli.Command{
+				{
+					Name:   "new",
+					Usage:  "Create a new validator key",
+					Action: validatorKeyCreate,
+					Flags: []cli.Flag{
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+						flags.PasswordFileFlag,
+					},
+					Description: `
+    sonictool validator new
+
+Creates a new validator private key and prints the public key.
+
+The key is saved in encrypted format, you are prompted for a passphrase.
+
+You must remember this passphrase to unlock your key in the future.
+
+For non-interactive use the passphrase can be specified with the --validator.password flag:
+
+Note, this is meant to be used for testing only, it is a bad idea to save your
+password to file or expose in any other way.
+`,
+				},
+				{
+					Name:   "convert",
+					Usage:  "Convert an account key to a validator key",
+					Action: validatorKeyConvert,
+					Flags: []cli.Flag{
+						flags.DataDirFlag,
+						flags.KeyStoreDirFlag,
+					},
+					ArgsUsage: "<account address> <validator pubkey>",
+					Description: `
+    sonictool validator convert
+
+Converts an account private key to a validator private key and saves in the validator keystore.
+`,
+				},
+			},
 		},
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))

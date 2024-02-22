@@ -1,11 +1,13 @@
-package launcher
+package config
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,7 +16,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -28,78 +29,19 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
-var (
-	configFileFlag = cli.StringFlag{
-		Name:  "config",
-		Usage: "TOML configuration file",
-	}
-
-	// DataDirFlag defines directory to store Lachesis state and user's wallets
-	DataDirFlag = utils.DirectoryFlag{
-		Name:  "datadir",
-		Usage: "Data directory for the databases and keystore",
-		Value: utils.DirectoryString(DefaultDataDir()),
-	}
-
-	CacheFlag = cli.IntFlag{
-		Name:  "cache",
-		Usage: "Megabytes of memory allocated to internal caching",
-		Value: DefaultCacheSize,
-	}
-
-	RPCGlobalGasCapFlag = cli.Uint64Flag{
-		Name:  "rpc.gascap",
-		Usage: "Sets a cap on gas that can be used in ftm_call/estimateGas (0=infinite)",
-		Value: gossip.DefaultConfig(cachescale.Identity).RPCGasCap,
-	}
-	RPCGlobalEVMTimeoutFlag = &cli.DurationFlag{
-		Name:  "rpc.evmtimeout",
-		Usage: "Sets a timeout used for eth_call (0=infinite)",
-		Value: gossip.DefaultConfig(cachescale.Identity).RPCEVMTimeout,
-	}
-	RPCGlobalTxFeeCapFlag = cli.Float64Flag{
-		Name:  "rpc.txfeecap",
-		Usage: "Sets a cap on transaction fee (in FTM) that can be sent via the RPC APIs (0 = no cap)",
-		Value: gossip.DefaultConfig(cachescale.Identity).RPCTxFeeCap,
-	}
-	RPCGlobalTimeoutFlag = cli.DurationFlag{
-		Name:  "rpc.timeout",
-		Usage: "Time limit for RPC calls execution",
-		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
-	}
-
-	ModeFlag = cli.StringFlag{
-		Name:  "mode",
-		Usage: `Mode of the node ("rpc" or "validator")`,
-		Value: "rpc",
-	}
-
-	ExitWhenAgeFlag = cli.DurationFlag{
-		Name:  "exitwhensynced.age",
-		Usage: "Exits after synchronisation reaches the required age",
-	}
-	ExitWhenEpochFlag = cli.Uint64Flag{
-		Name:  "exitwhensynced.epoch",
-		Usage: "Exits after synchronisation reaches the required epoch",
-	}
+const (
+	// ClientIdentifier to advertise over the network.
+	ClientIdentifier = "go-opera"
 )
 
-type GenesisTemplate struct {
-	Name   string
-	Header genesis.Header
-	Hashes genesis.Hashes
-}
-
-const (
-	// DefaultCacheSize is calculated as memory consumption in a worst case scenario with default configuration
-	// Average memory consumption might be 3-5 times lower than the maximum
-	DefaultCacheSize  = 3600
-	ConstantCacheSize = 400
+var (
+	// Git SHA1 commit hash of the release (set via linker flags).
+	GitCommit = ""
+	GitDate   = ""
 )
 
 // These settings ensure that TOML keys use the same names as Go struct fields.
@@ -115,7 +57,7 @@ var TomlSettings = toml.Config{
 	},
 }
 
-type config struct {
+type Config struct {
 	Node          node.Config
 	Opera         gossip.Config
 	Emitter       emitter.Config
@@ -127,7 +69,7 @@ type config struct {
 	DBs           integration.DBsConfig
 }
 
-func (c *config) AppConfigs() integration.Configs {
+func (c *Config) AppConfigs() integration.Configs {
 	return integration.Configs{
 		Opera:         c.Opera,
 		OperaStore:    c.OperaStore,
@@ -138,7 +80,7 @@ func (c *config) AppConfigs() integration.Configs {
 	}
 }
 
-func loadAllConfigs(file string, cfg *config) error {
+func loadAllConfigs(file string, cfg *Config) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -173,71 +115,64 @@ func setBootnodes(ctx *cli.Context, urls []string, cfg *node.Config) {
 	cfg.P2P.BootstrapNodes = cfg.P2P.BootstrapNodesV5
 }
 
-func setDataDir(ctx *cli.Context, cfg *node.Config) error {
-	if !ctx.GlobalIsSet(DataDirFlag.Name) {
-		return fmt.Errorf("the --%s flag is missing", DataDirFlag.Name)
-	}
-	cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	return nil
-}
-
-func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) {
-	if ctx.GlobalIsSet(utils.TxPoolLocalsFlag.Name) {
-		locals := strings.Split(ctx.GlobalString(utils.TxPoolLocalsFlag.Name), ",")
+func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) error {
+	if ctx.GlobalIsSet(flags.TxPoolLocalsFlag.Name) {
+		locals := strings.Split(ctx.GlobalString(flags.TxPoolLocalsFlag.Name), ",")
 		for _, account := range locals {
 			if trimmed := strings.TrimSpace(account); !common.IsHexAddress(trimmed) {
-				utils.Fatalf("Invalid account in --txpool.locals: %s", trimmed)
+				return fmt.Errorf("invalid account in --%s: %s", flags.TxPoolLocalsFlag.Name, trimmed)
 			} else {
 				cfg.Locals = append(cfg.Locals, common.HexToAddress(account))
 			}
 		}
 	}
-	if ctx.GlobalIsSet(utils.TxPoolNoLocalsFlag.Name) {
-		cfg.NoLocals = ctx.GlobalBool(utils.TxPoolNoLocalsFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolNoLocalsFlag.Name) {
+		cfg.NoLocals = ctx.GlobalBool(flags.TxPoolNoLocalsFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolJournalFlag.Name) {
-		cfg.Journal = ctx.GlobalString(utils.TxPoolJournalFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolJournalFlag.Name) {
+		cfg.Journal = ctx.GlobalString(flags.TxPoolJournalFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolRejournalFlag.Name) {
-		cfg.Rejournal = ctx.GlobalDuration(utils.TxPoolRejournalFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolRejournalFlag.Name) {
+		cfg.Rejournal = ctx.GlobalDuration(flags.TxPoolRejournalFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolPriceLimitFlag.Name) {
-		cfg.PriceLimit = ctx.GlobalUint64(utils.TxPoolPriceLimitFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolPriceLimitFlag.Name) {
+		cfg.PriceLimit = ctx.GlobalUint64(flags.TxPoolPriceLimitFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolPriceBumpFlag.Name) {
-		cfg.PriceBump = ctx.GlobalUint64(utils.TxPoolPriceBumpFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolPriceBumpFlag.Name) {
+		cfg.PriceBump = ctx.GlobalUint64(flags.TxPoolPriceBumpFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolAccountSlotsFlag.Name) {
-		cfg.AccountSlots = ctx.GlobalUint64(utils.TxPoolAccountSlotsFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolAccountSlotsFlag.Name) {
+		cfg.AccountSlots = ctx.GlobalUint64(flags.TxPoolAccountSlotsFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolGlobalSlotsFlag.Name) {
-		cfg.GlobalSlots = ctx.GlobalUint64(utils.TxPoolGlobalSlotsFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolGlobalSlotsFlag.Name) {
+		cfg.GlobalSlots = ctx.GlobalUint64(flags.TxPoolGlobalSlotsFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolAccountQueueFlag.Name) {
-		cfg.AccountQueue = ctx.GlobalUint64(utils.TxPoolAccountQueueFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolAccountQueueFlag.Name) {
+		cfg.AccountQueue = ctx.GlobalUint64(flags.TxPoolAccountQueueFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolGlobalQueueFlag.Name) {
-		cfg.GlobalQueue = ctx.GlobalUint64(utils.TxPoolGlobalQueueFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolGlobalQueueFlag.Name) {
+		cfg.GlobalQueue = ctx.GlobalUint64(flags.TxPoolGlobalQueueFlag.Name)
 	}
-	if ctx.GlobalIsSet(utils.TxPoolLifetimeFlag.Name) {
-		cfg.Lifetime = ctx.GlobalDuration(utils.TxPoolLifetimeFlag.Name)
+	if ctx.GlobalIsSet(flags.TxPoolLifetimeFlag.Name) {
+		cfg.Lifetime = ctx.GlobalDuration(flags.TxPoolLifetimeFlag.Name)
 	}
+	return nil
 }
 
 func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	cfg := src
 
-	if ctx.GlobalIsSet(RPCGlobalGasCapFlag.Name) {
-		cfg.RPCGasCap = ctx.GlobalUint64(RPCGlobalGasCapFlag.Name)
+	if ctx.GlobalIsSet(flags.RPCGlobalGasCapFlag.Name) {
+		cfg.RPCGasCap = ctx.GlobalUint64(flags.RPCGlobalGasCapFlag.Name)
 	}
-	if ctx.GlobalIsSet(RPCGlobalEVMTimeoutFlag.Name) {
-		cfg.RPCEVMTimeout = ctx.GlobalDuration(RPCGlobalEVMTimeoutFlag.Name)
+	if ctx.GlobalIsSet(flags.RPCGlobalEVMTimeoutFlag.Name) {
+		cfg.RPCEVMTimeout = ctx.GlobalDuration(flags.RPCGlobalEVMTimeoutFlag.Name)
 	}
-	if ctx.GlobalIsSet(RPCGlobalTxFeeCapFlag.Name) {
-		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCapFlag.Name)
+	if ctx.GlobalIsSet(flags.RPCGlobalTxFeeCapFlag.Name) {
+		cfg.RPCTxFeeCap = ctx.GlobalFloat64(flags.RPCGlobalTxFeeCapFlag.Name)
 	}
-	if ctx.GlobalIsSet(RPCGlobalTimeoutFlag.Name) {
-		cfg.RPCTimeout = ctx.GlobalDuration(RPCGlobalTimeoutFlag.Name)
+	if ctx.GlobalIsSet(flags.RPCGlobalTimeoutFlag.Name) {
+		cfg.RPCTimeout = ctx.GlobalDuration(flags.RPCGlobalTimeoutFlag.Name)
 	}
 
 	return cfg
@@ -247,10 +182,10 @@ func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (e
 	cfg := src
 	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
 
-	if ctx.GlobalIsSet(ModeFlag.Name) {
-		mode := ctx.GlobalString(ModeFlag.Name)
+	if ctx.GlobalIsSet(flags.ModeFlag.Name) {
+		mode := ctx.GlobalString(flags.ModeFlag.Name)
 		if mode != "rpc" && mode != "validator" {
-			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", ModeFlag.Name)
+			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", flags.ModeFlag.Name)
 		}
 		if mode == "validator" {
 			cfg.StateDb.Archive = carmen.NoArchive
@@ -261,38 +196,56 @@ func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (e
 	return cfg, nil
 }
 
-func setDBConfig(cfg config, cacheRatio cachescale.Func) config {
+// makeDatabaseHandles raises out the number of allowed file handles per process
+// and returns half of the allowance to assign to the database.
+func makeDatabaseHandles() (uint64, error) {
+	limit, err := fdlimit.Maximum()
+	if err != nil {
+		return 0, fmt.Errorf("failed to retrieve file descriptor allowance: %w", err)
+	}
+	raised, err := fdlimit.Raise(uint64(limit))
+	if err != nil {
+		return 0, fmt.Errorf("failed to raise file descriptor allowance: %w", err)
+	}
+	return raised / 2, nil // Leave half for networking and other stuff
+}
+
+func setDBConfig(cfg Config, cacheRatio cachescale.Func) (Config, error) {
+	handles, err := makeDatabaseHandles()
+	if err != nil {
+		return Config{}, err
+	}
 	cfg.DBs.RuntimeCache = integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
-		Fdlimit: uint64(utils.MakeDatabaseHandles())*480/1400 + 1,
+		Fdlimit: handles*480/1400 + 1,
 	}
-	return cfg
+	return cfg, nil
 }
 
-func nodeConfigWithFlags(ctx *cli.Context, cfg node.Config) (node.Config, error) {
-	utils.SetNodeConfig(ctx, &cfg)
-
-	err := setDataDir(ctx, &cfg)
-	return cfg, err
-}
+const (
+	// DefaultCacheSize is calculated as memory consumption in a worst case scenario with default configuration
+	// Average memory consumption might be 3-5 times lower than the maximum
+	DefaultCacheSize  = 3600
+	ConstantCacheSize = 400
+)
 
 func cacheScaler(ctx *cli.Context) cachescale.Func {
-	targetCache := ctx.GlobalInt(CacheFlag.Name)
+	targetCache := ctx.GlobalInt(flags.CacheFlag.Name)
 	baseSize := DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
 	maxCache := totalMemory * 3 / 5
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
-	if !ctx.GlobalIsSet(CacheFlag.Name) {
+	if !ctx.GlobalIsSet(flags.CacheFlag.Name) {
 		recommendedCache := totalMemory / 2
 		if recommendedCache > baseSize {
-			log.Warn(fmt.Sprintf("Please add '--%s %d' flag to allocate more cache for Opera. Total memory is %d MB.", CacheFlag.Name, recommendedCache, totalMemory))
+			log.Warn(fmt.Sprintf("Please add '--%s %d' flag to allocate more cache for Opera. Total memory is %d MB.", flags.CacheFlag.Name, recommendedCache, totalMemory))
 		}
 		return cachescale.Identity
 	}
 	if targetCache < baseSize {
-		log.Crit("Invalid flag", "flag", CacheFlag.Name, "err", fmt.Sprintf("minimum cache size is %d MB", baseSize))
+		log.Crit("Invalid flag", "flag", flags.CacheFlag.Name, "err", fmt.Sprintf("minimum cache size is %d MB", baseSize))
 	}
 	if totalMemory != 0 && targetCache > maxCache {
 		log.Warn(fmt.Sprintf("Requested cache size exceeds 60%% of available memory. Reducing cache size to %d MB.", maxCache))
@@ -305,11 +258,11 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 	}
 }
 
-func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
+func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error) {
 	// Defaults (low priority)
 	cacheRatio := cacheScaler(ctx)
-	cfg := config{
-		Node:          defaultNodeConfig(),
+	cfg := Config{
+		Node:          DefaultNodeConfig(),
 		Opera:         gossip.DefaultConfig(cacheRatio),
 		Emitter:       emitter.DefaultConfig(),
 		TxPool:        evmcore.DefaultTxPoolConfig,
@@ -320,7 +273,7 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	}
 
 	if ctx.GlobalIsSet(FakeNetFlag.Name) {
-		_, num, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
+		_, num, err := ParseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
 		if err != nil {
 			return nil, fmt.Errorf("invalid fakenet flag")
 		}
@@ -342,7 +295,7 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	// Apply flags (high priority)
 	var err error
 	cfg.Opera = gossipConfigWithFlags(ctx, cfg.Opera)
-	cfg.Node, err = nodeConfigWithFlags(ctx, cfg.Node)
+	err = SetNodeConfig(ctx, &cfg.Node)
 	if err != nil {
 		return nil, err
 	}
@@ -358,10 +311,15 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	if cfg.Emitter.Validator.ID != 0 && len(cfg.Emitter.PrevEmittedEventFile.Path) == 0 {
 		cfg.Emitter.PrevEmittedEventFile.Path = cfg.Node.ResolvePath(path.Join("emitter", fmt.Sprintf("last-%d", cfg.Emitter.Validator.ID)))
 	}
-	setTxPool(ctx, &cfg.TxPool)
+	if err := setTxPool(ctx, &cfg.TxPool); err != nil {
+		return nil, err
+	}
 
 	// Process DBs defaults in the end because they are applied only in absence of config or flags
-	cfg = setDBConfig(cfg, cacheRatio)
+	cfg, err = setDBConfig(cfg, cacheRatio)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := cfg.Opera.Validate(); err != nil {
 		return nil, err
@@ -370,21 +328,16 @@ func MayMakeAllConfigs(ctx *cli.Context, configFile string) (*config, error) {
 	return &cfg, nil
 }
 
-func MakeAllConfigs(ctx *cli.Context) *config {
-	cfg, err := MayMakeAllConfigs(ctx, ctx.GlobalString(configFileFlag.Name))
-	if err != nil {
-		utils.Fatalf("%v", err)
-	}
-	return cfg
+func MakeAllConfigs(ctx *cli.Context) (*Config, error) {
+	return MakeAllConfigsFromFile(ctx, ctx.GlobalString(flags.ConfigFileFlag.Name))
 }
 
-func defaultNodeConfig() node.Config {
+func DefaultNodeConfig() node.Config {
 	cfg := NodeDefaultConfig
-	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit, gitDate)
+	cfg.Name = ClientIdentifier
+	cfg.Version = params.VersionWithCommit(GitCommit, GitDate)
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.WSModules = append(cfg.WSModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.IPCPath = "opera.ipc"
-	cfg.DataDir = DefaultDataDir()
 	return cfg
 }

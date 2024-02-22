@@ -1,0 +1,330 @@
+// Copyright 2015 The go-ethereum Authors
+// This file is part of go-ethereum.
+//
+// go-ethereum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// go-ethereum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+
+package flags
+
+import (
+	"github.com/Fantom-foundation/go-opera/gossip"
+	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
+	pcsclite "github.com/gballet/go-libpcsclite"
+	"gopkg.in/urfave/cli.v1"
+	"strings"
+
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"github.com/ethereum/go-ethereum/node"
+)
+
+// These are all the command line flags we support.
+// If you add to this list, please remember to include the
+// flag in the appropriate command definition.
+//
+// The flags are defined here so their names and help texts
+// are the same for all commands.
+
+var (
+	// General settings
+	DataDirFlag = cli.StringFlag{
+		Name:  "datadir",
+		Usage: "Data directory for the databases and keystore",
+		Value: node.DefaultDataDir(),
+	}
+	MinFreeDiskSpaceFlag = cli.StringFlag{
+		Name:  "datadir.minfreedisk",
+		Usage: "Minimum free disk space in MB, once reached triggers auto shut down (default = 8192 MB, 0 = disabled)",
+	}
+	KeyStoreDirFlag = cli.StringFlag{
+		Name:  "keystore",
+		Usage: "Directory for the keystore (default = inside the datadir)",
+	}
+	USBFlag = cli.BoolFlag{
+		Name:  "usb",
+		Usage: "Enable monitoring and management of USB hardware wallets",
+	}
+	SmartCardDaemonPathFlag = cli.StringFlag{
+		Name:  "pcscdpath",
+		Usage: "Path to the smartcard daemon (pcscd) socket file",
+		Value: pcsclite.PCSCDSockName,
+	}
+	IdentityFlag = cli.StringFlag{
+		Name:  "identity",
+		Usage: "Custom node name",
+	}
+	LightKDFFlag = cli.BoolFlag{
+		Name:  "lightkdf",
+		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
+	}
+	// Transaction pool settings
+	TxPoolLocalsFlag = cli.StringFlag{
+		Name:  "txpool.locals",
+		Usage: "Comma separated accounts to treat as locals (no flush, priority inclusion)",
+	}
+	TxPoolNoLocalsFlag = cli.BoolFlag{
+		Name:  "txpool.nolocals",
+		Usage: "Disables price exemptions for locally submitted transactions",
+	}
+	TxPoolJournalFlag = cli.StringFlag{
+		Name:  "txpool.journal",
+		Usage: "Disk journal for local transaction to survive node restarts",
+		Value: core.DefaultTxPoolConfig.Journal,
+	}
+	TxPoolRejournalFlag = cli.DurationFlag{
+		Name:  "txpool.rejournal",
+		Usage: "Time interval to regenerate the local transaction journal",
+		Value: core.DefaultTxPoolConfig.Rejournal,
+	}
+	TxPoolPriceLimitFlag = cli.Uint64Flag{
+		Name:  "txpool.pricelimit",
+		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
+		Value: ethconfig.Defaults.TxPool.PriceLimit,
+	}
+	TxPoolPriceBumpFlag = cli.Uint64Flag{
+		Name:  "txpool.pricebump",
+		Usage: "Price bump percentage to replace an already existing transaction",
+		Value: ethconfig.Defaults.TxPool.PriceBump,
+	}
+	TxPoolAccountSlotsFlag = cli.Uint64Flag{
+		Name:  "txpool.accountslots",
+		Usage: "Minimum number of executable transaction slots guaranteed per account",
+		Value: ethconfig.Defaults.TxPool.AccountSlots,
+	}
+	TxPoolGlobalSlotsFlag = cli.Uint64Flag{
+		Name:  "txpool.globalslots",
+		Usage: "Maximum number of executable transaction slots for all accounts",
+		Value: ethconfig.Defaults.TxPool.GlobalSlots,
+	}
+	TxPoolAccountQueueFlag = cli.Uint64Flag{
+		Name:  "txpool.accountqueue",
+		Usage: "Maximum number of non-executable transaction slots permitted per account",
+		Value: ethconfig.Defaults.TxPool.AccountQueue,
+	}
+	TxPoolGlobalQueueFlag = cli.Uint64Flag{
+		Name:  "txpool.globalqueue",
+		Usage: "Maximum number of non-executable transaction slots for all accounts",
+		Value: ethconfig.Defaults.TxPool.GlobalQueue,
+	}
+	TxPoolLifetimeFlag = cli.DurationFlag{
+		Name:  "txpool.lifetime",
+		Usage: "Maximum amount of time non-executable transaction are queued",
+		Value: ethconfig.Defaults.TxPool.Lifetime,
+	}
+	// Account settings
+	UnlockedAccountFlag = cli.StringFlag{
+		Name:  "unlock",
+		Usage: "Comma separated list of accounts to unlock",
+		Value: "",
+	}
+	PasswordFileFlag = cli.StringFlag{
+		Name:  "password",
+		Usage: "Password file to use for non-interactive password input",
+		Value: "",
+	}
+	ExternalSignerFlag = cli.StringFlag{
+		Name:  "signer",
+		Usage: "External signer (url or path to ipc file)",
+		Value: "",
+	}
+	InsecureUnlockAllowedFlag = cli.BoolFlag{
+		Name:  "allow-insecure-unlock",
+		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
+	// RPC settings
+	IPCDisabledFlag = cli.BoolFlag{
+		Name:  "ipcdisable",
+		Usage: "Disable the IPC-RPC server",
+	}
+	IPCPathFlag = cli.StringFlag{
+		Name:  "ipcpath",
+		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
+	}
+	HTTPEnabledFlag = cli.BoolFlag{
+		Name:  "http",
+		Usage: "Enable the HTTP-RPC server",
+	}
+	HTTPListenAddrFlag = cli.StringFlag{
+		Name:  "http.addr",
+		Usage: "HTTP-RPC server listening interface",
+		Value: node.DefaultHTTPHost,
+	}
+	HTTPPortFlag = cli.IntFlag{
+		Name:  "http.port",
+		Usage: "HTTP-RPC server listening port",
+		Value: 18545,
+	}
+	HTTPCORSDomainFlag = cli.StringFlag{
+		Name:  "http.corsdomain",
+		Usage: "Comma separated list of domains from which to accept cross origin requests (browser enforced)",
+		Value: "",
+	}
+	HTTPVirtualHostsFlag = cli.StringFlag{
+		Name:  "http.vhosts",
+		Usage: "Comma separated list of virtual hostnames from which to accept requests (server enforced). Accepts '*' wildcard.",
+		Value: strings.Join(node.DefaultConfig.HTTPVirtualHosts, ","),
+	}
+	HTTPApiFlag = cli.StringFlag{
+		Name:  "http.api",
+		Usage: "API's offered over the HTTP-RPC interface",
+		Value: "",
+	}
+	HTTPPathPrefixFlag = cli.StringFlag{
+		Name:  "http.rpcprefix",
+		Usage: "HTTP path path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
+		Value: "",
+	}
+	WSEnabledFlag = cli.BoolFlag{
+		Name:  "ws",
+		Usage: "Enable the WS-RPC server",
+	}
+	WSListenAddrFlag = cli.StringFlag{
+		Name:  "ws.addr",
+		Usage: "WS-RPC server listening interface",
+		Value: node.DefaultWSHost,
+	}
+	WSPortFlag = cli.IntFlag{
+		Name:  "ws.port",
+		Usage: "WS-RPC server listening port",
+		Value: 18546,
+	}
+	WSApiFlag = cli.StringFlag{
+		Name:  "ws.api",
+		Usage: "API's offered over the WS-RPC interface",
+		Value: "",
+	}
+	WSAllowedOriginsFlag = cli.StringFlag{
+		Name:  "ws.origins",
+		Usage: "Origins from which to accept websockets requests",
+		Value: "",
+	}
+	WSPathPrefixFlag = cli.StringFlag{
+		Name:  "ws.rpcprefix",
+		Usage: "HTTP path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
+		Value: "",
+	}
+
+	// Network Settings
+	MaxPeersFlag = cli.IntFlag{
+		Name:  "maxpeers",
+		Usage: "Maximum number of network peers (network disabled if set to 0)",
+		Value: node.DefaultConfig.P2P.MaxPeers,
+	}
+	MaxPendingPeersFlag = cli.IntFlag{
+		Name:  "maxpendpeers",
+		Usage: "Maximum number of pending connection attempts (defaults used if set to 0)",
+		Value: node.DefaultConfig.P2P.MaxPendingPeers,
+	}
+	ListenPortFlag = cli.IntFlag{
+		Name:  "port",
+		Usage: "Network listening port",
+		Value: 5050,
+	}
+	BootnodesFlag = cli.StringFlag{
+		Name:  "bootnodes",
+		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
+		Value: "",
+	}
+	NodeKeyFileFlag = cli.StringFlag{
+		Name:  "nodekey",
+		Usage: "P2P node key file",
+	}
+	NodeKeyHexFlag = cli.StringFlag{
+		Name:  "nodekeyhex",
+		Usage: "P2P node key as hex (for testing)",
+	}
+	NATFlag = cli.StringFlag{
+		Name:  "nat",
+		Usage: "NAT port mapping mechanism (any|none|upnp|pmp|extip:<IP>)",
+		Value: "any",
+	}
+	NoDiscoverFlag = cli.BoolFlag{
+		Name:  "nodiscover",
+		Usage: "Disables the peer discovery mechanism (manual peer addition)",
+	}
+	DiscoveryV5Flag = cli.BoolFlag{
+		Name:  "v5disc",
+		Usage: "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
+	}
+	NetrestrictFlag = cli.StringFlag{
+		Name:  "netrestrict",
+		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
+	}
+	IPrestrictFlag = cli.StringFlag{
+		Name:  "iprestrict",
+		Usage: "Restricts network communication to the given IP addresses",
+	}
+	PrivateNodeFlag = cli.StringFlag{
+		Name:  "privatenodes",
+		Usage: "Comma separated enode URLs which must not be advertised as peers to public network",
+	}
+
+	ConfigFileFlag = cli.StringFlag{
+		Name:  "config",
+		Usage: "TOML configuration file",
+	}
+	CacheFlag = cli.IntFlag{
+		Name:  "cache",
+		Usage: "Megabytes of memory allocated to internal caching",
+	}
+	RPCGlobalGasCapFlag = cli.Uint64Flag{
+		Name:  "rpc.gascap",
+		Usage: "Sets a cap on gas that can be used in ftm_call/estimateGas (0=infinite)",
+		Value: gossip.DefaultConfig(cachescale.Identity).RPCGasCap,
+	}
+	RPCGlobalEVMTimeoutFlag = &cli.DurationFlag{
+		Name:  "rpc.evmtimeout",
+		Usage: "Sets a timeout used for eth_call (0=infinite)",
+		Value: gossip.DefaultConfig(cachescale.Identity).RPCEVMTimeout,
+	}
+	RPCGlobalTxFeeCapFlag = cli.Float64Flag{
+		Name:  "rpc.txfeecap",
+		Usage: "Sets a cap on transaction fee (in FTM) that can be sent via the RPC APIs (0 = no cap)",
+		Value: gossip.DefaultConfig(cachescale.Identity).RPCTxFeeCap,
+	}
+	RPCGlobalTimeoutFlag = cli.DurationFlag{
+		Name:  "rpc.timeout",
+		Usage: "Time limit for RPC calls execution",
+		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
+	}
+	ModeFlag = cli.StringFlag{
+		Name:  "mode",
+		Usage: `Mode of the node ("rpc" or "validator")`,
+		Value: "rpc",
+	}
+	ExitWhenAgeFlag = cli.DurationFlag{
+		Name:  "exitwhensynced.age",
+		Usage: "Exits after synchronisation reaches the required age",
+	}
+	ExitWhenEpochFlag = cli.Uint64Flag{
+		Name:  "exitwhensynced.epoch",
+		Usage: "Exits after synchronisation reaches the required epoch",
+	}
+
+	// Validator
+	ValidatorIDFlag = cli.UintFlag{
+		Name:  "validator.id",
+		Usage: "ID of a validator to create events from",
+		Value: 0,
+	}
+	ValidatorPubkeyFlag = cli.StringFlag{
+		Name:  "validator.pubkey",
+		Usage: "Public key of a validator to create events from",
+		Value: "",
+	}
+	ValidatorPasswordFlag = cli.StringFlag{
+		Name:  "validator.password",
+		Usage: "Password to unlock validator private key",
+		Value: "",
+	}
+)

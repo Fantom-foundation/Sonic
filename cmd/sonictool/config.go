@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/config"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 )
@@ -12,16 +12,19 @@ func checkConfig(ctx *cli.Context) error {
 		return fmt.Errorf("this command requires an argument - the config toml file")
 	}
 	configFile := ctx.Args().Get(0)
-	_, err := launcher.MayMakeAllConfigs(ctx, configFile)
+	_, err := config.MakeAllConfigsFromFile(ctx, configFile)
 	return err
 }
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	cfg := launcher.MakeAllConfigs(ctx)
+	cfg, err := config.MakeAllConfigs(ctx)
+	if err != nil {
+		return err
+	}
 	comment := ""
 
-	out, err := launcher.TomlSettings.Marshal(&cfg)
+	out, err := config.TomlSettings.Marshal(&cfg)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"crypto/ecdsa"
@@ -19,14 +19,14 @@ var FakeNetFlag = cli.StringFlag{
 }
 
 func getFakeValidatorKey(ctx *cli.Context) *ecdsa.PrivateKey {
-	id, _, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
+	id, _, err := ParseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
 	if err != nil || id == 0 {
 		return nil
 	}
 	return makefakegenesis.FakeKey(id)
 }
 
-func parseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
+func ParseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
 	parts := strings.SplitN(s, "/", 2)
 	if len(parts) != 2 {
 		err = fmt.Errorf("use %%d/%%d format")

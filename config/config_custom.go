@@ -1,4 +1,4 @@
-package launcher
+package config
 
 import (
 	"fmt"
@@ -52,7 +52,7 @@ func isBootstrapNodesDefault(root *ast.Table) (
 }
 
 // UnmarshalTOML implements toml.Unmarshaler.
-func (c *config) UnmarshalTOML(input []byte) error {
+func (c *Config) UnmarshalTOML(input []byte) error {
 	ast, err := toml.Parse(input)
 	if err != nil {
 		return err
@@ -60,13 +60,13 @@ func (c *config) UnmarshalTOML(input []byte) error {
 
 	defaultBootstrapNodes, defaultBootstrapNodesV5 := isBootstrapNodesDefault(ast)
 
-	type rawCfg config
+	type rawCfg Config
 	var raw = rawCfg(*c)
 	err = toml.UnmarshalTable(ast, &raw)
 	if err != nil {
 		return err
 	}
-	*c = config(raw)
+	*c = Config(raw)
 
 	if defaultBootstrapNodes {
 		c.Node.P2P.BootstrapNodes = asDefault

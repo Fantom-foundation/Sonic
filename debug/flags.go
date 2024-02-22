@@ -183,7 +183,7 @@ func Setup(ctx *cli.Context) error {
 		port := ctx.GlobalInt(pprofPortFlag.Name)
 
 		address := fmt.Sprintf("%s:%d", listenHost, port)
-		// This context value ("metrics.addr") represents the utils.MetricsHTTPFlag.Name.
+		// This context value ("metrics.addr") represents the flags.MetricsHTTPFlag.Name.
 		// It cannot be imported because it will cause a cyclical dependency.
 		StartPProf(address, !ctx.GlobalIsSet("metrics.addr"))
 	}

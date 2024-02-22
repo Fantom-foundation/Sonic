@@ -16,28 +16,27 @@
 
 // Contains the geth command usage template and generator.
 
-package launcher
+package main
 
 import (
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/cmdhelper"
+	"github.com/Fantom-foundation/go-opera/config"
 	"io"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/debug"
-	"github.com/Fantom-foundation/go-opera/flags"
 )
 
 // AppHelpFlagGroups is the application flags, grouped by functionality.
 var AppHelpFlagGroups = calcAppHelpFlagGroups()
 
-func calcAppHelpFlagGroups() []flags.FlagGroup {
-	overrideFlags()
-	overrideParams()
+func calcAppHelpFlagGroups() []cmdhelper.FlagGroup {
+	config.OverrideParams()
 
 	initFlags()
-	return []flags.FlagGroup{
+	return []cmdhelper.FlagGroup{
 		{
 			Name:  "OPERA",
 			Flags: operaFlags,
@@ -89,12 +88,12 @@ func calcAppHelpFlagGroups() []flags.FlagGroup {
 
 func initAppHelp() {
 	// Override the default app help template
-	cli.AppHelpTemplate = flags.AppHelpTemplate
+	cli.AppHelpTemplate = cmdhelper.AppHelpTemplate
 
 	// Override the default app help printer, but only for the global app help
 	originalHelpPrinter := cli.HelpPrinter
 	cli.HelpPrinter = func(w io.Writer, tmpl string, data interface{}) {
-		if tmpl == flags.AppHelpTemplate {
+		if tmpl == cmdhelper.AppHelpTemplate {
 			// Iterate over all the flags and add any uncategorized ones
 			categorized := make(map[string]struct{})
 			for _, group := range AppHelpFlagGroups {
@@ -102,21 +101,14 @@ func initAppHelp() {
 					categorized[flag.String()] = struct{}{}
 				}
 			}
-			deprecated := make(map[string]struct{})
-			for _, flag := range utils.DeprecatedFlags {
-				deprecated[flag.String()] = struct{}{}
-			}
-			// Only add uncategorized flags if they are not deprecated
 			var uncategorized []cli.Flag
 			for _, flag := range data.(*cli.App).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					if _, ok := deprecated[flag.String()]; !ok {
-						uncategorized = append(uncategorized, flag)
-					}
+					uncategorized = append(uncategorized, flag)
 				}
 			}
 			if len(uncategorized) > 0 {
-				// Append all ungategorized options to the misc group
+				// Append all uncategorized options to the misc group
 				miscs := len(AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags)
 				AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags = append(AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags, uncategorized...)
 
@@ -126,22 +118,22 @@ func initAppHelp() {
 				}()
 			}
 			// Render out custom usage screen
-			originalHelpPrinter(w, tmpl, flags.HelpData{App: data, FlagGroups: AppHelpFlagGroups})
-		} else if tmpl == flags.CommandHelpTemplate {
+			originalHelpPrinter(w, tmpl, cmdhelper.HelpData{App: data, FlagGroups: AppHelpFlagGroups})
+		} else if tmpl == cmdhelper.CommandHelpTemplate {
 			// Iterate over all command specific flags and categorize them
 			categorized := make(map[string][]cli.Flag)
 			for _, flag := range data.(cli.Command).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					categorized[flags.FlagCategory(flag, AppHelpFlagGroups)] = append(categorized[flags.FlagCategory(flag, AppHelpFlagGroups)], flag)
+					categorized[cmdhelper.FlagCategory(flag, AppHelpFlagGroups)] = append(categorized[cmdhelper.FlagCategory(flag, AppHelpFlagGroups)], flag)
 				}
 			}
 
 			// sort to get a stable ordering
-			sorted := make([]flags.FlagGroup, 0, len(categorized))
+			sorted := make([]cmdhelper.FlagGroup, 0, len(categorized))
 			for cat, flgs := range categorized {
-				sorted = append(sorted, flags.FlagGroup{Name: cat, Flags: flgs})
+				sorted = append(sorted, cmdhelper.FlagGroup{Name: cat, Flags: flgs})
 			}
-			sort.Sort(flags.ByCategory(sorted))
+			sort.Sort(cmdhelper.ByCategory(sorted))
 
 			// add sorted array to data and render with default printer
 			originalHelpPrinter(w, tmpl, map[string]interface{}{
