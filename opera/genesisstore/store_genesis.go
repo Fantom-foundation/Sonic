@@ -38,6 +38,7 @@ func (s *Store) Genesis() genesis.Genesis {
 		Epochs:      s.Epochs(),
 		RawEvmItems: s.RawEvmItems(),
 		FwsLiveSection:  s.FwsLiveSection(),
+		FwsArchiveSection: s.FwsArchiveSection(),
 	}
 }
 

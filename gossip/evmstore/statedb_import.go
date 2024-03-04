@@ -76,6 +76,26 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 	return fmt.Errorf("archive is used, but cannot be initialized from FWS live genesis section")
 }
 
+// ExportLiveWorldState exports Fantom World State data for the live state genesis section.
+// The Store must be closed during the call.
+func (s *Store) ExportLiveWorldState(out io.Writer) error {
+	liveDir := filepath.Join(s.parameters.Directory, "live")
+	if err := io2.Export(liveDir, out); err != nil {
+		return fmt.Errorf("failed to export Live StateDB; %v", err)
+	}
+	return nil
+}
+
+// ExportArchiveWorldState exports Fantom World State data for the archive state genesis section.
+// The Store must be closed during the call.
+func (s *Store) ExportArchiveWorldState(out io.Writer) error {
+	archiveDir := filepath.Join(s.parameters.Directory, "archive")
+	if err := io2.ExportArchive(archiveDir, out); err != nil {
+		return fmt.Errorf("failed to export Archive StateDB; %v", err)
+	}
+	return nil
+}
+
 func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, root common.Hash) error {
 	if err := s.Open(); err != nil {
 		return fmt.Errorf("failed to open EvmStore for legacy EVM data import; %v", err)

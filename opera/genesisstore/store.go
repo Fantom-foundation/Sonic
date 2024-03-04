@@ -24,7 +24,7 @@ func FwsLiveSection(i int) string {
 }
 
 func FwsArchiveSection(i int) string {
-	return getSectionName("fwsa", i)
+	return getSectionName("fwa", i)
 }
 
 type FilesMap func(string) (io.Reader, error)

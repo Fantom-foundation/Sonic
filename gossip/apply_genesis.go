@@ -71,10 +71,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		}
 
 		// import S5 archive
-		archiveReader, err := g.FwsArchiveSection.GetReader()
-		if err != nil {
-			s.Log.Info("Fantom World State Archive data not available in the genesis", "err", err)
-		}
+		archiveReader, _ := g.FwsArchiveSection.GetReader()
 		if archiveReader != nil { // has archive section
 			s.Log.Info("Importing Fantom World State Archive data from genesis")
 			err = s.evm.ImportArchiveWorldState(archiveReader)

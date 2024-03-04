@@ -151,6 +151,22 @@ last epoch to write. If the file ends with .gz, the output will
 be gzipped.
 `,
 				},
+				{
+					Name:      "genesis",
+					Usage:     "Export current state into a genesis file",
+					ArgsUsage: "<filename> [--export.sections=brs,ers,fws,fwa]",
+					Action:    exportGenesis,
+					Flags: []cli.Flag{
+						GenesisExportSections,
+					},
+					Description: `
+    sonictool export genesis
+
+Export current state into a genesis file.
+Requires a first argument of the file to write to.
+Omit the fwa section to export only the live StateDB data, with no archive data.
+`,
+				},
 			},
 		},
 		{
