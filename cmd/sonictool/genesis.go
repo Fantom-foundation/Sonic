@@ -24,10 +24,6 @@ var (
 		Usage: `Mode of the node ("rpc" or "validator")`,
 		Value: "rpc",
 	}
-	FakeNetFlag = cli.StringFlag{
-		Name:  "fakenet",
-		Usage: "'n/N' - sets coinbase as fake n-th key from genesis of N validators.",
-	}
 	ExperimentalFlag = cli.BoolFlag{
 		Name:  "experimental",
 		Usage: "Allow experimental features",

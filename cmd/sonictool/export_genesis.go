@@ -12,15 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
-)
-
-var (
-	GenesisExportSections = cli.StringFlag{
-		Name:  "export.sections",
-		Usage: `Genesis sections to export separated by comma (e.g. "brs-1" or "ers" or "fws")`,
-		Value: "brs,ers,fws,fwa",
-	}
 )
 
 func exportGenesis(ctx *cli.Context) error {
@@ -32,25 +23,9 @@ func exportGenesis(ctx *cli.Context) error {
 	if fileName == "" {
 		return fmt.Errorf("the output file name must be provided as an argument")
 	}
-
-	sectionsStr := ctx.String(GenesisExportSections.Name)
-	sections := map[string]string{}
-	for _, str := range strings.Split(sectionsStr, ",") {
-		before := len(sections)
-		if strings.HasPrefix(str, "brs") {
-			sections["brs"] = str
-		} else if strings.HasPrefix(str, "ers") {
-			sections["ers"] = str
-		} else if strings.HasPrefix(str, "fws") {
-			sections["fws"] = str
-		} else if strings.HasPrefix(str, "fwa") {
-			sections["fwa"] = str
-		} else {
-			return fmt.Errorf("unknown section '%s': has to start with either 'brs' or 'ers' or 'fws' or `fwa`", str)
-		}
-		if len(sections) == before {
-			return fmt.Errorf("duplicate section: '%s'", str)
-		}
+	forValidatorMode, err := isValidatorModeSet(ctx)
+	if err != nil {
+		return err
 	}
 
 	cacheRatio, err := cacheScaler(ctx)
@@ -83,5 +58,5 @@ func exportGenesis(ctx *cli.Context) error {
 	_ = os.RemoveAll(tmpPath)
 	defer os.RemoveAll(tmpPath)
 
-	return chain.ExportGenesis(gdb, sections, fh, tmpPath)
+	return chain.ExportGenesis(gdb, !forValidatorMode, fh, tmpPath)
 }

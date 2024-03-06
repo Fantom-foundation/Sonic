@@ -20,7 +20,7 @@ import (
 	"path"
 )
 
-func ExportGenesis(gdb *gossip.Store, sections map[string]string, plain *os.File, tmpPath string) error {
+func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath string) error {
 	if gdb.GetHighestLamport() != 0 {
 		log.Warn("Attempting genesis export not in a beginning of an epoch. Genesis file output may contain excessive data.")
 	}
@@ -30,128 +30,135 @@ func ExportGenesis(gdb *gossip.Store, sections map[string]string, plain *os.File
 		NetworkID:   gdb.GetEpochState().Rules.NetworkID,
 		NetworkName: gdb.GetEpochState().Rules.Name,
 	}
-	var epochsHash hash.Hash
-	var blocksHash hash.Hash
-	var fwsHash hash.Hash
-	var fwsaHash hash.Hash
-
 	from := idx.Epoch(1)
 	to := gdb.GetEpoch()
-	if len(sections["ers"]) > 0 {
-		log.Info("Exporting epochs", "from", from, "to", to)
-		writer := newUnitWriter(plain)
-		err := writer.Start(header, sections["ers"], tmpPath)
-		if err != nil {
-			return err
-		}
-		for i := to; i >= from; i-- {
-			er := gdb.GetFullEpochRecord(i)
-			if er == nil {
-				log.Warn("No epoch record", "epoch", i)
-				break
-			}
-			b, _ := rlp.EncodeToBytes(ier.LlrIdxFullEpochRecord{
-				LlrFullEpochRecord: *er,
-				Idx:                i,
-			})
-			_, err := writer.Write(b)
-			if err != nil {
-				return err
-			}
-		}
-		epochsHash, err = writer.Flush()
-		if err != nil {
-			return err
-		}
-		log.Info("Exported epochs")
-		fmt.Printf("- Epochs hash: %v \n", epochsHash.String())
+
+	// epochs
+	writer := newUnitWriter(out)
+	if err := writer.Start(header, "ers", tmpPath); err != nil {
+		return err
+	}
+	if err := exportEpochsSection(gdb, writer, from, to); err != nil {
+		return err
 	}
 
-	if len(sections["brs"]) > 0 {
-		toBlock := getEpochBlock(to, gdb)
-		fromBlock := getEpochBlock(from, gdb)
-		if sections["brs"] != "brs" {
-			// to continue prev section, include blocks of prev epochs too, excluding first blocks of prev epoch (which is last block if prev section)
-			fromBlock = getEpochBlock(from-1, gdb) + 1
-		}
-		if fromBlock < 1 {
-			// avoid underflow
-			fromBlock = 1
-		}
-		log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
-		writer := newUnitWriter(plain)
-		err := writer.Start(header, sections["brs"], tmpPath)
-		if err != nil {
-			return err
-		}
-		for i := toBlock; i >= fromBlock; i-- {
-			br := gdb.GetFullBlockRecord(i)
-			if br == nil {
-				log.Warn("No block record", "block", i)
-				break
-			}
-			if i%200000 == 0 {
-				log.Info("Exporting blocks", "last", i)
-			}
-			b, _ := rlp.EncodeToBytes(ibr.LlrIdxFullBlockRecord{
-				LlrFullBlockRecord: *br,
-				Idx:                i,
-			})
-			_, err := writer.Write(b)
-			if err != nil {
-				return err
-			}
-		}
-		blocksHash, err = writer.Flush()
-		if err != nil {
-			return err
-		}
-		log.Info("Exported blocks")
-		fmt.Printf("- Blocks hash: %v \n", blocksHash.String())
+	// blocks
+	writer = newUnitWriter(out)
+	if err := writer.Start(header, "brs", tmpPath); err != nil {
+		return err
+	}
+	if err := exportBlocksSection(gdb, writer, from, to); err != nil {
+		return err
 	}
 
-	if len(sections["fws"]) > 0 {
-		log.Info("Exporting Fantom World State Live data")
-		writer := newUnitWriter(plain)
-		err := writer.Start(header, sections["fws"], tmpPath)
-		if err != nil {
-			return err
-		}
-
-		err = gdb.EvmStore().ExportLiveWorldState(writer)
-		if err != nil {
-			return err
-		}
-
-		fwsHash, err = writer.Flush()
-		if err != nil {
-			return err
-		}
-		log.Info("Exported Fantom World State Live data")
-		fmt.Printf("- FWS hash: %v \n", fwsHash.String())
+	// live state
+	writer = newUnitWriter(out)
+	if err := writer.Start(header, "fws", tmpPath); err != nil {
+		return err
+	}
+	if err := exportFwsSection(gdb, writer); err != nil {
+		return err
 	}
 
-	if len(sections["fwa"]) > 0 {
-		log.Info("Exporting Fantom World State Archive data")
-		writer := newUnitWriter(plain)
-		err := writer.Start(header, sections["fwa"], tmpPath)
-		if err != nil {
+	// archive
+	if includeArchive {
+		writer = newUnitWriter(out)
+		if err := writer.Start(header, "fwa", tmpPath); err != nil {
 			return err
 		}
+		if err := exportFwaSection(gdb, writer); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-		err = gdb.EvmStore().ExportArchiveWorldState(writer)
+func exportEpochsSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
+	log.Info("Exporting epochs", "from", from, "to", to)
+	for i := to; i >= from; i-- {
+		er := gdb.GetFullEpochRecord(i)
+		if er == nil {
+			log.Warn("No epoch record", "epoch", i)
+			break
+		}
+		b, _ := rlp.EncodeToBytes(ier.LlrIdxFullEpochRecord{
+			LlrFullEpochRecord: *er,
+			Idx:                i,
+		})
+		_, err := writer.Write(b)
 		if err != nil {
 			return err
 		}
+	}
+	epochsHash, err := writer.Flush()
+	if err != nil {
+		return err
+	}
+	log.Info("Exported epochs")
+	fmt.Printf("- Epochs hash: %v \n", epochsHash.String())
+	return nil
+}
 
-		fwsaHash, err = writer.Flush()
+func exportBlocksSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
+	toBlock := getEpochBlock(to, gdb)
+	fromBlock := getEpochBlock(from, gdb)
+	if fromBlock < 1 {
+		// avoid underflow
+		fromBlock = 1
+	}
+	log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
+	for i := toBlock; i >= fromBlock; i-- {
+		br := gdb.GetFullBlockRecord(i)
+		if br == nil {
+			return fmt.Errorf("the block record for block %d is missing in gdb", i)
+		}
+		if i%200000 == 0 {
+			log.Info("Exporting blocks", "last", i)
+		}
+		b, _ := rlp.EncodeToBytes(ibr.LlrIdxFullBlockRecord{
+			LlrFullBlockRecord: *br,
+			Idx:                i,
+		})
+		_, err := writer.Write(b)
 		if err != nil {
 			return err
 		}
-		log.Info("Exported Fantom World State Archive data")
-		fmt.Printf("- FWA hash: %v \n", fwsaHash.String())
+	}
+	blocksHash, err := writer.Flush()
+	if err != nil {
+		return err
+	}
+	log.Info("Exported blocks")
+	fmt.Printf("- Blocks hash: %v \n", blocksHash.String())
+	return nil
+}
+
+func exportFwsSection(gdb *gossip.Store, writer *unitWriter) error {
+	log.Info("Exporting Fantom World State Live data")
+	if err := gdb.EvmStore().ExportLiveWorldState(writer); err != nil {
+		return err
+	}
+	fwsHash, err := writer.Flush()
+	if err != nil {
+		return err
+	}
+	log.Info("Exported Fantom World State Live data")
+	fmt.Printf("- FWS hash: %v \n", fwsHash.String())
+	return nil
+}
+
+func exportFwaSection(gdb *gossip.Store, writer *unitWriter) error {
+	log.Info("Exporting Fantom World State Archive data")
+	if err := gdb.EvmStore().ExportArchiveWorldState(writer); err != nil {
+		return err
 	}
 
+	fwaHash, err := writer.Flush()
+	if err != nil {
+		return err
+	}
+	log.Info("Exported Fantom World State Archive data")
+	fmt.Printf("- FWA hash: %v \n", fwaHash.String())
 	return nil
 }
 
@@ -213,7 +220,7 @@ func (w *unitWriter) Start(header genesis.Header, name, tmpDirPath string) error
 		_ = os.MkdirAll(tmpDirPath, os.ModePerm)
 		tmpFh, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_RDWR, os.ModePerm)
 		if err != nil {
-			log.Crit("File opening error", "path", tmpPath, "err", err)
+			panic(fmt.Errorf("file opening error; path: %s; %w", tmpPath, err))
 		}
 		return dropableFile{
 			ReadWriteSeeker: tmpFh,
