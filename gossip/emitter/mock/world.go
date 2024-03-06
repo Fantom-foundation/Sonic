@@ -16,9 +16,9 @@ import (
 	idx "github.com/Fantom-foundation/lachesis-base/inter/idx"
 	pos "github.com/Fantom-foundation/lachesis-base/inter/pos"
 	common "github.com/ethereum/go-ethereum/common"
-	state "github.com/ethereum/go-ethereum/core/state"
 	types "github.com/ethereum/go-ethereum/core/types"
 	gomock "github.com/golang/mock/gomock"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 )
 
 // MockExternal is a mock of External interface.

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/substate"
 	"math/big"
@@ -150,11 +151,11 @@ func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash)
 	return common.Hash(c.db.GetCommittedState(cc.Address(addr), cc.Key(hash)))
 }
 
-func (c *CarmenStateDB) Database() state.Database {
+func (c *CarmenStateDB) Database() ethstate.Database {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) StorageTrie(addr common.Address) state.Trie {
+func (c *CarmenStateDB) StorageTrie(addr common.Address) ethstate.Trie {
 	panic("not supported")
 }
 
@@ -294,23 +295,23 @@ func (c *CarmenStateDB) SlotInAccessList(addr common.Address, slot common.Hash) 
 	return c.db.IsSlotInAccessList(cc.Address(addr), cc.Key(slot))
 }
 
-func (c *CarmenStateDB) RawDump(opts *state.DumpConfig) state.Dump {
+func (c *CarmenStateDB) RawDump(opts *ethstate.DumpConfig) ethstate.Dump {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) IteratorDump(opts *state.DumpConfig) state.IteratorDump {
+func (c *CarmenStateDB) IteratorDump(opts *ethstate.DumpConfig) ethstate.IteratorDump {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) IterativeDump(opts *state.DumpConfig, output *json.Encoder) {
+func (c *CarmenStateDB) IterativeDump(opts *ethstate.DumpConfig, output *json.Encoder) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Dump(opts *state.DumpConfig) []byte {
+func (c *CarmenStateDB) Dump(opts *ethstate.DumpConfig) []byte {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) DumpToCollector(dc state.DumpCollector, conf *state.DumpConfig) (nextKey []byte) {
+func (c *CarmenStateDB) DumpToCollector(dc ethstate.DumpCollector, conf *ethstate.DumpConfig) (nextKey []byte) {
 	panic("not supported")
 }
 

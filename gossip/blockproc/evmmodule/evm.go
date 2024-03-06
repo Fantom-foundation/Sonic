@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -14,6 +13,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/utils"
 )
@@ -89,7 +89,7 @@ func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
 
 	// Process txs
 	evmBlock := p.evmBlockWith(txs)
-	receipts, _, skipped, err := evmProcessor.Process(evmBlock, p.statedb, opera.DefaultVMConfig, &p.gasUsed, func(l *types.Log, _ state.StateDbInterface) {
+	receipts, _, skipped, err := evmProcessor.Process(evmBlock, p.statedb, opera.DefaultVMConfig, &p.gasUsed, func(l *types.Log) {
 		// Note: l.Index is properly set before
 		l.TxIndex += txsOffset
 		p.onNewLog(l)

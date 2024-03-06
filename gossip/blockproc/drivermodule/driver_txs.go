@@ -7,7 +7,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"

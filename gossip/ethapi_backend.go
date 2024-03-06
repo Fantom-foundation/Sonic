@@ -12,7 +12,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	notify "github.com/ethereum/go-ethereum/event"
@@ -25,6 +24,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
 	"github.com/Fantom-foundation/go-opera/tracing"
@@ -319,7 +319,7 @@ func (b *EthAPIBackend) GetTd(_ common.Hash) *big.Int {
 	return big.NewInt(0)
 }
 
-func (b *EthAPIBackend) GetEVM(ctx context.Context, msg evmcore.Message, state state.StateDbInterface, header *evmcore.EvmHeader, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
+func (b *EthAPIBackend) GetEVM(ctx context.Context, msg evmcore.Message, state vm.StateDB, header *evmcore.EvmHeader, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
 	vmError := func() error { return nil }
 
 	if vmConfig == nil {

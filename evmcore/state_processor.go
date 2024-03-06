@@ -21,12 +21,12 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/signers/internaltx"
 )
@@ -56,7 +56,7 @@ func NewStateProcessor(config *params.ChainConfig, bc DummyChain) *StateProcesso
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(
-	block *EvmBlock, statedb state.StateDbInterface, cfg vm.Config, usedGas *uint64, onNewLog func(*types.Log, state.StateDbInterface),
+	block *EvmBlock, statedb state.StateDbInterface, cfg vm.Config, usedGas *uint64, onNewLog func(*types.Log),
 ) (
 	receipts types.Receipts, allLogs []*types.Log, skipped []uint32, err error,
 ) {
@@ -105,7 +105,7 @@ func applyTransaction(
 	tx *types.Transaction,
 	usedGas *uint64,
 	evm *vm.EVM,
-	onNewLog func(*types.Log, state.StateDbInterface),
+	onNewLog func(*types.Log),
 ) (
 	*types.Receipt,
 	uint64,
@@ -124,7 +124,7 @@ func applyTransaction(
 	// Notify about logs with potential state changes
 	logs := statedb.GetLogs(tx.Hash(), blockHash)
 	for _, l := range logs {
-		onNewLog(l, statedb)
+		onNewLog(l)
 	}
 
 	// Update the state with pending changes.
