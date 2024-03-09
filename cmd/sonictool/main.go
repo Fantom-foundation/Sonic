@@ -151,6 +151,22 @@ last epoch to write. If the file ends with .gz, the output will
 be gzipped.
 `,
 				},
+				{
+					Name:      "genesis",
+					Usage:     "Export current state into a genesis file",
+					ArgsUsage: "<filename> [--mode=validator]",
+					Action:    exportGenesis,
+					Flags: []cli.Flag{
+						ModeFlag,
+					},
+					Description: `
+    sonictool export genesis
+
+Export current state into a genesis file.
+Requires a first argument of the file to write to.
+Use --mode=validator to generate a genesis without an archive section.
+`,
+				},
 			},
 		},
 		{

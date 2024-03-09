@@ -25,9 +25,9 @@ import (
 
 var emptyCodeHash = crypto.Keccak256(nil)
 
-// ImportWorldState imports Fantom World State data from the genesis file into the Carmen state.
+// ImportLiveWorldState imports Fantom World State data from the live state genesis section.
 // Must be called before the first Open call.
-func (s *Store) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, blockNum uint64) error {
+func (s *Store) ImportLiveWorldState(liveReader io.Reader) error {
 	liveDir := filepath.Join(s.parameters.Directory, "live")
 	if err := os.MkdirAll(liveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
@@ -35,17 +35,63 @@ func (s *Store) ImportWorldState(liveReader io.Reader, archiveReader io.Reader, 
 	if err := io2.ImportLiveDb(liveDir, liveReader); err != nil {
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
+	return nil
+}
 
+// ImportArchiveWorldState imports Fantom World State data from the archive state genesis section.
+// Must be called before the first Open call.
+func (s *Store) ImportArchiveWorldState(archiveReader io.Reader) error {
+	if s.parameters.Archive == carmen.NoArchive {
+		return nil // skip if the archive is disabled
+	}
 	if s.parameters.Archive == carmen.S5Archive {
 		archiveDir := filepath.Join(s.parameters.Directory, "archive")
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
-		if err := io2.InitializeArchive(archiveDir, archiveReader, blockNum); err != nil {
+		if err := io2.ImportArchive(archiveDir, archiveReader); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
-	} else if s.parameters.Archive != carmen.NoArchive {
-		return fmt.Errorf("archive is used, but cannot be initialized from FWS genesis section")
+		return nil
+	}
+	return fmt.Errorf("archive is used, but cannot be initialized from FWS live genesis section")
+}
+
+// InitializeArchiveWorldState imports Fantom World State data from the live state genesis section.
+// Must be called before the first Open call.
+func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint64) error {
+	if s.parameters.Archive == carmen.NoArchive {
+		return nil // skip if the archive is disabled
+	}
+	if s.parameters.Archive == carmen.S5Archive {
+		archiveDir := filepath.Join(s.parameters.Directory, "archive")
+		if err := os.MkdirAll(archiveDir, 0700); err != nil {
+			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
+		}
+		if err := io2.InitializeArchive(archiveDir, liveReader, blockNum); err != nil {
+			return fmt.Errorf("failed to initialize Archive; %v", err)
+		}
+		return nil
+	}
+	return fmt.Errorf("archive is used, but cannot be initialized from FWS live genesis section")
+}
+
+// ExportLiveWorldState exports Fantom World State data for the live state genesis section.
+// The Store must be closed during the call.
+func (s *Store) ExportLiveWorldState(out io.Writer) error {
+	liveDir := filepath.Join(s.parameters.Directory, "live")
+	if err := io2.Export(liveDir, out); err != nil {
+		return fmt.Errorf("failed to export Live StateDB; %v", err)
+	}
+	return nil
+}
+
+// ExportArchiveWorldState exports Fantom World State data for the archive state genesis section.
+// The Store must be closed during the call.
+func (s *Store) ExportArchiveWorldState(out io.Writer) error {
+	archiveDir := filepath.Join(s.parameters.Directory, "archive")
+	if err := io2.ExportArchive(archiveDir, out); err != nil {
+		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
 }

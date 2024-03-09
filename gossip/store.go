@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -92,7 +91,6 @@ type Store struct {
 	rlp rlpstore.Helper
 
 	logger.Instance
-	isStateDbAlreadyImported bool
 }
 
 // NewMemStore creates temporary gossip store for testing purposes.
@@ -118,7 +116,6 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) (*Store, error) {
 		Instance:      logger.New("gossip-store"),
 		prevFlushTime: time.Now(),
 		rlp:           rlpstore.Helper{logger.New("rlp")},
-		isStateDbAlreadyImported: doesDirExists(cfg.EVM.StateDb.Directory),
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)
@@ -232,9 +229,4 @@ func (s *Store) makeCache(weight uint, size int) *wlru.Cache {
 		return nil
 	}
 	return cache
-}
-
-func doesDirExists(dir string) bool {
-	stats, err := os.Stat(dir)
-	return err == nil && stats.IsDir()
 }

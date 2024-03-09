@@ -23,7 +23,10 @@ type (
 	RawEvmItems struct {
 		fMap FilesMap
 	}
-	RawFwsSection struct {
+	RawFwsLiveSection struct {
+		fMap FilesMap
+	}
+	RawFwsArchiveSection struct {
 		fMap FilesMap
 	}
 )
@@ -34,7 +37,8 @@ func (s *Store) Genesis() genesis.Genesis {
 		Blocks:      s.Blocks(),
 		Epochs:      s.Epochs(),
 		RawEvmItems: s.RawEvmItems(),
-		FwsSection:  s.FwsSection(),
+		FwsLiveSection:  s.FwsLiveSection(),
+		FwsArchiveSection: s.FwsArchiveSection(),
 	}
 }
 
@@ -126,10 +130,18 @@ func (s RawEvmItems) ForEach(fn func(key, value []byte) bool) {
 	}
 }
 
-func (s *Store) FwsSection() genesis.FwsSection {
-	return RawFwsSection{s.fMap}
+func (s *Store) FwsLiveSection() genesis.FwsLiveSection {
+	return RawFwsLiveSection{s.fMap}
 }
 
-func (s RawFwsSection) GetReader() (io.Reader, error) {
-	return s.fMap(FwsSection(0))
+func (s RawFwsLiveSection) GetReader() (io.Reader, error) {
+	return s.fMap(FwsLiveSection(0))
+}
+
+func (s *Store) FwsArchiveSection() genesis.FwsLiveSection {
+	return RawFwsArchiveSection{s.fMap}
+}
+
+func (s RawFwsArchiveSection) GetReader() (io.Reader, error) {
+	return s.fMap(FwsArchiveSection(0))
 }

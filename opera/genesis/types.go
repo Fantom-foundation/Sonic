@@ -24,7 +24,10 @@ type (
 	EvmItems interface {
 		ForEach(fn func(key, value []byte) bool)
 	}
-	FwsSection interface {
+	FwsLiveSection interface {
+		GetReader() (io.Reader, error)
+	}
+	FwsArchiveSection interface {
 		GetReader() (io.Reader, error)
 	}
 	Genesis struct {
@@ -33,7 +36,8 @@ type (
 		Blocks      Blocks
 		Epochs      Epochs
 		RawEvmItems EvmItems
-		FwsSection
+		FwsLiveSection
+		FwsArchiveSection
 	}
 )
 

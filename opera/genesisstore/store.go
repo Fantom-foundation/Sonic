@@ -19,8 +19,12 @@ func EvmSection(i int) string {
 	return getSectionName("evm", i)
 }
 
-func FwsSection(i int) string {
+func FwsLiveSection(i int) string {
 	return getSectionName("fws", i)
+}
+
+func FwsArchiveSection(i int) string {
+	return getSectionName("fwa", i)
 }
 
 type FilesMap func(string) (io.Reader, error)
