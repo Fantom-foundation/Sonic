@@ -19,78 +19,14 @@ package evmcore
 import (
 	"crypto/ecdsa"
 	"errors"
-	"math"
-	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/Fantom-foundation/go-opera/inter"
-	"github.com/Fantom-foundation/go-opera/inter/state"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var FakeGenesisTime = inter.Timestamp(1608600000 * time.Second)
-
-// ApplyFakeGenesis writes or updates the genesis block in db.
-func ApplyFakeGenesis(statedb state.StateDbInterface, time inter.Timestamp, balances map[common.Address]*big.Int) (*EvmBlock, error) {
-	for acc, balance := range balances {
-		statedb.SetBalance(acc, balance)
-	}
-
-	// initial block
-	root, err := flush(statedb, true)
-	if err != nil {
-		return nil, err
-	}
-	block := genesisBlock(time, root)
-
-	return block, nil
-}
-
-func flush(statedb state.StateDbInterface, clean bool) (root common.Hash, err error) {
-	root, err = statedb.Commit(clean)
-	if err != nil {
-		return
-	}
-	err = statedb.Database().TrieDB().Commit(root, false, nil)
-	if err != nil {
-		return
-	}
-
-	if !clean {
-		err = statedb.Database().TrieDB().Cap(0)
-	}
-
-	return
-}
-
-// genesisBlock makes genesis block with pretty hash.
-func genesisBlock(time inter.Timestamp, root common.Hash) *EvmBlock {
-	block := &EvmBlock{
-		EvmHeader: EvmHeader{
-			Number:   big.NewInt(0),
-			Time:     time,
-			GasLimit: math.MaxUint64,
-			Root:     root,
-			TxHash:   types.EmptyRootHash,
-		},
-	}
-
-	return block
-}
-
-// MustApplyFakeGenesis writes the genesis block and state to db, panicking on error.
-func MustApplyFakeGenesis(statedb state.StateDbInterface, time inter.Timestamp, balances map[common.Address]*big.Int) *EvmBlock {
-	block, err := ApplyFakeGenesis(statedb, time, balances)
-	if err != nil {
-		log.Crit("ApplyFakeGenesis", "err", err)
-	}
-	return block
-}
 
 // FakeKey gets n-th fake private key.
 func FakeKey(n uint32) *ecdsa.PrivateKey {

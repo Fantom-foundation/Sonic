@@ -186,11 +186,6 @@ func (s *Store) isCommitNeeded(sc, tc uint64) bool {
 		uint64(s.dbs.NotFlushedSizeEst()) > size
 }
 
-// commitEVM commits EVM storage
-func (s *Store) commitEVM() {
-	// removed
-}
-
 // Commit changes.
 func (s *Store) Commit() error {
 	s.FlushBlockEpochState()
