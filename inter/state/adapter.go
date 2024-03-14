@@ -8,7 +8,7 @@ import (
 	"math/big"
 )
 
-type StateDbInterface interface {
+type StateDB interface {
 	vm.StateDB
 
 	Error() error
@@ -20,7 +20,7 @@ type StateDbInterface interface {
 	SetBalance(addr common.Address, amount *big.Int)
 	SetCode(addr common.Address, code []byte)
 	SetStorage(addr common.Address, storage map[common.Hash]common.Hash)
-	Copy() StateDbInterface
+	Copy() StateDB
 	Finalise(deleteEmptyObjects bool)
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 	Prepare(thash common.Hash, ti int)
@@ -30,4 +30,3 @@ type StateDbInterface interface {
 	EndBlock(number uint64)
 	Release()
 }
-

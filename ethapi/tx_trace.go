@@ -204,7 +204,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 // traceTx trace transaction with EVM replay and return processed result
 func (s *PublicTxTraceAPI) traceTx(
 	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg types.Message,
-	state state.StateDbInterface, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
+	state state.StateDB, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
 	status uint64) (*[]txtrace.ActionTrace, error) {
 
 	// Providing default config with tracer

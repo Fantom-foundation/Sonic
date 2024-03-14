@@ -35,7 +35,7 @@ import (
 )
 
 type GenesisBuilder struct {
-	tmpStateDB state.StateDbInterface
+	tmpStateDB state.StateDB
 	carmenDir  string
 	carmenStateDb carmen.StateDB
 

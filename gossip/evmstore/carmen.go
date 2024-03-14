@@ -10,7 +10,7 @@ import (
 	"math/big"
 )
 
-func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDbInterface {
+func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDB {
 	return &CarmenStateDB{
 		db: carmenStateDb,
 	}
@@ -176,7 +176,7 @@ func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.H
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Copy() state.StateDbInterface {
+func (c *CarmenStateDB) Copy() state.StateDB {
 	if db, ok := c.db.(carmen.NonCommittableStateDB); ok {
 		return CreateCarmenStateDb(db.Copy())
 	} else {

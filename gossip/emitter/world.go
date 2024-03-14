@@ -37,7 +37,7 @@ type (
 		IsSynced() bool
 		PeersNum() int
 
-		StateDB() state.StateDbInterface
+		StateDB() state.StateDB
 	}
 
 	// aliases for mock generator

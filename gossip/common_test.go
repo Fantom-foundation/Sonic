@@ -376,7 +376,7 @@ func (env *testEnv) ReadOnly() *bind.CallOpts {
 	return &bind.CallOpts{}
 }
 
-func (env *testEnv) State() state.StateDbInterface {
+func (env *testEnv) State() state.StateDB {
 	statedb, err := env.store.evm.GetTxPoolStateDB()
 	if err != nil {
 		panic(err)
@@ -436,7 +436,7 @@ func (env *testEnv) HeaderByNumber(ctx context.Context, number *big.Int) (*types
 // callContract implements common code between normal and pending contract calls.
 // state is modified during execution, make sure to copy it if necessary.
 func (env *testEnv) callContract(
-	ctx context.Context, call ethereum.CallMsg, block *evmcore.EvmBlock, state state.StateDbInterface,
+	ctx context.Context, call ethereum.CallMsg, block *evmcore.EvmBlock, state state.StateDB,
 ) (
 	ret []byte, usedGas uint64, failed bool, err error,
 ) {

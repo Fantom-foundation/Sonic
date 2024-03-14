@@ -36,7 +36,7 @@ type BlockGen struct {
 	parent  *EvmBlock
 	chain   []*EvmBlock
 	header  *EvmHeader
-	statedb state.StateDbInterface
+	statedb state.StateDB
 
 	gasPool  *GasPool
 	txs      []*types.Transaction

@@ -154,6 +154,6 @@ func (r *EvmStateReader) GetTxPoolStateDB() (evmcore.TxPoolStateDB, error) {
 }
 
 // GetRpcStateDB obtains archive StateDB for RPC requests evaluation
-func (r *EvmStateReader) GetRpcStateDB(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
+func (r *EvmStateReader) GetRpcStateDB(blockNum *big.Int, stateRoot common.Hash) (state.StateDB, error) {
 	return r.store.evm.GetRpcStateDb(blockNum, stateRoot)
 }
