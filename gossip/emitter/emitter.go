@@ -32,9 +32,6 @@ const (
 )
 
 var (
-	emittingTriedCounter        = metrics.GetOrRegisterCounter("emitter/tried", nil)    // amount of tries to emit an event
-	emittingTriedTxsCounter     = metrics.GetOrRegisterCounter("emitter/triedtxs", nil) // amount of sortedTxs tried to emit
-	emittingTxsCountHistogram   = metrics.GetOrRegisterHistogram("emitter/txscounthistogram", nil, metrics.NewExpDecaySample(1028, 0.015))
 	emittedEventsCounter        = metrics.GetOrRegisterCounter("emitter/events", nil)                    // amount of emitted events
 	emittedEventsTxsCounter     = metrics.GetOrRegisterCounter("emitter/txs", nil)                       // amount of txs in emitted events
 	emittedGasCounter           = metrics.GetOrRegisterCounter("emitter/gas", nil)                       // consumed validator gas
@@ -258,11 +255,6 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	if em.world.IsBusy() {
 		return nil, nil
 	}
-
-	sortedTxsLen := int64(sortedTxs.Len())
-	emittingTriedCounter.Inc(1)
-	emittingTriedTxsCounter.Inc(sortedTxsLen)
-	emittingTxsCountHistogram.Update(sortedTxsLen)
 
 	em.world.Lock()
 	defer em.world.Unlock()
