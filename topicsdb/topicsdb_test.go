@@ -107,7 +107,7 @@ func TestIndexSearchMultyVariants(t *testing.T) {
 			t.Run("With addresses", func(t *testing.T) {
 				require := require.New(t)
 				got, err := method(nil, 0, 1000, [][]common.Hash{
-					{addr1.Hash(), addr2.Hash(), addr3.Hash(), addr4.Hash()},
+					{toHash(addr1), toHash(addr2), toHash(addr3), toHash(addr4)},
 					{hash1, hash2, hash3, hash4},
 					{},
 					{hash1, hash2, hash3, hash4},
@@ -120,7 +120,7 @@ func TestIndexSearchMultyVariants(t *testing.T) {
 			t.Run("With block range", func(t *testing.T) {
 				require := require.New(t)
 				got, err := method(nil, 2, 998, [][]common.Hash{
-					{addr1.Hash(), addr2.Hash(), addr3.Hash(), addr4.Hash()},
+					{toHash(addr1), toHash(addr2), toHash(addr3), toHash(addr4)},
 					{hash1, hash2, hash3, hash4},
 					{},
 					{hash1, hash2, hash3, hash4},
@@ -134,7 +134,7 @@ func TestIndexSearchMultyVariants(t *testing.T) {
 				require := require.New(t)
 
 				got1, err := method(nil, 2, 998, [][]common.Hash{
-					{addr1.Hash(), addr2.Hash(), addr3.Hash(), addr4.Hash()},
+					{toHash(addr1), toHash(addr2), toHash(addr3), toHash(addr4)},
 					{hash1, hash2, hash3, hash4},
 					{},
 					{hash1, hash2, hash3, hash4},
@@ -144,7 +144,7 @@ func TestIndexSearchMultyVariants(t *testing.T) {
 				check(require, got1)
 
 				got2, err := method(nil, 2, 998, [][]common.Hash{
-					{addr4.Hash(), addr3.Hash(), addr2.Hash(), addr1.Hash()},
+					{toHash(addr4), toHash(addr3), toHash(addr2), toHash(addr1)},
 					{hash1, hash2, hash3, hash4},
 					{},
 					{hash1, hash2, hash3, hash4},
@@ -204,7 +204,7 @@ func TestIndexSearchShortCircuits(t *testing.T) {
 			t.Run("topics count 1", func(t *testing.T) {
 				require := require.New(t)
 				got, err := method(nil, 0, 1000, [][]common.Hash{
-					{addr1.Hash()},
+					{toHash(addr1)},
 					{},
 					{},
 					{hash3},
@@ -216,7 +216,7 @@ func TestIndexSearchShortCircuits(t *testing.T) {
 			t.Run("topics count 2", func(t *testing.T) {
 				require := require.New(t)
 				got, err := method(nil, 0, 1000, [][]common.Hash{
-					{addr1.Hash()},
+					{toHash(addr1)},
 					{},
 					{},
 					{hash3, hash4},
@@ -228,7 +228,7 @@ func TestIndexSearchShortCircuits(t *testing.T) {
 			t.Run("block range", func(t *testing.T) {
 				require := require.New(t)
 				got, err := method(nil, 3, 998, [][]common.Hash{
-					{addr1.Hash()},
+					{toHash(addr1)},
 					{},
 					{},
 					{hash3, hash4},
@@ -340,21 +340,21 @@ func TestIndexSearchSimple(t *testing.T) {
 			require := require.New(t)
 
 			got, err = method(nil, 0, 0xffffffff, [][]common.Hash{
-				{addr.Hash()},
+				{toHash(addr)},
 				{hash1},
 			})
 			require.NoError(err)
 			require.Equal(1, len(got))
 
 			got, err = method(nil, 0, 0xffffffff, [][]common.Hash{
-				{addr.Hash()},
+				{toHash(addr)},
 				{hash2},
 			})
 			require.NoError(err)
 			require.Equal(1, len(got))
 
 			got, err = method(nil, 0, 0xffffffff, [][]common.Hash{
-				{addr.Hash()},
+				{toHash(addr)},
 				{hash3},
 			})
 			require.NoError(err)
@@ -373,7 +373,7 @@ func TestMaxTopicsCount(t *testing.T) {
 		Topics:      make([]common.Hash, maxTopicsCount),
 	}
 	pattern := make([][]common.Hash, maxTopicsCount+1)
-	pattern[0] = []common.Hash{testdata.Address.Hash()}
+	pattern[0] = []common.Hash{toHash(testdata.Address)}
 	for i := range testdata.Topics {
 		testdata.Topics[i] = common.BytesToHash([]byte(fmt.Sprintf("topic%d", i)))
 		pattern[0] = append(pattern[0], testdata.Topics[i])
@@ -553,4 +553,8 @@ func randAddress() (addr common.Address) {
 		panic("address is not filled")
 	}
 	return
+}
+
+func toHash(addr common.Address) common.Hash {
+	return common.BytesToHash(addr.Bytes())
 }

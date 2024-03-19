@@ -17,12 +17,12 @@
 package evmcore
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
 )
 
 // Tests that transactions can be added to strict lists and list contents and
@@ -61,7 +61,7 @@ func BenchmarkTxListAdd(t *testing.B) {
 	}
 	// Insert the transactions in a random order
 	list := newTxList(true)
-	priceLimit := big.NewInt(int64(DefaultTxPoolConfig.PriceLimit))
+	priceLimit := uint256.NewInt(DefaultTxPoolConfig.PriceLimit)
 	t.ResetTimer()
 	for _, v := range rand.Perm(len(txs)) {
 		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)

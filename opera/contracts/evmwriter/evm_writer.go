@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 
 	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"
 )
@@ -73,7 +74,7 @@ func (_ PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm
 
 		acc := common.BytesToAddress(input[12:32])
 		input = input[32:]
-		value := new(big.Int).SetBytes(input[:32])
+		value := new(uint256.Int).SetBytes32(input[:32])
 
 		if acc == txCtx.Origin {
 			// Origin balance shouldn't decrease during his transaction
@@ -82,10 +83,10 @@ func (_ PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm
 
 		balance := stateDB.GetBalance(acc)
 		if balance.Cmp(value) >= 0 {
-			diff := new(big.Int).Sub(balance, value)
+			diff := new(uint256.Int).Sub(balance, value)
 			stateDB.SubBalance(acc, diff)
 		} else {
-			diff := new(big.Int).Sub(value, balance)
+			diff := new(uint256.Int).Sub(value, balance)
 			stateDB.AddBalance(acc, diff)
 		}
 	} else if bytes.Equal(input[:4], copyCodeMethodID) {

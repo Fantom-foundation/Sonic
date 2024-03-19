@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 )
@@ -36,13 +37,13 @@ import (
 var FakeGenesisTime = inter.Timestamp(1608600000 * time.Second)
 
 // ApplyFakeGenesis writes or updates the genesis block in db.
-func ApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map[common.Address]*big.Int) (*EvmBlock, error) {
+func ApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map[common.Address]*uint256.Int) (*EvmBlock, error) {
 	for acc, balance := range balances {
 		statedb.SetBalance(acc, balance)
 	}
 
 	// initial block
-	root, err := flush(statedb, true)
+	root, err := flush(statedb, 0, true)
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +52,12 @@ func ApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map
 	return block, nil
 }
 
-func flush(statedb *state.StateDB, clean bool) (root common.Hash, err error) {
-	root, err = statedb.Commit(clean)
+func flush(statedb *state.StateDB, block uint64, clean bool) (root common.Hash, err error) {
+	root, err = statedb.Commit(block, clean)
 	if err != nil {
 		return
 	}
-	err = statedb.Database().TrieDB().Commit(root, false, nil)
+	err = statedb.Database().TrieDB().Commit(root, false)
 	if err != nil {
 		return
 	}
@@ -84,7 +85,7 @@ func genesisBlock(time inter.Timestamp, root common.Hash) *EvmBlock {
 }
 
 // MustApplyFakeGenesis writes the genesis block and state to db, panicking on error.
-func MustApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map[common.Address]*big.Int) *EvmBlock {
+func MustApplyFakeGenesis(statedb *state.StateDB, time inter.Timestamp, balances map[common.Address]*uint256.Int) *EvmBlock {
 	block, err := ApplyFakeGenesis(statedb, time, balances)
 	if err != nil {
 		log.Crit("ApplyFakeGenesis", "err", err)

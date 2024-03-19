@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/holiman/uint256"
 )
 
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for
@@ -260,8 +261,8 @@ type txList struct {
 	strict bool         // Whether nonces are strictly continuous or not
 	txs    *txSortedMap // Heap indexed sorted hash map of the transactions
 
-	costcap *big.Int // Price of the highest costing transaction (reset only if exceeds balance)
-	gascap  uint64   // Gas limit of the highest spending transaction (reset only if exceeds block limit)
+	costcap *uint256.Int // Price of the highest costing transaction (reset only if exceeds balance)
+	gascap  uint64       // Gas limit of the highest spending transaction (reset only if exceeds block limit)
 }
 
 // newTxList create a new transaction list for maintaining nonce-indexable fast,
@@ -270,7 +271,7 @@ func newTxList(strict bool) *txList {
 	return &txList{
 		strict:  strict,
 		txs:     newTxSortedMap(),
-		costcap: new(big.Int),
+		costcap: new(uint256.Int),
 	}
 }
 
@@ -311,8 +312,8 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 	}
 	// Otherwise overwrite the old transaction with the current one
 	l.txs.Put(tx)
-	if cost := tx.Cost(); l.costcap.Cmp(cost) < 0 {
-		l.costcap = cost
+	if cost := tx.Cost(); new(big.Int).SetBytes(l.costcap.Bytes()).Cmp(cost) < 0 {
+		l.costcap = new(uint256.Int).SetBytes(cost.Bytes())
 	}
 	if gas := tx.Gas(); l.gascap < gas {
 		l.gascap = gas
@@ -336,17 +337,17 @@ func (l *txList) Forward(threshold uint64) types.Transactions {
 // a point in calculating all the costs or if the balance covers all. If the threshold
 // is lower than the costgas cap, the caps will be reset to a new high after removing
 // the newly invalidated transactions.
-func (l *txList) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions, types.Transactions) {
+func (l *txList) Filter(costLimit *uint256.Int, gasLimit uint64) (types.Transactions, types.Transactions) {
 	// If all transactions are below the threshold, short circuit
 	if l.costcap.Cmp(costLimit) <= 0 && l.gascap <= gasLimit {
 		return nil, nil
 	}
-	l.costcap = new(big.Int).Set(costLimit) // Lower the caps to the thresholds
+	l.costcap = costLimit // Lower the caps to the thresholds
 	l.gascap = gasLimit
 
 	// Filter out all the transactions above the account's funds
 	removed := l.txs.Filter(func(tx *types.Transaction) bool {
-		return tx.Gas() > gasLimit || tx.Cost().Cmp(costLimit) > 0
+		return tx.Gas() > gasLimit || tx.Cost().Cmp(new(big.Int).SetBytes(costLimit.Bytes())) > 0
 	})
 
 	if len(removed) == 0 {

@@ -2,25 +2,26 @@ package statedb
 
 import (
 	"encoding/json"
+	"math/big"
+	"time"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	substate "github.com/Fantom-foundation/Substate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/substate"
-	"math/big"
-	"time"
 )
 
 func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB, state carmen.State) state.StateDbInterface {
 	return &CarmenStateDB{
-		db: carmenStateDb,
+		db:    carmenStateDb,
 		state: state,
 	}
 }
 
 type CarmenStateDB struct {
-	db carmen.VmStateDB
+	db    carmen.VmStateDB
 	state carmen.State // required for Copy method
 
 	// current block - set by BeginBlock

@@ -17,8 +17,8 @@ type Gauge struct {
 // Be sure to call Stop() once the meter is of no use to allow for garbage collection.
 func NewGauge() *Gauge {
 	return &Gauge{
-		input: metrics.NewMeterForced(),
-		count: metrics.NewMeterForced(),
+		input: metrics.NewMeter(),
+		count: metrics.NewMeter(),
 	}
 }
 
@@ -52,25 +52,29 @@ func (g *Gauge) rateToGauge(valuesSum, calls float64) float64 {
 // Rate1 returns the one-minute moving average of the gauge values.
 // Cannot be larger than max(largest input value, 0)
 func (g *Gauge) Rate1() float64 {
-	return g.rateToGauge(g.input.Rate1(), g.count.Rate1())
+	snapshot := g.input.Snapshot()
+	return g.rateToGauge(snapshot.Rate1(), snapshot.Rate1())
 }
 
 // Rate5 returns the five-minute moving average of the gauge values.
 // Cannot be larger than max(largest input value, 0)
 func (g *Gauge) Rate5() float64 {
-	return g.rateToGauge(g.input.Rate5(), g.count.Rate5())
+	snapshot := g.input.Snapshot()
+	return g.rateToGauge(snapshot.Rate5(), snapshot.Rate5())
 }
 
 // Rate15 returns the fifteen-minute moving average of the gauge values.
 // Cannot be larger than max(largest input value, 0)
 func (g *Gauge) Rate15() float64 {
-	return g.rateToGauge(g.input.Rate15(), g.count.Rate15())
+	snapshot := g.input.Snapshot()
+	return g.rateToGauge(snapshot.Rate15(), snapshot.Rate15())
 }
 
 // RateMean returns the gauge's mean value.
 // Cannot be larger than max(largest input value, 0)
 func (g *Gauge) RateMean() float64 {
-	return g.rateToGauge(g.input.RateMean(), g.count.RateMean())
+	snapshot := g.input.Snapshot()
+	return g.rateToGauge(snapshot.RateMean(), snapshot.RateMean())
 }
 
 // Stop stops the gauge

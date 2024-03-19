@@ -93,11 +93,10 @@ func (b *BlockGen) AddTxWithChain(bc DummyChain, tx *types.Transaction) {
 	if b.gasPool == nil {
 		b.SetCoinbase(common.Address{})
 	}
-	msg, err := TxAsMessage(tx, types.MakeSigner(b.config, b.header.Number), b.header.BaseFee)
+	msg, err := TxAsMessage(tx, types.MakeSigner(b.config, b.header.Number, b.header.EthHeader().Time), b.header.BaseFee)
 	if err != nil {
 		panic(err)
 	}
-	b.statedb.Prepare(tx.Hash(), len(b.txs))
 	blockContext := NewEVMBlockContext(b.header, bc, nil)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, b.statedb, b.config, opera.DefaultVMConfig)
 	receipt, _, _, err := applyTransaction(msg, b.config, b.gasPool, b.statedb, b.header.Number, b.header.Hash, tx, &b.header.GasUsed, vmenv, func(log *types.Log, db *state.StateDB) {})
@@ -110,7 +109,8 @@ func (b *BlockGen) AddTxWithChain(bc DummyChain, tx *types.Transaction) {
 
 // GetBalance returns the balance of the given address at the generated block.
 func (b *BlockGen) GetBalance(addr common.Address) *big.Int {
-	return b.statedb.GetBalance(addr)
+	balance := b.statedb.GetBalance(addr)
+	return new(big.Int).SetBytes(balance.Bytes())
 }
 
 // AddUncheckedTx forcefully adds a transaction to the block without any
@@ -209,7 +209,7 @@ func GenerateChain(config *params.ChainConfig, parent *EvmBlock, db ethdb.Databa
 		}
 
 		// Write state changes to db
-		root, err := flush(statedb, config.IsEIP158(b.header.Number))
+		root, err := flush(statedb, uint64(i), config.IsEIP158(b.header.Number))
 		if err != nil {
 			panic(fmt.Sprintf("state flush error: %v", err))
 		}

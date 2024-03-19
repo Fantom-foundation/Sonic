@@ -18,9 +18,11 @@ package evmcore
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/metrics"
 	"math"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/holiman/uint256"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -34,8 +36,8 @@ var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 var (
 	skippedTxsNonceTooHighMeter = metrics.GetOrRegisterMeter("chain/txs/skipped/nonceTooHigh", nil)
-	skippedTxsNonceTooLowMeter = metrics.GetOrRegisterMeter("chain/txs/skipped/nonceToLow", nil)
-	skippedTxsNoBalanceMeter   = metrics.GetOrRegisterMeter("chain/txs/skipped/noBalance", nil)
+	skippedTxsNonceTooLowMeter  = metrics.GetOrRegisterMeter("chain/txs/skipped/nonceToLow", nil)
+	skippedTxsNoBalanceMeter    = metrics.GetOrRegisterMeter("chain/txs/skipped/noBalance", nil)
 )
 
 /*
@@ -49,8 +51,10 @@ The state transitioning model does all the necessary work to work out a valid ne
 3) Create a new state object if the recipient is \0*32
 4) Value transfer
 == If contract creation ==
-  4a) Attempt to run transaction data
-  4b) If valid, use result as code for the new state object
+
+	4a) Attempt to run transaction data
+	4b) If valid, use result as code for the new state object
+
 == end ==
 5) Run Script section
 6) Derive new state root
@@ -59,9 +63,9 @@ type StateTransition struct {
 	gp         *GasPool
 	msg        Message
 	gas        uint64
-	gasPrice   *big.Int
+	gasPrice   *uint256.Int
 	initialGas uint64
-	value      *big.Int
+	value      *uint256.Int
 	data       []byte
 	state      vm.StateDB
 	evm        *vm.EVM
@@ -193,7 +197,7 @@ func (st *StateTransition) to() common.Address {
 }
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).SetUint64(st.msg.Gas())
+	mgval := new(uint256.Int).SetUint64(st.msg.Gas())
 	mgval = mgval.Mul(mgval, st.gasPrice)
 	// Note: Opera doesn't need to check against gasFeeCap instead of gasPrice, as it's too aggressive in the asynchronous environment
 	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
@@ -242,13 +246,13 @@ func (st *StateTransition) internal() bool {
 // TransitionDb will transition the state by applying the current message and
 // returning the evm execution result with following fields.
 //
-// - used gas:
-//      total gas used (including gas being refunded)
-// - returndata:
-//      the returned data from evm
-// - concrete execution error:
-//      various **EVM** error which aborts the execution,
-//      e.g. ErrOutOfGas, ErrExecutionReverted
+//   - used gas:
+//     total gas used (including gas being refunded)
+//   - returndata:
+//     the returned data from evm
+//   - concrete execution error:
+//     various **EVM** error which aborts the execution,
+//     e.g. ErrOutOfGas, ErrExecutionReverted
 //
 // However if any consensus issue encountered, return the error directly with
 // nil evm execution result.
@@ -285,9 +289,13 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 	st.gas -= gas
 
+	isMerge := false // < TODO: link this up with some configuration option
+	timestamp := st.evm.Context.Time
+
 	// Set up the initial access list.
-	if rules := st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber); rules.IsBerlin {
-		st.state.PrepareAccessList(msg.From(), msg.To(), vm.ActivePrecompiles(rules), msg.AccessList())
+	if rules := st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, isMerge, timestamp); rules.IsBerlin {
+		precompiles := vm.ActivePrecompiles(rules) // WARNING: this does not include Fantom's precompiled state contracts!
+		st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), precompiles, msg.AccessList())
 	}
 
 	var (
@@ -330,7 +338,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) {
 	st.gas += refund
 
 	// Return wei for remaining gas, exchanged at the original rate.
-	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
+	remaining := new(uint256.Int).Mul(new(uint256.Int).SetUint64(st.gas), st.gasPrice)
 	st.state.AddBalance(st.msg.From(), remaining)
 
 	// Also return remaining gas to the block gas counter so it is

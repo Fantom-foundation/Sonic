@@ -31,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -152,8 +153,8 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	if err != nil {
 		b.Fatalf("cannot create statedb: %v", err)
 	}
-	genesisBlock := MustApplyFakeGenesis(statedb, FakeGenesisTime, map[common.Address]*big.Int{
-		benchRootAddr: benchRootFunds,
+	genesisBlock := MustApplyFakeGenesis(statedb, FakeGenesisTime, map[common.Address]*uint256.Int{
+		benchRootAddr: new(uint256.Int).SetBytes(benchRootFunds.Bytes()),
 	})
 	genesisBlock.GasLimit = 1000000
 
