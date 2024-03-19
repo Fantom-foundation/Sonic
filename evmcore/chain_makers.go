@@ -18,17 +18,14 @@ package evmcore
 
 import (
 	"fmt"
-	"math/big"
-	"time"
-
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	"math/big"
 
 	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
@@ -39,7 +36,7 @@ type BlockGen struct {
 	parent  *EvmBlock
 	chain   []*EvmBlock
 	header  *EvmHeader
-	statedb state.StateDbInterface
+	statedb state.StateDB
 
 	gasPool  *GasPool
 	txs      []*types.Transaction
@@ -100,7 +97,7 @@ func (b *BlockGen) AddTxWithChain(bc DummyChain, tx *types.Transaction) {
 	b.statedb.Prepare(tx.Hash(), len(b.txs))
 	blockContext := NewEVMBlockContext(b.header, bc, nil)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, b.statedb, b.config, opera.DefaultVMConfig)
-	receipt, _, _, err := applyTransaction(msg, b.config, b.gasPool, b.statedb, b.header.Number, b.header.Hash, tx, &b.header.GasUsed, vmenv, func(log *types.Log, db state.StateDbInterface) {})
+	receipt, _, _, err := applyTransaction(msg, b.config, b.gasPool, b.statedb, b.header.Number, b.header.Hash, tx, &b.header.GasUsed, vmenv, func(log *types.Log) {})
 	if err != nil {
 		panic(err)
 	}
@@ -171,83 +168,4 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 	if b.header.Time <= b.parent.Header().Time {
 		panic("block time out of range")
 	}
-}
-
-// GenerateChain creates a chain of n blocks. The first block's
-// parent will be the provided parent. db is used to store
-// intermediate states and should contain the parent's state trie.
-//
-// The generator function is called with a new block generator for
-// every block. Any transactions and uncles added to the generator
-// become part of the block. If gen is nil, the blocks will be empty
-// and their coinbase will be the zero address.
-//
-// Blocks created by GenerateChain do not contain valid proof of work
-// values. Inserting them into BlockChain requires use of FakePow or
-// a similar non-validating proof of work implementation.
-func GenerateChain(config *params.ChainConfig, parent *EvmBlock, db ethdb.Database, n int, gen func(int, *BlockGen)) ([]*EvmBlock, []types.Receipts, DummyChain) {
-	if config == nil {
-		config = params.AllEthashProtocolChanges
-	}
-
-	chain := &TestChain{
-		headers: map[common.Hash]*EvmHeader{},
-	}
-
-	blocks, receipts := make([]*EvmBlock, n), make([]types.Receipts, n)
-	genblock := func(i int, parent *EvmBlock, statedb state.StateDbInterface) (*EvmBlock, types.Receipts) {
-		b := &BlockGen{i: i, chain: blocks, parent: parent, statedb: statedb, config: config}
-		b.header = makeHeader(parent)
-
-		// Execute any user modifications to the block
-		if gen != nil {
-			gen(i, b)
-		}
-		// Finalize and seal the block
-		block := &EvmBlock{
-			EvmHeader: *b.header,
-		}
-
-		// Write state changes to db
-		root, err := flush(statedb, config.IsEIP158(b.header.Number))
-		if err != nil {
-			panic(fmt.Sprintf("state flush error: %v", err))
-		}
-
-		b.header = block.Header()
-		block.Root = root
-
-		return block, b.receipts
-	}
-	for i := 0; i < n; i++ {
-		statedb, err := state.NewLegacyWithSnapLayers(parent.Root, state.NewDatabase(db), nil, 128)
-		if err != nil {
-			panic(err)
-		}
-		block, receipt := genblock(i, parent, statedb)
-		blocks[i] = block
-		receipts[i] = receipt
-		parent = block
-
-		chain.headers[block.Hash] = block.Header()
-	}
-	return blocks, receipts, chain
-}
-
-func makeHeader(parent *EvmBlock) *EvmHeader {
-	var t inter.Timestamp
-	if parent.Time == 0 {
-		t = 10
-	} else {
-		t = parent.Time + inter.Timestamp(10*time.Second) // block time is fixed at 10 seconds
-	}
-	header := &EvmHeader{
-		ParentHash: parent.Hash,
-		Coinbase:   parent.Coinbase,
-		GasLimit:   parent.GasLimit,
-		BaseFee:    parent.BaseFee,
-		Number:     new(big.Int).Add(parent.Number, common.Big1),
-		Time:       t,
-	}
-	return header
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	notify "github.com/ethereum/go-ethereum/event"
@@ -150,71 +149,6 @@ func (b *testBackend) GetTxPosition(txid common.Hash) *evmstore.TxPosition {
 
 func (b *testBackend) CalcBlockExtApi() bool {
 	return true
-}
-
-// TestBlockSubscription tests if a block subscription returns block hashes for posted chain notify.
-// It creates multiple subscriptions:
-// - one at the start and should receive all posted chain events and a second (blockHashes)
-// - one that is created after a cutoff moment and uninstalled after a second cutoff moment (blockHashes[cutoff1:cutoff2])
-// - one that is created after the second cutoff moment (blockHashes[cutoff2:])
-func TestBlockSubscription(t *testing.T) {
-	t.Parallel()
-
-	var (
-		backend = newTestBackend()
-		api     = NewPublicFilterAPI(backend, testConfig())
-
-		statedb, _  = state.NewLegacyWithSnapLayers(common.Hash{}, state.NewDatabase(backend.db), nil, 128)
-		genesis     = evmcore.MustApplyFakeGenesis(statedb, evmcore.FakeGenesisTime, map[common.Address]*big.Int{})
-		chain, _, _ = evmcore.GenerateChain(
-			params.TestChainConfig, genesis, backend.db, 10, nil)
-		chainEvents = []evmcore.ChainHeadNotify{}
-	)
-
-	for _, blk := range chain {
-		chainEvents = append(chainEvents, evmcore.ChainHeadNotify{
-			Block: &evmcore.EvmBlock{
-				EvmHeader:    blk.EvmHeader,
-				Transactions: blk.Transactions,
-			},
-		})
-	}
-
-	chan0 := make(chan *types.Header)
-	sub0 := api.events.SubscribeNewHeads(chan0)
-	chan1 := make(chan *types.Header)
-	sub1 := api.events.SubscribeNewHeads(chan1)
-
-	go func() { // simulate client
-		i1, i2 := 0, 0
-		for i1 != len(chainEvents) || i2 != len(chainEvents) {
-			select {
-			case header := <-chan0:
-				got := common.BytesToHash(header.Extra)
-				if chainEvents[i1].Block.Hash != got {
-					t.Errorf("sub0 received invalid hash on index %d, want %x, got %x", i1, chainEvents[i1].Block.Hash, got)
-				}
-				i1++
-			case header := <-chan1:
-				got := common.BytesToHash(header.Extra)
-				if chainEvents[i2].Block.Hash != got {
-					t.Errorf("sub1 received invalid hash on index %d, want %x, got %x", i2, chainEvents[i2].Block.Hash, got)
-				}
-				i2++
-			}
-		}
-
-		sub0.Unsubscribe()
-		sub1.Unsubscribe()
-	}()
-
-	time.Sleep(1 * time.Second)
-	for _, e := range chainEvents {
-		backend.blocksFeed.Send(e)
-	}
-
-	<-sub0.Err()
-	<-sub1.Err()
 }
 
 // TestPendingTxFilter tests whether pending tx filters retrieve all pending transactions that are posted to the event mux.

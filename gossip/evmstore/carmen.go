@@ -1,18 +1,16 @@
 package evmstore
 
 import (
-	"encoding/json"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/substate"
 	"math/big"
-	"time"
 )
 
-func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDbInterface {
+func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDB {
 	return &CarmenStateDB{
 		db: carmenStateDb,
 	}
@@ -27,14 +25,6 @@ type CarmenStateDB struct {
 	// current transaction - set by Prepare
 	txHash  common.Hash
 	txIndex int
-}
-
-func (c *CarmenStateDB) StartPrefetcher(namespace string) {
-	// ignored
-}
-
-func (c *CarmenStateDB) StopPrefetcher() {
-	// ignored
 }
 
 func (c *CarmenStateDB) Error() error {
@@ -78,16 +68,8 @@ func (c *CarmenStateDB) GetLogs(txHash common.Hash, blockHash common.Hash) []*ty
 	return logs
 }
 
-func (c *CarmenStateDB) Logs() []*types.Log {
-	panic("not supported")
-}
-
 func (c *CarmenStateDB) AddPreimage(hash common.Hash, preimage []byte) {
 	// ignored - preimages of keys hashes are relevant only for geth trie
-}
-
-func (c *CarmenStateDB) Preimages() map[common.Hash][]byte {
-	return nil // preimages of keys hashes are relevant only for geth trie
 }
 
 func (c *CarmenStateDB) AddRefund(gas uint64) {
@@ -138,10 +120,6 @@ func (c *CarmenStateDB) GetProof(addr common.Address) ([][]byte, error) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) GetProofByHash(addrHash common.Hash) ([][]byte, error) {
-	panic("not supported")
-}
-
 func (c *CarmenStateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
 	panic("not supported")
 }
@@ -150,11 +128,7 @@ func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash)
 	return common.Hash(c.db.GetCommittedState(cc.Address(addr), cc.Key(hash)))
 }
 
-func (c *CarmenStateDB) Database() state.Database {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) StorageTrie(addr common.Address) state.Trie {
+func (c *CarmenStateDB) StorageTrie(addr common.Address) ethstate.Trie {
 	panic("not supported")
 }
 
@@ -182,10 +156,6 @@ func (c *CarmenStateDB) SetCode(addr common.Address, code []byte) {
 	c.db.SetCode(cc.Address(addr), code)
 }
 
-func (c *CarmenStateDB) SetPrehashedCode(addr common.Address, hash common.Hash, code []byte) {
-	c.db.SetCode(cc.Address(addr), code)
-}
-
 func (c *CarmenStateDB) SetState(addr common.Address, key, value common.Hash) {
 	c.db.SetState(cc.Address(addr), cc.Key(key), cc.Value(value))
 }
@@ -206,7 +176,7 @@ func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.H
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Copy() state.StateDbInterface {
+func (c *CarmenStateDB) Copy() state.StateDB {
 	if db, ok := c.db.(carmen.NonCommittableStateDB); ok {
 		return CreateCarmenStateDb(db.Copy())
 	} else {
@@ -292,86 +262,6 @@ func (c *CarmenStateDB) AddressInAccessList(addr common.Address) bool {
 
 func (c *CarmenStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	return c.db.IsSlotInAccessList(cc.Address(addr), cc.Key(slot))
-}
-
-func (c *CarmenStateDB) RawDump(opts *state.DumpConfig) state.Dump {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) IteratorDump(opts *state.DumpConfig) state.IteratorDump {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) IterativeDump(opts *state.DumpConfig, output *json.Encoder) {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) Dump(opts *state.DumpConfig) []byte {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) DumpToCollector(dc state.DumpCollector, conf *state.DumpConfig) (nextKey []byte) {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) GetAccountReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetAccountHashes() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetAccountUpdates() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetAccountCommits() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageHashes() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageUpdates() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageCommits() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSnapshotAccountReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSnapshotStorageReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSnapshotCommits() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSubstatePostAlloc() substate.SubstateAlloc {
-	//TODO implement me
-	return nil
 }
 
 func (c *CarmenStateDB) Release() {

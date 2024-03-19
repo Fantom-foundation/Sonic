@@ -35,23 +35,7 @@ var (
 	headHeaderGauge    = metrics.GetOrRegisterGauge("chain/head/header", nil)
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
-	accountReadTimer   = metrics.GetOrRegisterTimer("chain/account/reads", nil)
-	accountHashTimer   = metrics.GetOrRegisterTimer("chain/account/hashes", nil)
-	accountUpdateTimer = metrics.GetOrRegisterTimer("chain/account/updates", nil)
-	accountCommitTimer = metrics.GetOrRegisterTimer("chain/account/commits", nil)
-
-	storageReadTimer   = metrics.GetOrRegisterTimer("chain/storage/reads", nil)
-	storageHashTimer   = metrics.GetOrRegisterTimer("chain/storage/hashes", nil)
-	storageUpdateTimer = metrics.GetOrRegisterTimer("chain/storage/updates", nil)
-	storageCommitTimer = metrics.GetOrRegisterTimer("chain/storage/commits", nil)
-
-	snapshotAccountReadTimer = metrics.GetOrRegisterTimer("chain/snapshot/account/reads", nil)
-	snapshotStorageReadTimer = metrics.GetOrRegisterTimer("chain/snapshot/storage/reads", nil)
-	snapshotCommitTimer      = metrics.GetOrRegisterTimer("chain/snapshot/commits", nil)
-
-	blockInsertTimer    = metrics.GetOrRegisterTimer("chain/inserts", nil)
 	blockExecutionTimer = metrics.GetOrRegisterTimer("chain/execution", nil)
-	blockWriteTimer     = metrics.GetOrRegisterTimer("chain/write", nil)
 	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
@@ -405,18 +389,7 @@ func consensusCallbackBeginBlockFn(
 					updateLowestEpochToFill(es.Epoch, store)
 
 					// Update the metrics touched during block processing
-					accountReadTimer.Update(statedb.GetAccountReads())
-					storageReadTimer.Update(statedb.GetStorageReads())
-					accountUpdateTimer.Update(statedb.GetAccountUpdates())
-					storageUpdateTimer.Update(statedb.GetStorageUpdates())
-					snapshotAccountReadTimer.Update(statedb.GetSnapshotAccountReads())
-					snapshotStorageReadTimer.Update(statedb.GetSnapshotStorageReads())
-					accountHashTimer.Update(statedb.GetAccountHashes())
-					storageHashTimer.Update(statedb.GetStorageHashes())
-					triehash := statedb.GetAccountHashes() + statedb.GetStorageHashes()
-					trieproc := statedb.GetSnapshotAccountReads() + statedb.GetAccountReads() + statedb.GetAccountUpdates()
-					trieproc += statedb.GetSnapshotStorageReads() + statedb.GetStorageReads() + statedb.GetStorageUpdates()
-					blockExecutionTimer.Update(time.Since(executionStart) - trieproc - triehash)
+					blockExecutionTimer.Update(time.Since(executionStart))
 
 					// Update the metrics touched by new block
 					headBlockGauge.Update(int64(blockCtx.Idx))
@@ -434,16 +407,6 @@ func consensusCallbackBeginBlockFn(
 						}
 						feed.newLogs.Send(logs)
 					}
-
-					commitStart := time.Now()
-					store.commitEVM()
-
-					// Update the metrics touched during block commit
-					accountCommitTimer.Update(statedb.GetAccountCommits())
-					storageCommitTimer.Update(statedb.GetStorageCommits())
-					snapshotCommitTimer.Update(statedb.GetSnapshotCommits())
-					blockWriteTimer.Update(time.Since(commitStart) - statedb.GetAccountCommits() - statedb.GetStorageCommits() - statedb.GetSnapshotCommits())
-					blockInsertTimer.UpdateSince(start)
 
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())

@@ -16,9 +16,9 @@ import (
 	idx "github.com/Fantom-foundation/lachesis-base/inter/idx"
 	pos "github.com/Fantom-foundation/lachesis-base/inter/pos"
 	common "github.com/ethereum/go-ethereum/common"
-	state "github.com/ethereum/go-ethereum/core/state"
 	types "github.com/ethereum/go-ethereum/core/types"
 	gomock "github.com/golang/mock/gomock"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 )
 
 // MockExternal is a mock of External interface.
@@ -378,10 +378,10 @@ func (mr *MockExternalMockRecorder) Process(arg0 interface{}) *gomock.Call {
 }
 
 // StateDB mocks base method.
-func (m *MockExternal) StateDB() state.StateDbInterface {
+func (m *MockExternal) StateDB() state.StateDB {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StateDB")
-	ret0, _ := ret[0].(state.StateDbInterface)
+	ret0, _ := ret[0].(state.StateDB)
 	return ret0
 }
 

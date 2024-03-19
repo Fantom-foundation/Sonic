@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
-	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"io"
 	"math/big"
 	"os"
@@ -14,7 +11,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -24,18 +20,23 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/eventmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/evmmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/sealmodule"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 )
 
 type GenesisBuilder struct {
-	tmpStateDB    state.StateDbInterface
-	carmenDir     string
+	tmpStateDB state.StateDB
+	carmenDir  string
 	carmenStateDb carmen.StateDB
 
 	totalSupply *big.Int

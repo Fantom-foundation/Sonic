@@ -7,12 +7,12 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
@@ -149,11 +149,11 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 }
 
 // GetTxPoolStateDB obtains StateDB for TxPool
-func (r *EvmStateReader) GetTxPoolStateDB() (state.StateDbInterface, error) {
+func (r *EvmStateReader) GetTxPoolStateDB() (evmcore.TxPoolStateDB, error) {
 	return r.store.evm.GetTxPoolStateDB()
 }
 
 // GetRpcStateDB obtains archive StateDB for RPC requests evaluation
-func (r *EvmStateReader) GetRpcStateDB(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
+func (r *EvmStateReader) GetRpcStateDB(blockNum *big.Int, stateRoot common.Hash) (state.StateDB, error) {
 	return r.store.evm.GetRpcStateDb(blockNum, stateRoot)
 }

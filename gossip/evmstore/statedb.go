@@ -5,15 +5,15 @@ import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"math/big"
 )
 
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
-func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInterface, error) {
+func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDB, error) {
 	if s.liveStateDb == nil {
 		return nil, fmt.Errorf("unable to get live StateDb - EvmStore is not open")
 	}
@@ -25,7 +25,7 @@ func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDbInterface, err
 
 // GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only.
 // It is also used in emitter for emitterdriver contract reading at the start of an epoch.
-func (s *Store) GetTxPoolStateDB() (state.StateDbInterface, error) {
+func (s *Store) GetTxPoolStateDB() (state.StateDB, error) {
 	// for TxPool and emitter it is ok to provide the newest state (and ignore the expected hash)
 	if s.carmenState == nil {
 		return nil, fmt.Errorf("unable to get TxPool StateDb - EvmStore is not open")
@@ -43,7 +43,7 @@ func (s *Store) GetArchiveBlockHeight() (height uint64, empty bool, err error) {
 }
 
 // GetRpcStateDb obtains archive StateDB for RPC requests evaluation
-func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.StateDbInterface, error) {
+func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.StateDB, error) {
 	// always use archive state (live state may mix data from various block heights)
 	if s.liveStateDb == nil {
 		return nil, fmt.Errorf("unable to get RPC StateDb - EvmStore is not open")

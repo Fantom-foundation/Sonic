@@ -28,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -143,12 +142,18 @@ const (
 	TxStatusIncluded
 )
 
+type TxPoolStateDB interface {
+	GetNonce(addr common.Address) uint64
+	GetBalance(addr common.Address) *big.Int
+	Release()
+}
+
 // StateReader provides the state of blockchain and current gas limit to do
 // some pre checks in tx pool and event subscribers.
 type StateReader interface {
 	CurrentBlock() *EvmBlock
 	GetBlock(hash common.Hash, number uint64) *EvmBlock
-	GetTxPoolStateDB() (state.StateDbInterface, error)
+	GetTxPoolStateDB() (TxPoolStateDB, error)
 	MinGasPrice() *big.Int
 	EffectiveMinTip() *big.Int
 	MaxGasLimit() uint64
@@ -251,7 +256,7 @@ type TxPool struct {
 	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
 	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
 
-	currentState  state.StateDbInterface // Current state in the blockchain head
+	currentState  TxPoolStateDB // Current state in the blockchain head
 	pendingNonces *txNoncer      // Pending state tracking virtual nonces
 	currentMaxGas uint64         // Current gas limit for transaction caps
 
