@@ -45,9 +45,11 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 			EvmBlocksSize:     scale.U(6 * opt.MiB),
 		},
 		StateDb: carmen.Parameters{
-			Variant:   "go-file",
-			Schema:    carmen.Schema(5),
-			Archive:   carmen.S5Archive,
+			Variant:      "go-file",
+			Schema:       carmen.Schema(5),
+			Archive:      carmen.S5Archive,
+			LiveCache:    scale.I64(1940 * opt.MiB),
+			ArchiveCache: scale.I64(1940 * opt.MiB),
 		},
 	}
 }

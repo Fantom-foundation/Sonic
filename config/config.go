@@ -225,7 +225,7 @@ func setDBConfig(cfg Config, cacheRatio cachescale.Func) (Config, error) {
 const (
 	// DefaultCacheSize is calculated as memory consumption in a worst case scenario with default configuration
 	// Average memory consumption might be 3-5 times lower than the maximum
-	DefaultCacheSize  = 3600
+	DefaultCacheSize  = 6144
 	ConstantCacheSize = 400
 )
 
