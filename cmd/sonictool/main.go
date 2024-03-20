@@ -23,25 +23,22 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:     "genesis",
-			Usage:    "Download or import genesis files",
+			Usage:    "Import a genesis file",
 			Description: "TBD",
+
+			ArgsUsage: "<filename>",
+			Action:    gfileGenesisImport,
+			Flags: []cli.Flag{
+				ExperimentalFlag,
+				ModeFlag,
+			},
+
 			Subcommands: []cli.Command{
 				{
-					Name:   "sonic",
-					Usage:  "Initialize the database from a tar.gz genesis file",
-					ArgsUsage: "<filename>",
-					Action: sonicGenesisImport,
-					Description: "TBD",
-				},
-				{
-					Name:   "legacy",
-					Usage:  "Initialize the database from a legacy genesis file",
-					ArgsUsage: "<filename>",
-					Action: legacyGenesisImport,
-					Flags: []cli.Flag{
-						ExperimentalFlag,
-						ModeFlag,
-					},
+					Name:        "snapshot",
+					Usage:       "Initialize the database from a tar.gz snapshot file",
+					ArgsUsage:   "<filename>",
+					Action:      snapshotGenesisImport,
 					Description: "TBD",
 				},
 				{
