@@ -27,7 +27,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/consensus/misc"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
@@ -35,6 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
 
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 )
@@ -569,8 +570,8 @@ func (pool *TxPool) Pending(enforceTips bool) (map[common.Address]types.Transact
 func (pool *TxPool) SampleHashes(max int) []common.Hash {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	pendingSample := sampleTxHashes(pool.pending, max * 9 / 10)
-	queueSample := sampleTxHashes(pool.queue, max - len(pendingSample))
+	pendingSample := sampleTxHashes(pool.pending, max*9/10)
+	queueSample := sampleTxHashes(pool.queue, max-len(pendingSample))
 	return append(pendingSample, queueSample...)
 }
 
@@ -580,7 +581,7 @@ func sampleTxHashes(txListsMap map[common.Address]*txList, max int) (out []commo
 	}
 
 	// max amount of txs per one sender
-	txsPerSender := max / len(txListsMap) + 1
+	txsPerSender := max/len(txListsMap) + 1
 
 	// if we have more senders than is the sample size, choose random senders
 	first := 0
@@ -700,7 +701,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+	if pool.currentState.GetBalance(from).Cmp(utils.BigIntToUint256(tx.Cost())) < 0 {
 		return ErrInsufficientFunds
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
@@ -1097,7 +1098,7 @@ func (pool *TxPool) removeTx(hash common.Hash, removeFromPriced bool) {
 			// Postpone any invalidated transactions
 			for _, tx := range invalids {
 				// Internal shuffle shouldn't touch the lookup set.
-				_,_ = pool.enqueueTx(tx.Hash(), tx, false, false)
+				_, _ = pool.enqueueTx(tx.Hash(), tx, false, false)
 				// err should not occur, as it cannot be replacing of existing tx in queue
 				// local=false is OK, as it is ignored when addAll=false
 			}
@@ -1266,7 +1267,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 		} else {
 			// for tests only
 			if reset.newHead != nil && pool.chainconfig.IsLondon(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {
-				pendingBaseFee := misc.CalcBaseFee(pool.chainconfig, reset.newHead.EthHeader())
+				pendingBaseFee := eip1559.CalcBaseFee(pool.chainconfig, reset.newHead.EthHeader())
 				pool.priced.SetBaseFee(pendingBaseFee)
 			}
 		}
@@ -1385,7 +1386,8 @@ func (pool *TxPool) reset(oldHead, newHead *EvmHeader) {
 		return
 	}
 	if pool.currentState != nil {
-		pool.currentState.Release() // release only when obtaining of the new StateDB succeed
+		// TODO: reenable this once the StateDB interface is generalized.
+		//pool.currentState.Release() // release only when obtaining of the new StateDB succeed
 	}
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
@@ -1484,7 +1486,7 @@ func (pool *TxPool) truncatePending() {
 
 	pendingBeforeCap := pending
 	// Assemble a spam order to penalize large transactors first
-	spammers := prque.New(nil)
+	spammers := prque.New[int64, any](nil)
 	for addr, list := range pool.pending {
 		// Only evict transactions from high rollers
 		if !pool.locals.contains(addr) && uint64(list.Len()) > pool.config.AccountSlots {

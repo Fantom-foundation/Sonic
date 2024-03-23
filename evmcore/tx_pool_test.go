@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -319,7 +320,7 @@ func TestInvalidTransactions(t *testing.T) {
 		t.Error("expected", ErrInsufficientFunds)
 	}
 
-	balance := new(uint256.Int).Add(tx.Value(), new(uint256.Int).Mul(new(uint256.Int).SetUint64(tx.Gas()), tx.GasPrice()))
+	balance := new(uint256.Int).Add(utils.BigIntToUint256(tx.Value()), new(uint256.Int).Mul(new(uint256.Int).SetUint64(tx.Gas()), utils.BigIntToUint256(tx.GasPrice())))
 	testAddBalance(pool, from, balance)
 	if err := pool.AddRemote(tx); !errors.Is(err, ErrIntrinsicGas) {
 		t.Error("expected", ErrIntrinsicGas, "got", err)
