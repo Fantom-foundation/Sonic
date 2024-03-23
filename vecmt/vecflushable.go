@@ -2,6 +2,7 @@ package vecmt
 
 import (
 	"errors"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
@@ -120,6 +121,10 @@ func (w *VecFlushable) Close() error {
 
 func (w *VecFlushable) Drop() {
 	panic(errNotImplemented)
+}
+
+func (db *VecFlushable) AncientDatadir() (string, error) {
+	return db.underlying.AncientDatadir()
 }
 
 /* Some methods are not implemented and panic when called */

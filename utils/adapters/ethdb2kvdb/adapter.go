@@ -19,6 +19,10 @@ func (db *Adapter) Drop() {
 	panic("called Drop on ethdb")
 }
 
+func (db *Adapter) AncientDatadir() (string, error) {
+	panic("called AncientDatadir on ethdb")
+}
+
 // batch is a write-only memory batch that commits changes to its host
 // database when Write is called. A batch cannot be used concurrently.
 type batch struct {

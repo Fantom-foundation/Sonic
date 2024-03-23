@@ -1,10 +1,6 @@
 package logger
 
-import (
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/sirupsen/logrus"
-)
-
+/* TODO: implement
 // LogrusHandler converts logrus hook to log handler.
 func LogrusHandler(hook logrus.Hook) log.Handler {
 	return log.FuncHandler(func(r *log.Record) error {
@@ -28,3 +24,4 @@ func fields(ctx []interface{}) logrus.Fields {
 
 	return ff
 }
+*/
