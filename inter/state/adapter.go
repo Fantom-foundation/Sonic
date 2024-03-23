@@ -1,11 +1,12 @@
 package state
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"math/big"
 )
 
 type StateDB interface {
@@ -23,7 +24,6 @@ type StateDB interface {
 	Copy() StateDB
 	Finalise(deleteEmptyObjects bool)
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
-	Prepare(thash common.Hash, ti int)
 	Commit(deleteEmptyObjects bool) (common.Hash, error)
 
 	BeginBlock(number uint64)
