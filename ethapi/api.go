@@ -20,10 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/eth/tracers"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/eth/tracers"
+	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -35,7 +38,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -52,6 +54,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/ethdb2kvdb"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
@@ -101,7 +104,7 @@ type feeHistoryResult struct {
 
 var errInvalidPercentile = errors.New("invalid reward percentile")
 
-func (s *PublicEthereumAPI) FeeHistory(ctx context.Context, blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*feeHistoryResult, error) {
+func (s *PublicEthereumAPI) FeeHistory(ctx context.Context, blockCount math.HexOrDecimal64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*feeHistoryResult, error) {
 	res := &feeHistoryResult{}
 	res.Reward = make([][]*hexutil.Big, 0, blockCount)
 	res.BaseFee = make([]*hexutil.Big, 0, blockCount)
@@ -691,13 +694,13 @@ func (s *PublicBlockChainAPI) BlockNumber() hexutil.Uint64 {
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
-func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (*hexutil.U256, error) {
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
-	defer state.Release()
-	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
+	// defer state.Release() // < TODO: reenable
+	return (*hexutil.U256)(state.GetBalance(address)), state.Error()
 }
 
 // AccountResult is result struct for GetProof
@@ -720,53 +723,58 @@ type StorageResult struct {
 
 // GetProof returns the Merkle-proof for a given account and optionally some storage keys.
 func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Address, storageKeys []string, blockNrOrHash rpc.BlockNumberOrHash) (*AccountResult, error) {
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
-	if state == nil || err != nil {
-		return nil, err
-	}
-	defer state.Release()
-
-	storageTrie := state.StorageTrie(address)
-	storageHash := types.EmptyRootHash
-	codeHash := state.GetCodeHash(address)
-	storageProof := make([]StorageResult, len(storageKeys))
-
-	// if we have a storageTrie, (which means the account exists), we can update the storagehash
-	if storageTrie != nil {
-		storageHash = storageTrie.Hash()
-	} else {
-		// no storageTrie means the account does not exist, so the codeHash is the hash of an empty bytearray.
-		codeHash = crypto.Keccak256Hash(nil)
-	}
-
-	// create the proof for the storageKeys
-	for i, key := range storageKeys {
-		if storageTrie != nil {
-			proof, storageError := state.GetStorageProof(address, common.HexToHash(key))
-			if storageError != nil {
-				return nil, storageError
-			}
-			storageProof[i] = StorageResult{key, (*hexutil.Big)(state.GetState(address, common.HexToHash(key)).Big()), toHexSlice(proof)}
-		} else {
-			storageProof[i] = StorageResult{key, &hexutil.Big{}, []string{}}
+	panic("not implemented")
+	// TODO: implement this like it is done in go-ethereum
+	// https://github.com/ethereum/go-ethereum/blob/064f37d6f67a012eea0bf8d410346fb1684004b4/internal/ethapi/api.go#L690
+	/*
+		state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+		if state == nil || err != nil {
+			return nil, err
 		}
-	}
+		// defer state.Release() // < TODO: reenable before commit
 
-	// create the accountProof
-	accountProof, proofErr := state.GetProof(address)
-	if proofErr != nil {
-		return nil, proofErr
-	}
+		storageTrie := state.StorageTrie(address)
+		storageHash := types.EmptyRootHash
+		codeHash := state.GetCodeHash(address)
+		storageProof := make([]StorageResult, len(storageKeys))
 
-	return &AccountResult{
-		Address:      address,
-		AccountProof: toHexSlice(accountProof),
-		Balance:      (*hexutil.Big)(state.GetBalance(address)),
-		CodeHash:     codeHash,
-		Nonce:        hexutil.Uint64(state.GetNonce(address)),
-		StorageHash:  storageHash,
-		StorageProof: storageProof,
-	}, state.Error()
+		// if we have a storageTrie, (which means the account exists), we can update the storagehash
+		if storageTrie != nil {
+			storageHash = storageTrie.Hash()
+		} else {
+			// no storageTrie means the account does not exist, so the codeHash is the hash of an empty bytearray.
+			codeHash = crypto.Keccak256Hash(nil)
+		}
+
+		// create the proof for the storageKeys
+		for i, key := range storageKeys {
+			if storageTrie != nil {
+				proof, storageError := state.GetStorageProof(address, common.HexToHash(key))
+				if storageError != nil {
+					return nil, storageError
+				}
+				storageProof[i] = StorageResult{key, (*hexutil.Big)(state.GetState(address, common.HexToHash(key)).Big()), toHexSlice(proof)}
+			} else {
+				storageProof[i] = StorageResult{key, &hexutil.Big{}, []string{}}
+			}
+		}
+
+		// create the accountProof
+		accountProof, proofErr := state.GetProof(address)
+		if proofErr != nil {
+			return nil, proofErr
+		}
+
+		return &AccountResult{
+			Address:      address,
+			AccountProof: toHexSlice(accountProof),
+			Balance:      (*hexutil.Big)(state.GetBalance(address)),
+			CodeHash:     codeHash,
+			Nonce:        hexutil.Uint64(state.GetNonce(address)),
+			StorageHash:  storageHash,
+			StorageProof: storageProof,
+		}, state.Error()
+	*/
 }
 
 // GetHeaderByNumber returns the requested canonical block header.
@@ -889,7 +897,7 @@ func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Addres
 	if state == nil || err != nil {
 		return nil, err
 	}
-	defer state.Release()
+	//defer state.Release()  // < TODO: do not merge, reenable before after StateDB fix
 	code := state.GetCode(address)
 	return code, state.Error()
 }
@@ -902,7 +910,7 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	if state == nil || err != nil {
 		return nil, err
 	}
-	defer state.Release()
+	//defer state.Release()  // < TODO: do not merge, reenable before after StateDB fix
 	res := state.GetState(address, common.HexToHash(key))
 	return res[:], state.Error()
 }
@@ -916,7 +924,7 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 type OverrideAccount struct {
 	Nonce     *hexutil.Uint64              `json:"nonce"`
 	Code      *hexutil.Bytes               `json:"code"`
-	Balance   **hexutil.Big                `json:"balance"`
+	Balance   **hexutil.U256               `json:"balance"`
 	State     *map[common.Hash]common.Hash `json:"state"`
 	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }
@@ -940,7 +948,7 @@ func (diff *StateOverride) Apply(state *state.StateDB) error {
 		}
 		// Override account balance.
 		if account.Balance != nil {
-			state.SetBalance(addr, (*big.Int)(*account.Balance))
+			state.SetBalance(addr, (*uint256.Int)(*account.Balance))
 		}
 		if account.State != nil && account.StateDiff != nil {
 			return fmt.Errorf("account %s has both 'state' and 'stateDiff'", addr.Hex())
@@ -966,7 +974,7 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 	if state == nil || err != nil {
 		return nil, err
 	}
-	defer state.Release()
+	//defer state.Release()  // < TODO: do not merge, reenable before after StateDB fix
 	if err := overrides.Apply(state); err != nil {
 		return nil, err
 	}
@@ -1012,7 +1020,7 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 		return nil, fmt.Errorf("execution aborted (timeout = %v)", timeout)
 	}
 	if err != nil {
-		return result, fmt.Errorf("err: %w (supplied gas %d)", err, msg.Gas())
+		return result, fmt.Errorf("err: %w (supplied gas %d)", err, msg.GasLimit)
 	}
 	return result, nil
 }
@@ -1100,9 +1108,9 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 		if state == nil || err != nil {
 			return 0, err
 		}
-		defer state.Release()
+		//defer state.Release()  // < TODO: do not merge, reenable before after StateDB fix
 		balance := state.GetBalance(*args.From) // from can't be nil
-		available := new(big.Int).Set(balance)
+		available := utils.Uint256ToBigInt(balance)
 		if args.Value != nil {
 			if args.Value.ToInt().Cmp(available) >= 0 {
 				return 0, errors.New("insufficient funds for transfer")
@@ -1214,7 +1222,7 @@ type StructLogRes struct {
 }
 
 // FormatLogs formats EVM returned structured logs for json output
-func FormatLogs(logs []vm.StructLog) []StructLogRes {
+func FormatLogs(logs []logger.StructLog) []StructLogRes {
 	formatted := make([]StructLogRes, len(logs))
 	for index, trace := range logs {
 		formatted[index] = StructLogRes{
@@ -1489,7 +1497,7 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 	if db == nil || err != nil {
 		return nil, 0, nil, err
 	}
-	defer db.Release()
+	//defer db.Release() // < TODO: reenable after refactoring StateDB
 	// If the gas amount is not set, extract this as it will depend on access
 	// lists and we'll need to reestimate every time
 	nogas := args.Gas == nil
@@ -1505,12 +1513,12 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		to = crypto.CreateAddress(args.from(), uint64(*args.Nonce))
 	}
 	// Retrieve the precompiles since they don't need to be added to the access list
-	precompiles := vm.ActivePrecompiles(b.ChainConfig().Rules(header.Number))
+	precompiles := vm.ActivePrecompiles(b.ChainConfig().Rules(header.Number, false, uint64(header.Time.Unix())))
 
 	// Create an initial tracer
-	prevTracer := vm.NewAccessListTracer(nil, args.from(), to, precompiles)
+	prevTracer := logger.NewAccessListTracer(nil, args.from(), to, precompiles)
 	if args.AccessList != nil {
-		prevTracer = vm.NewAccessListTracer(*args.AccessList, args.from(), to, precompiles)
+		prevTracer = logger.NewAccessListTracer(*args.AccessList, args.from(), to, precompiles)
 	}
 	for {
 		// Retrieve the current access list to expand
@@ -1536,16 +1544,15 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		}
 
 		// Apply the transaction with the access list tracer
-		tracer := vm.NewAccessListTracer(accessList, args.from(), to, precompiles)
+		tracer := logger.NewAccessListTracer(accessList, args.from(), to, precompiles)
 		config := opera.DefaultVMConfig
 		config.Tracer = tracer
-		config.Debug = true
 		config.NoBaseFee = true
 		vmenv, _, err := b.GetEVM(ctx, msg, statedb, header, &config)
 		if err != nil {
 			return nil, 0, nil, err
 		}
-		res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.Gas()))
+		res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.GasLimit))
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to apply transaction: %v err: %v", args.toTransaction().Hash(), err)
 		}
@@ -1636,7 +1643,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 	if state == nil || err != nil {
 		return nil, err
 	}
-	defer state.Release()
+	// defer state.Release() // < TODO: reenable when state package was refactored
 	nonce := state.GetNonce(address)
 	return (*hexutil.Uint64)(&nonce), state.Error()
 }
@@ -1708,7 +1715,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 	// Derive the sender.
 	bigblock := new(big.Int).SetUint64(blockNumber)
-	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), bigblock))
+	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), bigblock, uint64(header.Time.Unix())))
 	from, _ := internaltx.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1775,7 +1782,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	} // Print a log with full tx details for manual investigations and interventions
-	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number))
+	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number, 0))
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -2033,18 +2040,6 @@ func (api *PublicDebugAPI) PrintBlock(ctx context.Context, number uint64) (strin
 	return spew.Sdump(block), nil
 }
 
-// SeedHash retrieves the seed hash of a block.
-func (api *PublicDebugAPI) SeedHash(ctx context.Context, number uint64) (string, error) {
-	block, err := api.b.BlockByNumber(ctx, rpc.BlockNumber(number))
-	if err != nil {
-		return "", err
-	}
-	if block == nil {
-		return "", fmt.Errorf("block #%d not found", number)
-	}
-	return fmt.Sprintf("0x%x", ethash.SeedHash(number)), nil
-}
-
 // BlocksTransactionTimes returns the map time => number of transactions
 // This data may be used to draw a histogram to calculate a peak TPS of a range of blocks
 func (api *PublicDebugAPI) BlocksTransactionTimes(ctx context.Context, untilBlock rpc.BlockNumber, maxBlocks hexutil.Uint64) (map[hexutil.Uint64]hexutil.Uint, error) {
@@ -2071,7 +2066,7 @@ func (api *PublicDebugAPI) BlocksTransactionTimes(ctx context.Context, untilBloc
 
 // TraceConfig holds extra parameters to trace functions.
 type TraceConfig struct {
-	*vm.LogConfig
+	*logger.Config
 	Tracer  *string
 	Timeout *string
 	Reexec  *uint64
@@ -2102,7 +2097,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 	if err != nil {
 		return nil, err
 	}
-	defer statedb.Release()
+	// defer statedb.Release() // < TODO: re-enable when state package is fixed
 
 	txctx := &tracers.Context{
 		BlockHash: block.Hash,
@@ -2119,13 +2114,13 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
 	// Assemble the structured logger or the JavaScript tracer
 	var (
-		tracer    vm.Tracer
-		err       error
+		tracer vm.EVMLogger
+		err    error
 	)
 
 	switch {
 	case config == nil:
-		tracer = vm.NewStructLogger(nil)
+		tracer = logger.NewStructLogger(nil)
 	case config.Tracer != nil:
 		// Define a meaningful timeout of a single transaction trace
 		timeout := defaultTraceTimeout
@@ -2138,7 +2133,7 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 		if rpcTimeout := api.b.RPCEVMTimeout(); rpcTimeout != 0 && rpcTimeout < timeout {
 			timeout = rpcTimeout
 		}
-		if t, err := tracers.New(*config.Tracer, txctx); err != nil {
+		if t, err := tracers.DefaultDirectory.New(*config.Tracer, txctx, nil); err != nil {
 			return nil, err
 		} else {
 			deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -2152,31 +2147,33 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 			tracer = t
 		}
 	default:
-		tracer = vm.NewStructLogger(config.LogConfig)
+		tracer = logger.NewStructLogger(config.Config)
 	}
 
 	// Run the transaction with tracing enabled.
 	evmconfig := opera.DefaultVMConfig
 	evmconfig.Tracer = tracer
-	evmconfig.Debug = true
 	evmconfig.NoBaseFee = true
-	evmconfig.InterpreterImpl = "geth" // use always geth, as lfvm does not support tracing now
+
+	// TODO: re-enable once VM selection is re-added
+	//evmconfig.InterpreterImpl = "geth" // use always geth, as lfvm does not support tracing now
+
 	vmenv, _, err := api.b.GetEVM(ctx, message, statedb, blockHeader, &evmconfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get EVM for tracing: %w", err)
 	}
 
 	// Call Prepare to clear out the statedb access list
-	statedb.Prepare(txctx.TxHash, txctx.TxIndex)
+	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)
 
-	result, err := evmcore.ApplyMessage(vmenv, message, new(evmcore.GasPool).AddGas(message.Gas()))
+	result, err := evmcore.ApplyMessage(vmenv, message, new(evmcore.GasPool).AddGas(message.GasLimit))
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
 
 	// Depending on the tracer type, format and return the output.
 	switch tracer := tracer.(type) {
-	case *vm.StructLogger:
+	case *logger.StructLogger:
 		// If the result contains a revert reason, return it.
 		returnVal := fmt.Sprintf("%x", result.Return())
 		if len(result.Revert()) > 0 {
@@ -2189,16 +2186,16 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 			StructLogs:  FormatLogs(tracer.StructLogs()),
 		}, nil
 
-	case *tracers.Tracer:
+	case tracers.Tracer:
 		result, err := tracer.GetResult()
 		if err != nil && result == nil {
 			// Only for tracer called callTracer
 			if config.Tracer != nil && strings.Compare(*config.Tracer, "callTracer") == 0 {
 				if strings.Contains(err.Error(), "cannot read property 'toString' of undefined") {
 					log.Debug("error when debug with callTracer", "err", err.Error())
-					callTracer, _ := tracers.New(*config.Tracer, txctx)
-					callTracer.CaptureStart(vmenv, message.From(), *message.To(), false, message.Data(), message.Gas(), message.Value())
-					callTracer.CaptureEnd([]byte{}, message.Gas(), time.Duration(0), fmt.Errorf("execution reverted"))
+					callTracer, _ := tracers.DefaultDirectory.New(*config.Tracer, txctx, nil)
+					callTracer.CaptureStart(vmenv, message.From, *message.To, false, message.Data, message.GasLimit, message.Value)
+					callTracer.CaptureEnd([]byte{}, message.GasLimit, fmt.Errorf("execution reverted"))
 					result, err = callTracer.GetResult()
 				}
 			}
@@ -2261,13 +2258,13 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 	if err != nil {
 		return nil, err
 	}
-	defer statedb.Release()
+	// defer statedb.Release() // < TODO: reenable once state package is fixed
 
 	var (
 		txs       = block.Transactions
 		blockHash = block.Hash
 		is158orBz = api.b.ChainConfig().IsByzantium(block.Number) || api.b.ChainConfig().IsEIP158(block.Number)
-		signer    = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number))
+		signer    = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 		results   = make([]*txTraceResult, len(txs))
 	)
 	for i, tx := range txs {
@@ -2305,7 +2302,7 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 		return nil, statedb, nil
 	}
 	// Recompute transactions up to the target index.
-	signer := gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number))
+	signer := gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 	for idx, tx := range block.Transactions {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
@@ -2317,7 +2314,7 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 		if err != nil {
 			return msg, statedb, err
 		}
-		statedb.Prepare(tx.Hash(), idx)
+		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, statedb, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}

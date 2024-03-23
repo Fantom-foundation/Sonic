@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -113,13 +114,13 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 		Actions: make([]txtrace.ActionTrace, 0),
 	}
 
-	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), block.Number))
+	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHash{BlockNumber: &parentBlockNr})
 	if err != nil {
 		return nil, fmt.Errorf("cannot get state for block %v, error: %v", block.NumberU64(), err.Error())
 	}
-	defer state.Release()
+	//defer state.Release()  // < TODO: do not merge, reenable before after StateDB fix
 
 	receipts, err := s.b.GetReceiptsByNumber(ctx, rpc.BlockNumber(blockNumber))
 	if err != nil {
@@ -158,10 +159,9 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot get message from transaction %s, error %s", tx.Hash().String(), err)
 			}
 
-			state.Prepare(tx.Hash(), i)
+			state.SetTxContext(tx.Hash(), i)
 			vmConfig := opera.DefaultVMConfig
 			vmConfig.NoBaseFee = true
-			vmConfig.Debug = false
 			vmConfig.Tracer = nil
 
 			vmenv, _, err := s.b.GetEVM(ctx, msg, state, block.Header(), &vmConfig)
@@ -169,7 +169,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot initialize vm for transaction %s, error: %s", tx.Hash().String(), err.Error())
 			}
 
-			res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.Gas()))
+			res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.GasLimit))
 			failed := false
 			if err != nil {
 				failed = true
@@ -204,13 +204,12 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 
 // traceTx trace transaction with EVM replay and return processed result
 func (s *PublicTxTraceAPI) traceTx(
-	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg types.Message,
+	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg *core.Message,
 	state *state.StateDB, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
 	status uint64, chainConfig *params.ChainConfig) (*[]txtrace.ActionTrace, error) {
 
 	// Providing default config with tracer
 	cfg := opera.DefaultVMConfig
-	cfg.Debug = true
 	txTracer := txtrace.NewTraceStructLogger(block, tx, msg, uint(index))
 	cfg.Tracer = txTracer
 	cfg.NoBaseFee = true
@@ -241,8 +240,8 @@ func (s *PublicTxTraceAPI) traceTx(
 	}()
 
 	// Setup the gas pool and stateDB
-	gp := new(evmcore.GasPool).AddGas(msg.Gas())
-	state.Prepare(tx.Hash(), int(index))
+	gp := new(evmcore.GasPool).AddGas(msg.GasLimit)
+	state.SetTxContext(tx.Hash(), int(index))
 	result, err := evmcore.ApplyMessage(vmenv, msg, gp)
 
 	traceActions := txTracer.GetResult()
@@ -250,7 +249,7 @@ func (s *PublicTxTraceAPI) traceTx(
 
 	// err is error occured before EVM execution
 	if err != nil {
-		errTrace := txtrace.GetErrorTraceFromMsg(&msg, block.Hash, *block.Number, tx.Hash(), index, err)
+		errTrace := txtrace.GetErrorTraceFromMsg(msg, block.Hash, *block.Number, tx.Hash(), index, err)
 		at := make([]txtrace.ActionTrace, 0)
 		at = append(at, *errTrace)
 		// check correct replay state
@@ -268,7 +267,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	if result != nil && result.Err != nil {
 		if len(*traceActions) == 0 {
 			log.Error("error in result when replaying transaction:", "txHash", tx.Hash().String(), " err", result.Err.Error())
-			errTrace := txtrace.GetErrorTraceFromMsg(&msg, block.Hash, *block.Number, tx.Hash(), index, result.Err)
+			errTrace := txtrace.GetErrorTraceFromMsg(msg, block.Hash, *block.Number, tx.Hash(), index, result.Err)
 			at := make([]txtrace.ActionTrace, 0)
 			at = append(at, *errTrace)
 			return &at, nil
