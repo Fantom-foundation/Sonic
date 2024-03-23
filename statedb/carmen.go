@@ -2,25 +2,25 @@ package statedb
 
 import (
 	"encoding/json"
-	"math/big"
-	"time"
 
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	substate "github.com/Fantom-foundation/Substate"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 )
 
-func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB, state carmen.State) state.StateDbInterface {
-	return &CarmenStateDB{
+func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB, state carmen.State) state.State {
+	return &carmenStateDB{
 		db:    carmenStateDb,
 		state: state,
 	}
 }
 
-type CarmenStateDB struct {
+type carmenStateDB struct {
 	db    carmen.VmStateDB
 	state carmen.State // required for Copy method
 
@@ -32,19 +32,19 @@ type CarmenStateDB struct {
 	txIndex int
 }
 
-func (c *CarmenStateDB) StartPrefetcher(namespace string) {
+func (c *carmenStateDB) StartPrefetcher(namespace string) {
 	// ignored
 }
 
-func (c *CarmenStateDB) StopPrefetcher() {
+func (c *carmenStateDB) StopPrefetcher() {
 	// ignored
 }
 
-func (c *CarmenStateDB) Error() error {
+func (c *carmenStateDB) Error() error {
 	return nil
 }
 
-func (c *CarmenStateDB) AddLog(log *types.Log) {
+func (c *carmenStateDB) AddLog(log *types.Log) {
 	carmenLog := cc.Log{
 		Address: cc.Address(log.Address),
 		Topics:  nil,
@@ -56,7 +56,7 @@ func (c *CarmenStateDB) AddLog(log *types.Log) {
 	c.db.AddLog(&carmenLog)
 }
 
-func (c *CarmenStateDB) GetLogs(txHash common.Hash, blockHash common.Hash) []*types.Log {
+func (c *carmenStateDB) GetLogs(txHash common.Hash, blockNumber uint64, blockHash common.Hash) []*types.Log {
 	if txHash != c.txHash {
 		panic("obtaining logs of not-current tx not supported")
 	}
@@ -81,186 +81,175 @@ func (c *CarmenStateDB) GetLogs(txHash common.Hash, blockHash common.Hash) []*ty
 	return logs
 }
 
-func (c *CarmenStateDB) Logs() []*types.Log {
+func (c *carmenStateDB) Logs() []*types.Log {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) AddPreimage(hash common.Hash, preimage []byte) {
+func (c *carmenStateDB) AddPreimage(hash common.Hash, preimage []byte) {
 	// ignored - preimages of keys hashes are relevant only for geth trie
 }
 
-func (c *CarmenStateDB) Preimages() map[common.Hash][]byte {
+func (c *carmenStateDB) Preimages() map[common.Hash][]byte {
 	return nil // preimages of keys hashes are relevant only for geth trie
 }
 
-func (c *CarmenStateDB) AddRefund(gas uint64) {
+func (c *carmenStateDB) AddRefund(gas uint64) {
 	c.db.AddRefund(gas)
 }
 
-func (c *CarmenStateDB) SubRefund(gas uint64) {
+func (c *carmenStateDB) SubRefund(gas uint64) {
 	c.db.SubRefund(gas)
 }
 
-func (c *CarmenStateDB) Exist(addr common.Address) bool {
+func (c *carmenStateDB) Exist(addr common.Address) bool {
 	return c.db.Exist(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) Empty(addr common.Address) bool {
+func (c *carmenStateDB) Empty(addr common.Address) bool {
 	return c.db.Empty(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) GetBalance(addr common.Address) *big.Int {
-	return c.db.GetBalance(cc.Address(addr))
+func (c *carmenStateDB) GetBalance(addr common.Address) *uint256.Int {
+	return utils.BigIntToUint256(c.db.GetBalance(cc.Address(addr)))
 }
 
-func (c *CarmenStateDB) GetNonce(addr common.Address) uint64 {
+func (c *carmenStateDB) GetNonce(addr common.Address) uint64 {
 	return c.db.GetNonce(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) TxIndex() int {
+func (c *carmenStateDB) TxIndex() int {
 	return c.txIndex
 }
 
-func (c *CarmenStateDB) GetCode(addr common.Address) []byte {
+func (c *carmenStateDB) GetCode(addr common.Address) []byte {
 	return c.db.GetCode(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) GetCodeSize(addr common.Address) int {
+func (c *carmenStateDB) GetCodeSize(addr common.Address) int {
 	return c.db.GetCodeSize(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) GetCodeHash(addr common.Address) common.Hash {
+func (c *carmenStateDB) GetCodeHash(addr common.Address) common.Hash {
 	return common.Hash(c.db.GetCodeHash(cc.Address(addr)))
 }
 
-func (c *CarmenStateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
+func (c *carmenStateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 	return common.Hash(c.db.GetState(cc.Address(addr), cc.Key(hash)))
 }
 
-func (c *CarmenStateDB) GetProof(addr common.Address) ([][]byte, error) {
-	panic("not supported")
+func (c *carmenStateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
+	panic("not implemented")
 }
 
-func (c *CarmenStateDB) GetProofByHash(addrHash common.Hash) ([][]byte, error) {
-	panic("not supported")
+func (c *carmenStateDB) SetTransientState(addr common.Address, key, value common.Hash) {
+	panic("not implemented")
 }
 
-func (c *CarmenStateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
+func (c *carmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	return common.Hash(c.db.GetCommittedState(cc.Address(addr), cc.Key(hash)))
 }
 
-func (c *CarmenStateDB) Database() state.Database {
+func (c *carmenStateDB) Database() state.Database {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) StorageTrie(addr common.Address) state.Trie {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) HasSuicided(addr common.Address) bool {
+func (c *carmenStateDB) HasSelfDestructed(addr common.Address) bool {
 	return c.db.HasSuicided(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) AddBalance(addr common.Address, amount *big.Int) {
-	c.db.AddBalance(cc.Address(addr), amount)
+func (c *carmenStateDB) AddBalance(addr common.Address, amount *uint256.Int) {
+	c.db.AddBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
 }
 
-func (c *CarmenStateDB) SubBalance(addr common.Address, amount *big.Int) {
-	c.db.SubBalance(cc.Address(addr), amount)
+func (c *carmenStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
+	c.db.SubBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
 }
 
-func (c *CarmenStateDB) SetBalance(addr common.Address, amount *big.Int) {
+func (c *carmenStateDB) SetBalance(addr common.Address, amount *uint256.Int) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) SetNonce(addr common.Address, nonce uint64) {
+func (c *carmenStateDB) SetNonce(addr common.Address, nonce uint64) {
 	c.db.SetNonce(cc.Address(addr), nonce)
 }
 
-func (c *CarmenStateDB) SetCode(addr common.Address, code []byte) {
+func (c *carmenStateDB) SetCode(addr common.Address, code []byte) {
 	c.db.SetCode(cc.Address(addr), code)
 }
 
-func (c *CarmenStateDB) SetPrehashedCode(addr common.Address, hash common.Hash, code []byte) {
-	c.db.SetCode(cc.Address(addr), code)
-}
-
-func (c *CarmenStateDB) SetState(addr common.Address, key, value common.Hash) {
+func (c *carmenStateDB) SetState(addr common.Address, key, value common.Hash) {
 	c.db.SetState(cc.Address(addr), cc.Key(key), cc.Value(value))
 }
 
-func (c *CarmenStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
+func (c *carmenStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Suicide(addr common.Address) bool {
-	return c.db.Suicide(cc.Address(addr))
+func (c *carmenStateDB) SelfDestruct(addr common.Address) {
+	c.db.Suicide(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) CreateAccount(addr common.Address) {
+func (c *carmenStateDB) Selfdestruct6780(addr common.Address) {
+	panic("not supported")
+}
+
+func (c *carmenStateDB) CreateAccount(addr common.Address) {
 	c.db.CreateAccount(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.Hash, value common.Hash) bool) error {
-	panic("not supported")
+func (c *carmenStateDB) Copy() *state.StateDB {
+	return state.NewStateDB(CreateCarmenStateDb(carmen.CreateNonCommittableStateDBUsing(c.state), c.state))
 }
 
-func (c *CarmenStateDB) Copy() state.StateDbInterface {
-	return CreateCarmenStateDb(carmen.CreateNonCommittableStateDBUsing(c.state), c.state)
-}
-
-func (c *CarmenStateDB) Snapshot() int {
+func (c *carmenStateDB) Snapshot() int {
 	return c.db.Snapshot()
 }
 
-func (c *CarmenStateDB) RevertToSnapshot(revid int) {
+func (c *carmenStateDB) RevertToSnapshot(revid int) {
 	c.db.RevertToSnapshot(revid)
 }
 
-func (c *CarmenStateDB) GetRefund() uint64 {
+func (c *carmenStateDB) GetRefund() uint64 {
 	return c.db.GetRefund()
 }
 
-func (c *CarmenStateDB) Finalise(deleteEmptyObjects bool) {
+func (c *carmenStateDB) Finalise(deleteEmptyObjects bool) {
 	c.db.EndTransaction()
 }
 
-func (c *CarmenStateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
+func (c *carmenStateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	c.db.EndTransaction()
 	return common.Hash(c.db.GetHash())
 }
 
-// Prepare sets the current transaction hash and index which are
-// used when the EVM emits new state logs.
-func (c *CarmenStateDB) Prepare(txHash common.Hash, txIndex int) {
+func (c *carmenStateDB) SetTxContext(txHash common.Hash, txIndex int) {
 	c.txHash = txHash
 	c.txIndex = txIndex
 	c.db.ClearAccessList()
 }
 
-func (c *CarmenStateDB) BeginBlock(number uint64) {
+func (c *carmenStateDB) BeginBlock(number uint64) error {
 	c.blockNum = number
 	if db, ok := c.db.(carmen.StateDB); ok {
 		db.BeginBlock()
 	}
+	return nil
 }
 
-func (c *CarmenStateDB) EndBlock(number uint64) {
+func (c *carmenStateDB) EndBlock(number uint64) error {
 	if db, ok := c.db.(carmen.StateDB); ok {
 		db.EndBlock(number)
 	}
+	return nil
 }
 
-func (c *CarmenStateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
+func (c *carmenStateDB) Commit(_ uint64, deleteEmptyObjects bool) (common.Hash, error) {
 	// get state hash only
 	return common.Hash(c.db.GetHash()), nil
 }
 
-func (c *CarmenStateDB) PrepareAccessList(sender common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
+func (c *carmenStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
+	// TODO: update preparation based on revision
 	c.db.ClearAccessList()
 	c.db.AddAddressToAccessList(cc.Address(sender))
 	if dest != nil {
@@ -277,103 +266,44 @@ func (c *CarmenStateDB) PrepareAccessList(sender common.Address, dest *common.Ad
 	}
 }
 
-func (c *CarmenStateDB) AddAddressToAccessList(addr common.Address) {
+func (c *carmenStateDB) AddAddressToAccessList(addr common.Address) {
 	c.db.AddAddressToAccessList(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
+func (c *carmenStateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
 	c.db.AddSlotToAccessList(cc.Address(addr), cc.Key(slot))
 }
 
-func (c *CarmenStateDB) AddressInAccessList(addr common.Address) bool {
+func (c *carmenStateDB) AddressInAccessList(addr common.Address) bool {
 	return c.db.IsAddressInAccessList(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
+func (c *carmenStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	return c.db.IsSlotInAccessList(cc.Address(addr), cc.Key(slot))
 }
 
-func (c *CarmenStateDB) RawDump(opts *state.DumpConfig) state.Dump {
+func (c *carmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) IteratorDump(opts *state.DumpConfig) state.IteratorDump {
+func (c *carmenStateDB) RawDump(opts *state.DumpConfig) state.Dump {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) IterativeDump(opts *state.DumpConfig, output *json.Encoder) {
+func (c *carmenStateDB) IterativeDump(opts *state.DumpConfig, output *json.Encoder) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Dump(opts *state.DumpConfig) []byte {
+func (c *carmenStateDB) Dump(opts *state.DumpConfig) []byte {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) DumpToCollector(dc state.DumpCollector, conf *state.DumpConfig) (nextKey []byte) {
+func (c *carmenStateDB) DumpToCollector(dc state.DumpCollector, conf *state.DumpConfig) (nextKey []byte) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) GetAccountReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetAccountHashes() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetAccountUpdates() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetAccountCommits() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageHashes() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageUpdates() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetStorageCommits() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSnapshotAccountReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSnapshotStorageReads() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSnapshotCommits() time.Duration {
-	//TODO implement me
-	return 0
-}
-
-func (c *CarmenStateDB) GetSubstatePostAlloc() substate.SubstateAlloc {
-	//TODO implement me
-	return nil
-}
-
-func (c *CarmenStateDB) Release() {
+// TODO: expose this as an opera interface
+func (c *carmenStateDB) Release() {
 	if db, ok := c.db.(carmen.NonCommittableStateDB); ok {
 		db.Release()
 	}

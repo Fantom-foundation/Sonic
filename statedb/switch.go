@@ -2,6 +2,9 @@ package statedb
 
 import (
 	"fmt"
+	"math/big"
+	"os"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/logger"
@@ -10,33 +13,31 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/pkg/errors"
-	"math/big"
-	"os"
 )
 
 type Config carmen.Parameters
 
 type StateDbManager struct {
-	opened bool
-	parameters carmen.Parameters
-	logger logger.Instance
-	carmenState carmen.State
-	liveStateDb carmen.StateDB
-	compatibleHashes bool
+	opened                  bool
+	parameters              carmen.Parameters
+	logger                  logger.Instance
+	carmenState             carmen.State
+	liveStateDb             carmen.StateDB
+	compatibleHashes        bool
 	compatibleArchiveHashes bool
 }
 
 func CreateStateDbManager(cfg Config) *StateDbManager {
 	return &StateDbManager{
-		parameters: carmen.Parameters(cfg),
-		logger: logger.New("statedb"),
-		compatibleHashes: cfg.Schema == carmen.StateSchema(5),
+		parameters:              carmen.Parameters(cfg),
+		logger:                  logger.New("statedb"),
+		compatibleHashes:        cfg.Schema == carmen.StateSchema(5),
 		compatibleArchiveHashes: cfg.Archive == carmen.S5Archive,
 	}
 }
 
 func (m *StateDbManager) doesUseCarmen() bool {
-	return  m.parameters.Directory != ""
+	return m.parameters.Directory != ""
 }
 
 func (m *StateDbManager) Open() error {
@@ -72,9 +73,9 @@ func (m *StateDbManager) GetStateDbGeneral(stateRoot hash.Hash, evmState state.D
 		if m.compatibleHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
 			return nil, fmt.Errorf("unable to get Carmen live StateDB (general) - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
 		}
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
+		return state.NewStateDB(CreateCarmenStateDb(stateDb, m.carmenState)), nil
 	} else {
-		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
+		return state.New(common.Hash(stateRoot), evmState, snaps)
 	}
 }
 
@@ -87,9 +88,9 @@ func (m *StateDbManager) GetLiveStateDb(stateRoot hash.Hash, evmState state.Data
 		if m.compatibleHashes && m.liveStateDb.GetHash() != cc.Hash(stateRoot) {
 			return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", m.liveStateDb.GetHash(), stateRoot)
 		}
-		return state.NewWrapper(CreateCarmenStateDb(m.liveStateDb, m.carmenState)), nil
+		return state.NewStateDB(CreateCarmenStateDb(m.liveStateDb, m.carmenState)), nil
 	} else {
-		return state.NewWithSnapLayers(common.Hash(stateRoot), evmState, snaps, 0)
+		return state.New(common.Hash(stateRoot), evmState, snaps)
 	}
 }
 
@@ -101,9 +102,9 @@ func (m *StateDbManager) GetTxPoolStateDb(stateRoot common.Hash, evmState state.
 	if m.carmenState != nil {
 		// for TxPool it is ok to provide a newer state (with a different hash)
 		stateDb := carmen.CreateNonCommittableStateDBUsing(m.carmenState)
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
+		return state.NewStateDB(CreateCarmenStateDb(stateDb, m.carmenState)), nil
 	} else {
-		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
+		return state.New(stateRoot, evmState, snaps)
 	}
 }
 
@@ -132,9 +133,9 @@ func (m *StateDbManager) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash,
 		if m.compatibleArchiveHashes && stateDb.GetHash() != cc.Hash(stateRoot) {
 			return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
 		}
-		return state.NewWrapper(CreateCarmenStateDb(stateDb, m.carmenState)), nil
+		return state.NewStateDB(CreateCarmenStateDb(stateDb, m.carmenState)), nil
 	} else {
-		return state.NewWithSnapLayers(stateRoot, evmState, snaps, 0)
+		return state.New(stateRoot, evmState, snaps)
 	}
 }
 
@@ -155,7 +156,7 @@ func (m *StateDbManager) Close() error {
 
 // logAndReturnIntegrationErr logs an error with its stacktrace, returns the error
 func (m *StateDbManager) logAndReturnIntegrationErr(msg string) error {
-	err := errors.New(msg) // create the error with a stacktrace
+	err := errors.New(msg)                      // create the error with a stacktrace
 	m.logger.Log.Error(fmt.Sprintf("%+v", err)) // print with the stacktrace
 	return err
 }
