@@ -18,13 +18,14 @@ package filters
 
 import (
 	"context"
-	"github.com/Fantom-foundation/go-opera/utils/adapters/ethdb2kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/Fantom-foundation/go-opera/utils/adapters/ethdb2kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 
 	"github.com/Fantom-foundation/go-opera/topicsdb"
 	"github.com/ethereum/go-ethereum/common"
@@ -33,7 +34,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/triedb"
 )
 
 func testConfig() Config {
@@ -74,7 +77,7 @@ func BenchmarkFilters(b *testing.B) {
 		addr4   = common.BytesToAddress([]byte("random addresses please"))
 	)
 
-	genesis := core.GenesisBlockForTesting(backend.db, addr1, big.NewInt(1000000))
+	genesis := getGenesisBlockForTesting(backend.db, addr1, big.NewInt(1000000))
 	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, ethash.NewFaker(), backend.db, 100010, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 2403:
@@ -122,7 +125,7 @@ func TestFilters(t *testing.T) {
 		hash4 = common.BytesToHash([]byte("topic4"))
 	)
 
-	genesis := core.GenesisBlockForTesting(backend.db, addr, big.NewInt(1000000))
+	genesis := getGenesisBlockForTesting(backend.db, addr, big.NewInt(1000000))
 	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, ethash.NewFaker(), backend.db, 1000, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 1:
@@ -262,4 +265,12 @@ func TestFilters(t *testing.T) {
 		t.Error("expected 0 log, got", len(logs))
 	}
 
+}
+
+func getGenesisBlockForTesting(db ethdb.Database, address common.Address, balance *big.Int) *types.Block {
+	genesis := core.Genesis{
+		Alloc:   types.GenesisAlloc{address: {Balance: balance}},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
+	return genesis.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))
 }

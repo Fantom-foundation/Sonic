@@ -124,7 +124,7 @@ func (h *EvmHeader) EthHeader() *types.Header {
 
 		Difficulty: new(big.Int),
 	}
-	ethHeader.SetExternalHash(h.Hash)
+	// ethHeader.SetExternalHash(h.Hash) < this seems to be an optimization in go-ethereum-substate; skipped for now, needs investigation
 	return ethHeader
 }
 

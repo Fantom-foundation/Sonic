@@ -35,13 +35,13 @@ var (
 	headHeaderGauge    = metrics.GetOrRegisterGauge("chain/head/header", nil)
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
-	blockExecutionTimer = metrics.GetOrRegisterTimer("chain/execution", nil)
+	blockExecutionTimer = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
 	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
-	processedTxsMeter = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
+	processedTxsMeter    = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
 	skippedTxsMeter      = metrics.GetOrRegisterMeter("chain/txs/skipped", nil)
 	confirmedEventsMeter = metrics.GetOrRegisterMeter("chain/events/confirmed", nil) // events received from lachesis
-	spilledEventsMeter   = metrics.GetOrRegisterMeter("chain/events/spilled", nil) // tx excluded because of MaxBlockGas
+	spilledEventsMeter   = metrics.GetOrRegisterMeter("chain/events/spilled", nil)   // tx excluded because of MaxBlockGas
 )
 
 type ExtendedTxPosition struct {
@@ -458,7 +458,7 @@ func spillBlockEvents(store *Store, block *inter.Block, network opera.Rules) (*i
 		// stop if limit is exceeded, erase [:i] events
 		if gasPowerUsedSum > network.Blocks.MaxBlockGas {
 			// spill
-			spilledEventsMeter.Mark(int64(len(fullEvents)-(i+1)))
+			spilledEventsMeter.Mark(int64(len(fullEvents) - (i + 1)))
 			block.Events = block.Events[i+1:]
 			fullEvents = fullEvents[i+1:]
 			break

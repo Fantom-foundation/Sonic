@@ -28,7 +28,7 @@ var DefaultVMConfig = vm.Config{
 	StatePrecompiles: map[common.Address]vm.PrecompiledStateContract{
 		evmwriter.ContractAddress: &evmwriter.PreCompiledContract{},
 	},
-	InterpreterImpl: "geth",
+	InterpreterImplementation: "geth",
 }
 
 type RulesRLP struct {

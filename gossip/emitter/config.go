@@ -57,7 +57,7 @@ type Config struct {
 // DefaultConfig returns the default configurations for the events emitter.
 func DefaultConfig() Config {
 	return Config{
-		VersionToPublish: params.VersionWithMeta(),
+		VersionToPublish: params.VersionWithMeta,
 
 		EmitIntervals: EmitIntervals{
 			Min:                        150 * time.Millisecond,

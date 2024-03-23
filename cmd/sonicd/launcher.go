@@ -2,6 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"sort"
+	"syscall"
+	"time"
+
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/diskusage"
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/metrics"
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/tracing"
@@ -9,11 +15,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/params"
-	"os"
-	"os/signal"
-	"sort"
-	"syscall"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/console/prompt"
@@ -268,10 +269,7 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 	stack.AccountManager().Subscribe(events)
 
 	// Create a client to interact with local opera node.
-	rpcClient, err := stack.Attach()
-	if err != nil {
-		return fmt.Errorf("failed to attach to self: %w", err)
-	}
+	rpcClient := stack.Attach()
 	ethClient := ethclient.NewClient(rpcClient)
 	go func() {
 		// Open any wallets already attached

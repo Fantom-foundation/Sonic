@@ -27,13 +27,15 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/consensus/misc"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 )
@@ -144,7 +146,7 @@ const (
 
 type TxPoolStateDB interface {
 	GetNonce(addr common.Address) uint64
-	GetBalance(addr common.Address) *big.Int
+	GetBalance(addr common.Address) *uint256.Int
 	Release()
 }
 
@@ -257,8 +259,8 @@ type TxPool struct {
 	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
 
 	currentState  TxPoolStateDB // Current state in the blockchain head
-	pendingNonces *txNoncer      // Pending state tracking virtual nonces
-	currentMaxGas uint64         // Current gas limit for transaction caps
+	pendingNonces *txNoncer     // Pending state tracking virtual nonces
+	currentMaxGas uint64        // Current gas limit for transaction caps
 
 	locals  *accountSet // Set of local transaction to exempt from eviction rules
 	journal *txJournal  // Journal of local transaction to back up to disk
@@ -574,8 +576,8 @@ func (pool *TxPool) Pending(enforceTips bool) (map[common.Address]types.Transact
 func (pool *TxPool) SampleHashes(max int) []common.Hash {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	pendingSample := sampleTxHashes(pool.pending, max * 9 / 10)
-	queueSample := sampleTxHashes(pool.queue, max - len(pendingSample))
+	pendingSample := sampleTxHashes(pool.pending, max*9/10)
+	queueSample := sampleTxHashes(pool.queue, max-len(pendingSample))
 	return append(pendingSample, queueSample...)
 }
 
@@ -585,7 +587,7 @@ func sampleTxHashes(txListsMap map[common.Address]*txList, max int) (out []commo
 	}
 
 	// max amount of txs per one sender
-	txsPerSender := max / len(txListsMap) + 1
+	txsPerSender := max/len(txListsMap) + 1
 
 	// if we have more senders than is the sample size, choose random senders
 	first := 0
@@ -705,7 +707,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+	if utils.Uint256ToBigInt(pool.currentState.GetBalance(from)).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
@@ -1102,7 +1104,7 @@ func (pool *TxPool) removeTx(hash common.Hash, removeFromPriced bool) {
 			// Postpone any invalidated transactions
 			for _, tx := range invalids {
 				// Internal shuffle shouldn't touch the lookup set.
-				_,_ = pool.enqueueTx(tx.Hash(), tx, false, false)
+				_, _ = pool.enqueueTx(tx.Hash(), tx, false, false)
 				// err should not occur, as it cannot be replacing of existing tx in queue
 				// local=false is OK, as it is ignored when addAll=false
 			}
@@ -1271,7 +1273,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 		} else {
 			// for tests only
 			if reset.newHead != nil && pool.chainconfig.IsLondon(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {
-				pendingBaseFee := misc.CalcBaseFee(pool.chainconfig, reset.newHead.EthHeader())
+				pendingBaseFee := eip1559.CalcBaseFee(pool.chainconfig, reset.newHead.EthHeader())
 				pool.priced.SetBaseFee(pendingBaseFee)
 			}
 		}
@@ -1425,7 +1427,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		}
 		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
-		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+		drops, _ := list.Filter(utils.Uint256ToBigInt(pool.currentState.GetBalance(addr)), pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
@@ -1485,7 +1487,7 @@ func (pool *TxPool) truncatePending() {
 
 	pendingBeforeCap := pending
 	// Assemble a spam order to penalize large transactors first
-	spammers := prque.New(nil)
+	spammers := prque.New[int64, common.Address](nil)
 	for addr, list := range pool.pending {
 		// Only evict transactions from high rollers
 		if !pool.locals.contains(addr) && uint64(list.Len()) > pool.config.AccountSlots {
@@ -1497,12 +1499,12 @@ func (pool *TxPool) truncatePending() {
 	for pending > pool.config.GlobalSlots && !spammers.Empty() {
 		// Retrieve the next offender if not local address
 		offender, _ := spammers.Pop()
-		offenders = append(offenders, offender.(common.Address))
+		offenders = append(offenders, offender)
 
 		// Equalize balances until all the same or below threshold
 		if len(offenders) > 1 {
 			// Calculate the equalization threshold for all current offenders
-			threshold := pool.pending[offender.(common.Address)].Len()
+			threshold := pool.pending[offender].Len()
 
 			// Iteratively reduce all offenders until below limit or threshold reached
 			for pending > pool.config.GlobalSlots && pool.pending[offenders[len(offenders)-2]].Len() > threshold {
@@ -1623,7 +1625,7 @@ func (pool *TxPool) demoteUnexecutables() {
 			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+		drops, invalids := list.Filter(utils.Uint256ToBigInt(pool.currentState.GetBalance(addr)), pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)
@@ -1700,10 +1702,6 @@ func newAccountSet(signer types.Signer, addrs ...common.Address) *accountSet {
 func (as *accountSet) contains(addr common.Address) bool {
 	_, exist := as.accounts[addr]
 	return exist
-}
-
-func (as *accountSet) empty() bool {
-	return len(as.accounts) == 0
 }
 
 // containsTx checks if the sender of a given tx is within the set. If the sender

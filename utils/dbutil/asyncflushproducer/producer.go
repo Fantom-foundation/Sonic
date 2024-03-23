@@ -19,7 +19,7 @@ type Producer struct {
 
 func Wrap(backend kvdb.FullDBProducer, threshold uint64) *Producer {
 	return &Producer{
-		stats:          metrics.NewMeterForced(),
+		stats:          metrics.NewMeter(),
 		FullDBProducer: backend,
 		dbs:            make(map[string]*store),
 		threshold:      threshold,
@@ -64,7 +64,7 @@ func (f *Producer) Flush(id []byte) error {
 	}
 
 	// trigger flushing data to disk if throughput is below a threshold
-	if uint64(f.stats.Rate1()) <= f.threshold {
+	if uint64(f.stats.Snapshot().Rate1()) <= f.threshold {
 		go func() {
 			f.mu.Lock()
 			defer f.mu.Unlock()

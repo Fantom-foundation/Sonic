@@ -3,6 +3,9 @@ package config
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -13,8 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/netutil"
 	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
-	"os"
-	"strings"
 )
 
 // SetNodeConfig applies node-related command line flags to the config.
@@ -271,6 +272,7 @@ func setP2PConfig(ctx *cli.Context, cfg *p2p.Config) error {
 		cfg.NetRestrict = list
 	}
 
+	/* TODO: reenable if needed
 	var err error
 	if iprestrict := ctx.GlobalString(flags.IPrestrictFlag.Name); iprestrict != "" {
 		cfg.IPRestrict, err = netutil.ParseIPs(iprestrict)
@@ -285,6 +287,7 @@ func setP2PConfig(ctx *cli.Context, cfg *p2p.Config) error {
 			return fmt.Errorf("option %q: %v", flags.PrivateNodeFlag.Name, err)
 		}
 	}
+	*/
 
 	return nil
 }

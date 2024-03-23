@@ -17,6 +17,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/status-im/keycard-go/hexutils"
@@ -383,6 +384,11 @@ func (r repeater) compareERHashes(startEpoch, lastEpoch idx.Epoch) {
 func (r repeater) compareParams() {
 	ctx := context.Background()
 
+	var config *params.ChainConfig = nil
+	time := uint64(0)
+	baseFee := big.NewInt(0)
+	blobGasPrice := big.NewInt(1)
+
 	// compare blockbyNumber
 	for _, blockIdx := range r.blockIndices {
 
@@ -396,9 +402,9 @@ func (r repeater) compareParams() {
 		require.NoError(r.t, err)
 
 		// compare Receipts
-		genReceipts := r.generator.store.evm.GetReceipts(blockIdx, r.generator.EthAPI.signer, genEvmBlock.Hash, genEvmBlock.Transactions)
+		genReceipts := r.generator.store.evm.GetReceipts(blockIdx, config, genEvmBlock.Hash, time, baseFee, blobGasPrice, genEvmBlock.Transactions)
 		require.NotNil(r.t, genReceipts)
-		procReceipts := r.processor.store.evm.GetReceipts(blockIdx, r.processor.EthAPI.signer, procEvmBlock.Hash, procEvmBlock.Transactions)
+		procReceipts := r.processor.store.evm.GetReceipts(blockIdx, config, procEvmBlock.Hash, time, baseFee, blobGasPrice, procEvmBlock.Transactions)
 		require.NotNil(r.t, procReceipts)
 
 		testParams := newTestParams(r.t, genEvmBlock, procEvmBlock, genReceipts, procReceipts)
@@ -451,10 +457,16 @@ func (r repeater) compareLogsByFilterCriteria() {
 		m := make(map[idx.Block][]*types.Log, len(r.blockIndices))
 
 		for _, blockIdx := range r.blockIndices {
+
+			var config *params.ChainConfig = nil
+			time := uint64(0)
+			baseFee := big.NewInt(0)
+			blobGasPrice := big.NewInt(1)
+
 			block, err := r.generator.EthAPI.BlockByNumber(ctx, rpc.BlockNumber(blockIdx))
 			require.NotNil(r.t, block)
 			require.NoError(r.t, err)
-			receipts := r.generator.store.evm.GetReceipts(blockIdx, r.generator.EthAPI.signer, block.Hash, block.Transactions)
+			receipts := r.generator.store.evm.GetReceipts(blockIdx, config, block.Hash, time, baseFee, blobGasPrice, block.Transactions)
 			for _, r := range receipts {
 				// we add only non empty logs
 				if len(r.Logs) > 0 {

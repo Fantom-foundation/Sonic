@@ -4,12 +4,12 @@ import (
 	"errors"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
@@ -85,12 +85,12 @@ type TraceActionResult struct {
 }
 
 // NewTraceStructLogger creates new instance of trace creator
-func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg types.Message, index uint, gasUsed uint64) *TraceStructLogger {
+func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg *core.Message, index uint, gasUsed uint64) *TraceStructLogger {
 	traceStructLogger := TraceStructLogger{
 		tx:          tx.Hash(),
-		from:        msg.From(),
-		to:          msg.To(),
-		value:       *msg.Value(),
+		from:        msg.From,
+		to:          msg.To,
+		value:       *msg.Value,
 		blockHash:   block.Hash,
 		blockNumber: *block.Number,
 		txIndex:     index,
@@ -204,7 +204,7 @@ func (tr *TraceStructLogger) CaptureStart(env *vm.EVM, from common.Address, to c
 }
 
 // CaptureState is not used as transaction tracing doesn't need per instruction resolution
-func (tr *TraceStructLogger) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
+func (tr *TraceStructLogger) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 }
 
 // CaptureEnter implements tracer interface for entering inner contract call
@@ -290,7 +290,7 @@ func (tr *TraceStructLogger) CaptureExit(output []byte, gasUsed uint64, err erro
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
-func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
+func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("Tracer CaptureEnd failed", r)
@@ -314,7 +314,15 @@ func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Du
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode. Not used for transaction tracing as error is contained
 // in CaptureExit or CaptureEnd
-func (tr *TraceStructLogger) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
+func (tr *TraceStructLogger) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
+}
+
+func (tr *TraceStructLogger) CaptureTxStart(gasLimit uint64) {
+	// ... to be ignored?
+}
+
+func (tr *TraceStructLogger) CaptureTxEnd(restGas uint64) {
+	// ... to be ignored?
 }
 
 // Handle output data and error
@@ -437,12 +445,12 @@ func childTraceAddress(a []uint32, i int) []uint32 {
 }
 
 // GetErrorTrace constructs filled error trace
-func GetErrorTraceFromMsg(msg *types.Message, blockHash common.Hash, blockNumber big.Int, txHash common.Hash, index uint64, err error) *ActionTrace {
+func GetErrorTraceFromMsg(msg *core.Message, blockHash common.Hash, blockNumber big.Int, txHash common.Hash, index uint64, err error) *ActionTrace {
 	if msg == nil {
 		return createErrorTrace(blockHash, blockNumber, nil, &common.Address{}, txHash, 0, []byte{}, hexutil.Big{}, index, err)
 	} else {
-		from := msg.From()
-		return createErrorTrace(blockHash, blockNumber, &from, msg.To(), txHash, msg.Gas(), msg.Data(), hexutil.Big(*msg.Value()), index, err)
+		from := msg.From
+		return createErrorTrace(blockHash, blockNumber, &from, msg.To, txHash, msg.GasLimit, msg.Data, hexutil.Big(*msg.Value), index, err)
 	}
 }
 
