@@ -18,18 +18,14 @@ package debug
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"runtime"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/exp"
 	"github.com/fjl/memsize/memsizeui"
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -108,17 +104,20 @@ var Flags = []cli.Flag{
 	traceFlag,
 }
 
-var glogger *log.GlogHandler
+//var glogger *log.GlogHandler
 
 func init() {
+	/* TODO: rebuild this using slog
 	glogger = log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.LvlInfo)
 	log.Root().SetHandler(glogger)
+	*/
 }
 
 // Setup initializes profiling and logging based on the CLI flags.
 // It should be called as early as possible in the program.
 func Setup(ctx *cli.Context) error {
+	/* TODO: rebuild this using slog
 	var ostream log.Handler
 	output := io.Writer(os.Stderr)
 	if ctx.GlobalBool(logjsonFlag.Name) {
@@ -151,6 +150,7 @@ func Setup(ctx *cli.Context) error {
 	glogger.BacktraceAt(backtrace)
 
 	log.Root().SetHandler(glogger)
+	*/
 
 	// profiling, tracing
 	runtime.MemProfileRate = memprofilerateFlag.Value
