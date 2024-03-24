@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
@@ -54,7 +55,8 @@ func accountCreate(ctx *cli.Context) error {
 	if err := config.SetNodeConfig(ctx, &cfg.Node); err != nil {
 		return err
 	}
-	scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()
+	keydir, err := cfg.Node.KeyDirConfig()
+	//scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()
 
 	if err != nil {
 		return fmt.Errorf("failed to read configuration: %w", err)
@@ -69,7 +71,7 @@ func accountCreate(ctx *cli.Context) error {
 		return fmt.Errorf("failed to get passphrase: %w", err)
 	}
 
-	account, err := keystore.StoreKey(keydir, password, scryptN, scryptP)
+	account, err := keystore.StoreKey(keydir, password, keystore.StandardScryptN, keystore.StandardScryptP)
 	if err != nil {
 		return fmt.Errorf("failed to create account: %w", err)
 	}

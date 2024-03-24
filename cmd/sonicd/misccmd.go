@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/ethereum/go-ethereum/params"
 	"gopkg.in/urfave/cli.v1"
-	"os"
-	"runtime"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
 )
@@ -26,7 +27,7 @@ The output of this command is supposed to be machine-readable.
 
 func version(ctx *cli.Context) error {
 	fmt.Println(config.ClientIdentifier)
-	fmt.Println("Version:", params.VersionWithMeta())
+	fmt.Println("Version:", params.VersionWithMeta)
 	if config.GitCommit != "" {
 		fmt.Println("Git Commit:", config.GitCommit)
 	}
