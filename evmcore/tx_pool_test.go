@@ -27,11 +27,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 )
 
 var (
@@ -54,14 +56,14 @@ func init() {
 }
 
 type testTxPoolStateDb struct {
-	balances map[common.Address]*big.Int
-	nonces map[common.Address]uint64
+	balances map[common.Address]*uint256.Int
+	nonces   map[common.Address]uint64
 }
 
 func newTestTxPoolStateDb() *testTxPoolStateDb {
 	return &testTxPoolStateDb{
-		balances: make(map[common.Address]*big.Int),
-		nonces: make(map[common.Address]uint64),
+		balances: make(map[common.Address]*uint256.Int),
+		nonces:   make(map[common.Address]uint64),
 	}
 }
 
@@ -69,7 +71,7 @@ func (t testTxPoolStateDb) GetNonce(addr common.Address) uint64 {
 	return t.nonces[addr]
 }
 
-func (t testTxPoolStateDb) GetBalance(addr common.Address) *big.Int {
+func (t testTxPoolStateDb) GetBalance(addr common.Address) *uint256.Int {
 	return t.balances[addr]
 }
 
@@ -247,14 +249,14 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 	t.Parallel()
 
 	var (
-		key, _     = crypto.GenerateKey()
-		address    = crypto.PubkeyToAddress(key.PublicKey)
-		statedb    = newTestTxPoolStateDb()
-		trigger    = false
+		key, _  = crypto.GenerateKey()
+		address = crypto.PubkeyToAddress(key.PublicKey)
+		statedb = newTestTxPoolStateDb()
+		trigger = false
 	)
 
 	// setup pool with 2 transaction in it
-	statedb.balances[address] = new(big.Int).SetUint64(params.Ether)
+	statedb.balances[address] = new(uint256.Int).SetUint64(params.Ether)
 	blockchain := &testChain{&testBlockChain{statedb, 1000000000, new(event.Feed)}, address, &trigger}
 
 	tx0 := transaction(0, 100000, key)
@@ -293,9 +295,16 @@ func testAddBalance(pool *TxPool, addr common.Address, amount *big.Int) {
 	pool.mu.Lock()
 	original := pool.currentState.(*testTxPoolStateDb).balances[addr]
 	if original == nil {
-		pool.currentState.(*testTxPoolStateDb).balances[addr] = amount
+		amountU256 := utils.BigIntToUint256(amount)
+		pool.currentState.(*testTxPoolStateDb).balances[addr] = amountU256
 	} else {
-		pool.currentState.(*testTxPoolStateDb).balances[addr] = original.Add(original, amount)
+		if amount.Sign() >= 0 {
+			amountU256 := utils.BigIntToUint256(amount)
+			pool.currentState.(*testTxPoolStateDb).balances[addr] = original.Add(original, amountU256)
+		} else {
+			amountU256 := utils.BigIntToUint256(new(big.Int).Mul(amount, big.NewInt(-1)))
+			pool.currentState.(*testTxPoolStateDb).balances[addr] = original.Sub(original, amountU256)
+		}
 	}
 	pool.mu.Unlock()
 }
@@ -456,7 +465,7 @@ func TestTransactionChainFork(t *testing.T) {
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	resetState := func() {
 		statedb := newTestTxPoolStateDb()
-		statedb.balances[addr] = big.NewInt(100000000000000)
+		statedb.balances[addr] = uint256.NewInt(100000000000000)
 
 		pool.chain = &testBlockChain{statedb, 1000000, new(event.Feed)}
 		<-pool.requestReset(nil, nil)
@@ -485,7 +494,7 @@ func TestTransactionDoubleNonce(t *testing.T) {
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	resetState := func() {
 		statedb := newTestTxPoolStateDb()
-		statedb.balances[addr] = big.NewInt(100000000000000)
+		statedb.balances[addr] = uint256.NewInt(100000000000000)
 
 		pool.chain = &testBlockChain{statedb, 1000000, new(event.Feed)}
 		<-pool.requestReset(nil, nil)
@@ -1182,7 +1191,6 @@ func TestTransactionQueueTruncating(t *testing.T) {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
 }
-
 
 // Tests that even if the transaction count belonging to a single account goes
 // above some threshold, as long as the transactions are executable, they are
@@ -2609,7 +2617,7 @@ func TestSampleHashesManySenders(t *testing.T) {
 			if err := pool.addRemoteSync(tx); err != nil {
 				t.Fatalf("failed to add transaction: %v", err)
 			}
-			if i  == 0 { // first pending expected
+			if i == 0 { // first pending expected
 				expectedTxs[tx.Hash()] = 0
 			}
 		}

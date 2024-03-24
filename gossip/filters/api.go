@@ -179,9 +179,6 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 			case <-rpcSub.Err():
 				pendingTxSub.Unsubscribe()
 				return
-			case <-notifier.Closed():
-				pendingTxSub.Unsubscribe()
-				return
 			}
 		}
 	}()
@@ -244,9 +241,6 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 			case <-rpcSub.Err():
 				headersSub.Unsubscribe()
 				return
-			case <-notifier.Closed():
-				headersSub.Unsubscribe()
-				return
 			}
 		}
 	}()
@@ -280,9 +274,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc
 					_ = notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				logsSub.Unsubscribe()
-				return
-			case <-notifier.Closed(): // connection dropped
 				logsSub.Unsubscribe()
 				return
 			}

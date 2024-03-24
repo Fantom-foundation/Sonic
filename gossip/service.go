@@ -130,7 +130,7 @@ type Service struct {
 	blockBusyFlag uint32
 	eventBusyFlag uint32
 
-	feed     ServiceFeed
+	feed ServiceFeed
 
 	gpo *gasprice.Oracle
 
@@ -249,11 +249,11 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 				defer done()
 				return svc.processEvent(event)
 			},
-			SwitchEpochTo:    svc.SwitchEpochTo,
-			BVs:              svc.ProcessBlockVotes,
-			BR:               svc.ProcessFullBlockRecord,
-			EV:               svc.ProcessEpochVote,
-			ER:               svc.ProcessFullEpochRecord,
+			SwitchEpochTo: svc.SwitchEpochTo,
+			BVs:           svc.ProcessBlockVotes,
+			BR:            svc.ProcessFullBlockRecord,
+			EV:            svc.ProcessEpochVote,
+			ER:            svc.ProcessFullEpochRecord,
 		},
 	})
 	if err != nil {
@@ -372,7 +372,7 @@ func MakeProtocols(svc *Service, backend *handler, disc enode.Iterator) []p2p.Pr
 				}
 				return nil
 			},
-			Attributes:     []enr.Entry{currentENREntry(svc)},
+			Attributes:     []enr.Entry{currentENREntry(svc, 0 /* time */)},
 			DialCandidates: disc,
 		}
 	}

@@ -3,12 +3,13 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/metrics"
 	"math"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/bvallcheck"
@@ -86,12 +87,12 @@ type dagNotifier interface {
 }
 
 type processCallback struct {
-	Event            func(*inter.EventPayload) error
-	SwitchEpochTo    func(idx.Epoch) error
-	BVs              func(inter.LlrSignedBlockVotes) error
-	BR               func(ibr.LlrIdxFullBlockRecord) error
-	EV               func(inter.LlrSignedEpochVote) error
-	ER               func(ier.LlrIdxFullEpochRecord) error
+	Event         func(*inter.EventPayload) error
+	SwitchEpochTo func(idx.Epoch) error
+	BVs           func(inter.LlrSignedBlockVotes) error
+	BR            func(ibr.LlrIdxFullBlockRecord) error
+	EV            func(inter.LlrSignedEpochVote) error
+	ER            func(ier.LlrIdxFullEpochRecord) error
 }
 
 // handlerConfig is the collection of initialization parameters to create a full
@@ -1322,7 +1323,7 @@ func (h *handler) BroadcastTxs(txs types.Transactions) {
 		for _, peer := range peers {
 			txset[peer] = append(txset[peer], tx)
 		}
-		totalSize += tx.Size()
+		totalSize += common.StorageSize(tx.Size())
 		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 	fullRecipients := h.decideBroadcastAggressiveness(int(totalSize), time.Second, len(txset))

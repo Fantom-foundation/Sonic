@@ -38,6 +38,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Fantom-foundation/go-opera/gossip/contract/driver100"
@@ -193,7 +194,7 @@ func circleTransfers(t *testing.T, env *testEnv, count uint64) {
 	validatorsNum := env.store.GetValidators().Len()
 
 	// save start balances
-	balances := make([]*big.Int, validatorsNum)
+	balances := make([]*uint256.Int, validatorsNum)
 	for i := range balances {
 		balances[i] = env.State().GetBalance(env.Address(idx.ValidatorID(i + 1)))
 	}
@@ -210,8 +211,8 @@ func circleTransfers(t *testing.T, env *testEnv, count uint64) {
 		rr, err := env.ApplyTxs(sameEpoch, txs...)
 		require.NoError(err)
 		for i, r := range rr {
-			fee := big.NewInt(0).Mul(new(big.Int).SetUint64(r.GasUsed), txs[i].GasPrice())
-			balances[i] = big.NewInt(0).Sub(balances[i], fee)
+			fee := uint256.NewInt(0).Mul(new(uint256.Int).SetUint64(r.GasUsed), utils.BigIntToUint256(txs[i].GasPrice()))
+			balances[i] = uint256.NewInt(0).Sub(balances[i], fee)
 		}
 	}
 

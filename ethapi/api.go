@@ -45,6 +45,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/holiman/uint256"
 	"github.com/tyler-smith/go-bip39"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -914,7 +915,7 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 type OverrideAccount struct {
 	Nonce     *hexutil.Uint64              `json:"nonce"`
 	Code      *hexutil.Bytes               `json:"code"`
-	Balance   **hexutil.Big                `json:"balance"`
+	Balance   **hexutil.U256               `json:"balance"`
 	State     *map[common.Hash]common.Hash `json:"state"`
 	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }
@@ -938,7 +939,7 @@ func (diff *StateOverride) Apply(state state.StateDB) error {
 		}
 		// Override account balance.
 		if account.Balance != nil {
-			state.SetBalance(addr, (*big.Int)(*account.Balance))
+			state.SetBalance(addr, (*uint256.Int)(*account.Balance))
 		}
 		if account.State != nil && account.StateDiff != nil {
 			return fmt.Errorf("account %s has both 'state' and 'stateDiff'", addr.Hex())

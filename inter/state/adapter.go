@@ -1,12 +1,11 @@
 package state
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/holiman/uint256"
 )
 
 type StateDB interface {
@@ -19,7 +18,7 @@ type StateDB interface {
 	GetProof(addr common.Address) ([][]byte, error)
 	GetStorageProof(a common.Address, key common.Hash) ([][]byte, error)
 	StorageTrie(addr common.Address) state.Trie
-	SetBalance(addr common.Address, amount *big.Int)
+	SetBalance(addr common.Address, amount *uint256.Int)
 	SetCode(addr common.Address, code []byte)
 	SetStorage(addr common.Address, storage map[common.Hash]common.Hash)
 	Copy() StateDB
