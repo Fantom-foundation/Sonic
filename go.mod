@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00
 	github.com/allegro/bigcache v1.2.1 // indirect
-	github.com/certifi/gocertifi v0.0.0-20191021191039-0944d244cd40 // indirect
 	github.com/cespare/cp v1.1.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -13,20 +12,17 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/dvyukov/go-fuzz v0.0.0-20201127111758-49e582c6c23d
 	github.com/ethereum/go-ethereum v1.13.14
-	github.com/evalphobia/logrus_sentry v0.8.2
 	github.com/fjl/memsize v0.0.2
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
-	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/klauspost/pgzip v1.0.2-0.20170402124221-0bf5dcad4ada
-	github.com/mattn/go-colorable v0.1.13
-	github.com/mattn/go-isatty v0.0.17
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.9.0
 	github.com/status-im/keycard-go v0.2.0
 	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
@@ -40,7 +36,11 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
-require github.com/Fantom-foundation/Carmen/go v0.0.0-20240304081312-ad4c7efe9986
+require (
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20240304081312-ad4c7efe9986
+	github.com/holiman/uint256 v1.2.4
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
+)
 
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
@@ -85,7 +85,6 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/go-bexpr v0.1.10 // indirect
 	github.com/holiman/billy v0.0.0-20240216141850-2abb0c79d3c4 // indirect
-	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.4.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
@@ -122,7 +121,6 @@ require (
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/mock v0.2.0 // indirect
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
@@ -136,8 +134,8 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => ../go-ethereum
+replace github.com/ethereum/go-ethereum => github.com/HerbertJordan/go-ethereum v0.0.0-20240324162455-30001f1d2865
 
-replace github.com/Fantom-foundation/lachesis-base => ../lachesis-base
+replace github.com/Fantom-foundation/lachesis-base => github.com/HerbertJordan/lachesis-base v0.0.0-20240320160249-81827a18147c
 
 replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210201043429-a8e90a2a4f88
