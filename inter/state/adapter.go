@@ -14,6 +14,7 @@ type StateDB interface {
 
 	Error() error
 	GetLogs(hash common.Hash, blockHash common.Hash) []*types.Log
+	SetTxContext(thash common.Hash, ti int)
 	TxIndex() int
 	GetProof(addr common.Address) ([][]byte, error)
 	GetStorageProof(a common.Address, key common.Hash) ([][]byte, error)
