@@ -2,6 +2,9 @@ package config
 
 import (
 	"fmt"
+	"path"
+	"time"
+
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip"
@@ -13,8 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"gopkg.in/urfave/cli.v1"
-	"path"
-	"time"
 )
 
 func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(), error) {
@@ -75,7 +76,7 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 		}
 	})
 
-	_, _, keystoreDir, err := cfg.Node.AccountConfig()
+	keystoreDir, err := cfg.Node.KeyDirConfig()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to setup account config: %w", err)
 	}

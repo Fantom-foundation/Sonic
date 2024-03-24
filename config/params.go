@@ -29,7 +29,7 @@ var (
 
 func OverrideParams() {
 	params.MainnetBootnodes = []string{}
-	params.RopstenBootnodes = []string{}
-	params.RinkebyBootnodes = []string{}
+	params.HoleskyBootnodes = []string{}
+	params.SepoliaBootnodes = []string{}
 	params.GoerliBootnodes = []string{}
 }
