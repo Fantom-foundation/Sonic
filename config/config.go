@@ -225,15 +225,14 @@ func setDBConfig(cfg Config, cacheRatio cachescale.Func) (Config, error) {
 const (
 	// DefaultCacheSize is calculated as memory consumption in a worst case scenario with default configuration
 	// Average memory consumption might be 3-5 times lower than the maximum
-	DefaultCacheSize  = 6144
-	ConstantCacheSize = 400
+	DefaultCacheSize  = 6 * 1024 // MB
+	ConstantCacheSize = 400 // MB
 )
 
 func cacheScaler(ctx *cli.Context) cachescale.Func {
-	targetCache := ctx.GlobalInt(flags.CacheFlag.Name)
 	baseSize := DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
-	maxCache := totalMemory * 3 / 5
+	maxCache := totalMemory * 4 / 5  // max 80% of available memory
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
@@ -244,11 +243,12 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 		}
 		return cachescale.Identity
 	}
+	targetCache := ctx.GlobalInt(flags.CacheFlag.Name)
 	if targetCache < baseSize {
 		log.Crit("Invalid flag", "flag", flags.CacheFlag.Name, "err", fmt.Sprintf("minimum cache size is %d MB", baseSize))
 	}
 	if totalMemory != 0 && targetCache > maxCache {
-		log.Warn(fmt.Sprintf("Requested cache size exceeds 60%% of available memory. Reducing cache size to %d MB.", maxCache))
+		log.Warn(fmt.Sprintf("Requested cache size exceeds 80%% of available memory. Reducing cache size to %d MB.", maxCache))
 		targetCache = maxCache
 	}
 
