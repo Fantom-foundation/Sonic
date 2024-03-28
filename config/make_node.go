@@ -13,6 +13,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/errlock"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"gopkg.in/urfave/cli.v1"
@@ -86,6 +87,7 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 		if err := addFakeValidatorKey(ctx, key, valPubkey, valKeystore); err != nil {
 			return nil, nil, nil, err
 		}
+		stack.AccountManager().AddBackend(keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP))
 		coinbase := integration.SetAccountKey(stack.AccountManager(), key, "fakepassword")
 		log.Info("Unlocked fake validator account", "address", coinbase.Address.Hex())
 	}
