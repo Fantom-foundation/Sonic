@@ -232,7 +232,7 @@ const (
 func cacheScaler(ctx *cli.Context) cachescale.Func {
 	baseSize := DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
-	maxCache := totalMemory * 4 / 5  // max 80% of available memory
+	maxCache := totalMemory * 3 / 5  // max 60% of available memory
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
@@ -248,7 +248,7 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 		log.Crit("Invalid flag", "flag", flags.CacheFlag.Name, "err", fmt.Sprintf("minimum cache size is %d MB", baseSize))
 	}
 	if totalMemory != 0 && targetCache > maxCache {
-		log.Warn(fmt.Sprintf("Requested cache size exceeds 80%% of available memory. Reducing cache size to %d MB.", maxCache))
+		log.Warn(fmt.Sprintf("Requested cache size exceeds 60%% of available memory. Reducing cache size to %d MB.", maxCache))
 		targetCache = maxCache
 	}
 
