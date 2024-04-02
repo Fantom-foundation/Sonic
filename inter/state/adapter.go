@@ -21,9 +21,8 @@ type StateDB interface {
 	SetCode(addr common.Address, code []byte)
 	SetStorage(addr common.Address, storage map[common.Hash]common.Hash)
 	Copy() StateDB
-	Finalise(deleteEmptyObjects bool)
-	IntermediateRoot(deleteEmptyObjects bool) common.Hash
-	Prepare(thash common.Hash, ti int)
+	Finalise()
+	Prepare(txHash common.Hash, txIndex int)
 	Commit(deleteEmptyObjects bool) (common.Hash, error)
 
 	BeginBlock(number uint64)

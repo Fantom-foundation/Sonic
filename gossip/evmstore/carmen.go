@@ -196,13 +196,8 @@ func (c *CarmenStateDB) GetRefund() uint64 {
 	return c.db.GetRefund()
 }
 
-func (c *CarmenStateDB) Finalise(deleteEmptyObjects bool) {
+func (c *CarmenStateDB) Finalise() {
 	c.db.EndTransaction()
-}
-
-func (c *CarmenStateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
-	c.db.EndTransaction()
-	return common.Hash(c.db.GetHash())
 }
 
 // Prepare sets the current transaction hash and index which are
