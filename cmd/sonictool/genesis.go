@@ -30,22 +30,6 @@ var (
 	}
 )
 
-func snapshotGenesisImport(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
-		return fmt.Errorf("this command requires an argument - the tar.gz snapshot file to import")
-	}
-	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
-	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
-	}
-	genesisReader, err := os.Open(ctx.Args().First())
-	if err != nil {
-		return err
-	}
-	defer genesisReader.Close()
-	return genesis.SonicImport(dataDir, genesisReader)
-}
-
 func gfileGenesisImport(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the genesis file to import")

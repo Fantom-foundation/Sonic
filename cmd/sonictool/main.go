@@ -35,13 +35,6 @@ func main() {
 
 			Subcommands: []cli.Command{
 				{
-					Name:        "snapshot",
-					Usage:       "Initialize the database from a tar.gz snapshot file",
-					ArgsUsage:   "<filename>",
-					Action:      snapshotGenesisImport,
-					Description: "TBD",
-				},
-				{
 					Name:   "json",
 					Usage:  "Initialize the database from a testing JSON genesis file",
 					ArgsUsage: "<filename>",
