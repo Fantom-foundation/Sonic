@@ -22,9 +22,14 @@ func main() {
 	}
 	app.Commands = []cli.Command{
 		{
-			Name:     "genesis",
-			Usage:    "Import a genesis file",
-			Description: "TBD",
+			Name:  "genesis",
+			Usage: "Initialize the database from a genesis file",
+			Description: `
+    sonictool --datadir=<datadir> genesis genesis-file.g
+
+Requires a first argument of the genesis file to import.
+Initialize the database using data from the genesis file.
+`,
 
 			ArgsUsage: "<filename>",
 			Action:    gfileGenesisImport,
@@ -43,50 +48,70 @@ func main() {
 						ExperimentalFlag,
 						ModeFlag,
 					},
-					Description: "TBD",
+					Description: `
+    sonictool --datadir=<datadir> genesis json --experimental genesis-file.json
+
+Requires a first argument of the JSON genesis file to import.
+Initialize the database using data from the experimental genesis file.
+`,
 				},
 				{
-					Name:   "fake",
-					Usage:  "Initialize the database for a fakenet testing network",
+					Name:      "fake",
+					Usage:     "Initialize the database for a fakenet testing network",
 					ArgsUsage: "<validators>",
-					Action: fakeGenesisImport,
+					Action:    fakeGenesisImport,
 					Flags: []cli.Flag{
 						ModeFlag,
 					},
-					Description: "TBD",
+					Description: `
+    sonictool --datadir=<datadir> genesis fake <N>
+
+Requires the number of validators in the fake network as the first argument.
+Initialize the database for a testing fakenet.
+`,
 				},
 			},
 		},
 		{
-			Name:     "check",
-			Usage:    "Check EVM database consistency",
-			Description: "TBD",
+			Name:        "check",
+			Usage:       "Check EVM database consistency",
+			Description: "Verifies the consistency of the EVM state database.",
 			Subcommands: []cli.Command{
 				{
 					Name:   "live",
 					Usage:  "Check EVM live state database",
 					Action: checkLive,
-					Description: "TBD",
+					Description: `
+    sonictool --datadir=<datadir> check live
+
+Verifies the consistency of the EVM state database.
+The live state is used for blocks processing.
+`,
 				},
 				{
 					Name:   "archive",
 					Usage:  "Check EVM archive states database",
 					Action: checkArchive,
-					Description: "TBD",
+					Description: `
+    sonictool --datadir=<datadir> check archive
+
+Verifies the consistency of the EVM state database.
+The archive state is used for RPC - allows to handle state-related RPC queries.
+`,
 				},
 			},
 		},
 		{
-			Name:     "compact",
-			Usage:    "Compact all pebble databases",
-			Action: compactDbs,
-			Description: "TBD",
+			Name:        "compact",
+			Usage:       "Compact all pebble databases",
+			Action:      compactDbs,
+			Description: "Compacts (optimize) all the Pebble databases in the data directory.",
 		},
 		{
-			Name:     "cli",
-			Usage:    "Start an interactive JavaScript environment, attach to a node",
+			Name:      "cli",
+			Usage:     "Start an interactive JavaScript environment, attach to a node",
 			ArgsUsage: "[endpoint]",
-			Action: remoteConsole,
+			Action:    remoteConsole,
 			Flags: []cli.Flag{
 				JSpathFlag,
 				PreloadJSFlag,
@@ -99,21 +124,15 @@ See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.
 This command allows to open a console attached to a running Sonic node.`,
 		},
 		{
-			Name:      "import",
-			Usage:     "Import a blockchain file",
-			ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
-			Category:  "MISCELLANEOUS COMMANDS",
-			Description: `
-    sonictool import events
-
-The import command imports events from an RLP-encoded files.
-Events are fully verified.`,
+			Name:     "import",
+			Usage:    "Import a blockchain file",
+			Category: "MISCELLANEOUS COMMANDS",
 
 			Subcommands: []cli.Command{
 				{
 					Action:    importEvents,
 					Name:      "events",
-					Usage:     "Import blockchain events",
+					Usage:     "Import blockchain events file",
 					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 					Description: `
 The import command imports events from RLP-encoded files.
@@ -133,8 +152,6 @@ Events are fully verified.`,
 					ArgsUsage: "<filename> [<epochFrom> <epochTo>]",
 					Action:    exportEvents,
 					Description: `
-    sonictool export events
-
 Requires a first argument of the file to write to.
 Optional second and third arguments control the first and
 last epoch to write. If the file ends with .gz, the output will
@@ -150,8 +167,6 @@ be gzipped.
 						ModeFlag,
 					},
 					Description: `
-    sonictool export genesis
-
 Export current state into a genesis file.
 Requires a first argument of the file to write to.
 Use --mode=validator to generate a genesis without an archive section.
@@ -223,8 +238,6 @@ Print a short summary of all accounts`,
 						flags.LightKDFFlag,
 					},
 					Description: `
-    sonictool account new
-
 Creates a new account and prints the address.
 
 The account is saved in encrypted format, you are prompted for a passphrase.
@@ -232,6 +245,8 @@ The account is saved in encrypted format, you are prompted for a passphrase.
 You must remember this passphrase to unlock your account in the future.
 
 For non-interactive use the passphrase can be specified with the --password flag:
+
+    sonictool account new --password=file
 
 Note, this is meant to be used for testing only, it is a bad idea to save your
 password to file or expose in any other way.
@@ -248,8 +263,6 @@ password to file or expose in any other way.
 						flags.LightKDFFlag,
 					},
 					Description: `
-    sonictool account update <address>
-
 Update an existing account.
 
 The account is saved in the newest version in encrypted format, you are prompted
@@ -260,7 +273,7 @@ format to the newest format or change the password for an account.
 
 For non-interactive use the passphrase can be specified with the --password flag:
 
-    sonictool account update [options] <address>
+    sonictool account update --password=file <address>
 
 Since only one password can be given, only format update can be performed,
 changing your password is only possible interactively.
@@ -289,12 +302,12 @@ The account is saved in encrypted format, you are prompted for a passphrase.
 
 You must remember this passphrase to unlock your account in the future.
 
-For non-interactive use the passphrase can be specified with the -password flag:
+For non-interactive use the passphrase can be specified with the --password flag:
 
-    sonictool account import [options] <keyfile>
+    sonictool account import --password=file <keyfile>
 
 Note:
-As you can directly copy your encrypted accounts to another ethereum instance,
+As you can directly copy your encrypted accounts to another Sonic instance,
 this import mechanism is not needed when you transfer an account between
 nodes.
 `,
@@ -307,7 +320,6 @@ nodes.
 			Usage:    "Manage validators",
 			Category: "VALIDATOR COMMANDS",
 			Description: `
-
 Create a new validator private key.
 
 It supports interactive mode, when you are prompted for password as well as
@@ -324,7 +336,8 @@ Keys are stored under <DATADIR>/keystore/validator.
 It is safe to transfer the entire directory or the individual keys therein
 between Opera nodes by simply copying.
 
-Make sure you backup your keys regularly.`,
+Make sure you backup your keys regularly.
+`,
 			Subcommands: []cli.Command{
 				{
 					Name:   "new",
@@ -336,8 +349,6 @@ Make sure you backup your keys regularly.`,
 						flags.PasswordFileFlag,
 					},
 					Description: `
-    sonictool validator new
-
 Creates a new validator private key and prints the public key.
 
 The key is saved in encrypted format, you are prompted for a passphrase.
@@ -360,8 +371,6 @@ password to file or expose in any other way.
 					},
 					ArgsUsage: "<account address> <validator pubkey>",
 					Description: `
-    sonictool validator convert
-
 Converts an account private key to a validator private key and saves in the validator keystore.
 `,
 				},

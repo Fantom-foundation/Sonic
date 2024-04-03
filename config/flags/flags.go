@@ -40,7 +40,6 @@ var (
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
-		Value: node.DefaultDataDir(),
 	}
 	MinFreeDiskSpaceFlag = cli.StringFlag{
 		Name:  "datadir.minfreedisk",

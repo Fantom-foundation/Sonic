@@ -1,16 +1,16 @@
-# Opera 
+# Sonic 
 
 EVM-compatible chain secured by the Lachesis consensus algorithm.
 
 ## Building the source
 
-Building `opera` requires both a Go (version 1.14 or later) and a C compiler. You can install
+Building Sonic requires both a Go (version 1.21 or later) and a C compiler. You can install
 them using your favourite package manager. Once the dependencies are installed, run
 
 ```shell
-make opera
+make all
 ```
-The build output is ```build/opera``` executable.
+The build output are ```build/sonicd``` and ```build/sonictool``` executables.
 
 ## Running `opera`
 
