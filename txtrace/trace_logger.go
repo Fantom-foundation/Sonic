@@ -32,6 +32,7 @@ type TraceStructLogger struct {
 	value       big.Int
 
 	gasLimit     uint64
+	gasUsed      uint64
 	rootTrace    *CallTrace
 	inputData    []byte
 	traceAddress []uint32
@@ -84,7 +85,7 @@ type TraceActionResult struct {
 }
 
 // NewTraceStructLogger creates new instance of trace creator
-func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg types.Message, index uint) *TraceStructLogger {
+func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg types.Message, index uint, gasUsed uint64) *TraceStructLogger {
 	traceStructLogger := TraceStructLogger{
 		tx:          tx.Hash(),
 		from:        msg.From(),
@@ -94,6 +95,7 @@ func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg ty
 		blockNumber: *block.Number,
 		txIndex:     index,
 		gasLimit:    tx.Gas(),
+		gasUsed:     gasUsed,
 	}
 	return &traceStructLogger
 }
@@ -296,7 +298,9 @@ func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Du
 		trace := tr.rootTrace.lastTrace()
 		trace.processOutput(output, err, true)
 		if trace.Result != nil {
-			trace.Result.GasUsed = hexutil.Uint64(tr.gasLimit)
+			// set gas used of the root call with the gas from transaction receipt
+			// to present all cumulative gas used by this call and its inner calls
+			trace.Result.GasUsed = hexutil.Uint64(tr.gasUsed)
 		}
 
 		tr.rootTrace.processTraces()
