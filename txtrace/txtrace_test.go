@@ -83,6 +83,16 @@ func TestTracerComplexCall(t *testing.T) {
 	checkResult(t, tracer.GetResult(), expectedTraceComlexCallResult)
 }
 
+func TestTracerZeroValues(t *testing.T) {
+
+	tracer := getTxTracer(txIndex, gasUsed)
+
+	tracer.CaptureStart(nil, from, to, false, []byte{}, 1000, nil)
+	tracer.CaptureEnd([]byte{}, 100, time.Since(time.Now()), nil)
+
+	checkResult(t, tracer.GetResult(), expectedTraceZeroValuesResult)
+}
+
 func getTxTracer(txIndex uint, gasUsed uint64) *TraceStructLogger {
 	// get default block, tx and message
 	block, tx, msg := getDefaultBlockTxMessage()
@@ -324,5 +334,29 @@ var expectedTraceComlexCallResult = `[
         "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
         "transactionPosition": 3,
         "type": "create"
+    }
+]`
+
+var expectedTraceZeroValuesResult = `[
+    {
+        "action": {
+            "callType": "call",
+            "from": "0x0000000000000000000000000000000000000001",
+            "to": "0x0000000000000000000000000000000000000002",
+            "value": "0x0",
+            "gas": "0x2dc6c0",
+            "input": "0x"
+        },
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
+        "blockNumber": 123,
+        "result": {
+            "gasUsed": "0x7d0",
+            "output": "0x"
+        },
+        "subtraces": 0,
+        "traceAddress": [],
+        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
+        "transactionPosition": 3,
+        "type": "call"
     }
 ]`
