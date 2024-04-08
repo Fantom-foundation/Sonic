@@ -93,6 +93,26 @@ func TestTracerZeroValues(t *testing.T) {
 	checkResult(t, tracer.GetResult(), expectedTraceZeroValuesResult)
 }
 
+func TestTracerSimpleErrorCall(t *testing.T) {
+
+	tracer := getTxTracer(txIndex, gasUsed)
+	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
+	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), vm.ErrExecutionReverted)
+
+	checkResult(t, tracer.GetResult(), expectedTraceSimpleErrorResult)
+}
+
+func TestTracerSInnerErrorCall(t *testing.T) {
+
+	tracer := getTxTracer(txIndex, gasUsed)
+	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
+	tracer.CaptureEnter(vm.CALL, to, toInner, inputDataInner, 200, value)
+	tracer.CaptureExit(outputDataInner, 201, vm.ErrExecutionReverted)
+	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
+
+	checkResult(t, tracer.GetResult(), expectedTraceInnerErrorResult)
+}
+
 func getTxTracer(txIndex uint, gasUsed uint64) *TraceStructLogger {
 	// get default block, tx and message
 	block, tx, msg := getDefaultBlockTxMessage()
@@ -355,6 +375,70 @@ var expectedTraceZeroValuesResult = `[
         },
         "subtraces": 0,
         "traceAddress": [],
+        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
+        "transactionPosition": 3,
+        "type": "call"
+    }
+]`
+
+var expectedTraceSimpleErrorResult = `[
+    {
+        "action": {
+            "callType": "call",
+            "from": "0x0000000000000000000000000000000000000001",
+            "to": "0x0000000000000000000000000000000000000002",
+            "value": "0x5",
+            "gas": "0x2dc6c0",
+            "input": "0x2f7468610000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
+        "blockNumber": 123,
+        "error": "Reverted",
+        "subtraces": 0,
+        "traceAddress": [],
+        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
+        "transactionPosition": 3,
+        "type": "call"
+    }
+]`
+var expectedTraceInnerErrorResult = `[
+    {
+        "action": {
+            "callType": "call",
+            "from": "0x0000000000000000000000000000000000000001",
+            "to": "0x0000000000000000000000000000000000000002",
+            "value": "0x5",
+            "gas": "0x2dc6c0",
+            "input": "0x2f7468610000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
+        "blockNumber": 123,
+        "result": {
+            "gasUsed": "0x7d0",
+            "output": "0x45"
+        },
+        "subtraces": 1,
+        "traceAddress": [],
+        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
+        "transactionPosition": 3,
+        "type": "call"
+    },
+    {
+        "action": {
+            "callType": "call",
+            "from": "0x0000000000000000000000000000000000000002",
+            "to": "0x0000000000000000000000000000000000000003",
+            "value": "0x5",
+            "gas": "0xc8",
+            "input": "0x2f7468610000000000000000000000000000000000000000000000000000000000000002"
+        },
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
+        "blockNumber": 123,
+        "error": "Reverted",
+        "subtraces": 0,
+        "traceAddress": [
+            0
+        ],
         "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
         "transactionPosition": 3,
         "type": "call"
