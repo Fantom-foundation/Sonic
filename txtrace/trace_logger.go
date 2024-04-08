@@ -157,6 +157,10 @@ func (tr *TraceStructLogger) CaptureStart(env *vm.EVM, from common.Address, to c
 		Actions: make([]ActionTrace, 0),
 	}
 
+	if value == nil {
+		value = big.NewInt(0)
+	}
+
 	// Check if To is defined. If not, it is create address call
 	callType := CREATE
 	var newAddress *common.Address
