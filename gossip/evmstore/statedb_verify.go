@@ -3,9 +3,9 @@ package evmstore
 import (
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/database/mpt"
+	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/Carmen/go/state/mpt"
-	"github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"path/filepath"
