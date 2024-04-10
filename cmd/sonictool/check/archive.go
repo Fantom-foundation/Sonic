@@ -2,9 +2,9 @@ package check
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/Carmen/go/database/mpt"
+	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/Carmen/go/state/mpt"
-	"github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"

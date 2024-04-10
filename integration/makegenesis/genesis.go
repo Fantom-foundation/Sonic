@@ -30,8 +30,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 
+	mptIo "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	mptIo "github.com/Fantom-foundation/Carmen/go/state/mpt/io"
 )
 
 type GenesisBuilder struct {
