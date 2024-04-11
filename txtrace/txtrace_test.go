@@ -40,7 +40,30 @@ func TestTracerSimpleCall(t *testing.T) {
 	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
 	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
 
-	checkResult(t, tracer.GetResult(), expectedTraceSimpleCallResult)
+	want := `[
+    {
+        "action": {
+            "callType": "call",
+            "from": "0x0000000000000000000000000000000000000001",
+            "to": "0x0000000000000000000000000000000000000002",
+            "value": "0x5",
+            "gas": "0x2dc6c0",
+            "input": "0x2f7468610000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
+        "blockNumber": 123,
+        "result": {
+            "gasUsed": "0x7d0",
+            "output": "0x45"
+        },
+        "subtraces": 0,
+        "traceAddress": [],
+        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
+        "transactionPosition": 3,
+        "type": "call"
+    }
+]`
+	checkResult(t, tracer.GetResult(), want)
 }
 
 func TestTracerSimpleCreate(t *testing.T) {
@@ -50,7 +73,29 @@ func TestTracerSimpleCreate(t *testing.T) {
 	tracer.CaptureStart(nil, to, to, true, inputData, 1000, value)
 	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
 
-	checkResult(t, tracer.GetResult(), expectedTraceSimpleCreateResult)
+	want := `[
+    {
+        "action": {
+            "from": "0x0000000000000000000000000000000000000001",
+            "value": "0x5",
+            "gas": "0x2dc6c0",
+            "init": "0x2f7468610000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
+        "blockNumber": 123,
+        "result": {
+            "gasUsed": "0x7d0",
+            "code": "0x45",
+            "address": "0x0000000000000000000000000000000000000002"
+        },
+        "subtraces": 0,
+        "traceAddress": [],
+        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
+        "transactionPosition": 3,
+        "type": "create"
+    }
+]`
+	checkResult(t, tracer.GetResult(), want)
 }
 
 func TestTracerComplexCall(t *testing.T) {
@@ -80,120 +125,7 @@ func TestTracerComplexCall(t *testing.T) {
 
 	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
 
-	checkResult(t, tracer.GetResult(), expectedTraceComlexCallResult)
-}
-
-func TestTracerZeroValues(t *testing.T) {
-
-	tracer := getTxTracer(txIndex, gasUsed)
-
-	tracer.CaptureStart(nil, from, to, false, []byte{}, 1000, nil)
-	tracer.CaptureEnd([]byte{}, 100, time.Since(time.Now()), nil)
-
-	checkResult(t, tracer.GetResult(), expectedTraceZeroValuesResult)
-}
-
-func TestTracerSimpleErrorCall(t *testing.T) {
-
-	tracer := getTxTracer(txIndex, gasUsed)
-	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), vm.ErrExecutionReverted)
-
-	checkResult(t, tracer.GetResult(), expectedTraceSimpleErrorResult)
-}
-
-func TestTracerSInnerErrorCall(t *testing.T) {
-
-	tracer := getTxTracer(txIndex, gasUsed)
-	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
-	tracer.CaptureEnter(vm.CALL, to, toInner, inputDataInner, 200, value)
-	tracer.CaptureExit(outputDataInner, 201, vm.ErrExecutionReverted)
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
-
-	checkResult(t, tracer.GetResult(), expectedTraceInnerErrorResult)
-}
-
-func getTxTracer(txIndex uint, gasUsed uint64) *TraceStructLogger {
-	// get default block, tx and message
-	block, tx, msg := getDefaultBlockTxMessage()
-	return NewTraceStructLogger(block, tx, msg, txIndex, gasUsed)
-}
-
-func getDefaultBlockTxMessage() (*evmcore.EvmBlock, *types.Transaction, types.Message) {
-
-	// create transaction with default values
-	tx := types.NewTransaction(nonce, to, value, gaslimit, gasprice, inputData)
-
-	// create block
-	block := evmcore.NewEvmBlock(&evmcore.EvmHeader{
-		Number: blockNumber,
-		Hash:   blockHash}, types.Transactions{tx})
-
-	// create message with transaction values
-	msg := types.NewMessage(from, tx.To(), nonce, value, gaslimit, gasprice, gasfeecap, gastipcap, tx.Data(), nil, true)
-
-	return block, tx, msg
-}
-
-func checkResult(t *testing.T, traces *[]ActionTrace, expectedTraces string) {
-	result, err := json.MarshalIndent(&traces, "", "    ")
-	if err != nil {
-		t.Errorf("problem with formating result, got error: %v", err)
-	}
-
-	if expectedTraces != string(result) {
-		t.Errorf("expected result is not the same as output got: %v, want: %v", string(result), expectedTraces)
-	}
-}
-
-var expectedTraceSimpleCallResult = `[
-    {
-        "action": {
-            "callType": "call",
-            "from": "0x0000000000000000000000000000000000000001",
-            "to": "0x0000000000000000000000000000000000000002",
-            "value": "0x5",
-            "gas": "0x2dc6c0",
-            "input": "0x2f7468610000000000000000000000000000000000000000000000000000000000000008"
-        },
-        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
-        "blockNumber": 123,
-        "result": {
-            "gasUsed": "0x7d0",
-            "output": "0x45"
-        },
-        "subtraces": 0,
-        "traceAddress": [],
-        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
-        "transactionPosition": 3,
-        "type": "call"
-    }
-]`
-
-var expectedTraceSimpleCreateResult = `[
-    {
-        "action": {
-            "from": "0x0000000000000000000000000000000000000001",
-            "value": "0x5",
-            "gas": "0x2dc6c0",
-            "init": "0x2f7468610000000000000000000000000000000000000000000000000000000000000008"
-        },
-        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000123",
-        "blockNumber": 123,
-        "result": {
-            "gasUsed": "0x7d0",
-            "code": "0x45",
-            "address": "0x0000000000000000000000000000000000000002"
-        },
-        "subtraces": 0,
-        "traceAddress": [],
-        "transactionHash": "0xb3a9e46933c0c55b3e9facb9d291b1c606ffa59acbdc9b58540130155b0699ec",
-        "transactionPosition": 3,
-        "type": "create"
-    }
-]`
-
-var expectedTraceComlexCallResult = `[
+	want := `[
     {
         "action": {
             "callType": "call",
@@ -356,8 +288,17 @@ var expectedTraceComlexCallResult = `[
         "type": "create"
     }
 ]`
+	checkResult(t, tracer.GetResult(), want)
+}
 
-var expectedTraceZeroValuesResult = `[
+func TestTracerZeroValues(t *testing.T) {
+
+	tracer := getTxTracer(txIndex, gasUsed)
+
+	tracer.CaptureStart(nil, from, to, false, []byte{}, 1000, nil)
+	tracer.CaptureEnd([]byte{}, 100, time.Since(time.Now()), nil)
+
+	want := `[
     {
         "action": {
             "callType": "call",
@@ -380,8 +321,16 @@ var expectedTraceZeroValuesResult = `[
         "type": "call"
     }
 ]`
+	checkResult(t, tracer.GetResult(), want)
+}
 
-var expectedTraceSimpleErrorResult = `[
+func TestTracerSimpleErrorCall(t *testing.T) {
+
+	tracer := getTxTracer(txIndex, gasUsed)
+	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
+	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), vm.ErrExecutionReverted)
+
+	want := `[
     {
         "action": {
             "callType": "call",
@@ -401,7 +350,18 @@ var expectedTraceSimpleErrorResult = `[
         "type": "call"
     }
 ]`
-var expectedTraceInnerErrorResult = `[
+	checkResult(t, tracer.GetResult(), want)
+}
+
+func TestTracerInnerErrorCall(t *testing.T) {
+
+	tracer := getTxTracer(txIndex, gasUsed)
+	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
+	tracer.CaptureEnter(vm.CALL, to, toInner, inputDataInner, 200, value)
+	tracer.CaptureExit(outputDataInner, 201, vm.ErrExecutionReverted)
+	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
+
+	want := `[
     {
         "action": {
             "callType": "call",
@@ -444,3 +404,38 @@ var expectedTraceInnerErrorResult = `[
         "type": "call"
     }
 ]`
+	checkResult(t, tracer.GetResult(), want)
+}
+
+func getTxTracer(txIndex uint, gasUsed uint64) *TraceStructLogger {
+	// get default block, tx and message
+	block, tx, msg := getDefaultBlockTxMessage()
+	return NewTraceStructLogger(block, tx, msg, txIndex, gasUsed)
+}
+
+func getDefaultBlockTxMessage() (*evmcore.EvmBlock, *types.Transaction, types.Message) {
+
+	// create transaction with default values
+	tx := types.NewTransaction(nonce, to, value, gaslimit, gasprice, inputData)
+
+	// create block
+	block := evmcore.NewEvmBlock(&evmcore.EvmHeader{
+		Number: blockNumber,
+		Hash:   blockHash}, types.Transactions{tx})
+
+	// create message with transaction values
+	msg := types.NewMessage(from, tx.To(), nonce, value, gaslimit, gasprice, gasfeecap, gastipcap, tx.Data(), nil, true)
+
+	return block, tx, msg
+}
+
+func checkResult(t *testing.T, traces *[]ActionTrace, expectedTraces string) {
+	result, err := json.MarshalIndent(&traces, "", "    ")
+	if err != nil {
+		t.Errorf("problem with formating result, got error: %v", err)
+	}
+
+	if expectedTraces != string(result) {
+		t.Errorf("expected result is not the same as output got: %v, want: %v", string(result), expectedTraces)
+	}
+}
