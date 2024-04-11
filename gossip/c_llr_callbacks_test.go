@@ -1693,7 +1693,7 @@ func TestProcessEpochVotesOneValidatorMultipleEvsDiffLamport(t *testing.T) {
 	erHash := er.Hash()
 
 	for i := 0; i < 10; i++ {
-		randLamport := idx.Lamport(rand.Intn(1000))
+		randLamport := idx.Lamport(rand.Intn(100) * 100 + i) // random order but unique values
 		e := fakeEventWithLamport(inter.LlrBlockVotes{}, getEv(startEpoch+1, erHash), randLamport)
 		require.NoError(env.ProcessEpochVote(inter.AsSignedEpochVote(e)))
 	}
