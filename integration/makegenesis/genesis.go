@@ -30,14 +30,14 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 
+	"github.com/Fantom-foundation/Carmen/go/carmen"
 	mptIo "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 )
 
 type GenesisBuilder struct {
 	tmpStateDB state.StateDB
 	carmenDir  string
-	carmenStateDb carmen.StateDB
+	carmenDb   carmen.Database
 
 	totalSupply *big.Int
 
@@ -109,22 +109,23 @@ func NewGenesisBuilder() *GenesisBuilder {
 	if err != nil {
 		panic(fmt.Errorf("failed to create temporary dir for GenesisBuilder: %v", err))
 	}
-	carmenState, err := carmen.NewState(carmen.Parameters{
-		Variant:   "go-file",
-		Schema:    carmen.Schema(5),
-		Directory: carmenDir,
-		LiveCache: 1, // use minimum cache (not default)
-	})
+	carmenDb, err := carmen.OpenDatabase(
+		carmenDir,
+		carmen.GetCarmenGoS5WithoutArchiveConfiguration(),
+		carmen.Properties{
+			carmen.LiveDBCache: "1", // use minimum cache (not default)
+		},
+	)
 	if err != nil {
 		panic(fmt.Errorf("failed to create carmen state; %s", err))
 	}
-	carmenStateDb := carmen.CreateStateDBUsing(carmenState)
-	tmpStateDB := evmstore.CreateCarmenStateDb(carmenStateDb)
+	tmpStateDB := evmstore.CreateCarmenStateDb(carmenDb)
+	tmpStateDB.BeginBlock(0)
 	return &GenesisBuilder{
-		tmpStateDB:    tmpStateDB,
-		carmenDir:     carmenDir,
-		carmenStateDb: carmenStateDb,
-		totalSupply:   new(big.Int),
+		tmpStateDB:  tmpStateDB,
+		carmenDir:   carmenDir,
+		carmenDb:    carmenDb,
+		totalSupply: new(big.Int),
 	}
 }
 
@@ -136,6 +137,7 @@ func (d dummyHeaderReturner) GetHeader(common.Hash, uint64) *evmcore.EvmHeader {
 }
 
 func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types.Transactions) error {
+	b.tmpStateDB.EndBlock(0)
 	bs, es := b.currentEpoch.BlockState.Copy(), b.currentEpoch.EpochState.Copy()
 
 	blockCtx := iblockproc.BlockCtx{
@@ -238,7 +240,7 @@ func (f *memFile) Close() error {
 }
 
 func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
-	err := b.carmenStateDb.Close()
+	err := b.carmenDb.Close()
 	if err != nil {
 		panic(fmt.Errorf("failed to close genesis carmen state; %s", err))
 	}

@@ -3,6 +3,7 @@ package gossip
 import (
 	"errors"
 	"fmt"
+
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"

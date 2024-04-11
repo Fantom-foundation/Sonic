@@ -3,15 +3,15 @@ package db
 import (
 	"errors"
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"os"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -31,7 +31,7 @@ func makeDatabaseHandles() uint64 {
 	if err != nil {
 		panic(fmt.Errorf("failed to raise file descriptor allowance: %v", err))
 	}
-	return raised / 6 + 1
+	return raised/6 + 1
 }
 
 func RemoveDatabase(dataDir string) error {
@@ -54,9 +54,9 @@ func MakeDbProducer(chaindataDir string, cacheRatio cachescale.Func) (kvdb.FullD
 
 func MakeGossipDb(dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func) (*gossip.Store, error) {
 	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
-	gdbConfig.EVM.StateDb.Directory = filepath.Join(dataDir, "carmen")
+	gdbConfig.EVM.Directory = filepath.Join(dataDir, "carmen")
 	if validatorMode {
-		gdbConfig.EVM.StateDb.Archive = carmen.NoArchive
+		gdbConfig.EVM.Archive = false
 		gdbConfig.EVM.DisableLogsIndexing = true
 		gdbConfig.EVM.DisableTxHashesIndexing = true
 	}

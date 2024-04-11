@@ -2,18 +2,18 @@ package check
 
 import (
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"os"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"os"
-	"path/filepath"
 )
 
-func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.ArchiveType, skipArchiveCheck bool) (*gossip.Store, kvdb.FullDBProducer, error) {
+func createGdb(dataDir string, cacheRatio cachescale.Func, archive bool, skipArchiveCheck bool) (*gossip.Store, kvdb.FullDBProducer, error) {
 	chaindataDir := filepath.Join(dataDir, "chaindata")
 	carmenDir := filepath.Join(dataDir, "carmen")
 
@@ -33,8 +33,8 @@ func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.Archiv
 	}
 
 	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
-	gdbConfig.EVM.StateDb.Directory = carmenDir
-	gdbConfig.EVM.StateDb.Archive = archive
+	gdbConfig.EVM.Directory = carmenDir
+	gdbConfig.EVM.Archive = archive
 	gdbConfig.EVM.SkipArchiveCheck = skipArchiveCheck // skip archive mode check (allow "check live" to run with archive enabled)
 
 	gdb, err := gossip.NewStore(dbs, gdbConfig)
@@ -50,7 +50,7 @@ func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.Archiv
 	return gdb, dbs, nil
 }
 
-type verificationObserver struct {}
+type verificationObserver struct{}
 
 func (o verificationObserver) StartVerification() {}
 

@@ -8,6 +8,7 @@ import (
 	big "math/big"
 	reflect "reflect"
 
+	evmstore "github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	inter "github.com/Fantom-foundation/go-opera/inter"
 	validatorpk "github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	opera "github.com/Fantom-foundation/go-opera/opera"
@@ -18,7 +19,6 @@ import (
 	common "github.com/ethereum/go-ethereum/common"
 	types "github.com/ethereum/go-ethereum/core/types"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/Fantom-foundation/go-opera/inter/state"
 )
 
 // MockExternal is a mock of External interface.
@@ -378,10 +378,10 @@ func (mr *MockExternalMockRecorder) Process(arg0 interface{}) *gomock.Call {
 }
 
 // StateDB mocks base method.
-func (m *MockExternal) StateDB() state.StateDB {
+func (m *MockExternal) StateDB() evmstore.TxPoolStateDB {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StateDB")
-	ret0, _ := ret[0].(state.StateDB)
+	ret0, _ := ret[0].(evmstore.TxPoolStateDB)
 	return ret0
 }
 

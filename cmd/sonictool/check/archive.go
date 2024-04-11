@@ -2,13 +2,13 @@ package check
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
-	"path/filepath"
 )
 
 func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
@@ -31,7 +31,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 }
 
 func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
-	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.S5Archive, false)
+	gdb, dbs, err := createGdb(dataDir, cacheRatio, true, false)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
 			log.Error("Block root verification failed", "block", i, "err", err)
 			invalidBlocks++
 		}
-		if i % 1000 == 0 {
+		if i%1000 == 0 {
 			log.Info("Block root verification OK", "block", i)
 		}
 	}

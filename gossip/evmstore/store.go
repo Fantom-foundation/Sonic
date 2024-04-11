@@ -2,7 +2,10 @@ package evmstore
 
 import (
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"os"
+	"path/filepath"
+
+	"github.com/Fantom-foundation/Carmen/go/carmen"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
 	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
@@ -10,8 +13,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
 	"github.com/ethereum/go-ethereum/core/types"
-	"os"
-	"path/filepath"
 )
 
 const nominalSize uint = 1
@@ -21,14 +22,14 @@ type Store struct {
 	cfg StoreConfig
 
 	mainDB kvdb.Store
-	table struct {
+	table  struct {
 		// API-only tables
 		Receipts    kvdb.Store `table:"r"`
 		TxPositions kvdb.Store `table:"x"`
 		Txs         kvdb.Store `table:"X"`
 	}
 
-	EvmLogs  topicsdb.Index
+	EvmLogs topicsdb.Index
 
 	cache struct {
 		TxPositions *wlru.Cache `cache:"-"` // store by pointer
@@ -40,19 +41,21 @@ type Store struct {
 
 	logger.Instance
 
-	parameters carmen.Parameters
-	carmenState carmen.State
-	liveStateDb carmen.StateDB
+	carmenDb   carmen.Database
+	properties carmen.Properties
 }
 
 // NewStore creates store over key-value db.
 func NewStore(mainDB kvdb.Store, cfg StoreConfig) *Store {
+	properties := carmen.Properties{}
+	properties.SetInteger(carmen.LiveDBCache, int(cfg.LiveDbCacheSize))
+	properties.SetInteger(carmen.ArchiveCache, int(cfg.ArchiveCacheSize))
 	s := &Store{
-		cfg:      cfg,
-		mainDB:   mainDB,
-		Instance: logger.New("evm-store"),
-		rlp:      rlpstore.Helper{logger.New("rlp")},
-		parameters: cfg.StateDb,
+		cfg:        cfg,
+		mainDB:     mainDB,
+		Instance:   logger.New("evm-store"),
+		rlp:        rlpstore.Helper{logger.New("rlp")},
+		properties: properties,
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)
@@ -73,11 +76,16 @@ func (s *Store) Open() error {
 	if err != nil {
 		return err
 	}
-	s.carmenState, err = carmen.NewState(s.parameters)
+
+	config := carmen.GetCarmenGoS5WithoutArchiveConfiguration()
+	if s.cfg.Archive {
+		config = carmen.GetCarmenGoS5WithArchiveConfiguration()
+	}
+
+	s.carmenDb, err = carmen.OpenDatabase(s.cfg.Directory, config, s.properties)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen state; %s", err)
 	}
-	s.liveStateDb = carmen.CreateStateDBUsing(s.carmenState)
 	return nil
 }
 
@@ -90,13 +98,12 @@ func (s *Store) Close() error {
 	})
 	s.EvmLogs.Close()
 
-	if s.liveStateDb != nil {
-		err := s.liveStateDb.Close()
+	if s.carmenDb != nil {
+		err := s.carmenDb.Close()
 		if err != nil {
 			return fmt.Errorf("failed to close Carmen State: %w", err)
 		}
-		s.carmenState = nil
-		s.liveStateDb = nil
+		s.carmenDb = nil
 	}
 	return nil
 }
@@ -129,7 +136,7 @@ func (s *Store) makeCache(weight uint, size int) *wlru.Cache {
 }
 
 func (s *Store) initCarmen() error {
-	params := s.parameters
+	params := s.cfg
 	err := os.MkdirAll(params.Directory, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create carmen dir \"%s\"; %v", params.Directory, err)
@@ -145,11 +152,11 @@ func (s *Store) initCarmen() error {
 	archiveExists := err == nil && archiveInfo.IsDir()
 
 	if liveExists { // not checked if the datadir is empty
-		if archiveExists && params.Archive == carmen.NoArchive {
+		if archiveExists && !params.Archive {
 			return fmt.Errorf("starting node with disabled archive (validator mode), but the archive database exists - terminated to avoid archive-live states inconsistencies (remove the datadir/carmen/archive to enforce starting as a validator)")
 		}
-		if !archiveExists && params.Archive != carmen.NoArchive {
-			return fmt.Errorf("starting node with enabled archive (rpc mode), but the archive database does exists - terminated to avoid creating an inconsistent archive database (re-apply genesis and resync the node to switch to archive configuration)")
+		if !archiveExists && params.Archive {
+			return fmt.Errorf("starting node with enabled archive (rpc mode), but the archive database does not exists - terminated to avoid creating an inconsistent archive database (re-apply genesis and resync the node to switch to archive configuration)")
 		}
 	}
 	return nil
