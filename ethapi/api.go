@@ -2256,7 +2256,6 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 	var (
 		txs       = block.Transactions
 		blockHash = block.Hash
-		is158orBz = api.b.ChainConfig().IsByzantium(block.Number) || api.b.ChainConfig().IsEIP158(block.Number)
 		signer    = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number))
 		results   = make([]*txTraceResult, len(txs))
 	)
@@ -2274,7 +2273,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
 		// Finalize the state so any modifications are written to the trie
 		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
-		statedb.Finalise(is158orBz)
+		statedb.Finalise()
 	}
 	return results, nil
 }
@@ -2312,7 +2311,7 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 			return nil, statedb, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state
-		statedb.Finalise(vmenv.ChainConfig().IsByzantium(block.Number) || vmenv.ChainConfig().IsEIP158(block.Number))
+		statedb.Finalise()
 	}
 	return nil, statedb, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
 }

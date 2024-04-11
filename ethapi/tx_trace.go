@@ -180,7 +180,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				log.Debug("Error replaying transaction", "txHash", tx.Hash().String(), "err", res.Err.Error())
 			}
 
-			state.Finalise(true)
+			state.Finalise()
 
 			// Check correct replay status according to receipt data
 			if (failed && receipts[i].Status == 1) || (!failed && receipts[i].Status == 0) {
@@ -245,7 +245,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	result, err := evmcore.ApplyMessage(vmenv, msg, gp)
 
 	traceActions := txTracer.GetResult()
-	state.Finalise(true)
+	state.Finalise()
 
 	// err is error occured before EVM execution
 	if err != nil {
