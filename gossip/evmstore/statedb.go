@@ -2,69 +2,105 @@ package evmstore
 
 import (
 	"fmt"
-	cc "github.com/Fantom-foundation/Carmen/go/common"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
+	"math/big"
+
+	"github.com/Fantom-foundation/Carmen/go/carmen"
+	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 )
 
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
 func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDB, error) {
-	if s.liveStateDb == nil {
+	if s.carmenDb == nil {
 		return nil, fmt.Errorf("unable to get live StateDb - EvmStore is not open")
 	}
-	if s.liveStateDb.GetHash() != cc.Hash(stateRoot) {
-		return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", s.liveStateDb.GetHash(), stateRoot)
+	stateDb := CreateCarmenStateDb(s.carmenDb).(*carmenStateDB)
+	actualHash := stateDb.GetStateHash()
+	if actualHash != common.Hash(stateRoot) {
+		stateDb.Release()
+		return nil, fmt.Errorf("unable to get Carmen live StateDB - unexpected state root (%x != %x)", actualHash, stateRoot)
 	}
-	return CreateCarmenStateDb(s.liveStateDb), nil
+	return stateDb, nil
+}
+
+// GetReadOnlyHeadStateDb obtains StateDB for block processing without committing
+// results to the chain at the end of a block. This is only supposed to be used in tests.
+func (s *Store) GetReadOnlyHeadStateDb() (state.StateDB, error) {
+	// Flush changes to sync head and archive.
+	if err := s.carmenDb.Flush(); err != nil {
+		return nil, err
+	}
+	height, empty, err := s.GetArchiveBlockHeight()
+	if err != nil {
+		return nil, err
+	}
+	if empty {
+		return nil, fmt.Errorf("unable to obtain read-only state for empty chain")
+	}
+	return createHistoricStateDb(height, s.carmenDb), nil
+}
+
+type TxPoolStateDB interface {
+	evmcore.TxPoolStateDB
+	GetState(common.Address, common.Hash) common.Hash
 }
 
 // GetTxPoolStateDB obtains StateDB for TxPool evaluation - the latest finalized, read-only.
 // It is also used in emitter for emitterdriver contract reading at the start of an epoch.
-func (s *Store) GetTxPoolStateDB() (state.StateDB, error) {
+func (s *Store) GetTxPoolStateDB() (TxPoolStateDB, error) {
 	// for TxPool and emitter it is ok to provide the newest state (and ignore the expected hash)
-	if s.carmenState == nil {
+	if s.carmenDb == nil {
 		return nil, fmt.Errorf("unable to get TxPool StateDb - EvmStore is not open")
 	}
-	stateDb := carmen.CreateNonCommittableStateDBUsing(s.carmenState)
-	return CreateCarmenStateDb(stateDb), nil
+	return createTxPoolStateDB(s.carmenDb), nil
 }
 
 // GetArchiveBlockHeight provides the last block number available in the archive. Returns 0 if not known.
 func (s *Store) GetArchiveBlockHeight() (height uint64, empty bool, err error) {
-	if s.liveStateDb == nil {
+	if s.carmenDb == nil {
 		return 0, true, fmt.Errorf("unable to get archive block height - EvmStore is not open")
 	}
-	return s.liveStateDb.GetArchiveBlockHeight()
+	res, err := s.carmenDb.GetArchiveBlockHeight()
+	if err != nil {
+		return 0, false, err
+	}
+	if res < 0 {
+		return 0, true, nil
+	}
+	return uint64(res), false, nil
 }
 
 // GetRpcStateDb obtains archive StateDB for RPC requests evaluation
 func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.StateDB, error) {
 	// always use archive state (live state may mix data from various block heights)
-	if s.liveStateDb == nil {
+	if s.carmenDb == nil {
 		return nil, fmt.Errorf("unable to get RPC StateDb - EvmStore is not open")
 	}
-	stateDb, err := s.liveStateDb.GetArchiveStateDB(blockNum.Uint64())
-	if err != nil {
-		return nil, err
+	stateDb := createHistoricStateDb(blockNum.Uint64(), s.carmenDb).(*carmenStateDB)
+	actualHash := stateDb.GetStateHash()
+	if actualHash != stateRoot {
+		stateDb.Release()
+		return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", actualHash, stateRoot)
 	}
-	if stateDb.GetHash() != cc.Hash(stateRoot) {
-		return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
-	}
-	return CreateCarmenStateDb(stateDb), nil
+	return stateDb, nil
 }
 
 // CheckLiveStateHash returns if the hash of the current live StateDB hash matches (and fullsync is possible)
 func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
-	if s.liveStateDb == nil {
+	if s.carmenDb == nil {
 		return fmt.Errorf("unable to get live state - EvmStore is not open")
 	}
-	stateHash := s.liveStateDb.GetHash()
-	if cc.Hash(root) != stateHash {
+	var stateHash carmen.Hash
+	err := s.carmenDb.QueryHeadState(func(query carmen.QueryContext) {
+		stateHash = query.GetStateHash()
+	})
+	if err != nil {
+		return err
+	}
+	if hash.Hash(stateHash) != root {
 		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
 	}
 	return nil
@@ -72,20 +108,17 @@ func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
 
 // CheckArchiveStateHash returns if the hash of the given archive StateDB hash matches
 func (s *Store) CheckArchiveStateHash(blockNum idx.Block, root hash.Hash) error {
-	if s.carmenState == nil {
+	if s.carmenDb == nil {
 		return fmt.Errorf("unable to get live state - EvmStore is not open")
 	}
-	archiveState, err := s.carmenState.GetArchiveState(uint64(blockNum))
+	var stateHash carmen.Hash
+	err := s.carmenDb.QueryHistoricState(uint64(blockNum), func(query carmen.QueryContext) {
+		stateHash = query.GetStateHash()
+	})
 	if err != nil {
-		return fmt.Errorf("unable to get archive state: %w", err)
+		return err
 	}
-	defer archiveState.Close()
-
-	stateHash, err := archiveState.GetHash()
-	if err != nil {
-		return fmt.Errorf("unable to get archive state hash: %w", err)
-	}
-	if cc.Hash(root) != stateHash {
+	if hash.Hash(stateHash) != root {
 		return fmt.Errorf("hash of the archive EVM state is incorrect: blockNum: %d expected: %x actual: %x", blockNum, root, stateHash)
 	}
 	return nil

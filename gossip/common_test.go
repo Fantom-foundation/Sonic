@@ -387,7 +387,7 @@ func (env *testEnv) ReadOnly() *bind.CallOpts {
 }
 
 func (env *testEnv) State() state.StateDB {
-	statedb, err := env.store.evm.GetTxPoolStateDB()
+	statedb, err := env.store.evm.GetReadOnlyHeadStateDb()
 	if err != nil {
 		panic(err)
 	}

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/version"
@@ -178,9 +177,9 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	return cfg
 }
 
-func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (evmstore.StoreConfig, error) {
+func setEvmStore(ctx *cli.Context, datadir string, src evmstore.StoreConfig) (evmstore.StoreConfig, error) {
 	cfg := src
-	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
+	cfg.Directory = filepath.Join(datadir, "carmen")
 
 	if ctx.GlobalIsSet(flags.ModeFlag.Name) || ctx.IsSet(flags.ModeFlag.Name) {
 		var mode string
@@ -193,7 +192,7 @@ func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (e
 			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", flags.ModeFlag.Name)
 		}
 		if mode == "validator" {
-			cfg.StateDb.Archive = carmen.NoArchive
+			cfg.Archive = false
 			cfg.DisableLogsIndexing = true
 			cfg.DisableTxHashesIndexing = true
 		}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
@@ -23,7 +22,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 	if err != nil {
 		return fmt.Errorf("failed to check archive state dir: %w", err)
 	}
-	if err := mpt.VerifyArchive(archiveDir, info.Config, verificationObserver{}); err != nil {
+	if err := mpt.VerifyArchiveTrie(archiveDir, info.Config, verificationObserver{}); err != nil {
 		return fmt.Errorf("archive state verification failed: %w", err)
 	}
 	log.Info("Verification of the archive state succeed")
@@ -31,7 +30,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 }
 
 func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
-	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.S5Archive, false)
+	gdb, dbs, err := createGdb(dataDir, cacheRatio, true, false)
 	if err != nil {
 		return err
 	}
