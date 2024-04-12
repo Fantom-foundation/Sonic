@@ -346,6 +346,12 @@ func (trace *ActionTrace) processOutput(output []byte, err error, rootTrace bool
 		return
 	}
 
+	switch err.(type) {
+	case *vm.ErrStackOverflow:
+		trace.Error = "Out of stack"
+		return
+	}
+
 	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
 		return
 	}
@@ -473,14 +479,13 @@ func createErrorTrace(blockHash common.Hash, blockNumber big.Int,
 }
 
 var traceErrorMapping = map[string]string{
-	"contract creation code storage out of gas": "Out of gas",
-	"out of gas":                      "Out of gas",
-	"gas uint64 overflow":             "Out of gas",
-	"max code size exceeded":          "Out of gas",
-	"invalid jump destination":        "Bad jump destination",
-	"execution reverted":              "Reverted",
-	"return data out of bounds":       "Out of bounds",
-	"stack limit reached 1024 (1023)": "Out of stack",
-	"precompiled failed":              "Built-in failed",
-	"invalid input length":            "Built-in failed",
+	vm.ErrCodeStoreOutOfGas.Error():     "Out of gas",
+	vm.ErrOutOfGas.Error():              "Out of gas",
+	vm.ErrGasUintOverflow.Error():       "Out of gas",
+	vm.ErrMaxCodeSizeExceeded.Error():   "Out of gas",
+	vm.ErrInvalidJump.Error():           "Bad jump destination",
+	vm.ErrExecutionReverted.Error():     "Reverted",
+	vm.ErrReturnDataOutOfBounds.Error(): "Out of bounds",
+	"precompiled failed":                "Built-in failed",
+	"invalid input length":              "Built-in failed",
 }
