@@ -136,7 +136,11 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot get message from transaction %s, error %s", tx.Hash().String(), err)
 			}
 
-			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status)
+			if len(receipts) <= i || receipts[i] == nil {
+				return nil, fmt.Errorf("no receipt found for transaction %s", tx.Hash().String())
+			}
+
+			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status, receipts[i].GasUsed)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get transaction trace for transaction %s, error %s", tx.Hash().String(), err)
 			} else {
@@ -148,7 +152,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				break
 			}
 
-		} else if txHash != nil {
+		} else {
 
 			// Replay transaction without tracing to prepare state for next transaction
 			log.Debug("Replaying transaction without trace", "txHash", tx.Hash().String())
@@ -205,12 +209,12 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 func (s *PublicTxTraceAPI) traceTx(
 	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg types.Message,
 	state state.StateDB, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
-	status uint64) (*[]txtrace.ActionTrace, error) {
+	status uint64, gasUsed uint64) (*[]txtrace.ActionTrace, error) {
 
 	// Providing default config with tracer
 	cfg := opera.DefaultVMConfig
 	cfg.Debug = true
-	txTracer := txtrace.NewTraceStructLogger(block, tx, msg, uint(index))
+	txTracer := txtrace.NewTraceStructLogger(block, tx, msg, uint(index), gasUsed)
 	cfg.Tracer = txTracer
 	cfg.NoBaseFee = true
 

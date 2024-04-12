@@ -32,6 +32,7 @@ type TraceStructLogger struct {
 	value       big.Int
 
 	gasLimit     uint64
+	gasUsed      uint64
 	rootTrace    *CallTrace
 	inputData    []byte
 	traceAddress []uint32
@@ -84,7 +85,7 @@ type TraceActionResult struct {
 }
 
 // NewTraceStructLogger creates new instance of trace creator
-func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg types.Message, index uint) *TraceStructLogger {
+func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg types.Message, index uint, gasUsed uint64) *TraceStructLogger {
 	traceStructLogger := TraceStructLogger{
 		tx:          tx.Hash(),
 		from:        msg.From(),
@@ -94,6 +95,7 @@ func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg ty
 		blockNumber: *block.Number,
 		txIndex:     index,
 		gasLimit:    tx.Gas(),
+		gasUsed:     gasUsed,
 	}
 	return &traceStructLogger
 }
@@ -153,6 +155,10 @@ func (tr *TraceStructLogger) CaptureStart(env *vm.EVM, from common.Address, to c
 	// Create main trace holder
 	txTrace := CallTrace{
 		Actions: make([]ActionTrace, 0),
+	}
+
+	if value == nil {
+		value = big.NewInt(0)
 	}
 
 	// Check if To is defined. If not, it is create address call
@@ -296,7 +302,9 @@ func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Du
 		trace := tr.rootTrace.lastTrace()
 		trace.processOutput(output, err, true)
 		if trace.Result != nil {
-			trace.Result.GasUsed = hexutil.Uint64(tr.gasLimit)
+			// set gas used of the root call with the gas from transaction receipt
+			// to present all cumulative gas used by this call and its inner calls
+			trace.Result.GasUsed = hexutil.Uint64(tr.gasUsed)
 		}
 
 		tr.rootTrace.processTraces()
@@ -333,6 +341,17 @@ func (trace *ActionTrace) processOutput(output []byte, err error, rootTrace bool
 	if trace.TraceType == CREATE {
 		trace.Action.To = nil
 	}
+	if traceError, ok := traceErrorMapping[err.Error()]; ok {
+		trace.Error = traceError
+		return
+	}
+
+	switch err.(type) {
+	case *vm.ErrStackOverflow:
+		trace.Error = "Out of stack"
+		return
+	}
+
 	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
 		return
 	}
@@ -457,4 +476,16 @@ func createErrorTrace(blockHash common.Hash, blockNumber big.Int,
 		blockTrace.Error = "Reverted"
 	}
 	return blockTrace
+}
+
+var traceErrorMapping = map[string]string{
+	vm.ErrCodeStoreOutOfGas.Error():     "Out of gas",
+	vm.ErrOutOfGas.Error():              "Out of gas",
+	vm.ErrGasUintOverflow.Error():       "Out of gas",
+	vm.ErrMaxCodeSizeExceeded.Error():   "Out of gas",
+	vm.ErrInvalidJump.Error():           "Bad jump destination",
+	vm.ErrExecutionReverted.Error():     "Reverted",
+	vm.ErrReturnDataOutOfBounds.Error(): "Out of bounds",
+	"precompiled failed":                "Built-in failed",
+	"invalid input length":              "Built-in failed",
 }
