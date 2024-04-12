@@ -39,7 +39,6 @@ func EventsImport(ctx *cli.Context, files ...string) error {
 	cfg.Node.IPCPath = ""
 	cfg.Node.HTTPHost = ""
 	cfg.Node.WSHost = ""
-	cfg.Node.NoUSB = true
 	cfg.Node.P2P.ListenAddr = ""
 	cfg.Node.P2P.NoDiscovery = true
 	cfg.Node.P2P.BootstrapNodes = nil
