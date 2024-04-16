@@ -24,7 +24,7 @@ var NodeDefaultConfig = node.Config{
 	WSModules:           []string{},
 	GraphQLVirtualHosts: []string{"localhost"},
 	P2P: p2p.Config{
-		NoDiscovery: false, // enable discovery v4 by default
+		NoDiscovery: true, // disable discovery v4 by default
 		DiscoveryV5: true,  // enable discovery v5 by default
 		ListenAddr:  fmt.Sprintf(":%d", flags.ListenPortFlag.Value),
 		MaxPeers:    50,
