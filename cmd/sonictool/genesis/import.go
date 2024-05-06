@@ -67,7 +67,7 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 		return err
 	}
 	setGenesisComplete(chaindataDir)
-	log.Info("Successfully imported legacy genesis")
+	log.Info("Successfully imported genesis file")
 	return nil
 }
 
@@ -78,7 +78,7 @@ func IsGenesisTrusted(genesisStore *genesisstore.Store, genesisHashes genesis.Ha
 		NetworkID:   g.NetworkID,
 		NetworkName: g.NetworkName,
 	}
-	for _, allowed := range allowedLegacyGenesis {
+	for _, allowed := range allowedGenesis {
 		if allowed.Hashes.Equal(genesisHashes) && allowed.Header.Equal(gHeader) {
 			return nil
 		}
