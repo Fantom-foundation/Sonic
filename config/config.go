@@ -182,8 +182,13 @@ func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (e
 	cfg := src
 	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
 
-	if ctx.GlobalIsSet(flags.ModeFlag.Name) {
-		mode := ctx.GlobalString(flags.ModeFlag.Name)
+	if ctx.GlobalIsSet(flags.ModeFlag.Name) || ctx.IsSet(flags.ModeFlag.Name) {
+		var mode string
+		if ctx.IsSet(flags.ModeFlag.Name) {
+			mode = ctx.String(flags.ModeFlag.Name)
+		} else {
+			mode = ctx.GlobalString(flags.ModeFlag.Name)
+		}
 		if mode != "rpc" && mode != "validator" {
 			return cfg, fmt.Errorf("--%s must be 'rpc' or 'validator'", flags.ModeFlag.Name)
 		}

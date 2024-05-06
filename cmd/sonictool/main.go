@@ -64,7 +64,7 @@ Initialize the database using data from the experimental genesis file.
 						ModeFlag,
 					},
 					Description: `
-    sonictool --datadir=<datadir> genesis fake <N>
+    sonictool --datadir=<datadir> genesis fake <N> [--mode=validator]
 
 Requires the number of validators in the fake network as the first argument.
 Initialize the database for a testing fakenet.
@@ -134,7 +134,12 @@ This command allows to open a console attached to a running Sonic node.`,
 					Name:      "events",
 					Usage:     "Import blockchain events file",
 					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
+					Flags: []cli.Flag{
+						ModeFlag,
+					},
 					Description: `
+    sonictool --datadir=<datadir> import events <filenames> [--mode=validator]
+
 The import command imports events from RLP-encoded files.
 Events are fully verified.`,
 				},
