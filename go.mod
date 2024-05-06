@@ -43,7 +43,7 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
-require github.com/Fantom-foundation/Carmen/go v0.0.0-20240410130417-b32b42b6efcb
+require github.com/Fantom-foundation/Carmen/go v0.0.0-20240503193324-f78d26a637a5
 
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
@@ -116,6 +116,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240415075552-d50d9a8cac8c
+replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240506064511-c393b7c3bd8d
 
 replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210201043429-a8e90a2a4f88
