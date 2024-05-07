@@ -57,8 +57,8 @@ github.com/CloudyKit/jet v2.1.3-0.20180809161101-62edd43e4f88+incompatible/go.mo
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.4.5 h1:EndNeuB0l9syBZhut0wns3gV1hL8zX8LIu6ZiVHWLIQ=
 github.com/DataDog/zstd v1.4.5/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
-github.com/Fantom-foundation/Carmen/go v0.0.0-20240503193324-f78d26a637a5 h1:IJDI7yZnZwY9nF2aOGvSNh0Wx6tMRluf61UNqsEmhj0=
-github.com/Fantom-foundation/Carmen/go v0.0.0-20240503193324-f78d26a637a5/go.mod h1:d7YbZSMQ+IIrxAfQKBs75V50T+J/VDCyKavnRZxSNdQ=
+github.com/Fantom-foundation/Carmen/go v0.0.0-20240507092214-445df9f3b43c h1:zSUdDjwjcgrQ6Ov0a/wranXE50jpjXHwClfEPiVVpMs=
+github.com/Fantom-foundation/Carmen/go v0.0.0-20240507092214-445df9f3b43c/go.mod h1:d7YbZSMQ+IIrxAfQKBs75V50T+J/VDCyKavnRZxSNdQ=
 github.com/Fantom-foundation/Substate v0.0.0-20230224090651-4c8c024214f4 h1:AA0BtERxmlf7jvDF4fwIB2k/Lsc7HTRE3QHTZnfcSVA=
 github.com/Fantom-foundation/Substate v0.0.0-20230224090651-4c8c024214f4/go.mod h1:/yIHWCDDJcdKMJYvOLdYOnHt5eUBF9XWnrvrNE+90ik=
 github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240506064511-c393b7c3bd8d h1:iTp6LDc62SrGcbu5s4yldF99hstpKoyhWMuchknBe0U=
