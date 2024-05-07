@@ -101,7 +101,7 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 	// Create and register a gossip network service.
 	newTxPool := func(reader evmcore.StateReader) gossip.TxPool {
 		if cfg.TxPool.Journal != "" {
-			cfg.TxPool.Journal = stack.ResolvePath(cfg.TxPool.Journal)
+			cfg.TxPool.Journal = path.Join(cfg.Node.DataDir, cfg.TxPool.Journal)
 		}
 		return evmcore.NewTxPool(cfg.TxPool, reader.Config(), reader)
 	}

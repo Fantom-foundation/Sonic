@@ -7,10 +7,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 )
 
-var allowedSonicGenesisHashes = map[string]string{
-	"663d6a2ca8e235a4127cf03f8a00f4e055a45259f73181cb98cec7e657c2ab14": "mainnet-263695-archive.tar.gz",
-}
-
 type GenesisTemplate struct {
 	Name   string
 	Header genesis.Header
@@ -30,7 +26,7 @@ var (
 		NetworkName: "test",
 	}
 
-	allowedLegacyGenesis = []GenesisTemplate{
+	allowedGenesis = []GenesisTemplate{
 		{
 			Name:   "Mainnet-5577 with pruned MPT",
 			Header: mainnetHeader,
@@ -111,6 +107,15 @@ var (
 				genesisstore.EpochsSection(1): hash.HexToHash("0xda430371772ee2fefd1caa342b6a5cb188041a01730f681099dd241bc57a3f77"),
 				genesisstore.BlocksSection(1): hash.HexToHash("0x14b8b9c3b47cc174ae5c36599cebdef551ad35032ed29c087abb814ac5559619"),
 				genesisstore.EvmSection(0):    hash.HexToHash("0x2a685df416eeca50f4b725117ae88deb35f05e3c51f34e9555ff6ffc62e75d14"),
+			},
+		},
+		{
+			Name:   "Mainnet-279701 with Carmen live state only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x6a685f5b446eb17cc69047ddd230c0ccc0c820d4ba05bfdd30aa6176b40618da"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0xdf6ed841b928fad8632b7e532f0b989d93e26b8332fe8429504822df6d44a642"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x702c987a8e799d7550db6a3fc9a571cbaeac7a00d7bb984a00374a27bd25d908"),
 			},
 		},
 
