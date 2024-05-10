@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 	"math"
 	"math/rand"
 	"strings"
@@ -709,14 +710,21 @@ func (h *handler) highestPeerProgress() PeerProgress {
 	return max
 }
 
+// isUseless checks if the peer is banned from discovery and ban it if it should be
+func isUseless(node *enode.Node, name string) bool {
+	useless := discfilter.Banned(node.ID(), node.Record())
+	lowerName := strings.ToLower(name)
+	if !useless && !strings.Contains(lowerName, "opera") && !strings.Contains(lowerName, "sonic") {
+		useless = true
+		discfilter.Ban(node.ID())
+	}
+	return useless
+}
+
 // handle is the callback invoked to manage the life cycle of a peer. When
 // this function terminates, the peer is disconnected.
 func (h *handler) handle(p *peer) error {
-	useless := discfilter.Banned(p.Node().ID(), p.Node().Record())
-	if !useless && !strings.Contains(strings.ToLower(p.Name()), "opera") {
-		useless = true
-		discfilter.Ban(p.ID())
-	}
+	useless := isUseless(p.Node(), p.Name())
 	if !p.Peer.Info().Network.Trusted && useless && h.peers.UselessNum() >= h.maxPeers/10 {
 		// don't allow more than 10% of useless peers
 		p.Log().Trace("Rejecting peer as useless")
