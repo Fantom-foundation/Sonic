@@ -91,10 +91,12 @@ func (s *Store) Close() error {
 	s.EvmLogs.Close()
 
 	if s.liveStateDb != nil {
+		s.Log.Info("Closing State DB...")
 		err := s.liveStateDb.Close()
 		if err != nil {
-			return fmt.Errorf("failed to close Carmen State: %w", err)
+			return fmt.Errorf("failed to close State DB: %w", err)
 		}
+		s.Log.Info("State DB closed")
 		s.carmenState = nil
 		s.liveStateDb = nil
 	}
