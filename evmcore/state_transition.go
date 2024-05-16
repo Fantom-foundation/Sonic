@@ -18,6 +18,7 @@ package evmcore
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"math"
 
 	"github.com/Fantom-foundation/go-opera/utils"
@@ -197,7 +198,7 @@ func (st *StateTransition) buyGas() error {
 	st.gas += st.msg.GasLimit
 
 	st.initialGas = st.msg.GasLimit
-	st.state.SubBalance(st.msg.From, mgval)
+	st.state.SubBalance(st.msg.From, mgval, tracing.BalanceDecreaseGasBuy)
 	return nil
 }
 
@@ -326,7 +327,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) {
 
 	// Return wei for remaining gas, exchanged at the original rate.
 	remaining := new(uint256.Int).Mul(new(uint256.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From, remaining)
+	st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

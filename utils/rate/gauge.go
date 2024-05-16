@@ -17,8 +17,8 @@ type Gauge struct {
 // Be sure to call Stop() once the meter is of no use to allow for garbage collection.
 func NewGauge() *Gauge {
 	return &Gauge{
-		input: metrics.NewMeter(),
-		count: metrics.NewMeter(),
+		input: metrics.NewMeterForced(),
+		count: metrics.NewMeterForced(),
 	}
 }
 

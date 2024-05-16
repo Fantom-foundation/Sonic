@@ -2,6 +2,7 @@ package evmwriter
 
 import (
 	"bytes"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"math/big"
 	"strings"
 
@@ -84,10 +85,10 @@ func (_ PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm
 		balance := stateDB.GetBalance(acc)
 		if balance.Cmp(value) >= 0 {
 			diff := new(uint256.Int).Sub(balance, value)
-			stateDB.SubBalance(acc, diff)
+			stateDB.SubBalance(acc, diff, tracing.BalanceChangeUnspecified)
 		} else {
 			diff := new(uint256.Int).Sub(value, balance)
-			stateDB.AddBalance(acc, diff)
+			stateDB.AddBalance(acc, diff, tracing.BalanceChangeUnspecified)
 		}
 	} else if bytes.Equal(input[:4], copyCodeMethodID) {
 		input = input[4:]

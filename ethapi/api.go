@@ -20,10 +20,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	bip39 "github.com/tyler-smith/go-bip39"
 	"math/big"
-	"strings"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/inter/state"
+	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/utils"
+	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
+	"github.com/Fantom-foundation/go-opera/utils/signers/internaltx"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/davecgh/go-spew/spew"
@@ -46,15 +54,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/holiman/uint256"
-	"github.com/tyler-smith/go-bip39"
-
-	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
-	"github.com/Fantom-foundation/go-opera/inter/state"
-	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/go-opera/utils"
-	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
-	"github.com/Fantom-foundation/go-opera/utils/signers/internaltx"
 )
 
 const (
@@ -1537,7 +1536,7 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		// Apply the transaction with the access list tracer
 		tracer := logger.NewAccessListTracer(accessList, args.from(), to, precompiles)
 		config := opera.DefaultVMConfig
-		config.Tracer = tracer
+		config.Tracer = tracer.Hooks()
 		config.NoBaseFee = true
 		vmenv, _, err := b.GetEVM(ctx, msg, statedb, header, &config)
 		if err != nil {
@@ -2055,17 +2054,9 @@ func (api *PublicDebugAPI) BlocksTransactionTimes(ctx context.Context, untilBloc
 	return times, nil
 }
 
-// TraceConfig holds extra parameters to trace functions.
-type TraceConfig struct {
-	*logger.Config
-	Tracer  *string
-	Timeout *string
-	Reexec  *uint64
-}
-
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
-func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Hash, config *TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Hash, config *tracers.TraceConfig) (interface{}, error) {
 	tx, blockNumber, index, err := api.b.GetTransaction(ctx, hash)
 	if err != nil {
 		return nil, err
@@ -2073,17 +2064,14 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 	if tx == nil {
 		return nil, fmt.Errorf("transaction %s not found", hash.Hex())
 	}
-
 	// It shouldn't happen in practice.
 	if blockNumber == 0 {
 		return nil, errors.New("genesis is not traceable")
 	}
-
 	block, err := api.b.BlockByNumber(ctx, rpc.BlockNumber(blockNumber))
 	if err != nil {
-		return nil, errors.New("cannot get block from db")
+		return nil, err
 	}
-
 	msg, statedb, err := api.stateAtTransaction(ctx, block, int(index))
 	if err != nil {
 		return nil, err
@@ -2091,108 +2079,80 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 	defer statedb.Release()
 
 	txctx := &tracers.Context{
-		BlockHash: block.Hash,
-		TxIndex:   int(index),
-		TxHash:    hash,
+		BlockNumber: block.Number,
+		TxIndex:     int(index),
+		TxHash:      hash,
 	}
 
-	return api.traceTx(ctx, msg, txctx, block.Header(), statedb, config)
+	return api.traceTx(ctx, tx, msg, txctx, block.Header(), statedb, config)
 }
 
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *TraceConfig) (interface{}, error) {
-	// Assemble the structured logger or the JavaScript tracer
+func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *tracers.TraceConfig) (interface{}, error) {
 	var (
-		tracer vm.EVMLogger
-		err    error
+		tracer  *tracers.Tracer
+		err     error
+		timeout = defaultTraceTimeout
+		usedGas uint64
 	)
-
-	switch {
-	case config == nil:
-		tracer = logger.NewStructLogger(nil)
-	case config.Tracer != nil:
-		// Define a meaningful timeout of a single transaction trace
-		timeout := defaultTraceTimeout
-		if config.Timeout != nil {
-			if timeout, err = time.ParseDuration(*config.Timeout); err != nil {
-				return nil, err
-			}
+	if config == nil {
+		config = &tracers.TraceConfig{}
+	}
+	// Default tracer is the struct logger
+	if config.Tracer == nil {
+		logger := logger.NewStructLogger(config.Config)
+		tracer = &tracers.Tracer{
+			Hooks:     logger.Hooks(),
+			GetResult: logger.GetResult,
+			Stop:      logger.Stop,
 		}
-		// Cap the timeout with a timeout configured for one eth_call
-		if rpcTimeout := api.b.RPCEVMTimeout(); rpcTimeout != 0 && rpcTimeout < timeout {
-			timeout = rpcTimeout
-		}
-		if t, err := tracers.DefaultDirectory.New(*config.Tracer, txctx, nil /* json config */); err != nil {
+	} else {
+		tracer, err = tracers.DefaultDirectory.New(*config.Tracer, txctx, config.TracerConfig)
+		if err != nil {
 			return nil, err
-		} else {
-			deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
-			go func() {
-				<-deadlineCtx.Done()
-				if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
-					t.Stop(errors.New("execution timeout"))
-				}
-			}()
-			defer cancel()
-			tracer = t
 		}
-	default:
-		tracer = logger.NewStructLogger(config.Config)
 	}
 
-	// Run the transaction with tracing enabled.
 	evmconfig := opera.DefaultVMConfig
-	evmconfig.Tracer = tracer
+	evmconfig.Tracer = tracer.Hooks
 	evmconfig.NoBaseFee = true
 	evmconfig.InterpreterImplementation = "geth" // use always geth, as lfvm does not support tracing now
+
+	evmstore.WrapStateDbWithLogger(statedb, tracer.Hooks)
+
 	vmenv, _, err := api.b.GetEVM(ctx, message, statedb, blockHeader, &evmconfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get EVM for tracing: %w", err)
 	}
 
-	// Call Prepare to clear out the statedb access list
+	// Define a meaningful timeout of a single transaction trace
+	if config.Timeout != nil {
+		if timeout, err = time.ParseDuration(*config.Timeout); err != nil {
+			return nil, err
+		}
+	}
+	deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
+	go func() {
+		<-deadlineCtx.Done()
+		if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
+			tracer.Stop(errors.New("execution timeout"))
+			// Stop evm execution. Note cancellation is not necessarily immediate.
+			vmenv.Cancel()
+		}
+	}()
+	defer cancel()
+
+	// Call SetTxContext to clear out the statedb access list
 	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)
 
-	result, err := evmcore.ApplyMessage(vmenv, message, new(evmcore.GasPool).AddGas(message.GasLimit))
+	// Run the transaction with tracing enabled.
+	_, err = evmcore.ApplyTransactionWithEVM(message, api.b.ChainConfig(), new(evmcore.GasPool).AddGas(message.GasLimit), statedb, blockHeader.Number, txctx.BlockHash, tx, &usedGas, vmenv)
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
-
-	// Depending on the tracer type, format and return the output.
-	switch tracer := tracer.(type) {
-	case *logger.StructLogger:
-		// If the result contains a revert reason, return it.
-		returnVal := fmt.Sprintf("%x", result.Return())
-		if len(result.Revert()) > 0 {
-			returnVal = fmt.Sprintf("%x", result.Revert())
-		}
-		return &ExecutionResult{
-			Gas:         result.UsedGas,
-			Failed:      result.Failed(),
-			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
-		}, nil
-
-	case tracers.Tracer:
-		result, err := tracer.GetResult()
-		if err != nil && result == nil {
-			// Only for tracer called callTracer
-			if config.Tracer != nil && strings.Compare(*config.Tracer, "callTracer") == 0 {
-				if strings.Contains(err.Error(), "cannot read property 'toString' of undefined") {
-					log.Debug("error when debug with callTracer", "err", err.Error())
-					callTracer, _ := tracers.DefaultDirectory.New(*config.Tracer, txctx, nil /* json config */)
-					callTracer.CaptureStart(vmenv, message.From, *message.To, false, message.Data, message.GasLimit, message.Value)
-					callTracer.CaptureEnd([]byte{}, message.GasLimit, fmt.Errorf("execution reverted"))
-					result, err = callTracer.GetResult()
-				}
-			}
-		}
-		return result, err
-
-	default:
-		return nil, fmt.Errorf("bad tracer type %T", tracer)
-	}
+	return tracer.GetResult()
 }
 
 // txTraceResult is the result of a single transaction trace.
@@ -2204,7 +2164,7 @@ type txTraceResult struct {
 
 // TraceBlockByNumber returns the structured logs created during the execution of
 // EVM and returns them as a JSON object.
-func (api *PublicDebugAPI) TraceBlockByNumber(ctx context.Context, number rpc.BlockNumber, config *TraceConfig) ([]*txTraceResult, error) {
+func (api *PublicDebugAPI) TraceBlockByNumber(ctx context.Context, number rpc.BlockNumber, config *tracers.TraceConfig) ([]*txTraceResult, error) {
 	block, err := api.b.BlockByNumber(ctx, number)
 	if err != nil {
 		return nil, err
@@ -2217,7 +2177,7 @@ func (api *PublicDebugAPI) TraceBlockByNumber(ctx context.Context, number rpc.Bl
 
 // TraceBlockByHash returns the structured logs created during the execution of
 // EVM and returns them as a JSON object.
-func (api *PublicDebugAPI) TraceBlockByHash(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error) {
+func (api *PublicDebugAPI) TraceBlockByHash(ctx context.Context, hash common.Hash, config *tracers.TraceConfig) ([]*txTraceResult, error) {
 	block, err := api.b.BlockByHash(ctx, hash)
 	if err != nil {
 		return nil, err
@@ -2231,7 +2191,7 @@ func (api *PublicDebugAPI) TraceBlockByHash(ctx context.Context, hash common.Has
 // traceBlock configures a new tracer according to the provided configuration, and
 // executes all the transactions contained within. The return value will be one item
 // per transaction, dependent on the requested tracer.
-func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlock, config *TraceConfig) ([]*txTraceResult, error) {
+func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlock, config *tracers.TraceConfig) ([]*txTraceResult, error) {
 	if block.NumberU64() == 0 {
 		return nil, errors.New("genesis is not traceable")
 	}
@@ -2254,13 +2214,11 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 			TxIndex:   i,
 			TxHash:    tx.Hash(),
 		}
-		res, err := api.traceTx(ctx, msg, txctx, blockHeader, statedb, config)
+		res, err := api.traceTx(ctx, tx, msg, txctx, blockHeader, statedb, config)
 		if err != nil {
 			return nil, err
 		}
 		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
-		// Finalize the state so any modifications are written to the trie
-		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
 		statedb.Finalise()
 	}
 	return results, nil

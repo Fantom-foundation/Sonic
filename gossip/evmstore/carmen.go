@@ -7,6 +7,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
@@ -130,6 +131,10 @@ func (c *CarmenStateDB) GetStorageProof(a common.Address, key common.Hash) ([][]
 	panic("not supported")
 }
 
+func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
+	panic("not supported")
+}
+
 func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	return common.Hash(c.db.GetCommittedState(cc.Address(addr), cc.Key(hash)))
 }
@@ -142,11 +147,11 @@ func (c *CarmenStateDB) HasSelfDestructed(addr common.Address) bool {
 	return c.db.HasSuicided(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) AddBalance(addr common.Address, amount *uint256.Int) {
+func (c *CarmenStateDB) AddBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) {
 	c.db.AddBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
 }
 
-func (c *CarmenStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
+func (c *CarmenStateDB) SubBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) {
 	c.db.SubBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
 }
 
@@ -183,6 +188,10 @@ func (c *CarmenStateDB) Selfdestruct6780(addr common.Address) {
 }
 
 func (c *CarmenStateDB) CreateAccount(addr common.Address) {
+	c.db.CreateAccount(cc.Address(addr))
+}
+
+func (c *CarmenStateDB) CreateContract(addr common.Address) {
 	c.db.CreateAccount(cc.Address(addr))
 }
 

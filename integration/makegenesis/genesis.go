@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"io"
 	"math/big"
 	"os"
@@ -68,7 +69,7 @@ func DefaultBlockProc() BlockProc {
 }
 
 func (b *GenesisBuilder) AddBalance(acc common.Address, balance *big.Int) {
-	b.tmpStateDB.AddBalance(acc, utils.BigIntToUint256(balance))
+	b.tmpStateDB.AddBalance(acc, utils.BigIntToUint256(balance), tracing.BalanceIncreaseGenesisBalance)
 	b.totalSupply.Add(b.totalSupply, balance)
 }
 

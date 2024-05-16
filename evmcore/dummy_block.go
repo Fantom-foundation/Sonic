@@ -152,7 +152,8 @@ func (b *EvmBlock) EthBlock() *types.Block {
 	if b == nil {
 		return nil
 	}
-	return types.NewBlock(b.EvmHeader.EthHeader(), b.Transactions, nil, nil, trie.NewStackTrie(nil))
+	body := types.Body{Transactions: b.Transactions}
+	return types.NewBlock(b.EvmHeader.EthHeader(), &body, nil, trie.NewStackTrie(nil))
 }
 
 func (b *EvmBlock) EstimateSize() int {

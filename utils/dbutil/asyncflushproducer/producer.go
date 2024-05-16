@@ -19,7 +19,7 @@ type Producer struct {
 
 func Wrap(backend kvdb.FullDBProducer, threshold uint64) *Producer {
 	return &Producer{
-		stats:          metrics.NewMeter(),
+		stats:          metrics.NewMeterForced(),
 		FullDBProducer: backend,
 		dbs:            make(map[string]*store),
 		threshold:      threshold,
