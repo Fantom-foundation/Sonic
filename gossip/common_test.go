@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"math"
 	"math/big"
 	"sync"
@@ -460,7 +461,7 @@ func (env *testEnv) callContract(
 		call.Value = new(big.Int)
 	}
 	// Set infinite balance to the fake caller account.
-	state.AddBalance(call.From, uint256.NewInt(math.MaxInt64))
+	state.AddBalance(call.From, uint256.NewInt(math.MaxInt64), tracing.BalanceIncreaseGenesisBalance)
 
 	msg := CallMsgToMessage(call)
 

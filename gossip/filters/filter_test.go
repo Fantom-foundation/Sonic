@@ -271,6 +271,18 @@ func getGenesisBlockForTesting(db ethdb.Database, address common.Address, balanc
 	genesis := core.Genesis{
 		Alloc:   types.GenesisAlloc{address: {Balance: balance}},
 		BaseFee: big.NewInt(params.InitialBaseFee),
+		Config: &params.ChainConfig{
+			BerlinBlock:   new(big.Int),
+			LondonBlock:   new(big.Int),
+			IstanbulBlock: new(big.Int),
+			PetersburgBlock: new(big.Int),
+			ConstantinopleBlock: new(big.Int),
+			ByzantiumBlock:  new(big.Int),
+			EIP158Block: new(big.Int),
+			EIP155Block: new(big.Int),
+			EIP150Block: new(big.Int),
+			HomesteadBlock: new(big.Int),
+		},
 	}
 	return genesis.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/node"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -32,7 +31,7 @@ func accountList(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	stack, err := node.New(&cfg.Node)
+	stack, err := config.MakeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
@@ -56,10 +55,15 @@ func accountCreate(ctx *cli.Context) error {
 		return err
 	}
 	keydir, err := cfg.Node.KeyDirConfig()
-	//scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()
-
 	if err != nil {
 		return fmt.Errorf("failed to read configuration: %w", err)
+	}
+
+	scryptN := keystore.StandardScryptN
+	scryptP := keystore.StandardScryptP
+	if cfg.Node.UseLightweightKDF {
+		scryptN = keystore.LightScryptN
+		scryptP = keystore.LightScryptP
 	}
 
 	passwordList, err := config.MakePasswordList(ctx)
@@ -71,7 +75,7 @@ func accountCreate(ctx *cli.Context) error {
 		return fmt.Errorf("failed to get passphrase: %w", err)
 	}
 
-	account, err := keystore.StoreKey(keydir, password, keystore.StandardScryptN, keystore.StandardScryptP)
+	account, err := keystore.StoreKey(keydir, password, scryptN, scryptP)
 	if err != nil {
 		return fmt.Errorf("failed to create account: %w", err)
 	}
@@ -96,7 +100,7 @@ func accountUpdate(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	stack, err := node.New(&cfg.Node)
+	stack, err := config.MakeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
@@ -132,7 +136,7 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	stack, err := node.New(&cfg.Node)
+	stack, err := config.MakeNetworkStack(ctx, &cfg.Node)
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
