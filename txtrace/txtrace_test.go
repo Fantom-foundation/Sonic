@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/ethereum/go-ethereum/common"
@@ -23,22 +22,23 @@ var (
 	outputData      = common.Hex2Bytes("456")
 	outputDataInner = common.Hex2Bytes("789")
 
-	txIndex   uint     = 3
-	nonce     uint64   = 0
-	gaslimit  uint64   = 3000000
-	gasUsed   uint64   = 2000
-	gasprice  *big.Int = big.NewInt(100)
-	gasfeecap *big.Int = big.NewInt(100)
-	gastipcap *big.Int = big.NewInt(100)
-	value     *big.Int = big.NewInt(5)
+	txIndex  uint     = 3
+	nonce    uint64   = 0
+	gaslimit uint64   = 3000000
+	gasUsed  uint64   = 2000
+	gasprice *big.Int = big.NewInt(100)
+	value    *big.Int = big.NewInt(5)
 )
 
 func TestTracerSimpleCall(t *testing.T) {
 
-	tracer := getTxTracer(txIndex, gasUsed)
+	block, tx := getDefaultBlockTxMessage()
+	tracer := NewTraceStructLogger(block, txIndex)
 
-	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
+	tracer.OnTxStart(nil, tx, from)
+	tracer.OnEnter(0, byte(vm.CALL), from, to, inputData, gaslimit, value)
+	tracer.OnExit(0, outputData, 100, nil, false)
+	tracer.OnTxEnd(&types.Receipt{GasUsed: gasUsed}, nil)
 
 	want := `[
     {
@@ -68,10 +68,13 @@ func TestTracerSimpleCall(t *testing.T) {
 
 func TestTracerSimpleCreate(t *testing.T) {
 
-	tracer := getTxTracer(txIndex, gasUsed)
+	block, tx := getDefaultBlockTxMessage()
+	tracer := NewTraceStructLogger(block, txIndex)
 
-	tracer.CaptureStart(nil, to, to, true, inputData, 1000, value)
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
+	tracer.OnTxStart(nil, tx, from)
+	tracer.OnEnter(0, byte(vm.CREATE), from, to, inputData, gaslimit, value)
+	tracer.OnExit(0, outputData, 100, nil, false)
+	tracer.OnTxEnd(&types.Receipt{GasUsed: gasUsed}, nil)
 
 	want := `[
     {
@@ -100,30 +103,33 @@ func TestTracerSimpleCreate(t *testing.T) {
 
 func TestTracerComplexCall(t *testing.T) {
 
-	tracer := getTxTracer(txIndex, gasUsed)
+	block, tx := getDefaultBlockTxMessage()
+	tracer := NewTraceStructLogger(block, txIndex)
 
-	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
+	tracer.OnTxStart(nil, tx, from)
+	tracer.OnEnter(0, byte(vm.CALL), from, to, inputData, gaslimit, value)
 
-	tracer.CaptureEnter(vm.CREATE2, to, toInner, inputDataInner, 600, value)
+	tracer.OnEnter(1, byte(vm.CREATE2), to, toInner, inputDataInner, 600, value)
 
-	tracer.CaptureEnter(vm.CALL, to, toInner, inputDataInner, 601, value)
-	tracer.CaptureExit(outputDataInner, 401, nil)
+	tracer.OnEnter(2, byte(vm.CALL), to, toInner, inputDataInner, 601, value)
+	tracer.OnExit(2, outputDataInner, 401, nil, false)
 
-	tracer.CaptureEnter(vm.STATICCALL, to, toInner, inputDataInner, 602, value)
-	tracer.CaptureExit(outputDataInner, 402, nil)
+	tracer.OnEnter(2, byte(vm.STATICCALL), to, toInner, inputDataInner, 602, value)
+	tracer.OnExit(2, outputDataInner, 402, nil, false)
 
-	tracer.CaptureEnter(vm.DELEGATECALL, to, toInner, inputDataInner, 603, value)
-	tracer.CaptureExit(outputDataInner, 403, nil)
+	tracer.OnEnter(2, byte(vm.DELEGATECALL), to, toInner, inputDataInner, 603, value)
+	tracer.OnExit(2, outputDataInner, 403, nil, false)
 
-	tracer.CaptureEnter(vm.SELFDESTRUCT, to, toInner, inputDataInner, 604, value)
-	tracer.CaptureExit(outputDataInner, 404, nil)
+	tracer.OnEnter(2, byte(vm.SELFDESTRUCT), to, toInner, inputDataInner, 604, value)
+	tracer.OnExit(2, outputDataInner, 404, nil, false)
 
-	tracer.CaptureExit(outputDataInner, 400, nil)
+	tracer.OnExit(1, outputDataInner, 400, nil, false)
 
-	tracer.CaptureEnter(vm.CREATE, to, toInner, inputDataInner, 600, value)
-	tracer.CaptureExit(outputDataInner, 406, nil)
+	tracer.OnEnter(1, byte(vm.CREATE), to, toInner, inputDataInner, 600, value)
+	tracer.OnExit(1, outputDataInner, 406, nil, false)
 
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
+	tracer.OnExit(0, outputData, 100, nil, false)
+	tracer.OnTxEnd(&types.Receipt{GasUsed: gasUsed}, nil)
 
 	want := `[
     {
@@ -293,10 +299,13 @@ func TestTracerComplexCall(t *testing.T) {
 
 func TestTracerZeroValues(t *testing.T) {
 
-	tracer := getTxTracer(txIndex, gasUsed)
+	block, tx := getDefaultBlockTxMessage()
+	tracer := NewTraceStructLogger(block, txIndex)
 
-	tracer.CaptureStart(nil, from, to, false, []byte{}, 1000, nil)
-	tracer.CaptureEnd([]byte{}, 100, time.Since(time.Now()), nil)
+	tracer.OnTxStart(nil, tx, from)
+	tracer.OnEnter(0, byte(vm.CALL), from, to, []byte{}, gaslimit, nil)
+	tracer.OnExit(0, []byte{}, 100, nil, false)
+	tracer.OnTxEnd(&types.Receipt{GasUsed: gasUsed}, nil)
 
 	want := `[
     {
@@ -326,9 +335,13 @@ func TestTracerZeroValues(t *testing.T) {
 
 func TestTracerSimpleErrorCall(t *testing.T) {
 
-	tracer := getTxTracer(txIndex, gasUsed)
-	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), vm.ErrExecutionReverted)
+	block, tx := getDefaultBlockTxMessage()
+	tracer := NewTraceStructLogger(block, txIndex)
+
+	tracer.OnTxStart(nil, tx, from)
+	tracer.OnEnter(0, byte(vm.CALL), from, to, inputData, gaslimit, value)
+	tracer.OnExit(0, outputData, 100, vm.ErrExecutionReverted, false)
+	tracer.OnTxEnd(&types.Receipt{GasUsed: gasUsed}, vm.ErrExecutionReverted)
 
 	want := `[
     {
@@ -355,11 +368,15 @@ func TestTracerSimpleErrorCall(t *testing.T) {
 
 func TestTracerInnerErrorCall(t *testing.T) {
 
-	tracer := getTxTracer(txIndex, gasUsed)
-	tracer.CaptureStart(nil, from, to, false, inputData, 1000, value)
-	tracer.CaptureEnter(vm.CALL, to, toInner, inputDataInner, 200, value)
-	tracer.CaptureExit(outputDataInner, 201, vm.ErrExecutionReverted)
-	tracer.CaptureEnd(outputData, 100, time.Since(time.Now()), nil)
+	block, tx := getDefaultBlockTxMessage()
+	tracer := NewTraceStructLogger(block, txIndex)
+
+	tracer.OnTxStart(nil, tx, from)
+	tracer.OnEnter(0, byte(vm.CALL), from, to, inputData, gaslimit, value)
+	tracer.OnEnter(1, byte(vm.CALL), to, toInner, inputDataInner, 200, value)
+	tracer.OnExit(1, outputDataInner, 201, vm.ErrExecutionReverted, false)
+	tracer.OnExit(0, outputData, 100, nil, false)
+	tracer.OnTxEnd(&types.Receipt{GasUsed: gasUsed}, nil)
 
 	want := `[
     {
@@ -407,13 +424,7 @@ func TestTracerInnerErrorCall(t *testing.T) {
 	checkResult(t, tracer.GetResult(), want)
 }
 
-func getTxTracer(txIndex uint, gasUsed uint64) *TraceStructLogger {
-	// get default block, tx and message
-	block, tx, msg := getDefaultBlockTxMessage()
-	return NewTraceStructLogger(block, tx, msg, txIndex, gasUsed)
-}
-
-func getDefaultBlockTxMessage() (*evmcore.EvmBlock, *types.Transaction, types.Message) {
+func getDefaultBlockTxMessage() (*evmcore.EvmBlock, *types.Transaction) {
 
 	// create transaction with default values
 	tx := types.NewTransaction(nonce, to, value, gaslimit, gasprice, inputData)
@@ -423,10 +434,7 @@ func getDefaultBlockTxMessage() (*evmcore.EvmBlock, *types.Transaction, types.Me
 		Number: blockNumber,
 		Hash:   blockHash}, types.Transactions{tx})
 
-	// create message with transaction values
-	msg := types.NewMessage(from, tx.To(), nonce, value, gaslimit, gasprice, gasfeecap, gastipcap, tx.Data(), nil, true)
-
-	return block, tx, msg
+	return block, tx
 }
 
 func checkResult(t *testing.T, traces *[]ActionTrace, expectedTraces string) {
