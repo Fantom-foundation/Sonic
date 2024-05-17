@@ -9,7 +9,7 @@ func init() {
 	params.VersionMajor = 1  // Major version component of the current release
 	params.VersionMinor = 2  // Minor version component of the current release
 	params.VersionPatch = 0  // Patch version component of the current release
-	params.VersionMeta = "a" // Version metadata to append to the version string
+	params.VersionMeta = "dev" // Version metadata to append to the version string
 }
 
 func AsString() string {

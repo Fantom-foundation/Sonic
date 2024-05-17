@@ -128,7 +128,7 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v0.0.0-20240514184745-562cf20291c5
+replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v0.0.0-20240517134308-d8db2dd0e302
 
 replace github.com/Fantom-foundation/lachesis-base => github.com/HerbertJordan/lachesis-base v0.0.0-20240320160249-81827a18147c
 
