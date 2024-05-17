@@ -141,7 +141,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("no receipt found for transaction %s", tx.Hash().String())
 			}
 
-			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status, receipts[i].GasUsed)
+			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get transaction trace for transaction %s, error %s", tx.Hash().String(), err)
 			} else {
@@ -209,12 +209,12 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 func (s *PublicTxTraceAPI) traceTx(
 	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg *core.Message,
 	state state.StateDB, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
-	status uint64, gasUsed uint64) (*[]txtrace.ActionTrace, error) {
+	status uint64) (*[]txtrace.ActionTrace, error) {
 
 	// Providing default config with tracer
 	cfg := opera.DefaultVMConfig
-	txTracer := txtrace.NewTraceStructLogger(block, tx, msg, uint(index), gasUsed)
-	cfg.Tracer = txTracer
+	txTracer := txtrace.NewTraceStructLogger(block, uint(index))
+	cfg.Tracer = txTracer.Hooks()
 	cfg.NoBaseFee = true
 
 	// Setup context so it may be cancelled the call has completed
@@ -294,7 +294,7 @@ func getEmptyBlockTrace(blockHash common.Hash, blockNumber big.Int) *[]txtrace.A
 	emptyTrace := txtrace.CallTrace{
 		Actions: make([]txtrace.ActionTrace, 0),
 	}
-	blockTrace := txtrace.NewActionTrace(blockHash, blockNumber, common.Hash{}, 0, "empty")
+	blockTrace := txtrace.CreateActionTrace(blockHash, blockNumber, common.Hash{}, 0, "empty")
 	txAction := txtrace.NewAddressAction(common.Address{}, 0, []byte{}, nil, hexutil.Big{}, nil)
 	blockTrace.Action = txAction
 	blockTrace.Error = "Empty block"
