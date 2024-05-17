@@ -132,7 +132,7 @@ func (c *CarmenStateDB) GetStorageProof(a common.Address, key common.Hash) ([][]
 }
 
 func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
-	panic("not supported")
+	return common.Hash{} // TODO
 }
 
 func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
