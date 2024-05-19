@@ -137,6 +137,15 @@ func getSessionID(block idx.Block, try uint32) uint32 {
 
 func (d *Leecher) startSession(candidates []string) {
 	peer := candidates[rand.Intn(len(candidates))]
+	if d.session.try == 0 && rand.Intn(50) == 0 {
+		// try previous successful peer first
+		for _, candidate := range candidates {
+			if candidate == d.session.peer {
+				peer = candidate
+				break
+			}
+		}
+	}
 
 	startEpoch, startBlock := d.callback.LowestBlockToDecide()
 	endEpoch := d.callback.MaxEpochToDecide()
