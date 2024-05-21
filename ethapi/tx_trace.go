@@ -245,7 +245,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	// Setup the gas pool and stateDB
 	gp := new(evmcore.GasPool).AddGas(msg.GasLimit)
 	state.SetTxContext(tx.Hash(), int(index))
-	result, err := evmcore.ApplyMessage(vmenv, msg, gp)
+	resultReceipt, err := evmcore.ApplyTransactionWithEVM(msg, b.ChainConfig(), gp, state, header.Number, block.Hash, tx, &index, vmenv)
 
 	traceActions := txTracer.GetResult()
 	state.Finalise()
@@ -266,25 +266,9 @@ func (s *PublicTxTraceAPI) traceTx(
 		return nil, fmt.Errorf("EVM was cancelled when replaying tx")
 	}
 
-	// result.Err is error during EVM execution
-	if result != nil && result.Err != nil {
-		if len(*traceActions) == 0 {
-			log.Error("error in result when replaying transaction:", "txHash", tx.Hash().String(), " err", result.Err.Error())
-			errTrace := txtrace.GetErrorTraceFromMsg(msg, block.Hash, *block.Number, tx.Hash(), index, result.Err)
-			at := make([]txtrace.ActionTrace, 0)
-			at = append(at, *errTrace)
-			return &at, nil
-		}
-		// check correct replay state
-		if status == 1 {
-			return nil, fmt.Errorf("invalid transaction replay state at %s", tx.Hash().String())
-		}
-		return traceActions, nil
-	}
-
 	// check correct replay state
-	if status == 0 {
-		return nil, fmt.Errorf("invalid transaction replay state at %s", tx.Hash().String())
+	if status != resultReceipt.Status {
+		return nil, fmt.Errorf("invalid transaction replay state at %s, want %v but got %v", tx.Hash().String(), status, resultReceipt.Status)
 	}
 	return traceActions, nil
 }
