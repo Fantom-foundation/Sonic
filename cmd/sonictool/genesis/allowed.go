@@ -128,6 +128,15 @@ var (
 				genesisstore.FwsArchiveSection(0): hash.HexToHash("0xf445000720ef2969aa0fb4db6f5542452b5ea83fbf54dc1dcbe9202af0feafd8"),
 			},
 		},
+		{
+			Name:   "Mainnet-282500 with Carmen live state only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x46ed30acff8b17680e73e78bcc1c1ece2b0288fecc8fce0e01bd058fa2d34c2b"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0x2bd68ede30496bc53a57f53f2a47e22a4d0c6ae21168717078bb09c2e09e9b10"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x47025ee3895fe976750bdd883f84ef451a5fe1051d4d2ca294bebf63eb6555c6"),
+			},
+		},
 
 		{
 			Name:   "Testnet-2458 with pruned MPT",
