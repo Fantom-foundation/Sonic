@@ -1701,6 +1701,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		l.TxHash = hash
 		l.BlockHash = header.Hash
 		l.BlockNumber = blockNumber
+		if l.Topics == nil {
+			l.Topics = []common.Hash{}
+		}
 	}
 
 	// Derive the sender.

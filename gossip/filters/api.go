@@ -474,6 +474,11 @@ func returnLogs(logs []*types.Log) []*types.Log {
 	if logs == nil {
 		return []*types.Log{}
 	}
+	for _, l := range logs {
+		if l.Topics == nil {
+			l.Topics = []common.Hash{}
+		}
+	}
 	return logs
 }
 
