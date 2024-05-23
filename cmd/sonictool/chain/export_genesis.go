@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"compress/gzip"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
@@ -15,6 +14,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	gzip "github.com/klauspost/pgzip"
 	"io"
 	"os"
 	"path"
