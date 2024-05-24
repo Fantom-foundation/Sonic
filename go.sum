@@ -61,8 +61,8 @@ github.com/Fantom-foundation/Carmen/go v0.0.0-20240507092214-445df9f3b43c h1:zSU
 github.com/Fantom-foundation/Carmen/go v0.0.0-20240507092214-445df9f3b43c/go.mod h1:d7YbZSMQ+IIrxAfQKBs75V50T+J/VDCyKavnRZxSNdQ=
 github.com/Fantom-foundation/Substate v0.0.0-20230224090651-4c8c024214f4 h1:AA0BtERxmlf7jvDF4fwIB2k/Lsc7HTRE3QHTZnfcSVA=
 github.com/Fantom-foundation/Substate v0.0.0-20230224090651-4c8c024214f4/go.mod h1:/yIHWCDDJcdKMJYvOLdYOnHt5eUBF9XWnrvrNE+90ik=
-github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240506064511-c393b7c3bd8d h1:iTp6LDc62SrGcbu5s4yldF99hstpKoyhWMuchknBe0U=
-github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240506064511-c393b7c3bd8d/go.mod h1:Hu8U9SrXP6ABqtSNfJHw8lRGnr6tyma9PNZvwTweDjQ=
+github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240523185630-b058188a043a h1:JSaTMHvYKZOizg2EcJeNEiIpdF939Xw80g/sHd2qeWQ=
+github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20240523185630-b058188a043a/go.mod h1:Hu8U9SrXP6ABqtSNfJHw8lRGnr6tyma9PNZvwTweDjQ=
 github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00 h1:yw5QaA7u4t2/j7VIGrMt640Kuhsx6pEIHM3bj10glWc=
 github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00/go.mod h1:Ogv5etzSmM2rQ4eN3OfmyitwWaaPjd4EIDiW/NAbYGk=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
