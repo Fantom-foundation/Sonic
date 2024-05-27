@@ -43,6 +43,9 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 	}
 
 	// blocks
+	if !includeArchive && to > 1 {
+		from = to - 1 // only blocks of the last epoch for non-archive genesis
+	}
 	writer = newUnitWriter(out)
 	if err := writer.Start(header, "brs", tmpPath); err != nil {
 		return err
