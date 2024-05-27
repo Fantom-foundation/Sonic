@@ -147,6 +147,15 @@ var (
 				genesisstore.FwsArchiveSection(0): hash.HexToHash("0x7d8c63e5a080fd53daa991aa30d5b990d421c199d7c3c398982a73ddc59b1541"),
 			},
 		},
+		{
+			Name:   "Mainnet-283890 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x776ce5900d2e8e2f088ff4eb2cfb9ee4632a0d9f0378bc8fd21da0d9d49b9272"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0x3f6c530995c5e7c506d9106d20d69f94fa79aa68a24b426e3f0653c64d1100b7"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0xf8b42be75150cd76b5f86c8c4d67a9aaae90332d0be648df4f93e0bc4830d35e"),
+			},
+		},
 
 		{
 			Name:   "Testnet-2458 with pruned MPT",
