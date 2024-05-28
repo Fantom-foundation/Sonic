@@ -2,12 +2,14 @@ package gossip
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
@@ -99,15 +101,15 @@ func (s *Service) ProcessBlockVotes(bvs inter.LlrSignedBlockVotes) error {
 	return err
 }
 
-func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, txs types.Transactions, blockIdx idx.Block, atropos hash.Event) {
+func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, txs types.Transactions, blockIdx idx.Block, atropos hash.Event, config *params.ChainConfig, time uint64, baseFee *big.Int, blobGasPrice *big.Int) {
 	s.evm.SetRawReceipts(blockIdx, receiptsForStorage)
-	receipts, _ := evmstore.UnwrapStorageReceipts(receiptsForStorage, blockIdx, nil, common.Hash(atropos), txs)
+	receipts, _ := evmstore.UnwrapStorageReceipts(receiptsForStorage, blockIdx, config, common.Hash(atropos), time, baseFee, blobGasPrice, txs)
 	for _, r := range receipts {
 		s.evm.IndexLogs(r.Logs...)
 	}
 }
 
-func (s *Store) WriteFullBlockRecord(br ibr.LlrIdxFullBlockRecord) {
+func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br ibr.LlrIdxFullBlockRecord) {
 	txHashes := make([]common.Hash, 0, len(br.Txs))
 	for _, tx := range br.Txs {
 		txHashes = append(txHashes, tx.Hash())
@@ -116,7 +118,7 @@ func (s *Store) WriteFullBlockRecord(br ibr.LlrIdxFullBlockRecord) {
 
 	if len(br.Receipts) != 0 {
 		// Note: it's possible for receipts to get indexed twice by BR and block processing
-		indexRawReceipts(s, br.Receipts, br.Txs, br.Idx, br.Atropos)
+		indexRawReceipts(s, br.Receipts, br.Txs, br.Idx, br.Atropos, s.GetEvmChainConfig(), uint64(br.Time.Unix()), baseFee, blobGasPrice)
 	}
 	for i, tx := range br.Txs {
 		s.EvmStore().SetTx(tx.Hash(), tx)
@@ -154,7 +156,10 @@ func (s *Service) ProcessFullBlockRecord(br ibr.LlrIdxFullBlockRecord) error {
 		return errors.New("block record hash mismatch")
 	}
 
-	s.store.WriteFullBlockRecord(br)
+	// TODO: check whether this is a valid source for the baseFee
+	baseFee := s.store.GetEpochState().Rules.Economy.MinGasPrice
+	blobGasPrice := big.NewInt(1) // < find a way to define th blob gas price
+	s.store.WriteFullBlockRecord(baseFee, blobGasPrice, br)
 	s.engineMu.Lock()
 	defer s.engineMu.Unlock()
 	if s.verWatcher != nil {

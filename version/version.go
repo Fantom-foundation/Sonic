@@ -2,22 +2,46 @@ package version
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/params"
 )
 
-func init() {
-	params.VersionMajor = 1  // Major version component of the current release
-	params.VersionMinor = 2  // Minor version component of the current release
-	params.VersionPatch = 1  // Patch version component of the current release
-	params.VersionMeta = "b" // Version metadata to append to the version string
+const (
+	VersionMajor = 1     // Major version component of the current release
+	VersionMinor = 3     // Minor version component of the current release
+	VersionPatch = 0     // Patch version component of the current release
+	VersionMeta  = "dev" // Version metadata to append to the version string
+)
+
+// Version holds the textual version string.
+var Version = func() string {
+	return fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
+}()
+
+// VersionWithMeta holds the textual version string including the metadata.
+var VersionWithMeta = func() string {
+	v := Version
+	if VersionMeta != "" {
+		v += "-" + VersionMeta
+	}
+	return v
+}()
+
+func VersionWithCommit(gitCommit, gitDate string) string {
+	vsn := VersionWithMeta
+	if len(gitCommit) >= 8 {
+		vsn += "-" + gitCommit[:8]
+	}
+	if (VersionMeta != "stable") && (gitDate != "") {
+		vsn += "-" + gitDate
+	}
+	return vsn
 }
 
 func AsString() string {
-	return ToString(uint16(params.VersionMajor), uint16(params.VersionMinor), uint16(params.VersionPatch))
+	return ToString(uint16(VersionMajor), uint16(VersionMinor), uint16(VersionPatch))
 }
 
 func AsU64() uint64 {
-	return ToU64(uint16(params.VersionMajor), uint16(params.VersionMinor), uint16(params.VersionPatch))
+	return ToU64(uint16(VersionMajor), uint16(VersionMinor), uint16(VersionPatch))
 }
 
 func ToU64(vMajor, vMinor, vPatch uint16) uint64 {

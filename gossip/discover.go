@@ -48,8 +48,8 @@ func StartENRUpdater(svc *Service, ln *enode.LocalNode) {
 		defer sub.Unsubscribe()
 		for {
 			select {
-			case <-newHead:
-				ln.Set(currentENREntry(svc))
+			case head := <-newHead:
+				ln.Set(currentENREntry(svc, uint64(head.Block.Time.Unix())))
 			case <-sub.Err():
 				// Would be nice to sync with Stop, but there is no
 				// good way to do that.
@@ -60,9 +60,10 @@ func StartENRUpdater(svc *Service, ln *enode.LocalNode) {
 }
 
 // currentENREntry constructs an `eth` ENR entry based on the current state of the chain.
-func currentENREntry(svc *Service) *enrEntry {
+func currentENREntry(svc *Service, time uint64) *enrEntry {
 	genesisHash := *svc.store.GetGenesisID()
+	genesisTime := svc.store.GetGenesisTime()
 	return &enrEntry{
-		ForkID: forkid.NewID(svc.store.GetEvmChainConfig(), common.Hash(genesisHash), uint64(svc.store.GetLatestBlockIndex())),
+		ForkID: forkid.NewId(svc.store.GetEvmChainConfig(), common.Hash(genesisHash), uint64(genesisTime.Unix()), uint64(svc.store.GetLatestBlockIndex()), time),
 	}
 }

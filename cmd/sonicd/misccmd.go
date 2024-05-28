@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/config"
-	"github.com/ethereum/go-ethereum/params"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/Fantom-foundation/go-opera/version"
 	"os"
 	"runtime"
+
+	"github.com/Fantom-foundation/go-opera/config"
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
 )
 
 var (
 	versionCommand = cli.Command{
-		Action:    version,
+		Action:    versionAction,
 		Name:      "version",
 		Usage:     "Print version numbers",
 		ArgsUsage: " ",
@@ -24,9 +25,9 @@ The output of this command is supposed to be machine-readable.
 	}
 )
 
-func version(ctx *cli.Context) error {
+func versionAction(ctx *cli.Context) error {
 	fmt.Println(config.ClientIdentifier)
-	fmt.Println("Version:", params.VersionWithMeta())
+	fmt.Println("Version:", version.VersionWithMeta)
 	if config.GitCommit != "" {
 		fmt.Println("Git Commit:", config.GitCommit)
 	}

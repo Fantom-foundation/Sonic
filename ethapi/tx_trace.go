@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -112,7 +113,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 		Actions: make([]txtrace.ActionTrace, 0),
 	}
 
-	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), block.Number))
+	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHash{BlockNumber: &parentBlockNr})
 	if err != nil {
@@ -140,7 +141,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("no receipt found for transaction %s", tx.Hash().String())
 			}
 
-			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status, receipts[i].GasUsed)
+			txTraces, err := s.traceTx(ctx, s.b, block.Header(), msg, state, block, tx, uint64(receipts[i].TransactionIndex), receipts[i].Status)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get transaction trace for transaction %s, error %s", tx.Hash().String(), err)
 			} else {
@@ -161,10 +162,9 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot get message from transaction %s, error %s", tx.Hash().String(), err)
 			}
 
-			state.Prepare(tx.Hash(), i)
+			state.SetTxContext(tx.Hash(), i)
 			vmConfig := opera.DefaultVMConfig
 			vmConfig.NoBaseFee = true
-			vmConfig.Debug = false
 			vmConfig.Tracer = nil
 
 			vmenv, _, err := s.b.GetEVM(ctx, msg, state, block.Header(), &vmConfig)
@@ -172,7 +172,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot initialize vm for transaction %s, error: %s", tx.Hash().String(), err.Error())
 			}
 
-			res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.Gas()))
+			res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.GasLimit))
 			failed := false
 			if err != nil {
 				failed = true
@@ -207,15 +207,14 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 
 // traceTx trace transaction with EVM replay and return processed result
 func (s *PublicTxTraceAPI) traceTx(
-	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg types.Message,
+	ctx context.Context, b Backend, header *evmcore.EvmHeader, msg *core.Message,
 	state state.StateDB, block *evmcore.EvmBlock, tx *types.Transaction, index uint64,
-	status uint64, gasUsed uint64) (*[]txtrace.ActionTrace, error) {
+	status uint64) (*[]txtrace.ActionTrace, error) {
 
 	// Providing default config with tracer
 	cfg := opera.DefaultVMConfig
-	cfg.Debug = true
-	txTracer := txtrace.NewTraceStructLogger(block, tx, msg, uint(index), gasUsed)
-	cfg.Tracer = txTracer
+	txTracer := txtrace.NewTraceStructLogger(block, uint(index))
+	cfg.Tracer = txTracer.Hooks()
 	cfg.NoBaseFee = true
 
 	// Setup context so it may be cancelled the call has completed
@@ -244,16 +243,16 @@ func (s *PublicTxTraceAPI) traceTx(
 	}()
 
 	// Setup the gas pool and stateDB
-	gp := new(evmcore.GasPool).AddGas(msg.Gas())
-	state.Prepare(tx.Hash(), int(index))
-	result, err := evmcore.ApplyMessage(vmenv, msg, gp)
+	gp := new(evmcore.GasPool).AddGas(msg.GasLimit)
+	state.SetTxContext(tx.Hash(), int(index))
+	resultReceipt, err := evmcore.ApplyTransactionWithEVM(msg, b.ChainConfig(), gp, state, header.Number, block.Hash, tx, &index, vmenv)
 
 	traceActions := txTracer.GetResult()
 	state.Finalise()
 
 	// err is error occured before EVM execution
 	if err != nil {
-		errTrace := txtrace.GetErrorTraceFromMsg(&msg, block.Hash, *block.Number, tx.Hash(), index, err)
+		errTrace := txtrace.GetErrorTraceFromMsg(msg, block.Hash, *block.Number, tx.Hash(), index, err)
 		at := make([]txtrace.ActionTrace, 0)
 		at = append(at, *errTrace)
 		// check correct replay state
@@ -267,25 +266,9 @@ func (s *PublicTxTraceAPI) traceTx(
 		return nil, fmt.Errorf("EVM was cancelled when replaying tx")
 	}
 
-	// result.Err is error during EVM execution
-	if result != nil && result.Err != nil {
-		if len(*traceActions) == 0 {
-			log.Error("error in result when replaying transaction:", "txHash", tx.Hash().String(), " err", result.Err.Error())
-			errTrace := txtrace.GetErrorTraceFromMsg(&msg, block.Hash, *block.Number, tx.Hash(), index, result.Err)
-			at := make([]txtrace.ActionTrace, 0)
-			at = append(at, *errTrace)
-			return &at, nil
-		}
-		// check correct replay state
-		if status == 1 {
-			return nil, fmt.Errorf("invalid transaction replay state at %s", tx.Hash().String())
-		}
-		return traceActions, nil
-	}
-
 	// check correct replay state
-	if status == 0 {
-		return nil, fmt.Errorf("invalid transaction replay state at %s", tx.Hash().String())
+	if status != resultReceipt.Status {
+		return nil, fmt.Errorf("invalid transaction replay state at %s, want %v but got %v", tx.Hash().String(), status, resultReceipt.Status)
 	}
 	return traceActions, nil
 }
@@ -295,7 +278,7 @@ func getEmptyBlockTrace(blockHash common.Hash, blockNumber big.Int) *[]txtrace.A
 	emptyTrace := txtrace.CallTrace{
 		Actions: make([]txtrace.ActionTrace, 0),
 	}
-	blockTrace := txtrace.NewActionTrace(blockHash, blockNumber, common.Hash{}, 0, "empty")
+	blockTrace := txtrace.CreateActionTrace(blockHash, blockNumber, common.Hash{}, 0, "empty")
 	txAction := txtrace.NewAddressAction(common.Address{}, 0, []byte{}, nil, hexutil.Big{}, nil)
 	blockTrace.Action = txAction
 	blockTrace.Error = "Empty block"

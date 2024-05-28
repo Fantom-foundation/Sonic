@@ -2,21 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonicd/diskusage"
-	"github.com/Fantom-foundation/go-opera/cmd/sonicd/metrics"
-	"github.com/Fantom-foundation/go-opera/cmd/sonicd/tracing"
-	"github.com/Fantom-foundation/go-opera/config"
-	"github.com/Fantom-foundation/go-opera/config/flags"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/Fantom-foundation/go-opera/version"
 	"os"
 	"os/signal"
 	"sort"
 	"syscall"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/diskusage"
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/metrics"
+	"github.com/Fantom-foundation/go-opera/cmd/sonicd/tracing"
+	"github.com/Fantom-foundation/go-opera/config"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/console/prompt"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -165,7 +165,7 @@ func initApp() {
 	app = cli.NewApp()
 	app.Name = "sonicd"
 	app.Usage = "the Sonic network client"
-	app.Version = params.VersionWithCommit(config.GitCommit, config.GitDate)
+	app.Version = version.VersionWithCommit(config.GitCommit, config.GitDate)
 	app.Action = lachesisMain
 	app.HideVersion = true // we have a command to print the version
 	app.Commands = []cli.Command{
@@ -268,10 +268,7 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 	stack.AccountManager().Subscribe(events)
 
 	// Create a client to interact with local opera node.
-	rpcClient, err := stack.Attach()
-	if err != nil {
-		return fmt.Errorf("failed to attach to self: %w", err)
-	}
+	rpcClient := stack.Attach()
 	ethClient := ethclient.NewClient(rpcClient)
 	go func() {
 		// Open any wallets already attached

@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/Fantom-foundation/go-opera/config"
+	"github.com/Fantom-foundation/go-opera/version"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
 	"runtime"
 	"strings"
 	"testing"
@@ -30,7 +30,7 @@ func TestFakeNetFlag_NonValidator(t *testing.T) {
 	cli.SetTemplateFunc("goos", func() string { return runtime.GOOS })
 	cli.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	cli.SetTemplateFunc("gover", runtime.Version)
-	cli.SetTemplateFunc("version", func() string { return params.VersionWithCommit("", "") })
+	cli.SetTemplateFunc("version", func() string { return version.VersionWithCommit("", "") })
 	cli.SetTemplateFunc("niltime", genesisStart)
 	cli.SetTemplateFunc("apis", func() string { return ipcAPIs })
 	cli.ExpectExit()
@@ -60,7 +60,7 @@ func TestFakeNetFlag_Validator(t *testing.T) {
 	cli.SetTemplateFunc("goos", func() string { return runtime.GOOS })
 	cli.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	cli.SetTemplateFunc("gover", runtime.Version)
-	cli.SetTemplateFunc("version", func() string { return params.VersionWithCommit("", "") })
+	cli.SetTemplateFunc("version", func() string { return version.VersionWithCommit("", "") })
 	cli.SetTemplateFunc("niltime", genesisStart)
 	cli.SetTemplateFunc("apis", func() string { return ipcAPIs })
 	cli.ExpectExit()

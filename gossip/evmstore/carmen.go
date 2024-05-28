@@ -4,10 +4,13 @@ import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/inter/state"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 )
 
 func CreateCarmenStateDb(carmenStateDb carmen.VmStateDB) state.StateDB {
@@ -88,8 +91,8 @@ func (c *CarmenStateDB) Empty(addr common.Address) bool {
 	return c.db.Empty(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) GetBalance(addr common.Address) *big.Int {
-	return c.db.GetBalance(cc.Address(addr))
+func (c *CarmenStateDB) GetBalance(addr common.Address) *uint256.Int {
+	return utils.BigIntToUint256(c.db.GetBalance(cc.Address(addr)))
 }
 
 func (c *CarmenStateDB) GetNonce(addr common.Address) uint64 {
@@ -116,12 +119,20 @@ func (c *CarmenStateDB) GetState(addr common.Address, hash common.Hash) common.H
 	return common.Hash(c.db.GetState(cc.Address(addr), cc.Key(hash)))
 }
 
+func (c *CarmenStateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
+	panic("not implemented")
+}
+
 func (c *CarmenStateDB) GetProof(addr common.Address) ([][]byte, error) {
 	panic("not supported")
 }
 
 func (c *CarmenStateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
 	panic("not supported")
+}
+
+func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
+	return common.Hash{} // TODO
 }
 
 func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
@@ -132,19 +143,19 @@ func (c *CarmenStateDB) StorageTrie(addr common.Address) ethstate.Trie {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) HasSuicided(addr common.Address) bool {
+func (c *CarmenStateDB) HasSelfDestructed(addr common.Address) bool {
 	return c.db.HasSuicided(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) AddBalance(addr common.Address, amount *big.Int) {
-	c.db.AddBalance(cc.Address(addr), amount)
+func (c *CarmenStateDB) AddBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) {
+	c.db.AddBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
 }
 
-func (c *CarmenStateDB) SubBalance(addr common.Address, amount *big.Int) {
-	c.db.SubBalance(cc.Address(addr), amount)
+func (c *CarmenStateDB) SubBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) {
+	c.db.SubBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
 }
 
-func (c *CarmenStateDB) SetBalance(addr common.Address, amount *big.Int) {
+func (c *CarmenStateDB) SetBalance(addr common.Address, amount *uint256.Int) {
 	panic("not supported")
 }
 
@@ -160,15 +171,27 @@ func (c *CarmenStateDB) SetState(addr common.Address, key, value common.Hash) {
 	c.db.SetState(cc.Address(addr), cc.Key(key), cc.Value(value))
 }
 
+func (c *CarmenStateDB) SetTransientState(addr common.Address, key, value common.Hash) {
+	panic("not implemented")
+}
+
 func (c *CarmenStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
 	panic("not supported")
 }
 
-func (c *CarmenStateDB) Suicide(addr common.Address) bool {
-	return c.db.Suicide(cc.Address(addr))
+func (c *CarmenStateDB) SelfDestruct(addr common.Address) {
+	c.db.Suicide(cc.Address(addr))
+}
+
+func (c *CarmenStateDB) Selfdestruct6780(addr common.Address) {
+	panic("not implemented")
 }
 
 func (c *CarmenStateDB) CreateAccount(addr common.Address) {
+	c.db.CreateAccount(cc.Address(addr))
+}
+
+func (c *CarmenStateDB) CreateContract(addr common.Address) {
 	c.db.CreateAccount(cc.Address(addr))
 }
 
@@ -200,9 +223,9 @@ func (c *CarmenStateDB) Finalise() {
 	c.db.EndTransaction()
 }
 
-// Prepare sets the current transaction hash and index which are
+// SetTxContext sets the current transaction hash and index which are
 // used when the EVM emits new state logs.
-func (c *CarmenStateDB) Prepare(txHash common.Hash, txIndex int) {
+func (c *CarmenStateDB) SetTxContext(txHash common.Hash, txIndex int) {
 	c.txHash = txHash
 	c.txIndex = txIndex
 	c.db.ClearAccessList()
@@ -226,7 +249,8 @@ func (c *CarmenStateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	return common.Hash(c.db.GetHash()), nil
 }
 
-func (c *CarmenStateDB) PrepareAccessList(sender common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
+func (c *CarmenStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
+	// TODO: consider rules of Paris and Cancun revisions
 	c.db.ClearAccessList()
 	c.db.AddAddressToAccessList(cc.Address(sender))
 	if dest != nil {
