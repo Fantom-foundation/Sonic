@@ -69,10 +69,9 @@ func initFlags() {
 		flags.MaxPendingPeersFlag,
 		flags.NATFlag,
 		flags.NoDiscoverFlag,
+		flags.DiscoveryV4Flag,
 		flags.DiscoveryV5Flag,
 		flags.NetrestrictFlag,
-		flags.IPrestrictFlag,
-		flags.PrivateNodeFlag,
 		flags.NodeKeyFileFlag,
 		flags.NodeKeyHexFlag,
 	}

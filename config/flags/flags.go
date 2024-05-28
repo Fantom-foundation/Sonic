@@ -243,28 +243,24 @@ var (
 	}
 	NATFlag = cli.StringFlag{
 		Name:  "nat",
-		Usage: "NAT port mapping mechanism (any|none|upnp|pmp|extip:<IP>)",
+		Usage: "NAT port mapping mechanism (any|none|upnp|pmp|pmp:<IP>|extip:<IP>)",
 		Value: "any",
 	}
 	NoDiscoverFlag = cli.BoolFlag{
 		Name:  "nodiscover",
 		Usage: "Disables the peer discovery mechanism (manual peer addition)",
 	}
+	DiscoveryV4Flag = cli.BoolFlag{
+		Name:  "discovery.v4",
+		Usage: "Enables the legacy V4 discovery mechanism",
+	}
 	DiscoveryV5Flag = cli.BoolFlag{
-		Name:  "v5disc",
-		Usage: "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
+		Name:  "discovery.v5",
+		Usage: "Enables the RLPx V5 (Topic Discovery) mechanism",
 	}
 	NetrestrictFlag = cli.StringFlag{
 		Name:  "netrestrict",
 		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
-	}
-	IPrestrictFlag = cli.StringFlag{
-		Name:  "iprestrict",
-		Usage: "Restricts network communication to the given IP addresses",
-	}
-	PrivateNodeFlag = cli.StringFlag{
-		Name:  "privatenodes",
-		Usage: "Comma separated enode URLs which must not be advertised as peers to public network",
 	}
 
 	ConfigFileFlag = cli.StringFlag{
