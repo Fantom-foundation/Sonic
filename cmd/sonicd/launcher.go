@@ -157,7 +157,6 @@ func initFlags() {
 // init the CLI app.
 func initApp() {
 	discfilter.Enable()
-	config.OverrideParams()
 
 	initFlags()
 
