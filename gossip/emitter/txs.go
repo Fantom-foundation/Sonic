@@ -142,7 +142,7 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 	return false
 }
 
-func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted SortedTransactions) {
+func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPriceAndNonce) {
 	maxGasUsed := em.maxGasPowerToUse(e)
 	if maxGasUsed <= e.GasPowerUsed() {
 		return
