@@ -30,7 +30,6 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 		NetworkID:   gdb.GetEpochState().Rules.NetworkID,
 		NetworkName: gdb.GetEpochState().Rules.Name,
 	}
-	from := idx.Epoch(1)
 	to := gdb.GetEpoch()
 
 	// epochs
@@ -38,19 +37,20 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 	if err := writer.Start(header, "ers", tmpPath); err != nil {
 		return err
 	}
-	if err := exportEpochsSection(gdb, writer, from, to); err != nil {
+	if err := exportEpochsSection(gdb, writer, 1, to); err != nil {
 		return err
 	}
 
 	// blocks
-	if !includeArchive && to > 1 {
-		from = to - 1 // only blocks of the last epoch for non-archive genesis
+	var maxBlocks idx.Block
+	if !includeArchive {
+		maxBlocks = 300
 	}
 	writer = newUnitWriter(out)
 	if err := writer.Start(header, "brs", tmpPath); err != nil {
 		return err
 	}
-	if err := exportBlocksSection(gdb, writer, from, to); err != nil {
+	if err := exportBlocksSection(gdb, writer, to, maxBlocks); err != nil {
 		return err
 	}
 
@@ -102,12 +102,11 @@ func exportEpochsSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epo
 	return nil
 }
 
-func exportBlocksSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
+func exportBlocksSection(gdb *gossip.Store, writer *unitWriter, to idx.Epoch, maxBlocks idx.Block) error {
 	toBlock := getEpochBlock(to, gdb)
-	fromBlock := getEpochBlock(from, gdb)
-	if fromBlock < 1 {
-		// avoid underflow
-		fromBlock = 1
+	fromBlock := idx.Block(1)
+	if maxBlocks != 0 && toBlock > 1 + maxBlocks {
+		fromBlock = toBlock - maxBlocks
 	}
 	log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
 	for i := toBlock; i >= fromBlock; i-- {
