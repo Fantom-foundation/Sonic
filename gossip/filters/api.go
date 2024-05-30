@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/evmcore"
 	"math/big"
 	"sync"
 	"time"
@@ -192,7 +193,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	var (
-		headers   = make(chan *evmHeaderJson)
+		headers   = make(chan *evmcore.EvmHeaderJson)
 		headerSub = api.events.SubscribeNewHeads(headers)
 	)
 
@@ -206,7 +207,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 			case h := <-headers:
 				api.filtersMu.Lock()
 				if f, found := api.filters[headerSub.ID]; found {
-					f.hashes = append(f.hashes, h.Hash)
+					f.hashes = append(f.hashes, *h.Hash)
 				}
 				api.filtersMu.Unlock()
 			case <-headerSub.Err():
@@ -231,7 +232,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	rpcSub := notifier.CreateSubscription()
 
 	go func() {
-		headers := make(chan *evmHeaderJson)
+		headers := make(chan *evmcore.EvmHeaderJson)
 		headersSub := api.events.SubscribeNewHeads(headers)
 
 		for {

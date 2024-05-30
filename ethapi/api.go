@@ -52,7 +52,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/holiman/uint256"
 )
 
@@ -770,45 +769,30 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 // GetHeaderByNumber returns the requested canonical block header.
 // * When blockNr is -1 the chain head is returned.
 // * When blockNr is -2 the pending chain head is returned.
-func (s *PublicBlockChainAPI) GetHeaderByNumber(ctx context.Context, number rpc.BlockNumber) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetHeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*evmcore.EvmHeaderJson, error) {
 	header, err := s.b.HeaderByNumber(ctx, number)
 	if header != nil && err == nil {
-		response := s.rpcMarshalHeader(header, s.calculateExtBlockApi(ctx, number))
-		if number == rpc.PendingBlockNumber {
-			// Pending header need to nil out a few fields
-			for _, field := range []string{"hash", "nonce", "miner"} {
-				response[field] = nil
-			}
-		}
+		response := s.rpcMarshalHeader(header, s.getBlockReceipts(ctx, number))
 		return response, err
 	}
 	return nil, err
 }
 
 // GetHeaderByHash returns the requested header by hash.
-func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.Hash) map[string]interface{} {
+func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.Hash) *evmcore.EvmHeaderJson {
 	header, _ := s.b.HeaderByHash(ctx, hash)
 	if header != nil {
-		return s.rpcMarshalHeader(header, s.calculateExtBlockApi(ctx, rpc.BlockNumber(header.Number.Uint64())))
+		return s.rpcMarshalHeader(header, s.getBlockReceipts(ctx, rpc.BlockNumber(header.Number.Uint64())))
 	}
 	return nil
 }
 
-func (s *PublicBlockChainAPI) calculateExtBlockApi(ctx context.Context, blkNumber rpc.BlockNumber) extBlockApi {
-	var ext extBlockApi
-	if s.b.CalcBlockExtApi() && blkNumber != rpc.EarliestBlockNumber {
-		receipts, err := s.b.GetReceiptsByNumber(ctx, blkNumber)
-		if err != nil {
-			return ext
-		}
-		if receipts.Len() != 0 {
-			ext.receiptsRoot = types.DeriveSha(receipts, trie.NewStackTrie(nil))
-			ext.bloom = types.CreateBloom(receipts)
-		} else {
-			ext.receiptsRoot = types.EmptyRootHash
-		}
+func (s *PublicBlockChainAPI) getBlockReceipts(ctx context.Context, blkNumber rpc.BlockNumber) types.Receipts {
+	if blkNumber == rpc.EarliestBlockNumber {
+		return nil
 	}
-	return ext
+	receipts, _ := s.b.GetReceiptsByNumber(ctx, blkNumber)
+	return receipts
 }
 
 // GetBlockByNumber returns the requested canonical block.
@@ -816,27 +800,20 @@ func (s *PublicBlockChainAPI) calculateExtBlockApi(ctx context.Context, blkNumbe
 //   - When blockNr is -2 the pending chain head is returned.
 //   - When fullTx is true all transactions in the block are returned, otherwise
 //     only the transaction hash is returned.
-func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNumber, fullTx bool) (*evmcore.EvmBlockJson, error) {
 	block, err := s.b.BlockByNumber(ctx, number)
 	if block != nil && err == nil {
-		response, err := s.rpcMarshalBlock(block, s.calculateExtBlockApi(ctx, number), true, fullTx)
-		if err == nil && number == rpc.PendingBlockNumber {
-			// Pending blocks need to nil out a few fields
-			for _, field := range []string{"hash", "nonce", "miner"} {
-				response[field] = nil
-			}
-		}
-		return response, err
+		return s.rpcMarshalBlock(block, s.getBlockReceipts(ctx, number), true, fullTx)
 	}
 	return nil, err
 }
 
 // GetBlockByHash returns the requested block. When fullTx is true all transactions in the block are returned in full
 // detail, otherwise only the transaction hash is returned.
-func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, hash common.Hash, fullTx bool) (*evmcore.EvmBlockJson, error) {
 	block, err := s.b.BlockByHash(ctx, hash)
 	if block != nil {
-		return s.rpcMarshalBlock(block, s.calculateExtBlockApi(ctx, rpc.BlockNumber(block.NumberU64())), true, fullTx)
+		return s.rpcMarshalBlock(block, s.getBlockReceipts(ctx, rpc.BlockNumber(block.NumberU64())), true, fullTx)
 	}
 	return nil, err
 }
@@ -1285,9 +1262,12 @@ func RPCMarshalHeader(head *evmcore.EvmHeader, ext extBlockApi) map[string]inter
 // RPCMarshalBlock converts the given block to the RPC output which depends on fullTx. If inclTx is true transactions are
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
-func RPCMarshalBlock(block *evmcore.EvmBlock, ext extBlockApi, inclTx bool, fullTx bool) (map[string]interface{}, error) {
-	fields := RPCMarshalHeader(block.Header(), ext)
-	fields["size"] = hexutil.Uint64(block.EthBlock().Size())
+func RPCMarshalBlock(block *evmcore.EvmBlock, receipts types.Receipts, inclTx bool, fullTx bool) (*evmcore.EvmBlockJson, error) {
+	size := hexutil.Uint64(block.EthBlock().Size()) // RPC encoded storage size
+	json := &evmcore.EvmBlockJson{
+		EvmHeaderJson: block.Header().ToJson(receipts),
+		Size: &size,
+	}
 
 	if inclTx {
 		formatTx := func(tx *types.Transaction) (interface{}, error) {
@@ -1306,34 +1286,28 @@ func RPCMarshalBlock(block *evmcore.EvmBlock, ext extBlockApi, inclTx bool, full
 				return nil, err
 			}
 		}
-		fields["transactions"] = transactions
+		json.Txs = transactions
 	}
-	uncles := noUncles
-	uncleHashes := make([]common.Hash, len(uncles))
-	for i, uncle := range uncles {
-		uncleHashes[i] = uncle.Hash
-	}
-	fields["uncles"] = uncleHashes
+	json.Uncles = make([]common.Hash, 0)
 
-	return fields, nil
+	return json, nil
 }
 
 // rpcMarshalHeader uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
-func (s *PublicBlockChainAPI) rpcMarshalHeader(header *evmcore.EvmHeader, ext extBlockApi) map[string]interface{} {
-	fields := RPCMarshalHeader(header, ext)
-	fields["totalDifficulty"] = (*hexutil.Big)(s.b.GetTd(header.Hash))
-	return fields
+func (s *PublicBlockChainAPI) rpcMarshalHeader(header *evmcore.EvmHeader, receipts types.Receipts) *evmcore.EvmHeaderJson {
+	return header.ToJson(receipts)
 }
 
 // rpcMarshalBlock uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
-func (s *PublicBlockChainAPI) rpcMarshalBlock(b *evmcore.EvmBlock, ext extBlockApi, inclTx bool, fullTx bool) (map[string]interface{}, error) {
-	fields, err := RPCMarshalBlock(b, ext, inclTx, fullTx)
+func (s *PublicBlockChainAPI) rpcMarshalBlock(b *evmcore.EvmBlock, receipts types.Receipts, inclTx bool, fullTx bool) (*evmcore.EvmBlockJson, error) {
+	fields, err := RPCMarshalBlock(b, receipts, inclTx, fullTx)
 	if err != nil {
 		return nil, err
 	}
-	fields["totalDifficulty"] = (*hexutil.Big)(s.b.GetTd(b.Hash))
+
+	fields.TotalDiff = (*hexutil.Big)(s.b.GetTd(b.Hash))
 	return fields, err
 }
 
