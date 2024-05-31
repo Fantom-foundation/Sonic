@@ -61,12 +61,8 @@ func (ew *emitterWorldProc) IsBusy() bool {
 	return atomic.LoadUint32(&ew.s.eventBusyFlag) != 0 || atomic.LoadUint32(&ew.s.blockBusyFlag) != 0
 }
 
-func (ew *emitterWorldProc) StateDB() evmstore.TxPoolStateDB {
-	statedb, err := ew.s.store.evm.GetTxPoolStateDB()
-	if err != nil {
-		return nil
-	}
-	return statedb
+func (ew *emitterWorldProc) StateDB() (evmstore.TxPoolStateDB, error) {
+	return ew.s.store.evm.GetTxPoolStateDB()
 }
 
 func (ew *emitterWorldProc) IsSynced() bool {

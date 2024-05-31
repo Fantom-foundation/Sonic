@@ -37,7 +37,7 @@ type (
 		IsSynced() bool
 		PeersNum() int
 
-		StateDB() evmstore.TxPoolStateDB
+		StateDB() (evmstore.TxPoolStateDB, error)
 	}
 
 	// aliases for mock generator

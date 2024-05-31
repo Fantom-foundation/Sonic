@@ -17,7 +17,7 @@ func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDB, error) {
 	if s.carmenDb == nil {
 		return nil, fmt.Errorf("unable to get live StateDb - EvmStore is not open")
 	}
-	stateDb := CreateCarmenStateDb(s.carmenDb).(*carmenStateDB)
+	stateDb := CreateCarmenStateDb(s.carmenDb)
 	actualHash := stateDb.GetStateHash()
 	if actualHash != common.Hash(stateRoot) {
 		stateDb.Release()
@@ -40,7 +40,7 @@ func (s *Store) GetReadOnlyHeadStateDb() (state.StateDB, error) {
 	if empty {
 		return nil, fmt.Errorf("unable to obtain read-only state for empty chain")
 	}
-	return createHistoricStateDb(height, s.carmenDb), nil
+	return createHistoricStateDb(height, s.carmenDb)
 }
 
 type TxPoolStateDB interface {
@@ -79,7 +79,10 @@ func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.S
 	if s.carmenDb == nil {
 		return nil, fmt.Errorf("unable to get RPC StateDb - EvmStore is not open")
 	}
-	stateDb := createHistoricStateDb(blockNum.Uint64(), s.carmenDb).(*carmenStateDB)
+	stateDb, err := createHistoricStateDb(blockNum.Uint64(), s.carmenDb)
+	if err != nil {
+		return nil, err
+	}
 	actualHash := stateDb.GetStateHash()
 	if actualHash != stateRoot {
 		stateDb.Release()

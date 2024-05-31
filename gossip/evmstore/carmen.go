@@ -3,7 +3,6 @@ package evmstore
 import (
 	"github.com/Fantom-foundation/Carmen/go/carmen"
 	"github.com/Fantom-foundation/go-opera/inter/state"
-	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/tracing"
@@ -27,21 +26,21 @@ func createTxPoolStateDB(carmenDb carmen.Database) TxPoolStateDB {
 }
 
 // createHistoricStateDb creates a state-DB for querying historic states.
-func createHistoricStateDb(block uint64, carmenDb carmen.Database) state.StateDB {
+func createHistoricStateDb(block uint64, carmenDb carmen.Database) (state.StateDB, error) {
 	ctxt, err := carmenDb.GetHistoricContext(block)
 	if err != nil {
-		return &carmenStateDB{err: err}
+		return nil, err
 	}
 	tx, err := ctxt.BeginTransaction()
 	if err != nil {
-		return &carmenStateDB{err: err}
+		return nil, err
 	}
 	return &carmenStateDB{
 		db:           carmenDb,
 		blockContext: ctxt,
 		tx:           tx,
 		blockNum:     block,
-	}
+	}, nil
 }
 
 type blockContext interface {
@@ -126,7 +125,8 @@ func (c *carmenStateDB) Empty(addr common.Address) bool {
 }
 
 func (c *carmenStateDB) GetBalance(addr common.Address) *uint256.Int {
-	return utils.BigIntToUint256(c.tx.GetBalance(carmen.Address(addr)).ToBig())
+	res := c.tx.GetBalance(carmen.Address(addr)).Uint256()
+	return &res
 }
 
 func (c *carmenStateDB) GetNonce(addr common.Address) uint64 {
@@ -154,7 +154,7 @@ func (c *carmenStateDB) GetState(addr common.Address, hash common.Hash) common.H
 }
 
 func (c *carmenStateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
-	panic("not implemented")
+	return common.Hash(c.tx.GetTransientState(carmen.Address(addr), carmen.Key(key)))
 }
 
 func (c *carmenStateDB) GetProof(addr common.Address) ([][]byte, error) {
@@ -190,7 +190,13 @@ func (c *carmenStateDB) SubBalance(addr common.Address, amount *uint256.Int, rea
 }
 
 func (c *carmenStateDB) SetBalance(addr common.Address, amount *uint256.Int) {
-	panic("not supported")
+	// used only in state overrides in RPC
+	current := c.tx.GetBalance(carmen.Address(addr)).Uint256()
+	if current.Cmp(amount) < 0 {
+		c.tx.AddBalance(carmen.Address(addr), carmen.NewAmountFromUint256(current.Sub(amount, &current)))
+	} else {
+		c.tx.SubBalance(carmen.Address(addr), carmen.NewAmountFromUint256(current.Sub(&current, amount)))
+	}
 }
 
 func (c *carmenStateDB) SetNonce(addr common.Address, nonce uint64) {
@@ -206,7 +212,7 @@ func (c *carmenStateDB) SetState(addr common.Address, key, value common.Hash) {
 }
 
 func (c *carmenStateDB) SetTransientState(addr common.Address, key, value common.Hash) {
-	panic("not implemented")
+	c.tx.SetTransientState(carmen.Address(addr), carmen.Key(key), carmen.Value(value))
 }
 
 func (c *carmenStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
@@ -218,7 +224,7 @@ func (c *carmenStateDB) SelfDestruct(addr common.Address) {
 }
 
 func (c *carmenStateDB) Selfdestruct6780(addr common.Address) {
-	panic("not implemented")
+	panic("EIP-6780 selfdestruct not implemented")
 }
 
 func (c *carmenStateDB) CreateAccount(addr common.Address) {
@@ -233,7 +239,7 @@ func (c *carmenStateDB) ForEachStorage(addr common.Address, cb func(key common.H
 	panic("not supported")
 }
 
-func (c *carmenStateDB) Copy() state.StateDB {
+func (c *carmenStateDB) Copy() (state.StateDB, error) {
 	// This is only needed by one API call and in this one
 	// no previous state is present in the StateDB. So we can
 	// just return a fresh one.
@@ -252,20 +258,20 @@ func (c *carmenStateDB) GetRefund() uint64 {
 	return c.tx.GetRefund()
 }
 
-func (c *carmenStateDB) Finalise() {
+func (c *carmenStateDB) Finalise() error {
 	if c.err != nil {
-		return
+		return c.err
 	}
-	c.err = c.tx.Commit()
-	if c.err != nil {
-		return
+	err := c.tx.Commit()
+	if err != nil {
+		return err
 	}
 	tx, err := c.blockContext.BeginTransaction()
 	if err != nil {
-		c.err = err
-	} else {
-		c.tx = tx
+		return err
 	}
+	c.tx = tx
+	return nil
 }
 
 // SetTxContext sets the current transaction hash and index which are
@@ -309,7 +315,7 @@ func (c *carmenStateDB) EndBlock(number uint64) {
 	c.blockContext = nil
 }
 
-func (c *carmenStateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
+func (c *carmenStateDB) Commit() (common.Hash, error) {
 	// get state hash only
 	var hash common.Hash
 	err := c.db.QueryHeadState(func(ctxt carmen.QueryContext) {
@@ -401,20 +407,20 @@ func (s *carmenTxPoolStateDB) GetNonce(addr common.Address) uint64 {
 		res = ctxt.GetNonce(carmen.Address(addr))
 	})
 	if err != nil {
-		return 0 // < state.StateDB does not provide a way to signal errors
+		return 0 // TxPoolStateDB ignores errors
 	}
 	return res
 }
 
 func (s *carmenTxPoolStateDB) GetBalance(addr common.Address) *uint256.Int {
-	var res *uint256.Int
+	var res uint256.Int
 	err := s.db.QueryHeadState(func(ctxt carmen.QueryContext) {
-		res = uint256.MustFromBig(ctxt.GetBalance(carmen.Address(addr)).ToBig())
+		res = ctxt.GetBalance(carmen.Address(addr)).Uint256()
 	})
 	if err != nil {
-		return nil // < state.StateDB does not provide a way to signal errors
+		return nil // TxPoolStateDB ignores errors
 	}
-	return res
+	return &res
 }
 
 func (s *carmenTxPoolStateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
@@ -423,7 +429,7 @@ func (s *carmenTxPoolStateDB) GetState(addr common.Address, hash common.Hash) co
 		res = common.Hash(ctxt.GetState(carmen.Address(addr), carmen.Key(hash)))
 	})
 	if err != nil {
-		return common.Hash{} // < state.StateDB does not provide a way to signal errors
+		return common.Hash{} // TxPoolStateDB ignores errors
 	}
 	return res
 }

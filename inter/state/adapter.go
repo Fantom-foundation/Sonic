@@ -21,9 +21,10 @@ type StateDB interface {
 	SetBalance(addr common.Address, amount *uint256.Int)
 	SetCode(addr common.Address, code []byte)
 	SetStorage(addr common.Address, storage map[common.Hash]common.Hash)
-	Copy() StateDB
-	Finalise()
-	Commit(deleteEmptyObjects bool) (common.Hash, error)
+	Copy() (StateDB, error)
+	Finalise() error
+	Commit() (common.Hash, error)
+	GetStateHash() common.Hash
 
 	BeginBlock(number uint64)
 	EndBlock(number uint64)

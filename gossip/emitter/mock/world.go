@@ -378,11 +378,12 @@ func (mr *MockExternalMockRecorder) Process(arg0 interface{}) *gomock.Call {
 }
 
 // StateDB mocks base method.
-func (m *MockExternal) StateDB() evmstore.TxPoolStateDB {
+func (m *MockExternal) StateDB() (evmstore.TxPoolStateDB, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StateDB")
 	ret0, _ := ret[0].(evmstore.TxPoolStateDB)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // StateDB indicates an expected call of StateDB.

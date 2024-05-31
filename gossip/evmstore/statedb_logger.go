@@ -82,7 +82,7 @@ func (l *LoggingStateDB) SelfDestruct(addr common.Address) {
 	l.StateDB.SelfDestruct(addr)
 }
 
-func (l *LoggingStateDB) Finalise() {
+func (l *LoggingStateDB) Finalise() error {
 	// If tokens were sent to account post-selfdestruct it is burnt.
 	if l.logger.OnBalanceChange != nil {
 		for addr := range l.selfDestructed {
@@ -93,5 +93,5 @@ func (l *LoggingStateDB) Finalise() {
 		}
 		l.selfDestructed = make(map[common.Address]struct{})
 	}
-	l.StateDB.Finalise()
+	return l.StateDB.Finalise()
 }

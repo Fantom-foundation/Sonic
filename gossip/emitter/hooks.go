@@ -46,7 +46,10 @@ func (em *Emitter) OnNewEpoch(newValidators *pos.Validators, newEpoch idx.Epoch)
 	em.stakeRatio = make(map[idx.ValidatorID]uint64)
 
 	// get current adjustments from emitterdriver contract
-	statedb := em.world.StateDB()
+	statedb, err := em.world.StateDB()
+	if err != nil {
+		em.Periodic.Error(0, "Failed to get StateDB to read emitterdriver contract", "err", err)
+	}
 	var (
 		extMinInterval        time.Duration
 		extConfirmingInterval time.Duration
