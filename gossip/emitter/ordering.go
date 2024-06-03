@@ -18,7 +18,9 @@ package emitter
 
 import (
 	"container/heap"
+	"maps"
 	"math/big"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/txpool"
@@ -166,13 +168,10 @@ func (t *transactionsByPriceAndNonce) Clear() {
 }
 
 func (t *transactionsByPriceAndNonce) Copy() *transactionsByPriceAndNonce {
-	txsCopy := make(map[common.Address][]*txpool.LazyTransaction, len(t.txs))
-	for k, v := range t.txs {
-		txsCopy[k] = v
-	}
+	txsCopy := maps.Clone(t.txs)
 	return &transactionsByPriceAndNonce{
 		txs:     txsCopy,
-		heads:   append(make(txByPriceAndTime, 0, t.heads.Len()), t.heads...),
+		heads:   slices.Clone(t.heads),
 		signer:  t.signer,
 		baseFee: t.baseFee, // not writable, no need to copy
 	}
