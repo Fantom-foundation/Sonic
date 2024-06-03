@@ -14,6 +14,9 @@ import (
 )
 
 func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func) error {
+	if err := db.AssertDatabaseNotInitialized(dataDir); err != nil {
+		return fmt.Errorf("database in datadir is already initialized: %w", err)
+	}
 	if err := db.RemoveDatabase(dataDir); err != nil {
 		return fmt.Errorf("failed to remove existing data from the datadir: %w", err)
 	}
