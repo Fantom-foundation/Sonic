@@ -34,6 +34,15 @@ func makeDatabaseHandles() uint64 {
 	return raised / 6 + 1
 }
 
+func AssertDatabaseNotInitialized(dataDir string) error {
+	_, err1 := os.Stat(filepath.Join(dataDir, "chaindata"))
+	_, err2 := os.Stat(filepath.Join(dataDir, "carmen"))
+	if !errors.Is(err1, os.ErrNotExist) && !errors.Is(err2, os.ErrNotExist) {
+		return fmt.Errorf("database directories 'chaindata' and 'carmen' already exists")
+	}
+	return nil
+}
+
 func RemoveDatabase(dataDir string) error {
 	err1 := os.RemoveAll(filepath.Join(dataDir, "chaindata"))
 	err2 := os.RemoveAll(filepath.Join(dataDir, "carmen"))
