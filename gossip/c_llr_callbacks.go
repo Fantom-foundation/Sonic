@@ -158,7 +158,7 @@ func (s *Service) ProcessFullBlockRecord(br ibr.LlrIdxFullBlockRecord) error {
 
 	// TODO: check whether this is a valid source for the baseFee
 	baseFee := s.store.GetEpochState().Rules.Economy.MinGasPrice
-	blobGasPrice := big.NewInt(1) // < find a way to define th blob gas price
+	blobGasPrice := big.NewInt(1) // TODO issue #147
 	s.store.WriteFullBlockRecord(baseFee, blobGasPrice, br)
 	s.engineMu.Lock()
 	defer s.engineMu.Unlock()

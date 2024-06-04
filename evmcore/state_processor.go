@@ -136,7 +136,7 @@ func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *
 
 	if tx.Type() == types.BlobTxType {
 		receipt.BlobGasUsed = uint64(len(tx.BlobHashes()) * params.BlobTxBlobGasPerBlob)
-		receipt.BlobGasPrice = evm.Context.BlobBaseFee
+		receipt.BlobGasPrice = evm.Context.BlobBaseFee // TODO issue #147
 	}
 
 	// If the transaction created a contract, store the creation address in the receipt.

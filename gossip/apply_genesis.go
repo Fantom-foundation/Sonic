@@ -51,7 +51,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 
 	// write blocks
 	baseFee := prevEs.Rules.Economy.MinGasPrice
-	blobGasPrice := big.NewInt(1)
+	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
 		s.WriteFullBlockRecord(baseFee, blobGasPrice, br)
