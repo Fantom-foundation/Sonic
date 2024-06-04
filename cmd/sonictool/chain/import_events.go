@@ -2,6 +2,7 @@ package chain
 
 import (
 	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/config"
@@ -14,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
-	gzip "github.com/klauspost/pgzip"
 	"github.com/status-im/keycard-go/hexutils"
 	"gopkg.in/urfave/cli.v1"
 	"io"
