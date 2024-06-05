@@ -483,6 +483,12 @@ func (s *Service) Stop() error {
 
 	s.blockProcWg.Wait()
 	close(s.blockProcTasksDone)
+
+	err := s.dagIndexer.Close()
+	if err != nil {
+		return err
+	}
+
 	return s.store.Commit()
 }
 
