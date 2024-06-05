@@ -2,9 +2,9 @@ package genesisstore
 
 import (
 	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
-	gzip "github.com/klauspost/pgzip"
 	"io"
 	"strings"
 	"time"
@@ -125,8 +125,8 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 
 		off := offset // standalone variable for each Unit instance
 		units = append(units, readersmap.Unit{
-			Name: unit.UnitName,
-			ReaderProvider: func() (io.Reader, error) {
+			Name:   unit.UnitName,
+			ReaderProvider: func () (io.Reader, error) {
 				unitReader := io.NewSectionReader(rawReader, off+headerSize, off+headerSize+int64(dataCompressedSize))
 				gzipReader, err := gzip.NewReader(unitReader)
 				if err != nil {
