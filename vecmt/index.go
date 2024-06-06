@@ -93,7 +93,7 @@ func (vi *Index) initCaches() {
 
 // Reset resets buffers.
 func (vi *Index) Reset(validators *pos.Validators, db kvdb.Store, getEvent func(hash.Event) dag.Event) {
-	fdb := WrapByVecFlushable(db)
+	fdb := WrapByVecFlushable(db, vi.cfg.Caches.DBCache)
 	vi.vecDb = fdb
 	vi.Base.Reset(validators, fdb, getEvent)
 	vi.getEvent = getEvent
@@ -102,6 +102,10 @@ func (vi *Index) Reset(validators *pos.Validators, db kvdb.Store, getEvent func(
 	vi.onDropNotFlushed()
 
 	table.MigrateTables(&vi.table, vi.vecDb)
+}
+
+func (vi *Index) Close() error {
+	return vi.vecDb.Close()
 }
 
 func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
