@@ -26,17 +26,17 @@ func mapMemEst(keyS, valueS int) int {
 // the vecengine.
 type VecFlushable struct {
 	modified   map[string][]byte
-	underlying kvdb.Store
+	underlying backedMap
 	memSize    int
 }
 
-func WrapByVecFlushable(parent kvdb.Store) *VecFlushable {
+func WrapByVecFlushable(parent kvdb.Store, sizeLimit int) *VecFlushable {
 	if parent == nil {
 		panic("nil parent")
 	}
 	return &VecFlushable{
 		modified:   make(map[string][]byte),
-		underlying: parent,
+		underlying: *newBackedMap(parent, sizeLimit, kvdb.IdealBatchSize),
 	}
 }
 
@@ -53,7 +53,7 @@ func (w *VecFlushable) Has(key []byte) (bool, error) {
 	if ok {
 		return true, nil
 	}
-	return w.underlying.Has(key)
+	return w.underlying.has(key)
 }
 
 func (w *VecFlushable) Get(key []byte) ([]byte, error) {
@@ -63,7 +63,7 @@ func (w *VecFlushable) Get(key []byte) ([]byte, error) {
 	if val, ok := w.modified[string(key)]; ok {
 		return common.CopyBytes(val), nil
 	}
-	return w.underlying.Get(key)
+	return w.underlying.get(key)
 }
 
 func (w *VecFlushable) Put(key []byte, value []byte) error {
@@ -88,16 +88,11 @@ func (w *VecFlushable) Flush() error {
 		return errClosed
 	}
 
-	batch := w.underlying.NewBatch()
-	defer batch.Reset()
-
 	for key, val := range w.modified {
-		if err := batch.Put([]byte(key), val); err != nil {
-			return err
-		}
+		w.underlying.add(key, val)
 	}
 
-	err := batch.Write()
+	err := w.underlying.mayUnload()
 	if err != nil {
 		return err
 	}
@@ -116,7 +111,7 @@ func (w *VecFlushable) Close() error {
 	}
 	w.DropNotFlushed()
 	w.modified = nil
-	return nil
+	return w.underlying.close()
 }
 
 func (w *VecFlushable) Drop() {
@@ -124,7 +119,7 @@ func (w *VecFlushable) Drop() {
 }
 
 func (db *VecFlushable) AncientDatadir() (string, error) {
-	return db.underlying.AncientDatadir()
+	panic(errNotImplemented)
 }
 
 /* Some methods are not implemented and panic when called */

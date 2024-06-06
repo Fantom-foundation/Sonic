@@ -1,12 +1,12 @@
 package main
 
 import (
+	"compress/gzip"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/log"
-	gzip "github.com/klauspost/pgzip"
 	"gopkg.in/urfave/cli.v1"
 	"io"
 	"os"
