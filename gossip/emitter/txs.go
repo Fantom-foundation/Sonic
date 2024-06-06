@@ -142,7 +142,7 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 	return false
 }
 
-func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.TransactionsByPriceAndNonce) {
+func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPriceAndNonce) {
 	maxGasUsed := em.maxGasPowerToUse(e)
 	if maxGasUsed <= e.GasPowerUsed() {
 		return
@@ -150,16 +150,17 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.Transactio
 
 	// sort transactions by price and nonce
 	rules := em.world.GetRules()
-	for tx := sorted.Peek(); tx != nil; tx = sorted.Peek() {
-		sender, _ := types.Sender(em.world.TxSigner, tx)
+	for tx, _ := sorted.Peek(); tx != nil; tx, _ = sorted.Peek() {
+		resolvedTx := tx.Resolve()
+		sender, _ := types.Sender(em.world.TxSigner, resolvedTx)
 		// check transaction epoch rules (tx type, gas price)
-		if epochcheck.CheckTxs(types.Transactions{tx}, rules) != nil {
+		if epochcheck.CheckTxs(types.Transactions{resolvedTx}, rules) != nil {
 			txsSkippedEpochRules.Inc(1)
 			sorted.Pop()
 			continue
 		}
 		// check there's enough gas power to originate the transaction
-		if tx.Gas() >= e.GasPowerLeft().Min() || e.GasPowerUsed()+tx.Gas() >= maxGasUsed {
+		if tx.Gas >= e.GasPowerLeft().Min() || e.GasPowerUsed()+tx.Gas >= maxGasUsed {
 			txsSkippedNoValidatorGas.Inc(1)
 			if params.TxGas >= e.GasPowerLeft().Min() || e.GasPowerUsed()+params.TxGas >= maxGasUsed {
 				// stop if cannot originate even an empty transaction
@@ -175,21 +176,21 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *types.Transactio
 			continue
 		}
 		// my turn, i.e. try to not include the same tx simultaneously by different validators
-		if !em.isMyTxTurn(tx.Hash(), sender, tx.Nonce(), time.Now(), em.validators, e.Creator(), em.epoch) {
+		if !em.isMyTxTurn(tx.Hash, sender, resolvedTx.Nonce(), time.Now(), em.validators, e.Creator(), em.epoch) {
 			txsSkippedNotMyTurn.Inc(1)
 			sorted.Pop()
 			continue
 		}
 		// check transaction is not outdated
-		if !em.world.TxPool.Has(tx.Hash()) {
+		if !em.world.TxPool.Has(tx.Hash) {
 			txsSkippedOutdated.Inc(1)
 			sorted.Pop()
 			continue
 		}
 		// add
-		e.SetGasPowerUsed(e.GasPowerUsed() + tx.Gas())
-		e.SetGasPowerLeft(e.GasPowerLeft().Sub(tx.Gas()))
-		e.SetTxs(append(e.Txs(), tx))
+		e.SetGasPowerUsed(e.GasPowerUsed() + tx.Gas)
+		e.SetGasPowerLeft(e.GasPowerLeft().Sub(tx.Gas))
+		e.SetTxs(append(e.Txs(), resolvedTx))
 		sorted.Shift()
 	}
 }

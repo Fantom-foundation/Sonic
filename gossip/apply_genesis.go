@@ -3,6 +3,8 @@ package gossip
 import (
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -48,9 +50,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.FlushBlockEpochState()
 
 	// write blocks
+	baseFee := prevEs.Rules.Economy.MinGasPrice
+	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
-		s.WriteFullBlockRecord(br)
+		s.WriteFullBlockRecord(baseFee, blobGasPrice, br)
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}

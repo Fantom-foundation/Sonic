@@ -2,11 +2,11 @@ package gossip
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Fantom-foundation/go-opera/logger"
@@ -25,7 +25,7 @@ func TestConsensusCallback(t *testing.T) {
 	defer env.Close()
 
 	// save start balances
-	balances := make([]*big.Int, validatorsNum)
+	balances := make([]*uint256.Int, validatorsNum)
 	for i := range balances {
 		balances[i] = env.State().GetBalance(env.Address(idx.ValidatorID(i + 1)))
 	}
@@ -46,13 +46,13 @@ func TestConsensusCallback(t *testing.T) {
 		require.NoError(err)
 		// subtract fees
 		for i, r := range rr {
-			fee := big.NewInt(0).Mul(new(big.Int).SetUint64(r.GasUsed), txs[i].GasPrice())
-			balances[i] = big.NewInt(0).Sub(balances[i], fee)
+			fee := uint256.NewInt(0).Mul(new(uint256.Int).SetUint64(r.GasUsed), utils.BigIntToUint256(txs[i].GasPrice()))
+			balances[i] = uint256.NewInt(0).Sub(balances[i], fee)
 		}
 		// balance movements
-		balances[0].Add(balances[0], utils.ToFtm(200))
-		balances[1].Sub(balances[1], utils.ToFtm(100))
-		balances[2].Sub(balances[2], utils.ToFtm(100))
+		balances[0].Add(balances[0], utils.ToFtmU256(200))
+		balances[1].Sub(balances[1], utils.ToFtmU256(100))
+		balances[2].Sub(balances[2], utils.ToFtmU256(100))
 	}
 
 	// check balances

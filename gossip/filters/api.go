@@ -179,9 +179,6 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 			case <-rpcSub.Err():
 				pendingTxSub.Unsubscribe()
 				return
-			case <-notifier.Closed():
-				pendingTxSub.Unsubscribe()
-				return
 			}
 		}
 	}()
@@ -195,7 +192,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	var (
-		headers   = make(chan *types.Header)
+		headers   = make(chan *evmHeaderJson)
 		headerSub = api.events.SubscribeNewHeads(headers)
 	)
 
@@ -209,7 +206,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 			case h := <-headers:
 				api.filtersMu.Lock()
 				if f, found := api.filters[headerSub.ID]; found {
-					f.hashes = append(f.hashes, h.Hash())
+					f.hashes = append(f.hashes, h.Hash)
 				}
 				api.filtersMu.Unlock()
 			case <-headerSub.Err():
@@ -234,7 +231,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	rpcSub := notifier.CreateSubscription()
 
 	go func() {
-		headers := make(chan *types.Header)
+		headers := make(chan *evmHeaderJson)
 		headersSub := api.events.SubscribeNewHeads(headers)
 
 		for {
@@ -242,9 +239,6 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 			case h := <-headers:
 				_ = notifier.Notify(rpcSub.ID, h)
 			case <-rpcSub.Err():
-				headersSub.Unsubscribe()
-				return
-			case <-notifier.Closed():
 				headersSub.Unsubscribe()
 				return
 			}
@@ -280,9 +274,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc
 					_ = notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				logsSub.Unsubscribe()
-				return
-			case <-notifier.Closed(): // connection dropped
 				logsSub.Unsubscribe()
 				return
 			}

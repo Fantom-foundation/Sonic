@@ -4,12 +4,13 @@ import (
 	"errors"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
@@ -23,20 +24,13 @@ const (
 
 // TraceStructLogger is a transaction trace data collector
 type TraceStructLogger struct {
-	from        common.Address
-	to          *common.Address
 	blockHash   common.Hash
 	tx          common.Hash
 	txIndex     uint
 	blockNumber big.Int
-	value       big.Int
 
-	gasLimit     uint64
-	gasUsed      uint64
-	rootTrace    *CallTrace
-	inputData    []byte
-	traceAddress []uint32
-	output       []byte
+	gasLimit  uint64
+	rootTrace *CallTrace
 }
 
 // CallTrace is struct for holding tracing results
@@ -85,45 +79,25 @@ type TraceActionResult struct {
 }
 
 // NewTraceStructLogger creates new instance of trace creator
-func NewTraceStructLogger(block *evmcore.EvmBlock, tx *types.Transaction, msg types.Message, index uint, gasUsed uint64) *TraceStructLogger {
+func NewTraceStructLogger(block *evmcore.EvmBlock, index uint) *TraceStructLogger {
 	traceStructLogger := TraceStructLogger{
-		tx:          tx.Hash(),
-		from:        msg.From(),
-		to:          msg.To(),
-		value:       *msg.Value(),
 		blockHash:   block.Hash,
 		blockNumber: *block.Number,
 		txIndex:     index,
-		gasLimit:    tx.Gas(),
-		gasUsed:     gasUsed,
 	}
 	return &traceStructLogger
 }
 
 // NewActionTrace creates new instance of type ActionTrace
-func NewActionTrace(bHash common.Hash, bNumber big.Int, tHash common.Hash, tPos uint64, tType string) *ActionTrace {
+func (tr *TraceStructLogger) NewActionTrace(tType string) *ActionTrace {
 	return &ActionTrace{
-		BlockHash:           bHash,
-		BlockNumber:         bNumber,
-		TransactionHash:     tHash,
-		TransactionPosition: tPos,
+		BlockHash:           tr.blockHash,
+		BlockNumber:         tr.blockNumber,
+		TransactionHash:     tr.tx,
+		TransactionPosition: uint64(tr.txIndex),
 		TraceType:           tType,
-		TraceAddress:        make([]uint32, 0),
 		Result:              &TraceActionResult{},
 	}
-}
-
-// NewActionTraceFromTrace creates new instance of type ActionTrace
-// based on another trace
-func NewActionTraceFromTrace(actionTrace *ActionTrace, tType string, traceAddress []uint32) *ActionTrace {
-	trace := NewActionTrace(
-		actionTrace.BlockHash,
-		actionTrace.BlockNumber,
-		actionTrace.TransactionHash,
-		actionTrace.TransactionPosition,
-		tType)
-	trace.TraceAddress = traceAddress
-	return trace
 }
 
 // NewAddressAction creates specific information about trace addresses
@@ -144,142 +118,118 @@ func NewAddressAction(from common.Address, gas uint64, data []byte, to *common.A
 	return &action
 }
 
-// CaptureStart implements the tracer interface to initialize the tracing operation.
-func (tr *TraceStructLogger) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+func (tr *TraceStructLogger) Hooks() *tracing.Hooks {
+	return &tracing.Hooks{
+		OnTxStart: tr.OnTxStart,
+		OnTxEnd:   tr.OnTxEnd,
+		OnEnter:   tr.OnEnter,
+		OnExit:    tr.OnExit,
+	}
+}
+
+// OnTxStart implements the tracer interface to initialize the tracing operation.
+func (tr *TraceStructLogger) OnTxStart(env *tracing.VMContext, tx *types.Transaction, from common.Address) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("Tracer CaptureStart failed", r)
+			log.Error("Tracer OnTxStart failed", r)
 		}
 	}()
+
+	tr.tx = tx.Hash()
+	tr.gasLimit = tx.Gas()
 
 	// Create main trace holder
 	txTrace := CallTrace{
 		Actions: make([]ActionTrace, 0),
 	}
 
-	if value == nil {
-		value = big.NewInt(0)
-	}
-
-	// Check if To is defined. If not, it is create address call
-	callType := CREATE
-	var newAddress *common.Address
-	if !create {
-		callType = CALL
-	} else {
-		newAddress = &to
-	}
-
-	// Store input data
-	tr.inputData = common.CopyBytes(input)
-	// In new version of go-ethereum setting gas limit is done via callback CaptureTxStart
-	if tr.gasLimit == 0 && gas != 0 {
-		tr.gasLimit = gas
-	}
-
-	// Make transaction trace root object
-	blockTrace := NewActionTrace(tr.blockHash, tr.blockNumber, tr.tx, uint64(tr.txIndex), callType)
-	var txAction *AddressAction
-	if create {
-		txAction = NewAddressAction(tr.from, tr.gasLimit, tr.inputData, nil, hexutil.Big(*value), nil)
-		if newAddress != nil {
-			blockTrace.Result.Address = newAddress
-			code := hexutil.Bytes(tr.output)
-			blockTrace.Result.Code = &code
-		}
-	} else {
-		txAction = NewAddressAction(tr.from, tr.gasLimit, tr.inputData, tr.to, hexutil.Big(*value), &callType)
-		out := hexutil.Bytes(tr.output)
-		blockTrace.Result.Output = &out
-	}
-	blockTrace.Action = txAction
-
 	// Add root object into Tracer
-	txTrace.AddTrace(blockTrace)
 	tr.rootTrace = &txTrace
-
-	// Init all needed variables
-	tr.traceAddress = make([]uint32, 0)
-	tr.rootTrace.Stack = append(tr.rootTrace.Stack, &tr.rootTrace.Actions[len(tr.rootTrace.Actions)-1])
 }
 
-// CaptureState is not used as transaction tracing doesn't need per instruction resolution
-func (tr *TraceStructLogger) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
-}
-
-// CaptureEnter implements tracer interface for entering inner contract call
-func (tr *TraceStructLogger) CaptureEnter(op vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
+// OnEnter implements tracer interface for entering call
+func (tr *TraceStructLogger) OnEnter(depth int, typ byte, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("Tracer CaptureState failed", r)
+			log.Error("Tracer OnEnter failed", r)
 		}
 	}()
 	var (
 		trace *ActionTrace
 	)
 
-	if tr.rootTrace == nil || len(tr.rootTrace.Stack) == 0 {
-		log.Debug("There is no root trace or is empty when CaptureEnter", "tx hash", tr.tx.String())
+	if tr.rootTrace == nil {
+		log.Debug("There is no root trace", "tx hash", tr.tx.String())
 		return
 	}
-
-	fromTrace := tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
 
 	if value == nil {
 		value = big.NewInt(0)
 	}
 
 	// Match processed instruction and create trace based on it
-	switch op {
+	switch vm.OpCode(typ) {
 	case vm.CREATE, vm.CREATE2:
 
-		trace = NewActionTraceFromTrace(fromTrace, CREATE, tr.traceAddress)
+		trace = tr.NewActionTrace(CREATE)
 		traceAction := NewAddressAction(from, gas, input, &to, hexutil.Big(*value), nil)
 		trace.Action = traceAction
 
 	case vm.CALL, vm.CALLCODE, vm.DELEGATECALL, vm.STATICCALL:
 
-		trace = NewActionTraceFromTrace(fromTrace, CALL, tr.traceAddress)
-		callType := strings.ToLower(op.String())
+		trace = tr.NewActionTrace(CALL)
+		callType := strings.ToLower(vm.OpCode(typ).String())
 		traceAction := NewAddressAction(from, gas, input, &to, hexutil.Big(*value), &callType)
 		trace.Action = traceAction
 
 	case vm.SELFDESTRUCT:
 
-		trace = NewActionTraceFromTrace(fromTrace, SELFDESTRUCT, tr.traceAddress)
+		trace = tr.NewActionTrace(SELFDESTRUCT)
 		traceAction := NewAddressAction(from, gas, input, nil, hexutil.Big(*value), nil)
 		traceAction.Address = &from
 		traceAction.RefundAddress = &to
 		traceAction.Balance = (*hexutil.Big)(value)
 		trace.Action = traceAction
 	}
-	tr.rootTrace.Stack = append(tr.rootTrace.Stack, trace)
+	if depth == 0 {
+		tr.rootTrace.Actions = append(tr.rootTrace.Actions, *trace)
+		tr.rootTrace.Stack = append(tr.rootTrace.Stack, &tr.rootTrace.Actions[0])
+	} else {
+		tr.rootTrace.Stack = append(tr.rootTrace.Stack, trace)
+	}
+
 }
 
-// CaptureExit is called when returning from an inner call
-func (tr *TraceStructLogger) CaptureExit(output []byte, gasUsed uint64, err error) {
+// OnExit is called when returning from a call
+func (tr *TraceStructLogger) OnExit(depth int, output []byte, gasUsed uint64, err error, reverted bool) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("Tracer CaptureExit failed", r)
+			log.Error("Tracer OnExit failed", r)
 		}
 	}()
 
 	if tr.rootTrace == nil {
-		log.Debug("There is no root trace when CaptureExit", "tx hash", tr.tx.String())
+		log.Debug("There is no root trace when OnExit", "tx hash", tr.tx.String())
 		return
 	}
 
 	size := len(tr.rootTrace.Stack)
-	if size <= 1 {
-		log.Debug("CaptureExit does not match with number of CaptureEnter", "tx hash", tr.tx.String())
+	if size < 1 {
+		log.Debug("OnExit does not match with number of OnEnter", "tx hash", tr.tx.String())
 		return
 	}
 
 	trace := tr.rootTrace.Stack[size-1]
 	tr.rootTrace.Stack = tr.rootTrace.Stack[:size-1]
 
-	parent := tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
-	parent.childTraces = append(parent.childTraces, trace)
+	if depth == 1 {
+		tr.rootTrace.Actions[0].childTraces = append(tr.rootTrace.Actions[0].childTraces, trace)
+	} else if depth > 1 {
+
+		parent := tr.rootTrace.Stack[len(tr.rootTrace.Stack)-1]
+		parent.childTraces = append(parent.childTraces, trace)
+
+	}
 
 	trace.processOutput(output, err, false)
 
@@ -289,32 +239,26 @@ func (tr *TraceStructLogger) CaptureExit(output []byte, gasUsed uint64, err erro
 	}
 }
 
-// CaptureEnd is called after the call finishes to finalize the tracing.
-func (tr *TraceStructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
+// OnTxEnd is called after the call finishes to finalize the tracing.
+func (tr *TraceStructLogger) OnTxEnd(receipt *types.Receipt, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("Tracer CaptureEnd failed", r)
+			log.Error("Tracer OnTxEnd failed", r)
 		}
 	}()
 
 	if tr.rootTrace != nil && tr.rootTrace.lastTrace() != nil {
 
 		trace := tr.rootTrace.lastTrace()
-		trace.processOutput(output, err, true)
 		if trace.Result != nil {
-			// set gas used of the root call with the gas from transaction receipt
-			// to present all cumulative gas used by this call and its inner calls
-			trace.Result.GasUsed = hexutil.Uint64(tr.gasUsed)
+			trace.Result.GasUsed = hexutil.Uint64(receipt.GasUsed)
 		}
+	}
+
+	if tr.rootTrace != nil {
 
 		tr.rootTrace.processTraces()
 	}
-}
-
-// CaptureFault implements the Tracer interface to trace an execution fault
-// while running an opcode. Not used for transaction tracing as error is contained
-// in CaptureExit or CaptureEnd
-func (tr *TraceStructLogger) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
 // Handle output data and error
@@ -436,13 +380,25 @@ func childTraceAddress(a []uint32, i int) []uint32 {
 	return child
 }
 
+func CreateActionTrace(bHash common.Hash, bNumber big.Int, tHash common.Hash, tPos uint64, tType string) *ActionTrace {
+	return &ActionTrace{
+		BlockHash:           bHash,
+		BlockNumber:         bNumber,
+		TransactionHash:     tHash,
+		TransactionPosition: tPos,
+		TraceType:           tType,
+		TraceAddress:        make([]uint32, 0),
+		Result:              &TraceActionResult{},
+	}
+}
+
 // GetErrorTrace constructs filled error trace
-func GetErrorTraceFromMsg(msg *types.Message, blockHash common.Hash, blockNumber big.Int, txHash common.Hash, index uint64, err error) *ActionTrace {
+func GetErrorTraceFromMsg(msg *core.Message, blockHash common.Hash, blockNumber big.Int, txHash common.Hash, index uint64, err error) *ActionTrace {
 	if msg == nil {
 		return createErrorTrace(blockHash, blockNumber, nil, &common.Address{}, txHash, 0, []byte{}, hexutil.Big{}, index, err)
 	} else {
-		from := msg.From()
-		return createErrorTrace(blockHash, blockNumber, &from, msg.To(), txHash, msg.Gas(), msg.Data(), hexutil.Big(*msg.Value()), index, err)
+		from := msg.From
+		return createErrorTrace(blockHash, blockNumber, &from, msg.To, txHash, msg.GasLimit, msg.Data, hexutil.Big(*msg.Value), index, err)
 	}
 }
 
@@ -462,11 +418,11 @@ func createErrorTrace(blockHash common.Hash, blockNumber big.Int,
 
 	callType := CALL
 	if to != nil {
-		blockTrace = NewActionTrace(blockHash, blockNumber, txHash, index, CALL)
-		txAction = NewAddressAction(*from, gas, input, to, hexutil.Big{}, &callType)
+		blockTrace = CreateActionTrace(blockHash, blockNumber, txHash, index, CALL)
+		txAction = NewAddressAction(*from, gas, input, to, value, &callType)
 	} else {
-		blockTrace = NewActionTrace(blockHash, blockNumber, txHash, index, CREATE)
-		txAction = NewAddressAction(*from, gas, input, nil, hexutil.Big{}, nil)
+		blockTrace = CreateActionTrace(blockHash, blockNumber, txHash, index, CREATE)
+		txAction = NewAddressAction(*from, gas, input, nil, value, nil)
 	}
 	blockTrace.Action = txAction
 	blockTrace.Result = nil

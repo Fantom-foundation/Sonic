@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"io"
 	"math/big"
 	"os"
@@ -29,14 +30,15 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+	"github.com/Fantom-foundation/go-opera/utils"
 
 	mptIo "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 )
 
 type GenesisBuilder struct {
-	tmpStateDB state.StateDB
-	carmenDir  string
+	tmpStateDB    state.StateDB
+	carmenDir     string
 	carmenStateDb carmen.StateDB
 
 	totalSupply *big.Int
@@ -67,7 +69,7 @@ func DefaultBlockProc() BlockProc {
 }
 
 func (b *GenesisBuilder) AddBalance(acc common.Address, balance *big.Int) {
-	b.tmpStateDB.AddBalance(acc, balance)
+	b.tmpStateDB.AddBalance(acc, utils.BigIntToUint256(balance), tracing.BalanceIncreaseGenesisBalance)
 	b.totalSupply.Add(b.totalSupply, balance)
 }
 

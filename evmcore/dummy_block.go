@@ -124,7 +124,7 @@ func (h *EvmHeader) EthHeader() *types.Header {
 
 		Difficulty: new(big.Int),
 	}
-	ethHeader.SetExternalHash(h.Hash)
+	// ethHeader.SetExternalHash(h.Hash) < this seems to be an optimization in go-ethereum-substate; skipped for now, needs investigation
 	return ethHeader
 }
 
@@ -152,7 +152,8 @@ func (b *EvmBlock) EthBlock() *types.Block {
 	if b == nil {
 		return nil
 	}
-	return types.NewBlock(b.EvmHeader.EthHeader(), b.Transactions, nil, nil, trie.NewStackTrie(nil))
+	body := types.Body{Transactions: b.Transactions}
+	return types.NewBlock(b.EvmHeader.EthHeader(), &body, nil, trie.NewStackTrie(nil))
 }
 
 func (b *EvmBlock) EstimateSize() int {

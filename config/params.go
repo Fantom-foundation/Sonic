@@ -1,9 +1,5 @@
 package config
 
-import (
-	"github.com/ethereum/go-ethereum/params"
-)
-
 var (
 	Bootnodes = map[string][]string{
 		"main": {
@@ -28,10 +24,3 @@ var (
 		},
 	}
 )
-
-func OverrideParams() {
-	params.MainnetBootnodes = []string{}
-	params.RopstenBootnodes = []string{}
-	params.RinkebyBootnodes = []string{}
-	params.GoerliBootnodes = []string{}
-}

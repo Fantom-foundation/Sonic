@@ -146,7 +146,7 @@ func (f *Filter) indexedLogs(ctx context.Context, begin, end idx.Block) ([]*type
 
 	addresses := make([]common.Hash, len(f.addresses))
 	for i, addr := range f.addresses {
-		addresses[i] = addr.Hash()
+		addresses[i] = common.BytesToHash(addr[:])
 	}
 
 	pattern := make([][]common.Hash, 1, len(f.topics)+1)

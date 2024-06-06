@@ -5,6 +5,11 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
@@ -12,10 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"gopkg.in/urfave/cli.v1"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 // validatorKeyCreate creates a new validator key into the keystore defined by the CLI flags.
@@ -47,7 +48,7 @@ func validatorKeyCreate(ctx *cli.Context) error {
 		Type: validatorpk.Types.Secp256k1,
 	}
 
-	_, _, keystoreDir, err := cfg.Node.AccountConfig()
+	keystoreDir, err := cfg.Node.KeyDirConfig()
 	if err != nil {
 		return fmt.Errorf("failed to setup account config: %w", err)
 	}
@@ -88,7 +89,7 @@ func validatorKeyConvert(ctx *cli.Context) error {
 		return err
 	}
 
-	_, _, keydir, _ := cfg.Node.AccountConfig()
+	keydir, _ := cfg.Node.KeyDirConfig()
 
 	pubkeyStr := ctx.Args().Get(1)
 	pubkey, err := validatorpk.FromString(pubkeyStr)

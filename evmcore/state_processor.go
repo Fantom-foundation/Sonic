@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -66,11 +67,12 @@ func (p *StateProcessor) Process(
 		receipt      *types.Receipt
 		skip         bool
 		header       = block.Header()
+		time         = uint64(block.Time.Unix())
 		blockContext = NewEVMBlockContext(header, p.bc, nil)
 		vmenv        = vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
 		blockHash    = block.Hash
 		blockNumber  = block.Number
-		signer       = gsignercache.Wrap(types.MakeSigner(p.config, header.Number))
+		signer       = gsignercache.Wrap(types.MakeSigner(p.config, header.Number, time))
 	)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions {
@@ -79,7 +81,7 @@ func (p *StateProcessor) Process(
 			return nil, nil, nil, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 
-		statedb.Prepare(tx.Hash(), i)
+		statedb.SetTxContext(tx.Hash(), i)
 		receipt, _, skip, err = applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv, onNewLog)
 		if skip {
 			skipped = append(skipped, uint32(i))
@@ -95,8 +97,64 @@ func (p *StateProcessor) Process(
 	return
 }
 
+// ApplyTransactionWithEVM attempts to apply a transaction to the given state database
+// and uses the input parameters for its environment similar to ApplyTransaction. However,
+// this method takes an already created EVM instance as input.
+func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *GasPool, statedb state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (receipt *types.Receipt, err error) {
+	if evm.Config.Tracer != nil && evm.Config.Tracer.OnTxStart != nil {
+		evm.Config.Tracer.OnTxStart(evm.GetVMContext(), tx, msg.From)
+		if evm.Config.Tracer.OnTxEnd != nil {
+			defer func() {
+				evm.Config.Tracer.OnTxEnd(receipt, err)
+			}()
+		}
+	}
+	// Create a new context to be used in the EVM environment.
+	txContext := NewEVMTxContext(msg)
+	evm.Reset(txContext, statedb)
+
+	// Apply the transaction to the current state (included in the env).
+	result, err := ApplyMessage(evm, msg, gp)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update the state with pending changes.
+	statedb.Finalise()
+	*usedGas += result.UsedGas
+
+	// Create a new receipt for the transaction, storing the intermediate root and gas used
+	// by the tx.
+	receipt = &types.Receipt{Type: tx.Type(), CumulativeGasUsed: *usedGas}
+	if result.Failed() {
+		receipt.Status = types.ReceiptStatusFailed
+	} else {
+		receipt.Status = types.ReceiptStatusSuccessful
+	}
+	receipt.TxHash = tx.Hash()
+	receipt.GasUsed = result.UsedGas
+
+	if tx.Type() == types.BlobTxType {
+		receipt.BlobGasUsed = uint64(len(tx.BlobHashes()) * params.BlobTxBlobGasPerBlob)
+		receipt.BlobGasPrice = evm.Context.BlobBaseFee // TODO issue #147
+	}
+
+	// If the transaction created a contract, store the creation address in the receipt.
+	if msg.To == nil {
+		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
+	}
+
+	// Set the receipt logs and create the bloom filter.
+	receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
+	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.BlockHash = blockHash
+	receipt.BlockNumber = blockNumber
+	receipt.TransactionIndex = uint(statedb.TxIndex())
+	return receipt, err
+}
+
 func applyTransaction(
-	msg types.Message,
+	msg *core.Message,
 	config *params.ChainConfig,
 	gp *GasPool,
 	statedb state.StateDB,
@@ -143,7 +201,7 @@ func applyTransaction(
 	receipt.GasUsed = result.UsedGas
 
 	// If the transaction created a contract, store the creation address in the receipt.
-	if msg.To() == nil {
+	if msg.To == nil {
 		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
 	}
 
@@ -156,11 +214,26 @@ func applyTransaction(
 	return receipt, result.UsedGas, false, err
 }
 
-func TxAsMessage(tx *types.Transaction, signer types.Signer, baseFee *big.Int) (types.Message, error) {
+func TxAsMessage(tx *types.Transaction, signer types.Signer, baseFee *big.Int) (*core.Message, error) {
 	if !internaltx.IsInternal(tx) {
-		return tx.AsMessage(signer, baseFee)
+		return core.TransactionToMessage(tx, signer, baseFee)
 	} else {
-		msg := types.NewMessage(internaltx.InternalSender(tx), tx.To(), tx.Nonce(), tx.Value(), tx.Gas(), tx.GasPrice(), tx.GasFeeCap(), tx.GasTipCap(), tx.Data(), tx.AccessList(), true)
-		return msg, nil
+		return &core.Message{
+			From:       internaltx.InternalSender(tx),
+			To:         tx.To(),
+			Nonce:      tx.Nonce(),
+			Value:      tx.Value(),
+			GasLimit:   tx.Gas(),
+			GasPrice:   tx.GasPrice(),
+			GasFeeCap:  tx.GasFeeCap(),
+			GasTipCap:  tx.GasTipCap(),
+			Data:       tx.Data(),
+			AccessList: tx.AccessList(),
+			/* // TODO: add support for blob gas and hashes
+			BlobGasFeeCap:     *big.Int,
+			BlobHashes:        []common.Hash,
+			*/
+			SkipAccountChecks: true,
+		}, nil
 	}
 }

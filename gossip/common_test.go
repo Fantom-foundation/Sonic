@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"math"
 	"math/big"
 	"sync"
@@ -20,10 +21,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
@@ -230,7 +234,13 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 			if len(b.Block.Transactions) == 0 {
 				continue
 			}
-			receipts := env.store.evm.GetReceipts(idx.Block(b.Block.Number.Uint64()), env.EthAPI.signer, b.Block.Hash, b.Block.Transactions)
+
+			var config *params.ChainConfig = nil
+			time := uint64(0)
+			baseFee := big.NewInt(0)
+			blobGasPrice := big.NewInt(1)
+
+			receipts := env.store.evm.GetReceipts(idx.Block(b.Block.Number.Uint64()), config, b.Block.Hash, time, baseFee, blobGasPrice, b.Block.Transactions)
 			for i, tx := range b.Block.Transactions {
 				if r, _, _ := tx.RawSignatureValues(); r.Sign() != 0 {
 					mu.Lock()
@@ -451,9 +461,9 @@ func (env *testEnv) callContract(
 		call.Value = new(big.Int)
 	}
 	// Set infinite balance to the fake caller account.
-	state.AddBalance(call.From, big.NewInt(math.MaxInt64))
+	state.AddBalance(call.From, uint256.NewInt(math.MaxInt64), tracing.BalanceIncreaseGenesisBalance)
 
-	msg := callmsg{call}
+	msg := CallMsgToMessage(call)
 
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
@@ -533,19 +543,19 @@ func (env *testEnv) SubscribeFilterLogs(ctx context.Context, query ethereum.Filt
 	return nil, nil
 }
 
-// callmsg implements evmcore.Message to allow passing it as a transaction simulator.
-type callmsg struct {
-	ethereum.CallMsg
+// CallMsgToMessage converts the given CallMsg to an evmcore.Message to allow passing it as a transaction simulator.
+func CallMsgToMessage(msg ethereum.CallMsg) evmcore.Message {
+	return &core.Message{
+		From:              msg.From,
+		To:                msg.To,
+		GasPrice:          msg.GasPrice,
+		GasTipCap:         msg.GasTipCap,
+		GasFeeCap:         msg.GasFeeCap,
+		GasLimit:          msg.Gas,
+		Value:             msg.Value,
+		Nonce:             0,
+		SkipAccountChecks: true,
+		Data:              msg.Data,
+		AccessList:        msg.AccessList,
+	}
 }
-
-func (m callmsg) From() common.Address         { return m.CallMsg.From }
-func (m callmsg) To() *common.Address          { return m.CallMsg.To }
-func (m callmsg) GasPrice() *big.Int           { return m.CallMsg.GasPrice }
-func (m callmsg) GasTipCap() *big.Int          { return m.CallMsg.GasTipCap }
-func (m callmsg) GasFeeCap() *big.Int          { return m.CallMsg.GasFeeCap }
-func (m callmsg) Gas() uint64                  { return m.CallMsg.Gas }
-func (m callmsg) Value() *big.Int              { return m.CallMsg.Value }
-func (m callmsg) Nonce() uint64                { return 0 }
-func (m callmsg) IsFake() bool                 { return true }
-func (m callmsg) Data() []byte                 { return m.CallMsg.Data }
-func (m callmsg) AccessList() types.AccessList { return nil }

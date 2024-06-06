@@ -7,6 +7,7 @@ import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/version"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"os"
 	"path"
@@ -20,7 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/naoina/toml"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
@@ -340,7 +340,7 @@ func MakeAllConfigs(ctx *cli.Context) (*Config, error) {
 func DefaultNodeConfig() node.Config {
 	cfg := NodeDefaultConfig
 	cfg.Name = ClientIdentifier
-	cfg.Version = params.VersionWithCommit(GitCommit, GitDate)
+	cfg.Version = version.VersionWithCommit(GitCommit, GitDate)
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.WSModules = append(cfg.WSModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.IPCPath = "opera.ipc"

@@ -115,7 +115,7 @@ func (tt *index) Push(recs ...*types.Log) error {
 			return nil
 		}
 
-		if err := pushIndex(rec.Address.Hash()); err != nil {
+		if err := pushIndex(common.BytesToHash(rec.Address[:])); err != nil {
 			return err
 		}
 

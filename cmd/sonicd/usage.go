@@ -20,7 +20,6 @@ package main
 
 import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/cmdhelper"
-	"github.com/Fantom-foundation/go-opera/config"
 	"io"
 	"sort"
 
@@ -33,8 +32,6 @@ import (
 var AppHelpFlagGroups = calcAppHelpFlagGroups()
 
 func calcAppHelpFlagGroups() []cmdhelper.FlagGroup {
-	config.OverrideParams()
-
 	initFlags()
 	return []cmdhelper.FlagGroup{
 		{

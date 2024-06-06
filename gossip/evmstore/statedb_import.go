@@ -13,11 +13,11 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 	"io"
 	"os"
 	"path/filepath"
@@ -127,8 +127,8 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 	var accountsCount, slotsCount uint64 = 0, 0
 	bulk := s.liveStateDb.StartBulkLoad(currentBlock)
 
-	restartBulkIfNeeded := func () error {
-		if (accountsCount + slotsCount) % 1_000_000 == 0 && currentBlock < blockNum {
+	restartBulkIfNeeded := func() error {
+		if (accountsCount+slotsCount)%1_000_000 == 0 && currentBlock < blockNum {
 			if err := bulk.Close(); err != nil {
 				return err
 			}
@@ -139,14 +139,17 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 	}
 
 	chaindb := rawdb.NewDatabase(kvdb2ethdb.Wrap(nokeyiserr.Wrap(db)))
-	triedb := trie.NewDatabase(chaindb)
-	t, err := trie.NewSecure(root, triedb)
+	tdb := triedb.NewDatabase(chaindb, &triedb.Config{Preimages: false, IsVerkle: false})
+	t, err := trie.NewStateTrie(trie.StateTrieID(root), tdb)
 	if err != nil {
 		return fmt.Errorf("failed to open trie; %v", err)
 	}
 	preimages := table.New(db, []byte("secure-key-"))
 
-	accIter := t.NodeIterator(nil)
+	accIter, err := t.NodeIterator(nil)
+	if err != nil {
+		return fmt.Errorf("failed to open accounts iterator; %v", err)
+	}
 	for accIter.Next(true) {
 		if accIter.Leaf() {
 
@@ -156,15 +159,14 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 			}
 			address := cc.Address(common.BytesToAddress(addressBytes))
 
-			var acc state.Account
+			var acc types.StateAccount
 			if err := rlp.DecodeBytes(accIter.LeafBlob(), &acc); err != nil {
 				return fmt.Errorf("invalid account encountered during traversal; %v", err)
 			}
 
 			bulk.CreateAccount(address)
 			bulk.SetNonce(address, acc.Nonce)
-			bulk.SetBalance(address, acc.Balance)
-
+			bulk.SetBalance(address, acc.Balance.ToBig())
 
 			if !bytes.Equal(acc.CodeHash, emptyCodeHash) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
@@ -175,11 +177,14 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 			}
 
 			if acc.Root != types.EmptyRootHash {
-				storageTrie, err := trie.NewSecure(acc.Root, triedb)
+				storageTrie, err := trie.NewStateTrie(trie.StateTrieID(acc.Root), tdb)
 				if err != nil {
 					return fmt.Errorf("failed to open storage trie for account %v; %v", address, err)
 				}
-				storageIt := storageTrie.NodeIterator(nil)
+				storageIt, err := storageTrie.NodeIterator(nil)
+				if err != nil {
+					return fmt.Errorf("failed to open storage iterator for account %v; %v", address, err)
+				}
 				for storageIt.Next(true) {
 					if storageIt.Leaf() {
 						keyBytes, err := preimages.Get(storageIt.LeafKey())

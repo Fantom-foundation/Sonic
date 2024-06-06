@@ -289,7 +289,10 @@ func (b *EthAPIBackend) GetReceiptsByNumber(ctx context.Context, number rpc.Bloc
 	}
 
 	block := b.state.GetBlock(common.Hash{}, uint64(number))
-	receipts := b.svc.store.evm.GetReceipts(idx.Block(number), b.signer, block.Hash, block.Transactions)
+	time := uint64(block.Time.Unix())
+	baseFee := block.BaseFee
+	blobGasPrice := new(big.Int) // TODO issue #147
+	receipts := b.svc.store.evm.GetReceipts(idx.Block(number), b.ChainConfig(), block.Hash, time, baseFee, blobGasPrice, block.Transactions)
 	return receipts, nil
 }
 

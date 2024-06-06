@@ -87,12 +87,12 @@ type dagNotifier interface {
 }
 
 type processCallback struct {
-	Event            func(*inter.EventPayload) error
-	SwitchEpochTo    func(idx.Epoch) error
-	BVs              func(inter.LlrSignedBlockVotes) error
-	BR               func(ibr.LlrIdxFullBlockRecord) error
-	EV               func(inter.LlrSignedEpochVote) error
-	ER               func(ier.LlrIdxFullEpochRecord) error
+	Event         func(*inter.EventPayload) error
+	SwitchEpochTo func(idx.Epoch) error
+	BVs           func(inter.LlrSignedBlockVotes) error
+	BR            func(ibr.LlrIdxFullBlockRecord) error
+	EV            func(inter.LlrSignedEpochVote) error
+	ER            func(ier.LlrIdxFullEpochRecord) error
 }
 
 // handlerConfig is the collection of initialization parameters to create a full
@@ -724,11 +724,13 @@ func isUseless(node *enode.Node, name string) bool {
 // handle is the callback invoked to manage the life cycle of a peer. When
 // this function terminates, the peer is disconnected.
 func (h *handler) handle(p *peer) error {
+	p.Log().Trace("Connecting peer", "peer", p.ID(), "name", p.Name())
+
 	useless := isUseless(p.Node(), p.Name())
 	if !p.Peer.Info().Network.Trusted && useless && h.peers.UselessNum() >= h.maxPeers/10 {
 		// don't allow more than 10% of useless peers
-		p.Log().Trace("Rejecting peer as useless")
-		return p2p.DiscTooManyPeers
+		p.Log().Trace("Rejecting peer as useless", "peer", p.ID(), "name", p.Name())
+		return p2p.DiscUselessPeer
 	}
 	if !p.Peer.Info().Network.Trusted && useless {
 		p.SetUseless()
@@ -743,7 +745,7 @@ func (h *handler) handle(p *peer) error {
 		myProgress = h.myProgress()
 	)
 	if err := p.Handshake(h.NetworkID, myProgress, common.Hash(genesis)); err != nil {
-		p.Log().Debug("Handshake failed", "err", err)
+		p.Log().Debug("Handshake failed", "err", err, "peer", p.ID(), "name", p.Name())
 		if !useless {
 			discfilter.Ban(p.ID())
 		}
@@ -755,7 +757,7 @@ func (h *handler) handle(p *peer) error {
 		p.Log().Trace("Rejecting peer as maxPeers is exceeded")
 		return p2p.DiscTooManyPeers
 	}
-	p.Log().Debug("Peer connected", "name", p.Name())
+	p.Log().Debug("Peer connected", "peer", p.ID(), "name", p.Name())
 
 	// Register the peer locally
 	if err := h.peers.RegisterPeer(p); err != nil {
@@ -789,7 +791,7 @@ func (h *handler) handle(p *peer) error {
 	// Handle incoming messages until the connection is torn down
 	for {
 		if err := h.handleMsg(p); err != nil {
-			p.Log().Debug("Message handling failed", "err", err)
+			p.Log().Debug("Message handling failed", "err", err, "peer", p.ID(), "name", p.Name())
 			return err
 		}
 	}
@@ -1330,7 +1332,7 @@ func (h *handler) BroadcastTxs(txs types.Transactions) {
 		for _, peer := range peers {
 			txset[peer] = append(txset[peer], tx)
 		}
-		totalSize += tx.Size()
+		totalSize += common.StorageSize(tx.Size())
 		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 	fullRecipients := h.decideBroadcastAggressiveness(int(totalSize), time.Second, len(txset))

@@ -1,14 +1,13 @@
 package emitter
 
 import (
+	"github.com/Fantom-foundation/go-opera/version"
 	"math/rand"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/ethereum/go-ethereum/params"
-
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 )
 
 // EmitIntervals is the configuration of emit intervals.
@@ -57,7 +56,7 @@ type Config struct {
 // DefaultConfig returns the default configurations for the events emitter.
 func DefaultConfig() Config {
 	return Config{
-		VersionToPublish: params.VersionWithMeta(),
+		VersionToPublish: version.VersionWithMeta,
 
 		EmitIntervals: EmitIntervals{
 			Min:                        150 * time.Millisecond,
