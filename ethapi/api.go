@@ -772,27 +772,33 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 func (s *PublicBlockChainAPI) GetHeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*evmcore.EvmHeaderJson, error) {
 	header, err := s.b.HeaderByNumber(ctx, number)
 	if header != nil && err == nil {
-		response := s.rpcMarshalHeader(header, s.getBlockReceipts(ctx, number))
-		return response, err
+		receipts, err := s.getBlockReceipts(ctx, rpc.BlockNumber(header.Number.Uint64()))
+		if err != nil {
+			return nil, err
+		}
+		return s.rpcMarshalHeader(header, receipts), nil
 	}
 	return nil, err
 }
 
 // GetHeaderByHash returns the requested header by hash.
-func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.Hash) *evmcore.EvmHeaderJson {
-	header, _ := s.b.HeaderByHash(ctx, hash)
-	if header != nil {
-		return s.rpcMarshalHeader(header, s.getBlockReceipts(ctx, rpc.BlockNumber(header.Number.Uint64())))
+func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.Hash) (*evmcore.EvmHeaderJson, error) {
+	header, err := s.b.HeaderByHash(ctx, hash)
+	if header != nil && err == nil {
+		receipts, err := s.getBlockReceipts(ctx, rpc.BlockNumber(header.Number.Uint64()))
+		if err != nil {
+			return nil, err
+		}
+		return s.rpcMarshalHeader(header, receipts), nil
 	}
-	return nil
+	return nil, err
 }
 
-func (s *PublicBlockChainAPI) getBlockReceipts(ctx context.Context, blkNumber rpc.BlockNumber) types.Receipts {
+func (s *PublicBlockChainAPI) getBlockReceipts(ctx context.Context, blkNumber rpc.BlockNumber) (types.Receipts, error) {
 	if blkNumber == rpc.EarliestBlockNumber {
-		return nil
+		return nil, nil
 	}
-	receipts, _ := s.b.GetReceiptsByNumber(ctx, blkNumber)
-	return receipts
+	return s.b.GetReceiptsByNumber(ctx, blkNumber)
 }
 
 // GetBlockByNumber returns the requested canonical block.
@@ -803,7 +809,11 @@ func (s *PublicBlockChainAPI) getBlockReceipts(ctx context.Context, blkNumber rp
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNumber, fullTx bool) (*evmcore.EvmBlockJson, error) {
 	block, err := s.b.BlockByNumber(ctx, number)
 	if block != nil && err == nil {
-		return s.rpcMarshalBlock(block, s.getBlockReceipts(ctx, number), true, fullTx)
+		receipts, err := s.getBlockReceipts(ctx, rpc.BlockNumber(block.NumberU64()))
+		if err != nil {
+			return nil, err
+		}
+		return s.rpcMarshalBlock(block, receipts, true, fullTx)
 	}
 	return nil, err
 }
@@ -812,8 +822,12 @@ func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.B
 // detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, hash common.Hash, fullTx bool) (*evmcore.EvmBlockJson, error) {
 	block, err := s.b.BlockByHash(ctx, hash)
-	if block != nil {
-		return s.rpcMarshalBlock(block, s.getBlockReceipts(ctx, rpc.BlockNumber(block.NumberU64())), true, fullTx)
+	if block != nil && err == nil {
+		receipts, err := s.getBlockReceipts(ctx, rpc.BlockNumber(block.NumberU64()))
+		if err != nil {
+			return nil, err
+		}
+		return s.rpcMarshalBlock(block, receipts, true, fullTx)
 	}
 	return nil, err
 }
