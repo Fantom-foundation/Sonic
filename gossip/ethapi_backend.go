@@ -318,10 +318,6 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, block common.Hash) ([][]*ty
 	return logs, nil
 }
 
-func (b *EthAPIBackend) GetTd(_ common.Hash) *big.Int {
-	return big.NewInt(0)
-}
-
 func (b *EthAPIBackend) GetEVM(ctx context.Context, msg evmcore.Message, state vm.StateDB, header *evmcore.EvmHeader, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
 	vmError := func() error { return nil }
 

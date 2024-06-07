@@ -173,6 +173,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		TimeNano:   hexutil.Uint64(h.Time),
 		BaseFee:    (*hexutil.Big)(h.BaseFee),
 		Difficulty: new(hexutil.Big),
+		TotalDiff:  new(hexutil.Big),
 		Hash:       &h.Hash,
 		Epoch:		hexutil.Uint64(hash.Event(h.Hash).Epoch()),
 	}
