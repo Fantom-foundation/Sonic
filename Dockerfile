@@ -1,4 +1,6 @@
-# Example:
+# Experimental - not for production use!
+
+# Example of usage:
 # docker build .
 # docker run --name sonic --entrypoint sonictool 43eedf15b4d0 --datadir=/var/sonic genesis fake 1
 # docker run --volumes-from sonic -p 5050:5050 -p 5050:5050/udp -p 18545:18545 43eedf15b4d0 --http --http.addr=0.0.0.0
