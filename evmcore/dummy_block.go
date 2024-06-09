@@ -17,6 +17,7 @@
 package evmcore
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math"
 	"math/big"
 
@@ -126,6 +127,66 @@ func (h *EvmHeader) EthHeader() *types.Header {
 	}
 	// ethHeader.SetExternalHash(h.Hash) < this seems to be an optimization in go-ethereum-substate; skipped for now, needs investigation
 	return ethHeader
+}
+
+// EvmHeaderJson is simplified version of types.Header, but allowing setting custom hash
+type EvmHeaderJson struct {
+	ParentHash  common.Hash      `json:"parentHash"       gencodec:"required"`
+	UncleHash   common.Hash      `json:"sha3Uncles"       gencodec:"required"`
+	Miner       common.Address   `json:"miner"`
+	Root        common.Hash      `json:"stateRoot"        gencodec:"required"`
+	TxHash      common.Hash      `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash common.Hash      `json:"receiptsRoot"     gencodec:"required"`
+	Bloom       types.Bloom      `json:"logsBloom"        gencodec:"required"`
+	Difficulty  *hexutil.Big     `json:"difficulty"       gencodec:"required"`
+	Number      *hexutil.Big     `json:"number"           gencodec:"required"`
+	GasLimit    hexutil.Uint64   `json:"gasLimit"         gencodec:"required"`
+	GasUsed     hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
+	Time        hexutil.Uint64   `json:"timestamp"        gencodec:"required"`
+	TimeNano    hexutil.Uint64   `json:"timestampNano"`
+	Extra       hexutil.Bytes    `json:"extraData"        gencodec:"required"`
+	MixDigest   common.Hash      `json:"mixHash"`
+	Nonce       types.BlockNonce `json:"nonce"`
+	BaseFee     *hexutil.Big     `json:"baseFeePerGas"`
+	Hash        *common.Hash     `json:"hash"`
+	Epoch       hexutil.Uint64   `json:"epoch"`
+	TotalDiff   *hexutil.Big     `json:"totalDifficulty"`
+}
+
+type EvmBlockJson struct {
+	*EvmHeaderJson
+	Txs         []interface{}    `json:"transactions"`
+	Size        *hexutil.Uint64  `json:"size"` // RLP encoded storage size of the block
+	Uncles      []common.Hash    `json:"uncles"`
+}
+
+func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
+	enc := &EvmHeaderJson{
+		Number:     (*hexutil.Big)(h.Number),
+		Miner:      h.Coinbase,
+		GasLimit:   0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
+		GasUsed:    hexutil.Uint64(h.GasUsed),
+		Root:       h.Root,
+		TxHash:     h.TxHash,
+		ParentHash: h.ParentHash,
+		UncleHash:  types.EmptyUncleHash,
+		Time:       hexutil.Uint64(h.Time.Unix()),
+		TimeNano:   hexutil.Uint64(h.Time),
+		BaseFee:    (*hexutil.Big)(h.BaseFee),
+		Difficulty: new(hexutil.Big),
+		TotalDiff:  new(hexutil.Big),
+		Hash:       &h.Hash,
+		Epoch:		hexutil.Uint64(hash.Event(h.Hash).Epoch()),
+	}
+	if receipts != nil { // if receipts resolution fails, don't set ReceiptsHash at all
+		if receipts.Len() != 0 {
+			enc.ReceiptHash = types.DeriveSha(receipts, trie.NewStackTrie(nil))
+			enc.Bloom = types.CreateBloom(receipts)
+		} else {
+			enc.ReceiptHash = types.EmptyRootHash
+		}
+	}
+	return enc
 }
 
 // Header is a copy of EvmBlock.EvmHeader.

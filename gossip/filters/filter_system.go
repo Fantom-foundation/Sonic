@@ -22,20 +22,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"math/big"
 	"sync"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/evmcore"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/trie"
-
-	"github.com/Fantom-foundation/go-opera/evmcore"
 )
 
 // Type determines the kind of filter and is used to put the filter in to
@@ -82,7 +78,7 @@ type subscription struct {
 	logsCrit  ethereum.FilterQuery
 	logs      chan []*types.Log
 	hashes    chan []common.Hash
-	headers   chan *evmHeaderJson
+	headers   chan *evmcore.EvmHeaderJson
 	installed chan struct{} // closed when the filter is installed
 	err       chan error    // closed when the filter is uninstalled
 }
@@ -228,7 +224,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit ethereum.FilterQuery, logs
 		created:   time.Now(),
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
-		headers:   make(chan *evmHeaderJson),
+		headers:   make(chan *evmcore.EvmHeaderJson),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -245,7 +241,7 @@ func (es *EventSystem) subscribeLogs(crit ethereum.FilterQuery, logs chan []*typ
 		created:   time.Now(),
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
-		headers:   make(chan *evmHeaderJson),
+		headers:   make(chan *evmcore.EvmHeaderJson),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -262,7 +258,7 @@ func (es *EventSystem) subscribePendingLogs(crit ethereum.FilterQuery, logs chan
 		created:   time.Now(),
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
-		headers:   make(chan *evmHeaderJson),
+		headers:   make(chan *evmcore.EvmHeaderJson),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -271,7 +267,7 @@ func (es *EventSystem) subscribePendingLogs(crit ethereum.FilterQuery, logs chan
 
 // SubscribeNewHeads creates a subscription that writes the header of a block that is
 // imported in the chain.
-func (es *EventSystem) SubscribeNewHeads(headers chan *evmHeaderJson) *Subscription {
+func (es *EventSystem) SubscribeNewHeads(headers chan *evmcore.EvmHeaderJson) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       BlocksSubscription,
@@ -294,7 +290,7 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 		created:   time.Now(),
 		logs:      make(chan []*types.Log),
 		hashes:    hashes,
-		headers:   make(chan *evmHeaderJson),
+		headers:   make(chan *evmcore.EvmHeaderJson),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -327,69 +323,12 @@ func (es *EventSystem) broadcast(filters filterIndex, ev interface{}) {
 			f.hashes <- hashes
 		}
 	case evmcore.ChainHeadNotify:
-		h := toEvmHeaderJson(&e.Block.EvmHeader)
-		es.calculateExtBlockApi(h)
+		blkNumber := rpc.BlockNumber(e.Block.EvmHeader.Number.Int64())
+		receipts, _ := es.backend.GetReceiptsByNumber(context.Background(), blkNumber)
+		h := e.Block.EvmHeader.ToJson(receipts)
 		for _, f := range filters[BlocksSubscription] {
 			f.headers <- h
 		}
-	}
-}
-
-// evmHeaderJson is simplified version of types.Header, but allowing setting custom hash
-type evmHeaderJson struct {
-	ParentHash       common.Hash      `json:"parentHash"       gencodec:"required"`
-	UncleHash        common.Hash      `json:"sha3Uncles"       gencodec:"required"`
-	Coinbase         common.Address   `json:"miner"`
-	Root             common.Hash      `json:"stateRoot"        gencodec:"required"`
-	TxHash           common.Hash      `json:"transactionsRoot" gencodec:"required"`
-	ReceiptHash      common.Hash      `json:"receiptsRoot"     gencodec:"required"`
-	Bloom            types.Bloom      `json:"logsBloom"        gencodec:"required"`
-	Difficulty       *hexutil.Big     `json:"difficulty"       gencodec:"required"`
-	Number           *hexutil.Big     `json:"number"           gencodec:"required"`
-	GasLimit         hexutil.Uint64   `json:"gasLimit"         gencodec:"required"`
-	GasUsed          hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
-	Time             hexutil.Uint64   `json:"timestamp"        gencodec:"required"`
-	Extra            hexutil.Bytes    `json:"extraData"        gencodec:"required"`
-	MixDigest        common.Hash      `json:"mixHash"`
-	Nonce            types.BlockNonce `json:"nonce"`
-	BaseFee          *hexutil.Big     `json:"baseFeePerGas" rlp:"optional"`
-	Hash             common.Hash      `json:"hash"`
-}
-
-func toEvmHeaderJson(h *evmcore.EvmHeader) *evmHeaderJson {
-	enc := &evmHeaderJson{
-		Number:     (*hexutil.Big)(h.Number),
-		Coinbase:   h.Coinbase,
-		GasLimit:   0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
-		GasUsed:    hexutil.Uint64(h.GasUsed),
-		Root:       h.Root,
-		TxHash:     h.TxHash,
-		ParentHash: h.ParentHash,
-		Time:       hexutil.Uint64(h.Time.Unix()),
-		BaseFee:    (*hexutil.Big)(h.BaseFee),
-		Difficulty: new(hexutil.Big),
-		Hash:       h.Hash,
-	}
-	return enc
-}
-
-// calculateExtBlockApi doubles ethapi/PublicBlockChainAPI.calculateExtBlockApi() functionality.
-// TODO: common code.
-func (es *EventSystem) calculateExtBlockApi(h *evmHeaderJson) {
-	blkNumber := rpc.BlockNumber((*big.Int)(h.Number).Int64())
-	if !es.backend.CalcBlockExtApi() || blkNumber == rpc.EarliestBlockNumber {
-		return
-	}
-
-	receipts, err := es.backend.GetReceiptsByNumber(context.Background(), blkNumber)
-	if err != nil {
-		return
-	}
-	if receipts.Len() != 0 {
-		h.ReceiptHash = types.DeriveSha(receipts, trie.NewStackTrie(nil))
-		h.Bloom = types.CreateBloom(receipts)
-	} else {
-		h.ReceiptHash = types.EmptyRootHash
 	}
 }
 
