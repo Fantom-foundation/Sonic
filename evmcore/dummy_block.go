@@ -169,6 +169,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		Root:       h.Root,
 		TxHash:     h.TxHash,
 		ParentHash: h.ParentHash,
+		UncleHash:  types.EmptyUncleHash,
 		Time:       hexutil.Uint64(h.Time.Unix()),
 		TimeNano:   hexutil.Uint64(h.Time),
 		BaseFee:    (*hexutil.Big)(h.BaseFee),
