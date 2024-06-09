@@ -156,6 +156,34 @@ var (
 				genesisstore.FwsLiveSection(0): hash.HexToHash("0xf8b42be75150cd76b5f86c8c4d67a9aaae90332d0be648df4f93e0bc4830d35e"),
 			},
 		},
+		{
+			Name:   "Mainnet-285300 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x2027d90dc318ace70a3d0cfc22a69cfa31cf18f874f7ea15d34396dc8fdb11d1"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0x99ff07d5b8423215304821151c2490ef9ac9abdb030d58823ffe656586ee3af3"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x77ea7b0496b026981857b99c48b03e26c5071c010b5f0ff5536db8492ef27257"),
+			},
+		},
+		{
+			Name:   "Mainnet-285300 with Carmen live and archive state",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):     hash.HexToHash("0x2027d90dc318ace70a3d0cfc22a69cfa31cf18f874f7ea15d34396dc8fdb11d1"),
+				genesisstore.BlocksSection(0):     hash.HexToHash("0xfa7418c8d8bc4738a0cdb32c87feee75453c6fa580a8568dc0eed3e65b03ae90"),
+				genesisstore.FwsLiveSection(0):    hash.HexToHash("0xfe13c9d30c72c5d6d9f381edb5877c3a248bcba90a302b236fb22c5f52f4b953"),
+				genesisstore.FwsArchiveSection(0): hash.HexToHash("0xa0c1d01a0bc88470ce4b910470e270bf80e4f13ff8e6ac4e60df0f9281e627c3"),
+			},
+		},
+		{
+			Name:   "Mainnet-286540 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x9c88095cbb4b222d603bddf7f4d222c630b43742dba7f519e3168d09b1a54d56"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0xbe6217623a596de6601e1f780036faf5ea13eea83a994c9e0380ff2dfe773db5"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x4df8b57c5cfdbcd6393ce5ca8ebfe80e36a5b51f2e0b9539dcf6d34578911fdc"),
+			},
+		},
 
 		{
 			Name:   "Testnet-2458 with pruned MPT",
