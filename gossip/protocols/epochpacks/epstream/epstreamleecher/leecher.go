@@ -2,6 +2,7 @@ package epstreamleecher
 
 import (
 	"math/rand"
+	"slices"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher"
@@ -130,10 +131,8 @@ func (d *Leecher) startSession(candidates []string) {
 	peer := candidates[rand.Intn(len(candidates))]
 	if d.session.try == 0 && rand.Intn(50) != 0 {
 		// try previous successful peer first
-		for _, candidate := range candidates {
-			if candidate == d.session.peer {
-				peer = candidate
-			}
+		if slices.Contains(candidates, d.session.peer) {
+			peer = d.session.peer
 		}
 	}
 
