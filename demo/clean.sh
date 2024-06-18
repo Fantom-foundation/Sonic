@@ -2,6 +2,6 @@
 cd $(dirname $0)
 
 
-rm -fr opera*.datadir tool.datadir
+rm -fr sonic*.datadir tool.datadir
 rm *.log
-rm ../build/demo_sonicd
+rm ../build/demo_sonicd ../build/sonictool
