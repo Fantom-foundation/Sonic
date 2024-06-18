@@ -20,7 +20,7 @@ do
     then
         echo "Import fake genesis ${ACC}/${N}"
         mkdir -p ${DATADIR}
-        ../build/sonictool --datadir=${DATADIR} genesis fake ${N} --mode=validator
+        ../build/sonictool --datadir=${DATADIR} genesis fake ${N} --mode=rpc
     fi
 
     PORT=$(($PORT_BASE+$i))
@@ -28,7 +28,7 @@ do
     WSP=$(($WSP_BASE+$i))
     (../build/demo_sonicd \
 	--datadir=${DATADIR} \
-	--mode=validator \
+	--mode=rpc \
 	--fakenet=${ACC}/${N} \
 	--port=${PORT} \
 	--nat extip:127.0.0.1 \
