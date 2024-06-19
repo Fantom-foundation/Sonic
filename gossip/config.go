@@ -284,9 +284,9 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 // MemTestStoreConfig is for tests or inmemory.
 func MemTestStoreConfig(tmpDir string) StoreConfig {
 	cfg := DefaultStoreConfig(cachescale.Ratio{Base: 10, Target: 1})
-	cfg.EVM.StateDb.Directory = filepath.Join(tmpDir, "carmen")
-	cfg.EVM.StateDb.LiveCache = 100 // bytes, to be overridden by the minimal value
-	cfg.EVM.StateDb.ArchiveCache = 100 // bytes, to be overridden by the minimal value
+	cfg.EVM.Directory = filepath.Join(tmpDir, "carmen")
+	cfg.EVM.LiveDbCacheSize = 100  // bytes, to be overridden by the minimal value
+	cfg.EVM.ArchiveCacheSize = 100 // bytes, to be overridden by the minimal value
 	return cfg
 }
 

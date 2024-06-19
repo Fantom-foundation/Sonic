@@ -120,7 +120,9 @@ func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *
 	}
 
 	// Update the state with pending changes.
-	statedb.Finalise()
+	if err := statedb.Finalise(); err != nil {
+		return nil, err
+	}
 	*usedGas += result.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used
@@ -186,7 +188,9 @@ func applyTransaction(
 	}
 
 	// Update the state with pending changes.
-	statedb.Finalise()
+	if err := statedb.Finalise(); err != nil {
+		return nil, 0, result == nil, err
+	}
 	*usedGas += result.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used

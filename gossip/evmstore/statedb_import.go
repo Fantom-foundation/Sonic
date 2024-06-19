@@ -2,10 +2,10 @@ package evmstore
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/carmen"
 	io2 "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/kvdb2ethdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/nokeyiserr"
@@ -28,7 +28,7 @@ var emptyCodeHash = crypto.Keccak256(nil)
 // ImportLiveWorldState imports Fantom World State data from the live state genesis section.
 // Must be called before the first Open call.
 func (s *Store) ImportLiveWorldState(liveReader io.Reader) error {
-	liveDir := filepath.Join(s.parameters.Directory, "live")
+	liveDir := filepath.Join(s.cfg.Directory, "live")
 	if err := os.MkdirAll(liveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
@@ -41,46 +41,40 @@ func (s *Store) ImportLiveWorldState(liveReader io.Reader) error {
 // ImportArchiveWorldState imports Fantom World State data from the archive state genesis section.
 // Must be called before the first Open call.
 func (s *Store) ImportArchiveWorldState(archiveReader io.Reader) error {
-	if s.parameters.Archive == carmen.NoArchive {
+	if !s.cfg.Archive {
 		return nil // skip if the archive is disabled
 	}
-	if s.parameters.Archive == carmen.S5Archive {
-		archiveDir := filepath.Join(s.parameters.Directory, "archive")
-		if err := os.MkdirAll(archiveDir, 0700); err != nil {
-			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
-		}
-		if err := io2.ImportArchive(archiveDir, archiveReader); err != nil {
-			return fmt.Errorf("failed to initialize Archive; %v", err)
-		}
-		return nil
+	archiveDir := filepath.Join(s.cfg.Directory, "archive")
+	if err := os.MkdirAll(archiveDir, 0700); err != nil {
+		return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 	}
-	return fmt.Errorf("archive is used, but cannot be initialized from FWS live genesis section")
+	if err := io2.ImportArchive(archiveDir, archiveReader); err != nil {
+		return fmt.Errorf("failed to initialize Archive; %v", err)
+	}
+	return nil
 }
 
 // InitializeArchiveWorldState imports Fantom World State data from the live state genesis section.
 // Must be called before the first Open call.
 func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint64) error {
-	if s.parameters.Archive == carmen.NoArchive {
+	if !s.cfg.Archive {
 		return nil // skip if the archive is disabled
 	}
-	if s.parameters.Archive == carmen.S5Archive {
-		archiveDir := filepath.Join(s.parameters.Directory, "archive")
-		if err := os.MkdirAll(archiveDir, 0700); err != nil {
-			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
-		}
-		if err := io2.InitializeArchive(archiveDir, liveReader, blockNum); err != nil {
-			return fmt.Errorf("failed to initialize Archive; %v", err)
-		}
-		return nil
+	archiveDir := filepath.Join(s.cfg.Directory, "archive")
+	if err := os.MkdirAll(archiveDir, 0700); err != nil {
+		return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 	}
-	return fmt.Errorf("archive is used, but cannot be initialized from FWS live genesis section")
+	if err := io2.InitializeArchive(archiveDir, liveReader, blockNum); err != nil {
+		return fmt.Errorf("failed to initialize Archive; %v", err)
+	}
+	return nil
 }
 
 // ExportLiveWorldState exports Fantom World State data for the live state genesis section.
 // The Store must be closed during the call.
 func (s *Store) ExportLiveWorldState(out io.Writer) error {
-	liveDir := filepath.Join(s.parameters.Directory, "live")
-	if err := io2.Export(liveDir, out); err != nil {
+	liveDir := filepath.Join(s.cfg.Directory, "live")
+	if err := io2.Export(context.Background(), liveDir, out); err != nil {
 		return fmt.Errorf("failed to export Live StateDB; %v", err)
 	}
 	return nil
@@ -89,8 +83,8 @@ func (s *Store) ExportLiveWorldState(out io.Writer) error {
 // ExportArchiveWorldState exports Fantom World State data for the archive state genesis section.
 // The Store must be closed during the call.
 func (s *Store) ExportArchiveWorldState(out io.Writer) error {
-	archiveDir := filepath.Join(s.parameters.Directory, "archive")
-	if err := io2.ExportArchive(archiveDir, out); err != nil {
+	archiveDir := filepath.Join(s.cfg.Directory, "archive")
+	if err := io2.ExportArchive(context.Background(), archiveDir, out); err != nil {
 		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
@@ -102,7 +96,7 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 	}
 	defer s.Close()
 
-	carmenDir, err := os.MkdirTemp(s.parameters.Directory, "opera-tmp-import-legacy-genesis")
+	carmenDir, err := os.MkdirTemp(s.cfg.Directory, "opera-tmp-import-legacy-genesis")
 	if err != nil {
 		panic(fmt.Errorf("failed to create temporary dir for legacy EVM data import: %v", err))
 	}
@@ -125,15 +119,21 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 
 	var currentBlock uint64 = 1
 	var accountsCount, slotsCount uint64 = 0, 0
-	bulk := s.liveStateDb.StartBulkLoad(currentBlock)
+	bulk, err := s.carmenDb.StartBulkLoad(currentBlock)
+	if err != nil {
+		return err
+	}
 
 	restartBulkIfNeeded := func() error {
 		if (accountsCount+slotsCount)%1_000_000 == 0 && currentBlock < blockNum {
-			if err := bulk.Close(); err != nil {
+			if err := bulk.Finalize(); err != nil {
 				return err
 			}
 			currentBlock++
-			bulk = s.liveStateDb.StartBulkLoad(currentBlock)
+			bulk, err = s.carmenDb.StartBulkLoad(currentBlock)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -157,7 +157,7 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 			if err != nil || addressBytes == nil {
 				return fmt.Errorf("missing preimage for account address hash %v; %v", accIter.LeafKey(), err)
 			}
-			address := cc.Address(common.BytesToAddress(addressBytes))
+			address := carmen.Address(common.BytesToAddress(addressBytes))
 
 			var acc types.StateAccount
 			if err := rlp.DecodeBytes(accIter.LeafBlob(), &acc); err != nil {
@@ -166,7 +166,7 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 
 			bulk.CreateAccount(address)
 			bulk.SetNonce(address, acc.Nonce)
-			bulk.SetBalance(address, acc.Balance.ToBig())
+			bulk.SetBalance(address, carmen.NewAmountFromUint256(acc.Balance))
 
 			if !bytes.Equal(acc.CodeHash, emptyCodeHash) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))
@@ -191,13 +191,13 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 						if err != nil || keyBytes == nil {
 							return fmt.Errorf("missing preimage for storage key hash %v; %v", storageIt.LeafKey(), err)
 						}
-						key := cc.Key(common.BytesToHash(keyBytes))
+						key := carmen.Key(common.BytesToHash(keyBytes))
 
 						_, valueBytes, _, err := rlp.Split(storageIt.LeafBlob())
 						if err != nil {
 							return fmt.Errorf("failed to decode storage; %v", err)
 						}
-						value := cc.Value(common.BytesToHash(valueBytes))
+						value := carmen.Value(common.BytesToHash(valueBytes))
 
 						bulk.SetState(address, key, value)
 						slotsCount++
@@ -221,13 +221,16 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 		return fmt.Errorf("failed to iterate accounts trie; %v", accIter.Error())
 	}
 
-	if err := bulk.Close(); err != nil {
+	if err := bulk.Finalize(); err != nil {
 		return err
 	}
 	// add the empty genesis block into archive
 	if currentBlock < blockNum {
-		bulk = s.liveStateDb.StartBulkLoad(blockNum)
-		if err := bulk.Close(); err != nil {
+		bulk, err = s.carmenDb.StartBulkLoad(blockNum)
+		if err != nil {
+			return err
+		}
+		if err := bulk.Finalize(); err != nil {
 			return err
 		}
 	}

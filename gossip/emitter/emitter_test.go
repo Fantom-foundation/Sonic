@@ -53,7 +53,7 @@ func TestEmitter(t *testing.T) {
 		Return(int(3)).
 		AnyTimes()
 	external.EXPECT().StateDB().
-		Return(nil).
+		Return(nil, nil).
 		AnyTimes()
 
 	em := NewEmitter(cfg, World{

@@ -2,12 +2,12 @@ package check
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
-	"path/filepath"
 )
 
 func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
@@ -30,7 +30,7 @@ func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 }
 
 func checkLiveBlockRoot(dataDir string, cacheRatio cachescale.Func) error {
-	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.NoArchive, true)
+	gdb, dbs, err := createGdb(dataDir, cacheRatio, false, true)
 	if err != nil {
 		return err
 	}

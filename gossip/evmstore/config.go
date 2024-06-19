@@ -1,7 +1,6 @@
 package evmstore
 
 import (
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -23,8 +22,14 @@ type (
 	// StoreConfig is a config for store db.
 	StoreConfig struct {
 		Cache StoreCacheConfig
-		// Carmen StateDB config
-		StateDb carmen.Parameters
+		// The location of the Carmen database.
+		Directory string
+		// Enable or disable the archive.
+		Archive bool
+		// The memory used for Carmen's LiveDB node cache
+		LiveDbCacheSize int64
+		// The memory used for Carmen's Archive node cache
+		ArchiveCacheSize int64
 		// Skip running with a different archive mode prevention
 		SkipArchiveCheck bool
 		// Disables EVM logs indexing
@@ -38,19 +43,15 @@ type (
 func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 	return StoreConfig{
 		Cache: StoreCacheConfig{
-			ReceiptsSize:      scale.U(4 * opt.MiB),
-			ReceiptsBlocks:    scale.I(4000),
-			TxPositions:       scale.I(20000),
-			EvmBlocksNum:      scale.I(5000),
-			EvmBlocksSize:     scale.U(6 * opt.MiB),
+			ReceiptsSize:   scale.U(4 * opt.MiB),
+			ReceiptsBlocks: scale.I(4000),
+			TxPositions:    scale.I(20000),
+			EvmBlocksNum:   scale.I(5000),
+			EvmBlocksSize:  scale.U(6 * opt.MiB),
 		},
-		StateDb: carmen.Parameters{
-			Variant:      "go-file",
-			Schema:       carmen.Schema(5),
-			Archive:      carmen.S5Archive,
-			LiveCache:    scale.I64(1940 * opt.MiB),
-			ArchiveCache: scale.I64(1940 * opt.MiB),
-		},
+		Archive:          true,
+		LiveDbCacheSize:  scale.I64(1940 * opt.MiB),
+		ArchiveCacheSize: scale.I64(1940 * opt.MiB),
 	}
 }
 

@@ -90,7 +90,7 @@ func (s *PublicTxTraceAPI) traceTxHash(ctx context.Context, hash common.Hash, tr
 	return s.replayBlock(ctx, block, &hash, traceIndex)
 }
 
-// Replays block and returns traces acording to parameters
+// Replays block and returns traces according to parameters
 //
 // txHash
 //   - if is nil, all transaction traces in the block are collected
@@ -184,7 +184,10 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				log.Debug("Error replaying transaction", "txHash", tx.Hash().String(), "err", res.Err.Error())
 			}
 
-			state.Finalise()
+			if err := state.Finalise(); err != nil {
+				failed = true
+				log.Error("Cannot finalise tx during replay", "err", err)
+			}
 
 			// Check correct replay status according to receipt data
 			if (failed && receipts[i].Status == 1) || (!failed && receipts[i].Status == 0) {
@@ -247,10 +250,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	state.SetTxContext(tx.Hash(), int(index))
 	resultReceipt, err := evmcore.ApplyTransactionWithEVM(msg, b.ChainConfig(), gp, state, header.Number, block.Hash, tx, &index, vmenv)
 
-	traceActions := txTracer.GetResult()
-	state.Finalise()
-
-	// err is error occured before EVM execution
+	// err is error occurred before EVM execution
 	if err != nil {
 		errTrace := txtrace.GetErrorTraceFromMsg(msg, block.Hash, *block.Number, tx.Hash(), index, err)
 		at := make([]txtrace.ActionTrace, 0)
@@ -270,7 +270,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	if status != resultReceipt.Status {
 		return nil, fmt.Errorf("invalid transaction replay state at %s, want %v but got %v", tx.Hash().String(), status, resultReceipt.Status)
 	}
-	return traceActions, nil
+	return txTracer.GetResult(), state.Finalise()
 }
 
 // getEmptyBlockTrace returns trace for empty block

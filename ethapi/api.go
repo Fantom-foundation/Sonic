@@ -1399,7 +1399,10 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 			}
 		}
 		// Copy the original db so we don't modify it
-		statedb := db.Copy()
+		statedb, err := db.Copy()
+		if err != nil {
+			return nil, 0, nil, fmt.Errorf("failed to copy StateDB: %w", err)
+		}
 		// Set the accesslist to the last al
 		args.AccessList = &accessList
 		msg, err := args.ToMessage(b.RPCGasCap(), header.BaseFee)
@@ -2095,7 +2098,9 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 			return nil, err
 		}
 		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
-		statedb.Finalise()
+		if err := statedb.Finalise(); err != nil {
+			return nil, err
+		}
 	}
 	return results, nil
 }
@@ -2112,6 +2117,11 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 	if err != nil {
 		return nil, nil, err
 	}
+	defer func() {
+		if err != nil {
+			statedb.Release()
+		}
+	}()
 	if txIndex == 0 && len(block.Transactions) == 0 {
 		return nil, statedb, nil
 	}
@@ -2124,18 +2134,22 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 			return msg, statedb, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv, _, err := api.b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
+		var vmenv *vm.EVM
+		vmenv, _, err = api.b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
 		if err != nil {
-			return msg, statedb, err
+			return msg, nil, err
 		}
 		statedb.SetTxContext(tx.Hash(), idx)
-		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(tx.Gas())); err != nil {
-			return nil, statedb, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
+		if _, err = evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(tx.Gas())); err != nil {
+			return nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state
-		statedb.Finalise()
+		if err = statedb.Finalise(); err != nil {
+			return nil, nil, err
+		}
 	}
-	return nil, statedb, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	err = fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	return nil, nil, err
 }
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
