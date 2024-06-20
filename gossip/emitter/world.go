@@ -2,6 +2,7 @@ package emitter
 
 import (
 	"errors"
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"sync"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -14,7 +15,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 var (
@@ -31,7 +31,7 @@ type (
 		Process(*inter.EventPayload) error
 		Broadcast(*inter.EventPayload)
 		Build(*inter.MutableEventPayload, func()) error
-		DagIndex() *vecmt.Index
+		DagIndex() *vecclock.Index
 
 		IsBusy() bool
 		IsSynced() bool

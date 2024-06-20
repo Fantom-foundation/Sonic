@@ -10,15 +10,21 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/leveldb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/skipkeys"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
+	"golang.org/x/exp/rand"
 	"io"
 	"os"
+	"path"
+	"sync/atomic"
 )
 
 type DBsConfig struct {
-	RuntimeCache  DBCacheConfig
+	RuntimeCache DBCacheConfig
+	TmpDBCache   DBCacheConfig
 }
 
 type DBCacheConfig struct {
@@ -77,4 +83,22 @@ func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 		return nil
 	}
 	return e
+}
+
+func tmpDBsMaker(dir string, cache, handles uint64) func(string) kvdb.Store {
+	dir = path.Join(dir, fmt.Sprintf("%x", rand.Uint64()))
+	ldbProducer := leveldb.NewProducer(dir, func(_ string) (int, int) {
+		return int(cache), int(handles)
+	})
+	counter := atomic.Uint64{}
+
+	return func(name string) kvdb.Store {
+		seq := counter.Add(1)
+		name += fmt.Sprintf("%s-%d", name, seq)
+		tmpDB, err := ldbProducer.OpenDB(name)
+		if err != nil {
+			log.Crit("Failed to create tmp database", "name", name, "err", err)
+		}
+		return tmpDB
+	}
 }

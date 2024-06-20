@@ -5,6 +5,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/vecclock"
+	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"math"
 	"math/big"
@@ -17,7 +21,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -41,7 +44,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 const (
@@ -87,13 +89,17 @@ func (g *testGossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 	return e
 }
 
-func makeTestEngine(gdb *Store) (*abft.Lachesis, *vecmt.Index) {
+func makeTmpDB(name string) kvdb.Store {
+	return memorydb.New()
+}
+
+func makeTestEngine(gdb *Store) (*abft.Lachesis, *vecclock.Index) {
 	cdb := abft.NewMemStore()
 	_ = cdb.ApplyGenesis(&abft.Genesis{
 		Epoch:      gdb.GetEpoch(),
 		Validators: gdb.GetValidators(),
 	})
-	vecClock := vecmt.NewIndex(panics("Vector clock"), vecmt.LiteConfig())
+	vecClock := vecclock.NewIndex(makeTmpDB, vecclock.LiteConfig())
 	engine := abft.NewLachesis(cdb, &testGossipStoreAdapter{gdb}, vecmt2dagidx.Wrap(vecClock), panics("Lachesis"), abft.LiteConfig())
 	return engine, vecClock
 }

@@ -7,6 +7,7 @@ import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"github.com/Fantom-foundation/go-opera/version"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"os"
@@ -30,7 +31,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 const (
@@ -65,7 +65,7 @@ type Config struct {
 	OperaStore    gossip.StoreConfig
 	Lachesis      abft.Config
 	LachesisStore abft.StoreConfig
-	VectorClock   vecmt.IndexConfig
+	VectorClock   vecclock.Config
 	DBs           integration.DBsConfig
 }
 
@@ -178,7 +178,7 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	return cfg
 }
 
-func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (evmstore.StoreConfig, error) {
+func setEvmStore(ctx *cli.Context, datadir string, src evmstore.StoreConfig) (evmstore.StoreConfig, error) {
 	cfg := src
 	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
 
@@ -222,7 +222,11 @@ func setDBConfig(cfg Config, cacheRatio cachescale.Func) (Config, error) {
 	}
 	cfg.DBs.RuntimeCache = integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
-		Fdlimit: handles*480/1400 + 1,
+		Fdlimit: handles/2 + 16,
+	}
+	cfg.DBs.TmpDBCache = integration.DBCacheConfig{
+		Cache:   cacheRatio.U64(24 * opt.MiB),
+		Fdlimit: handles/1000 + 16,
 	}
 	return cfg, nil
 }
@@ -231,13 +235,13 @@ const (
 	// DefaultCacheSize is calculated as memory consumption in a worst case scenario with default configuration
 	// Average memory consumption might be 3-5 times lower than the maximum
 	DefaultCacheSize  = 6 * 1024 // MB
-	ConstantCacheSize = 400 // MB
+	ConstantCacheSize = 400      // MB
 )
 
 func cacheScaler(ctx *cli.Context) cachescale.Func {
 	baseSize := DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
-	maxCache := totalMemory * 3 / 5  // max 60% of available memory
+	maxCache := totalMemory * 3 / 5 // max 60% of available memory
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
@@ -274,7 +278,7 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 		OperaStore:    gossip.DefaultStoreConfig(cacheRatio),
 		Lachesis:      abft.DefaultConfig(),
 		LachesisStore: abft.DefaultStoreConfig(cacheRatio),
-		VectorClock:   vecmt.DefaultConfig(cacheRatio),
+		VectorClock:   vecclock.DefaultConfig(cacheRatio),
 	}
 
 	if ctx.GlobalIsSet(FakeNetFlag.Name) {

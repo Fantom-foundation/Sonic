@@ -28,7 +28,6 @@ type (
 		table struct {
 			LastEvents kvdb.Store `table:"t"`
 			Heads      kvdb.Store `table:"H"`
-			DagIndex   kvdb.Store `table:"v"`
 		}
 		cache struct {
 			Heads      atomic.Value

@@ -1,7 +1,8 @@
-package vecmt
+package vecclock
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"sort"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -19,13 +20,11 @@ type medianTimeIndex struct {
 
 // MedianTime calculates weighted median of claimed time within highest observed events.
 func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Timestamp {
-	vi.Engine.InitBranchesInfo()
 	// Get event by hash
-	_before := vi.Engine.GetMergedHighestBefore(id)
-	if _before == nil {
-		vi.crit(fmt.Errorf("event=%s not found", id.String()))
+	before := vi.GetMergedHighestBefore(id)
+	if before == nil {
+		log.Crit("MedianTime error", "err", fmt.Errorf("event=%s not found", id.String()))
 	}
-	before := _before.(*HighestBefore)
 
 	honestTotalWeight := pos.Weight(0) // isn't equal to validators.TotalWeight(), because doesn't count cheaters
 	highests := make([]medianTimeIndex, 0, len(vi.validatorIdxs))
@@ -34,15 +33,15 @@ func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Ti
 		creatorIdx := idx.Validator(creatorIdxI)
 		highest := medianTimeIndex{}
 		highest.weight = vi.validators.GetWeightByIdx(creatorIdx)
-		highest.creationTime = before.VTime.Get(creatorIdx)
-		seq := before.VSeq.Get(creatorIdx)
+		beforeE := before[creatorIdx]
+		highest.creationTime = beforeE.Time
 
 		// edge cases
-		if seq.IsForkDetected() {
+		if beforeE.IsForkDetected() {
 			// cheaters don't influence medianTime
 			highest.weight = 0
-		} else if seq.Seq == 0 {
-			// if no event was observed from this node, then use genesisTime
+		} else if beforeE.Seq == 0 {
+			// if no event was observed from this node, then use defaultTime
 			highest.creationTime = defaultTime
 		}
 
@@ -71,7 +70,7 @@ func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Ti
 
 	// sanity check
 	if currWeight < halfWeight || currWeight > honestTotalWeight {
-		vi.crit(fmt.Errorf("median wasn't calculated correctly, median=%d, currWeight=%d, totalWeight=%d, len(highests)=%d, id=%s",
+		log.Crit("MedianTime sanity check", "err", fmt.Errorf("median wasn't calculated correctly, median=%d, currWeight=%d, totalWeight=%d, len(highests)=%d, id=%s",
 			median,
 			currWeight,
 			honestTotalWeight,
