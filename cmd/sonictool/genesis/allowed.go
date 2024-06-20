@@ -46,6 +46,16 @@ var (
 			},
 		},
 		{
+			Name:   "Mainnet-5577 with full MPT for Sonic",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):     hash.HexToHash("0x945d8084b4e6e1e78cfe9472fefca3f6ecc7041765dfed24f64e9946252f569a"),
+				genesisstore.BlocksSection(0):     hash.HexToHash("0xe3ec041f3cca79928aa4abef588b48e96ff3cfa3908b2268af3ac5496c722fec"),
+				genesisstore.FwsLiveSection(0):    hash.HexToHash("0x7af5e0ec141aa21c797be39b5a515ca8160ec8a4d6c0e181e34a2708c171908a"),
+				genesisstore.FwsArchiveSection(0): hash.HexToHash("0x6da7139b20139732ec290f47faf6c7f3a6439edcbae3c1c0fcc492cc6ede634f"),
+			},
+		},
+		{
 			Name:   "Mainnet-109331 without history",
 			Header: mainnetHeader,
 			Hashes: genesis.Hashes{
@@ -182,6 +192,25 @@ var (
 				genesisstore.EpochsSection(0):  hash.HexToHash("0x9c88095cbb4b222d603bddf7f4d222c630b43742dba7f519e3168d09b1a54d56"),
 				genesisstore.BlocksSection(0):  hash.HexToHash("0xbe6217623a596de6601e1f780036faf5ea13eea83a994c9e0380ff2dfe773db5"),
 				genesisstore.FwsLiveSection(0): hash.HexToHash("0x4df8b57c5cfdbcd6393ce5ca8ebfe80e36a5b51f2e0b9539dcf6d34578911fdc"),
+			},
+		},
+		{
+			Name:   "Mainnet-288000 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0xeb9d17cca2be7b9a95043d51dc2c71b7c1704bee20162561722806a78f27c5a4"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0xb48e5335406a68b9510e3c9e1884e8999e9a68a9ab98cd1d0d1b0d54e518058f"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x857d914c5df198c833026d53014485a9053304909742c5a6a3544aee0001b9d7"),
+			},
+		},
+		{
+			Name:   "Mainnet-288000 with Carmen live and archive state",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):     hash.HexToHash("0xeb9d17cca2be7b9a95043d51dc2c71b7c1704bee20162561722806a78f27c5a4"),
+				genesisstore.BlocksSection(0):     hash.HexToHash("0x31158f12cba0e4b695ee744266cce626591764bd390b67177438426b0a0f5331"),
+				genesisstore.FwsLiveSection(0):    hash.HexToHash("0x857d914c5df198c833026d53014485a9053304909742c5a6a3544aee0001b9d7"),
+				genesisstore.FwsArchiveSection(0): hash.HexToHash("0x5c44b48107ee71a0a643d330f17bd0fd0e75b1fd466d6270c1cc6764b9d8b67b"),
 			},
 		},
 
