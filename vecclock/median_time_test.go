@@ -16,12 +16,12 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
-func TestMedianTimeOnIndex(t *testing.T) {
+func testMedianTimeOnIndex(t *testing.T, cfg Config) {
 	nodes := tdag.GenNodes(5)
 	weights := []pos.Weight{5, 4, 3, 2, 1}
 	validators := pos.ArrayToValidators(nodes, weights)
 
-	vi := NewIndex(makeTmpDB, LiteConfig())
+	vi := NewIndex(makeTmpDB, cfg)
 	vi.Reset(validators, nil)
 
 	assertar := assert.New(t)
@@ -99,6 +99,12 @@ func TestMedianTimeOnIndex(t *testing.T) {
 
 }
 
+func TestMedianTimeOnIndex(t *testing.T) {
+	testMedianTimeOnIndex(t, LiteConfig())
+	// test without cache
+	testMedianTimeOnIndex(t, Config{})
+}
+
 func TestMedianTimeOnDAG(t *testing.T) {
 	dagAscii := `
  ║
@@ -150,11 +156,13 @@ func TestMedianTimeOnDAG(t *testing.T) {
 		"nodeC002": inter.Timestamp(35),
 	}
 	t.Run("testMedianTimeOnDAG", func(t *testing.T) {
-		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime)
+		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime, LiteConfig())
+		// test without cache
+		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime, Config{})
 	})
 }
 
-func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp) {
+func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp, cfg Config) {
 	assertar := assert.New(t)
 
 	var ordered dag.Events
@@ -171,7 +179,7 @@ func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creatio
 		return events[id]
 	}
 
-	vi := NewIndex(makeTmpDB, LiteConfig())
+	vi := NewIndex(makeTmpDB, cfg)
 	vi.Reset(validators, getEvent)
 
 	// push
