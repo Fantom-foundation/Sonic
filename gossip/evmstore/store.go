@@ -12,6 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
+	"time"
 )
 
 const nominalSize uint = 1
@@ -91,6 +93,17 @@ func (s *Store) Close() error {
 	s.EvmLogs.Close()
 
 	if s.liveStateDb != nil {
+
+		filename := fmt.Sprintf("/tmp/carmen-shutdown-%d", time.Now().Unix())
+		s.Log.Info("Capturing Carmen close cpuprofile", "filename", filename)
+		if f, err := os.Create(filename); err != nil {
+			s.Log.Error("failed to create cpuprofile", "err", err)
+		} else {
+			defer f.Close()
+			pprof.StartCPUProfile(f)
+			defer pprof.StopCPUProfile()
+		}
+
 		s.Log.Info("Closing State DB...")
 		err := s.liveStateDb.Close()
 		if err != nil {
