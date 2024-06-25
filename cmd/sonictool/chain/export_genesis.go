@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
@@ -20,7 +21,7 @@ import (
 	"path"
 )
 
-func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath string) error {
+func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath string) error {
 	if gdb.GetHighestLamport() != 0 {
 		log.Warn("Attempting genesis export not in a beginning of an epoch. Genesis file output may contain excessive data.")
 	}
@@ -37,7 +38,7 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 	if err := writer.Start(header, "ers", tmpPath); err != nil {
 		return err
 	}
-	if err := exportEpochsSection(gdb, writer, 1, to); err != nil {
+	if err := exportEpochsSection(ctx, gdb, writer, 1, to); err != nil {
 		return err
 	}
 
@@ -50,7 +51,7 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 	if err := writer.Start(header, "brs", tmpPath); err != nil {
 		return err
 	}
-	if err := exportBlocksSection(gdb, writer, to, maxBlocks); err != nil {
+	if err := exportBlocksSection(ctx, gdb, writer, to, maxBlocks); err != nil {
 		return err
 	}
 
@@ -59,7 +60,7 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 	if err := writer.Start(header, "fws", tmpPath); err != nil {
 		return err
 	}
-	if err := exportFwsSection(gdb, writer); err != nil {
+	if err := exportFwsSection(ctx, gdb, writer); err != nil {
 		return err
 	}
 
@@ -69,14 +70,14 @@ func ExportGenesis(gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath
 		if err := writer.Start(header, "fwa", tmpPath); err != nil {
 			return err
 		}
-		if err := exportFwaSection(gdb, writer); err != nil {
+		if err := exportFwaSection(ctx, gdb, writer); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func exportEpochsSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
+func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
 	log.Info("Exporting epochs", "from", from, "to", to)
 	for i := to; i >= from; i-- {
 		er := gdb.GetFullEpochRecord(i)
@@ -92,6 +93,9 @@ func exportEpochsSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epo
 		if err != nil {
 			return err
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 	}
 	epochsHash, err := writer.Flush()
 	if err != nil {
@@ -102,7 +106,7 @@ func exportEpochsSection(gdb *gossip.Store, writer *unitWriter, from, to idx.Epo
 	return nil
 }
 
-func exportBlocksSection(gdb *gossip.Store, writer *unitWriter, to idx.Epoch, maxBlocks idx.Block) error {
+func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to idx.Epoch, maxBlocks idx.Block) error {
 	toBlock := getEpochBlock(to, gdb)
 	fromBlock := idx.Block(1)
 	if maxBlocks != 0 && toBlock > 1 + maxBlocks {
@@ -125,6 +129,9 @@ func exportBlocksSection(gdb *gossip.Store, writer *unitWriter, to idx.Epoch, ma
 		if err != nil {
 			return err
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 	}
 	blocksHash, err := writer.Flush()
 	if err != nil {
@@ -135,9 +142,9 @@ func exportBlocksSection(gdb *gossip.Store, writer *unitWriter, to idx.Epoch, ma
 	return nil
 }
 
-func exportFwsSection(gdb *gossip.Store, writer *unitWriter) error {
+func exportFwsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter) error {
 	log.Info("Exporting Fantom World State Live data")
-	if err := gdb.EvmStore().ExportLiveWorldState(writer); err != nil {
+	if err := gdb.EvmStore().ExportLiveWorldState(ctx, writer); err != nil {
 		return err
 	}
 	fwsHash, err := writer.Flush()
@@ -149,9 +156,9 @@ func exportFwsSection(gdb *gossip.Store, writer *unitWriter) error {
 	return nil
 }
 
-func exportFwaSection(gdb *gossip.Store, writer *unitWriter) error {
+func exportFwaSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter) error {
 	log.Info("Exporting Fantom World State Archive data")
-	if err := gdb.EvmStore().ExportArchiveWorldState(writer); err != nil {
+	if err := gdb.EvmStore().ExportArchiveWorldState(ctx, writer); err != nil {
 		return err
 	}
 

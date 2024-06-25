@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
@@ -27,6 +28,9 @@ func exportGenesis(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	cancelOnInterrupt(cancel)
 
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
@@ -58,5 +62,5 @@ func exportGenesis(ctx *cli.Context) error {
 	_ = os.RemoveAll(tmpPath)
 	defer os.RemoveAll(tmpPath)
 
-	return chain.ExportGenesis(gdb, !forValidatorMode, fh, tmpPath)
+	return chain.ExportGenesis(cancelCtx, gdb, !forValidatorMode, fh, tmpPath)
 }
