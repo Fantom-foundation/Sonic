@@ -11,8 +11,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
+	"syscall"
 )
 
 func exportGenesis(ctx *cli.Context) error {
@@ -29,9 +31,8 @@ func exportGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	cancelOnInterrupt(cancel)
+	cancelCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
