@@ -30,6 +30,7 @@ func exportGenesis(ctx *cli.Context) error {
 	}
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	cancelOnInterrupt(cancel)
 
 	cacheRatio, err := cacheScaler(ctx)
