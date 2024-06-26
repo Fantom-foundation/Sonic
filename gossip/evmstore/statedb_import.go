@@ -2,6 +2,7 @@ package evmstore
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	io2 "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
@@ -78,9 +79,9 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 
 // ExportLiveWorldState exports Fantom World State data for the live state genesis section.
 // The Store must be closed during the call.
-func (s *Store) ExportLiveWorldState(out io.Writer) error {
+func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 	liveDir := filepath.Join(s.parameters.Directory, "live")
-	if err := io2.Export(liveDir, out); err != nil {
+	if err := io2.Export(ctx, liveDir, out); err != nil {
 		return fmt.Errorf("failed to export Live StateDB; %v", err)
 	}
 	return nil
@@ -88,9 +89,9 @@ func (s *Store) ExportLiveWorldState(out io.Writer) error {
 
 // ExportArchiveWorldState exports Fantom World State data for the archive state genesis section.
 // The Store must be closed during the call.
-func (s *Store) ExportArchiveWorldState(out io.Writer) error {
+func (s *Store) ExportArchiveWorldState(ctx context.Context, out io.Writer) error {
 	archiveDir := filepath.Join(s.parameters.Directory, "archive")
-	if err := io2.ExportArchive(archiveDir, out); err != nil {
+	if err := io2.ExportArchive(ctx, archiveDir, out); err != nil {
 		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
