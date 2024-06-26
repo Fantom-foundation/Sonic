@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
@@ -10,8 +11,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
+	"syscall"
 )
 
 func exportGenesis(ctx *cli.Context) error {
@@ -27,6 +30,9 @@ func exportGenesis(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	cancelCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
@@ -58,5 +64,5 @@ func exportGenesis(ctx *cli.Context) error {
 	_ = os.RemoveAll(tmpPath)
 	defer os.RemoveAll(tmpPath)
 
-	return chain.ExportGenesis(gdb, !forValidatorMode, fh, tmpPath)
+	return chain.ExportGenesis(cancelCtx, gdb, !forValidatorMode, fh, tmpPath)
 }
