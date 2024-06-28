@@ -2,6 +2,7 @@ package bvstreamleecher
 
 import (
 	"math/rand"
+	"slices"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher"
@@ -137,6 +138,12 @@ func getSessionID(block idx.Block, try uint32) uint32 {
 
 func (d *Leecher) startSession(candidates []string) {
 	peer := candidates[rand.Intn(len(candidates))]
+	if d.session.try == 0 && rand.Intn(50) != 0 {
+		// try previous successful peer first
+		if slices.Contains(candidates, d.session.peer) {
+			peer = d.session.peer
+		}
+	}
 
 	startEpoch, startBlock := d.callback.LowestBlockToDecide()
 	endEpoch := d.callback.MaxEpochToDecide()
