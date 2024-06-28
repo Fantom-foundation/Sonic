@@ -46,6 +46,16 @@ var (
 			},
 		},
 		{
+			Name:   "Mainnet-5577 with full MPT for Sonic",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):     hash.HexToHash("0x945d8084b4e6e1e78cfe9472fefca3f6ecc7041765dfed24f64e9946252f569a"),
+				genesisstore.BlocksSection(0):     hash.HexToHash("0xe3ec041f3cca79928aa4abef588b48e96ff3cfa3908b2268af3ac5496c722fec"),
+				genesisstore.FwsLiveSection(0):    hash.HexToHash("0x7af5e0ec141aa21c797be39b5a515ca8160ec8a4d6c0e181e34a2708c171908a"),
+				genesisstore.FwsArchiveSection(0): hash.HexToHash("0x6da7139b20139732ec290f47faf6c7f3a6439edcbae3c1c0fcc492cc6ede634f"),
+			},
+		},
+		{
 			Name:   "Mainnet-109331 without history",
 			Header: mainnetHeader,
 			Hashes: genesis.Hashes{
@@ -154,6 +164,53 @@ var (
 				genesisstore.EpochsSection(0):  hash.HexToHash("0x776ce5900d2e8e2f088ff4eb2cfb9ee4632a0d9f0378bc8fd21da0d9d49b9272"),
 				genesisstore.BlocksSection(0):  hash.HexToHash("0x3f6c530995c5e7c506d9106d20d69f94fa79aa68a24b426e3f0653c64d1100b7"),
 				genesisstore.FwsLiveSection(0): hash.HexToHash("0xf8b42be75150cd76b5f86c8c4d67a9aaae90332d0be648df4f93e0bc4830d35e"),
+			},
+		},
+		{
+			Name:   "Mainnet-285300 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x2027d90dc318ace70a3d0cfc22a69cfa31cf18f874f7ea15d34396dc8fdb11d1"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0x99ff07d5b8423215304821151c2490ef9ac9abdb030d58823ffe656586ee3af3"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x77ea7b0496b026981857b99c48b03e26c5071c010b5f0ff5536db8492ef27257"),
+			},
+		},
+		{
+			Name:   "Mainnet-285300 with Carmen live and archive state",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):     hash.HexToHash("0x2027d90dc318ace70a3d0cfc22a69cfa31cf18f874f7ea15d34396dc8fdb11d1"),
+				genesisstore.BlocksSection(0):     hash.HexToHash("0xfa7418c8d8bc4738a0cdb32c87feee75453c6fa580a8568dc0eed3e65b03ae90"),
+				genesisstore.FwsLiveSection(0):    hash.HexToHash("0xfe13c9d30c72c5d6d9f381edb5877c3a248bcba90a302b236fb22c5f52f4b953"),
+				genesisstore.FwsArchiveSection(0): hash.HexToHash("0xa0c1d01a0bc88470ce4b910470e270bf80e4f13ff8e6ac4e60df0f9281e627c3"),
+			},
+		},
+		{
+			Name:   "Mainnet-286540 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0x9c88095cbb4b222d603bddf7f4d222c630b43742dba7f519e3168d09b1a54d56"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0xbe6217623a596de6601e1f780036faf5ea13eea83a994c9e0380ff2dfe773db5"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x4df8b57c5cfdbcd6393ce5ca8ebfe80e36a5b51f2e0b9539dcf6d34578911fdc"),
+			},
+		},
+		{
+			Name:   "Mainnet-288000 with Carmen live state only and the last epoch blocks only",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):  hash.HexToHash("0xeb9d17cca2be7b9a95043d51dc2c71b7c1704bee20162561722806a78f27c5a4"),
+				genesisstore.BlocksSection(0):  hash.HexToHash("0xb48e5335406a68b9510e3c9e1884e8999e9a68a9ab98cd1d0d1b0d54e518058f"),
+				genesisstore.FwsLiveSection(0): hash.HexToHash("0x857d914c5df198c833026d53014485a9053304909742c5a6a3544aee0001b9d7"),
+			},
+		},
+		{
+			Name:   "Mainnet-288000 with Carmen live and archive state",
+			Header: mainnetHeader,
+			Hashes: genesis.Hashes{
+				genesisstore.EpochsSection(0):     hash.HexToHash("0xeb9d17cca2be7b9a95043d51dc2c71b7c1704bee20162561722806a78f27c5a4"),
+				genesisstore.BlocksSection(0):     hash.HexToHash("0x31158f12cba0e4b695ee744266cce626591764bd390b67177438426b0a0f5331"),
+				genesisstore.FwsLiveSection(0):    hash.HexToHash("0x857d914c5df198c833026d53014485a9053304909742c5a6a3544aee0001b9d7"),
+				genesisstore.FwsArchiveSection(0): hash.HexToHash("0x5c44b48107ee71a0a643d330f17bd0fd0e75b1fd466d6270c1cc6764b9d8b67b"),
 			},
 		},
 
