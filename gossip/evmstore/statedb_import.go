@@ -2,7 +2,12 @@ package evmstore
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	io2 "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
@@ -18,9 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/triedb"
-	"io"
-	"os"
-	"path/filepath"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -80,7 +82,7 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 // The Store must be closed during the call.
 func (s *Store) ExportLiveWorldState(out io.Writer) error {
 	liveDir := filepath.Join(s.parameters.Directory, "live")
-	if err := io2.Export(liveDir, out); err != nil {
+	if err := io2.Export(context.Background(), liveDir, out); err != nil {
 		return fmt.Errorf("failed to export Live StateDB; %v", err)
 	}
 	return nil
@@ -90,7 +92,7 @@ func (s *Store) ExportLiveWorldState(out io.Writer) error {
 // The Store must be closed during the call.
 func (s *Store) ExportArchiveWorldState(out io.Writer) error {
 	archiveDir := filepath.Join(s.parameters.Directory, "archive")
-	if err := io2.ExportArchive(archiveDir, out); err != nil {
+	if err := io2.ExportArchive(context.Background(), archiveDir, out); err != nil {
 		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
