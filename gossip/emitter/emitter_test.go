@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"math/big"
 	"testing"
 	"time"
@@ -18,7 +19,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 //go:generate go run github.com/golang/mock/mockgen -package=mock -destination=mock/world.go github.com/Fantom-foundation/go-opera/gossip/emitter External,TxPool,TxSigner,Signer
@@ -44,7 +44,7 @@ func TestEmitter(t *testing.T) {
 	external.EXPECT().Unlock().
 		AnyTimes()
 	external.EXPECT().DagIndex().
-		Return((*vecmt.Index)(nil)).
+		Return((*vecclock.Index)(nil)).
 		AnyTimes()
 	external.EXPECT().IsSynced().
 		Return(true).

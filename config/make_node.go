@@ -127,13 +127,9 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create the gossip service: %w", err)
 	}
-	err = engine.Bootstrap(svc.GetConsensusCallbacks())
+	err = engine.StartFrom(svc.GetConsensusCallbacks(), gdb.GetEpoch(), gdb.GetValidators())
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to bootstrap the consensus engine: %w", err)
-	}
-	err = engine.Reset(gdb.GetEpoch(), gdb.GetValidators())
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to reset the consensus engine: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to start the consensus engine: %w", err)
 	}
 	svc.ReprocessEpochEvents()
 
@@ -163,7 +159,6 @@ func MakeNetworkStack(ctx *cli.Context, cfg *node.Config) (*node.Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
-
 
 	keystoreDir, err := cfg.KeyDirConfig()
 	if err != nil {
