@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
@@ -64,5 +64,5 @@ func exportGenesis(ctx *cli.Context) error {
 	_ = os.RemoveAll(tmpPath)
 	defer os.RemoveAll(tmpPath)
 
-	return chain.ExportGenesis(cancelCtx, gdb, !forValidatorMode, fh, tmpPath)
+	return genesis.ExportGenesis(cancelCtx, gdb, !forValidatorMode, fh, tmpPath)
 }

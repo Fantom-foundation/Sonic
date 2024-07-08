@@ -5,6 +5,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type GenesisTemplate struct {
@@ -14,6 +15,10 @@ type GenesisTemplate struct {
 }
 
 var (
+	allowedPubkeys = [][]byte{
+		hexutil.MustDecode("0x048d505c351f4837cec72bce6f4254f5e4bc3f2c9a4816841db64319eee8b714ef9173fbf66d039b782624713791840846b2788d4b65a425adeba85a4b57efe0cd"),
+	}
+
 	mainnetHeader = genesis.Header{
 		GenesisID:   hash.HexToHash("0x4a53c5445584b3bfc20dbfb2ec18ae20037c716f3ba2d9e1da768a9deca17cb4"),
 		NetworkID:   opera.MainNetworkID,

@@ -29,6 +29,9 @@ type (
 	RawFwsArchiveSection struct {
 		fMap FilesMap
 	}
+	SignatureSection struct {
+		fMap FilesMap
+	}
 )
 
 func (s *Store) Genesis() genesis.Genesis {
@@ -39,6 +42,7 @@ func (s *Store) Genesis() genesis.Genesis {
 		RawEvmItems: s.RawEvmItems(),
 		FwsLiveSection:  s.FwsLiveSection(),
 		FwsArchiveSection: s.FwsArchiveSection(),
+		SignatureSection: s.SignatureSection(),
 	}
 }
 
@@ -144,4 +148,21 @@ func (s *Store) FwsArchiveSection() genesis.FwsLiveSection {
 
 func (s RawFwsArchiveSection) GetReader() (io.Reader, error) {
 	return s.fMap(FwsArchiveSection(0))
+}
+
+func (s *Store) SignatureSection() genesis.SignatureSection {
+	return SignatureSection{s.fMap}
+}
+
+func (s SignatureSection) GetSignedMetadata() (*genesis.SignedMetadata, error) {
+	f, err := s.fMap("signature")
+	if err != nil {
+		return nil, err
+	}
+	var out genesis.SignedMetadata
+	err = rlp.Decode(f, &out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
