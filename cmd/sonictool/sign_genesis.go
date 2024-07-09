@@ -6,6 +6,7 @@ import (
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
 	"os"
@@ -28,10 +29,12 @@ func signGenesis(ctx *cli.Context) error {
 		return fmt.Errorf("genesis file is already signed")
 	}
 
-	hash, err := genesis.CalculateHashFromGenesis(header, genesisHashes)
+	metadata, err := genesis.GetGenesisMetadata(header, genesisHashes)
 	if err != nil {
 		return err
 	}
+	hash := crypto.Keccak256Hash(metadata)
+	log.Info("Metadata to sign", "metadata", hexutil.Encode(metadata))
 	log.Info("Hash to sign", "hash", hexutil.Encode(hash.Bytes()))
 
 	fmt.Printf("Signature (hex): ")

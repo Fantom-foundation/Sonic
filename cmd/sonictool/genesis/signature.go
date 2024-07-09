@@ -1,7 +1,6 @@
 package genesis
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -23,7 +22,7 @@ type Metadata struct {
 	Hashes []SectionHash
 }
 
-func CalculateHashFromGenesis(header genesis.Header, genesisHashes genesis.Hashes) (common.Hash, error) {
+func GetGenesisMetadata(header genesis.Header, genesisHashes genesis.Hashes) ([]byte, error) {
 	var metadata Metadata
 	metadata.Header = header
 
@@ -46,26 +45,27 @@ func CalculateHashFromGenesis(header genesis.Header, genesisHashes genesis.Hashe
 
 	encodedMetadata, err := rlp.EncodeToBytes(metadata)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to RLP encode genesis metadata: %w", err)
+		return nil, fmt.Errorf("failed to RLP encode genesis metadata: %w", err)
 	}
-	return crypto.Keccak256Hash(encodedMetadata), nil
+	return encodedMetadata, nil
 }
 
 func CheckGenesisSignature(hash common.Hash, signature []byte) error {
-	recoveredPubKey, err := crypto.Ecrecover(hash.Bytes(), signature)
+	recoveredPubKey, err := crypto.SigToPub(hash.Bytes(), signature)
 	if err != nil {
 		return err
 	}
-	for _, pubkey := range allowedPubkeys {
-		if bytes.Equal(recoveredPubKey, pubkey) {
+	address := crypto.PubkeyToAddress(*recoveredPubKey)
+	for _, allowedSigner := range allowedGenesisSigners {
+		if address == allowedSigner {
 			return nil
 		}
 	}
-	return fmt.Errorf("genesis signature does not match any trusted pubkey (pubkey: %x)", recoveredPubKey)
+	return fmt.Errorf("genesis signature does not match any trusted signer (signer: %x)", address)
 }
 
 func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file string) error {
-	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm)
+	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm) // avoid using O_APPEND for correct seek positions
 	if err != nil {
 		return err
 	}

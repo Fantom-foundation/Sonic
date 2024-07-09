@@ -5,7 +5,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type GenesisTemplate struct {
@@ -15,8 +15,9 @@ type GenesisTemplate struct {
 }
 
 var (
-	allowedPubkeys = [][]byte{
-		hexutil.MustDecode("0x048d505c351f4837cec72bce6f4254f5e4bc3f2c9a4816841db64319eee8b714ef9173fbf66d039b782624713791840846b2788d4b65a425adeba85a4b57efe0cd"),
+	allowedGenesisSigners = []common.Address{
+		common.HexToAddress("0xCe5409bE69D1116FEa622be6Fd64475FB4D3bf3e"), // Ledger
+		common.HexToAddress("0x239fA7623354eC26520dE878B52f13Fe84b06971"), // fakenet1
 	}
 
 	mainnetHeader = genesis.Header{
