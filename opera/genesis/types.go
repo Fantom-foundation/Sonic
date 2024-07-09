@@ -31,7 +31,7 @@ type (
 		GetReader() (io.Reader, error)
 	}
 	SignatureSection interface {
-		GetSignedMetadata() (*SignedMetadata, error)
+		GetSignature() ([]byte, error)
 	}
 	SignedMetadata struct {
 		Signature []byte

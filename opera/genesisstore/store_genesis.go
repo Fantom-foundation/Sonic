@@ -2,10 +2,9 @@ package genesisstore
 
 import (
 	"fmt"
-	"io"
-
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	"io"
 
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -154,15 +153,10 @@ func (s *Store) SignatureSection() genesis.SignatureSection {
 	return SignatureSection{s.fMap}
 }
 
-func (s SignatureSection) GetSignedMetadata() (*genesis.SignedMetadata, error) {
+func (s SignatureSection) GetSignature() ([]byte, error) {
 	f, err := s.fMap("signature")
 	if err != nil {
 		return nil, err
 	}
-	var out genesis.SignedMetadata
-	err = rlp.Decode(f, &out)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
+	return io.ReadAll(f)
 }

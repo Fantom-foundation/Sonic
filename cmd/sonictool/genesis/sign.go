@@ -1,53 +1,80 @@
 package genesis
 
 import (
-	"crypto/ecdsa"
+	"bytes"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"io"
 	"os"
+	"sort"
 )
+
+type SectionHash struct {
+	Name string
+	Hash hash.Hash
+}
 
 type Metadata struct {
 	Header genesis.Header
-	Hashes []hash.Hash
+	Hashes []SectionHash
 }
 
-func GetGenesisMetadataFromGenesisStore(genesisStore *genesisstore.Store, genesisHashes genesis.Hashes) *Metadata {
-	g := genesisStore.Genesis()
+func CalculateHashFromGenesis(header genesis.Header, genesisHashes genesis.Hashes) (common.Hash, error) {
 	var metadata Metadata
-	metadata.Header = genesis.Header{
-		GenesisID:   g.GenesisID,
-		NetworkID:   g.NetworkID,
-		NetworkName: g.NetworkName,
+	metadata.Header = header
+
+	// add section hashes in deterministic order
+	sectionNames := make(sort.StringSlice, 0, len(genesisHashes))
+	for sectionName := range genesisHashes {
+		if sectionName == "signature" {
+			continue
+		}
+		sectionNames = append(sectionNames, sectionName)
 	}
-	for _, sectionHash := range genesisHashes {
-		metadata.Hashes = append(metadata.Hashes, sectionHash)
+	sectionNames.Sort()
+
+	for _, sectionName := range sectionNames {
+		metadata.Hashes = append(metadata.Hashes, SectionHash{
+			Name: sectionName,
+			Hash: genesisHashes[sectionName],
+		})
 	}
-	return &metadata
+
+	encodedMetadata, err := rlp.EncodeToBytes(metadata)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("failed to RLP encode genesis metadata: %w", err)
+	}
+	return crypto.Keccak256Hash(encodedMetadata), nil
 }
 
-func SignMetadata(genesisHashes *Metadata, privateKey *ecdsa.PrivateKey) (*genesis.SignedMetadata, error) {
-	encodedTemplate, err := rlp.EncodeToBytes(genesisHashes)
+func CheckGenesisSignature(hash common.Hash, signature []byte) error {
+	recoveredPubKey, err := crypto.Ecrecover(hash.Bytes(), signature)
 	if err != nil {
-		return nil, fmt.Errorf("failed to RLP encode genesis metadata: %w", err)
+		return err
 	}
-	hashesHash := crypto.Keccak256Hash(encodedTemplate)
-
-	signature, err := crypto.Sign(hashesHash.Bytes(), privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed sign genesis metadata: %w", err)
+	for _, pubkey := range allowedPubkeys {
+		if bytes.Equal(recoveredPubKey, pubkey) {
+			return nil
+		}
 	}
-	return &genesis.SignedMetadata{
-		Signature: signature,
-		Hashes:    encodedTemplate,
-	}, nil
+	return fmt.Errorf("genesis signature does not match any trusted pubkey (pubkey: %x)", recoveredPubKey)
 }
 
-func WriteSignedMetadataIntoGenesisFile(header genesis.Header, signedMetadata *genesis.SignedMetadata, out *os.File) error {
+func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file string) error {
+	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	_, err = out.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
 	tmpDir, err := os.MkdirTemp("", "signing-genesis-tmp")
 	if err != nil {
 		return err
@@ -58,7 +85,8 @@ func WriteSignedMetadataIntoGenesisFile(header genesis.Header, signedMetadata *g
 	if err := writer.Start(header, "signature", tmpDir); err != nil {
 		return err
 	}
-	if err := rlp.Encode(writer, signedMetadata); err != nil {
+	_, err = writer.Write(signature)
+	if err != nil {
 		return err
 	}
 	_, err = writer.Flush()

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
+	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -10,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/term"
 	"gopkg.in/urfave/cli.v1"
-	"io"
 	"os"
 	"syscall"
 )
@@ -26,10 +26,21 @@ func signGenesis(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the genesis file to import")
 	}
-	template, err := readTemplateFromGenesis(ctx.Args().First())
+
+	header, genesisHashes, err := getGenesisHeaderHashes(ctx.Args().First())
 	if err != nil {
 		return err
 	}
+
+	for sectionName, sectionHash := range genesisHashes {
+		log.Info("Section", "name", sectionName, "hash", hexutil.Encode(sectionHash.Bytes()))
+	}
+
+	hash, err := genesis.CalculateHashFromGenesis(header, genesisHashes)
+	if err != nil {
+		return err
+	}
+	log.Info("Hash to sign", "hash", hexutil.Encode(hash.Bytes()))
 
 	keystoreFilename := ctx.String(KeystoreFlag.Name)
 	if keystoreFilename == "" {
@@ -54,43 +65,35 @@ func signGenesis(ctx *cli.Context) error {
 	publicKeyBytes := crypto.FromECDSAPub(&key.PrivateKey.PublicKey)
 	log.Info("Signing key opened", "pubkey", hexutil.Encode(publicKeyBytes))
 
-	signedMetadata, err := genesis.SignMetadata(template, key.PrivateKey)
+	signature, err := crypto.Sign(hash.Bytes(), key.PrivateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign metadata: %w", err)
 	}
 
-	log.Info("Signed", "signature", hexutil.Encode(signedMetadata.Signature))
+	log.Info("Signed", "signature", hexutil.Encode(signature))
 
-	out, err := os.OpenFile(ctx.Args().First(), os.O_RDWR, os.ModePerm)
-	if err != nil {
+	if err := genesis.CheckGenesisSignature(hash, signature); err != nil {
 		return err
 	}
-	_, err = out.Seek(0, io.SeekEnd)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if err = genesis.WriteSignedMetadataIntoGenesisFile(template.Header, signedMetadata, out); err != nil {
+	if err = genesis.WriteSignatureIntoGenesisFile(header, signature, ctx.Args().First()); err != nil {
 		return fmt.Errorf("failed to write signature into genesis file: %w", err)
 	}
-
 	log.Info("Signature successfully written into genesis file")
 	return nil
 }
 
-func readTemplateFromGenesis(genesisFile string) (*genesis.Metadata, error) {
+func getGenesisHeaderHashes(genesisFile string) (ogenesis.Header, ogenesis.Hashes, error) {
 	genesisReader, err := os.Open(genesisFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open the genesis file: %w", err)
+		return ogenesis.Header{}, nil, fmt.Errorf("failed to open the genesis file: %w", err)
 	}
 	defer genesisReader.Close()
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read genesis file: %w", err)
+		return ogenesis.Header{}, nil, fmt.Errorf("failed to read genesis file: %w", err)
 	}
 	defer genesisStore.Close()
 
-	return genesis.GetGenesisMetadataFromGenesisStore(genesisStore, genesisHashes), nil
+	return genesisStore.Header(), genesisHashes, nil
 }
