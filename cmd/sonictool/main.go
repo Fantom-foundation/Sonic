@@ -180,11 +180,8 @@ Use --mode=validator to generate a genesis without an archive section.
 				{
 					Name:      "sign-genesis",
 					Usage:     "Sign exported genesis file",
-					ArgsUsage: "<filename> --keystore=<filename>",
+					ArgsUsage: "<filename>",
 					Action:    signGenesis,
-					Flags: []cli.Flag{
-						KeystoreFlag,
-					},
 					Description: ``,
 				},
 			},

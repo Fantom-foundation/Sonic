@@ -5,21 +5,10 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"golang.org/x/term"
 	"gopkg.in/urfave/cli.v1"
 	"os"
-	"syscall"
-)
-
-var (
-	KeystoreFlag = &cli.StringFlag{
-		Name:  "keystore",
-		Usage: "Directory for the keystore",
-	}
 )
 
 func signGenesis(ctx *cli.Context) error {
@@ -35,6 +24,9 @@ func signGenesis(ctx *cli.Context) error {
 	for sectionName, sectionHash := range genesisHashes {
 		log.Info("Section", "name", sectionName, "hash", hexutil.Encode(sectionHash.Bytes()))
 	}
+	if _, ok := genesisHashes["signature"]; ok {
+		return fmt.Errorf("genesis file is already signed")
+	}
 
 	hash, err := genesis.CalculateHashFromGenesis(header, genesisHashes)
 	if err != nil {
@@ -42,35 +34,16 @@ func signGenesis(ctx *cli.Context) error {
 	}
 	log.Info("Hash to sign", "hash", hexutil.Encode(hash.Bytes()))
 
-	keystoreFilename := ctx.String(KeystoreFlag.Name)
-	if keystoreFilename == "" {
-		return fmt.Errorf("please specify the --%s flag", KeystoreFlag.Name)
-	}
-	keystoreJson, err := os.ReadFile(keystoreFilename)
+	fmt.Printf("Signature (hex): ")
+	var signatureString string
+	_, err = fmt.Scanln(&signatureString)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read signature: %w", err)
 	}
-
-	fmt.Print("Keystore passphrase: ")
-	passphrase, err := term.ReadPassword(syscall.Stdin)
-	fmt.Printf("\n")
+	signature, err := hexutil.Decode(signatureString)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to decode signature: %w", err)
 	}
-	key, err := keystore.DecryptKey(keystoreJson, string(passphrase))
-	if err != nil {
-		return err
-	}
-
-	publicKeyBytes := crypto.FromECDSAPub(&key.PrivateKey.PublicKey)
-	log.Info("Signing key opened", "pubkey", hexutil.Encode(publicKeyBytes))
-
-	signature, err := crypto.Sign(hash.Bytes(), key.PrivateKey)
-	if err != nil {
-		return fmt.Errorf("failed to sign metadata: %w", err)
-	}
-
-	log.Info("Signed", "signature", hexutil.Encode(signature))
 
 	if err := genesis.CheckGenesisSignature(hash, signature); err != nil {
 		return err
