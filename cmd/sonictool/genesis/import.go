@@ -9,7 +9,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"path/filepath"
 )
@@ -86,11 +85,10 @@ func IsGenesisTrusted(genesisStore *genesisstore.Store, genesisHashes genesis.Ha
 	}
 
 	// try using SignedMetadata section
-	metadata, err := GetGenesisMetadata(g.Header, genesisHashes)
+	hash, _, err := GetGenesisMetadata(g.Header, genesisHashes)
 	if err != nil {
 		return fmt.Errorf("failed to calculate hash of genesis: %w", err)
 	}
-	hash := crypto.Keccak256Hash(metadata)
 	signature, err := g.SignatureSection.GetSignature()
 	if err != nil {
 		return fmt.Errorf("genesis file doesn't refer to any trusted preset, signature not found: %w", err)

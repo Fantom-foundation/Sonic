@@ -16,8 +16,7 @@ type GenesisTemplate struct {
 
 var (
 	allowedGenesisSigners = []common.Address{
-		common.HexToAddress("0xCe5409bE69D1116FEa622be6Fd64475FB4D3bf3e"), // Ledger
-		common.HexToAddress("0x239fA7623354eC26520dE878B52f13Fe84b06971"), // fakenet1
+		common.HexToAddress("0xCe5409bE69D1116FEa622be6Fd64475FB4D3bf3e"), // HW
 	}
 
 	mainnetHeader = genesis.Header{
