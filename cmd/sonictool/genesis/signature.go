@@ -3,7 +3,6 @@ package genesis
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core"
@@ -12,20 +11,7 @@ import (
 	"sort"
 )
 
-type SectionHash struct {
-	Name string
-	Hash hash.Hash
-}
-
-type Metadata struct {
-	Header genesis.Header
-	Hashes []SectionHash
-}
-
 func GetGenesisMetadata(header genesis.Header, genesisHashes genesis.Hashes) ([]byte, string, error) {
-	var metadata Metadata
-	metadata.Header = header
-
 	// add section hashes in deterministic order
 	sectionNames := make(sort.StringSlice, 0, len(genesisHashes))
 	for sectionName := range genesisHashes {
@@ -61,9 +47,9 @@ func GetGenesisMetadata(header genesis.Header, genesisHashes genesis.Hashes) ([]
 		},
 		PrimaryType: "Genesis",
 		Domain: core.TypedDataDomain{
-			Name:    "Sonic Genesis",
-			Version: "00020001",
-			ChainId: math.NewHexOrDecimal256(0xFA),
+			Name:    header.NetworkName,
+			Version: header.GenesisID.String(),
+			ChainId: math.NewHexOrDecimal256(int64(header.NetworkID)),
 		},
 		Message: map[string]interface{}{
 			"sections": sections,
@@ -74,6 +60,9 @@ func GetGenesisMetadata(header genesis.Header, genesisHashes genesis.Hashes) ([]
 }
 
 func CheckGenesisSignature(hash []byte, signature []byte) error {
+	if len(signature) != 65 {
+		return fmt.Errorf("invalid signature length")
+	}
 	// If V is on 27/28-form, convert to 0/1
 	if signature[64] == 27 || signature[64] == 28 {
 		signature[64] -= 27
