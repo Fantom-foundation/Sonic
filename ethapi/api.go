@@ -2116,11 +2116,19 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *TraceConfig) (res interface{}, reterr error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("debug trace transaction failed with panic: %v", r)
+			reterr = fmt.Errorf("debug trace transaction failed with panic: %v", r)
+		}
+	}()
+
 	// Assemble the structured logger or the JavaScript tracer
 	var (
-		tracer    vm.Tracer
-		err       error
+		tracer vm.Tracer
+		err    error
 	)
 
 	switch {
@@ -2196,10 +2204,20 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 			if config.Tracer != nil && strings.Compare(*config.Tracer, "callTracer") == 0 {
 				if strings.Contains(err.Error(), "cannot read property 'toString' of undefined") {
 					log.Debug("error when debug with callTracer", "err", err.Error())
-					callTracer, _ := tracers.New(*config.Tracer, txctx)
-					callTracer.CaptureStart(vmenv, message.From(), *message.To(), false, message.Data(), message.Gas(), message.Value())
+					callTracer, errTracer := tracers.New(*config.Tracer, txctx)
+					if errTracer != nil {
+						return nil, errTracer
+					}
+					if message == nil || vmenv == nil {
+						return nil, err
+					}
+					toAddress := message.To()
+					if toAddress == nil {
+						toAddress = &common.Address{}
+					}
+					callTracer.CaptureStart(vmenv, message.From(), *toAddress, false, message.Data(), message.Gas(), message.Value())
 					callTracer.CaptureEnd([]byte{}, message.Gas(), time.Duration(0), fmt.Errorf("execution reverted"))
-					result, err = callTracer.GetResult()
+					return callTracer.GetResult()
 				}
 			}
 		}
