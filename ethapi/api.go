@@ -2212,7 +2212,7 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 						return nil, err
 					}
 					toAddress := message.To()
-					if toAddress != nil {
+					if toAddress == nil {
 						toAddress = &common.Address{}
 					}
 					callTracer.CaptureStart(vmenv, message.From(), *toAddress, false, message.Data(), message.Gas(), message.Value())
