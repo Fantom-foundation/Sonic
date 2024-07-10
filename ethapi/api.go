@@ -2117,7 +2117,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
 func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *TraceConfig) (interface{}, error) {
-	
+
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("debug trace transaction failed", r)
@@ -2210,11 +2210,11 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 					if message == nil || vmenv == nil {
 						return nil, err
 					}
-					to := common.Address{}
-					if message.To() != nil {
-						to = *message.To()
+					toAddress := message.To()
+					if toAddress != nil {
+						toAddress = &common.Address{}
 					}
-					callTracer.CaptureStart(vmenv, message.From(), to, false, message.Data(), message.Gas(), message.Value())
+					callTracer.CaptureStart(vmenv, message.From(), *toAddress, false, message.Data(), message.Gas(), message.Value())
 					callTracer.CaptureEnd([]byte{}, message.Gas(), time.Duration(0), fmt.Errorf("execution reverted"))
 					return callTracer.GetResult()
 				}
