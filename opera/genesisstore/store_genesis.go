@@ -2,10 +2,9 @@ package genesisstore
 
 import (
 	"fmt"
-	"io"
-
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	"io"
 
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -29,6 +28,9 @@ type (
 	RawFwsArchiveSection struct {
 		fMap FilesMap
 	}
+	SignatureSection struct {
+		fMap FilesMap
+	}
 )
 
 func (s *Store) Genesis() genesis.Genesis {
@@ -39,6 +41,7 @@ func (s *Store) Genesis() genesis.Genesis {
 		RawEvmItems: s.RawEvmItems(),
 		FwsLiveSection:  s.FwsLiveSection(),
 		FwsArchiveSection: s.FwsArchiveSection(),
+		SignatureSection: s.SignatureSection(),
 	}
 }
 
@@ -144,4 +147,16 @@ func (s *Store) FwsArchiveSection() genesis.FwsLiveSection {
 
 func (s RawFwsArchiveSection) GetReader() (io.Reader, error) {
 	return s.fMap(FwsArchiveSection(0))
+}
+
+func (s *Store) SignatureSection() genesis.SignatureSection {
+	return SignatureSection{s.fMap}
+}
+
+func (s SignatureSection) GetSignature() ([]byte, error) {
+	f, err := s.fMap("signature")
+	if err != nil {
+		return nil, err
+	}
+	return io.ReadAll(f)
 }

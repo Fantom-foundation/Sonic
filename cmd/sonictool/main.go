@@ -70,8 +70,32 @@ Requires the number of validators in the fake network as the first argument.
 Initialize the database for a testing fakenet.
 `,
 				},
+				{
+					Name:      "export",
+					Usage:     "Export current state into a genesis file",
+					ArgsUsage: "<filename> [--mode=validator]",
+					Action:    exportGenesis,
+					Flags: []cli.Flag{
+						ModeFlag,
+					},
+					Description: `
+Export current state into a genesis file.
+Requires a first argument of the file to write to.
+Use --mode=validator to generate a genesis without an archive section.
+`,
+				},
+				{
+					Name:      "sign",
+					Usage:     "Sign genesis file",
+					ArgsUsage: "<filename>",
+					Action:    signGenesis,
+					Description: `
+Add signature into an exported genesis file.
+`,
+				},
 			},
 		},
+
 		{
 			Name:        "check",
 			Usage:       "Check EVM database consistency",
@@ -101,12 +125,14 @@ The archive state is used for RPC - allows to handle state-related RPC queries.
 				},
 			},
 		},
+
 		{
 			Name:        "compact",
 			Usage:       "Compact all pebble databases",
 			Action:      compactDbs,
 			Description: "Compacts (optimize) all the Pebble databases in the data directory.",
 		},
+
 		{
 			Name:      "cli",
 			Usage:     "Start an interactive JavaScript environment, attach to a node",
@@ -123,36 +149,15 @@ which exposes a node admin interface as well as the Dapp JavaScript API.
 See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.
 This command allows to open a console attached to a running Sonic node.`,
 		},
+
 		{
-			Name:     "import",
-			Usage:    "Import a blockchain file",
+			Name:     "events",
+			Usage:    "Export/import blockchain events",
 			Category: "MISCELLANEOUS COMMANDS",
 
 			Subcommands: []cli.Command{
 				{
-					Action:    importEvents,
-					Name:      "events",
-					Usage:     "Import blockchain events file",
-					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
-					Flags: []cli.Flag{
-						ModeFlag,
-					},
-					Description: `
-    sonictool --datadir=<datadir> import events <filenames> [--mode=validator]
-
-The import command imports events from RLP-encoded files.
-Events are fully verified.`,
-				},
-			},
-		},
-		{
-			Name:     "export",
-			Usage:    "Export blockchain",
-			Category: "MISCELLANEOUS COMMANDS",
-
-			Subcommands: []cli.Command{
-				{
-					Name:      "events",
+					Name:      "export",
 					Usage:     "Export blockchain events",
 					ArgsUsage: "<filename> [<epochFrom> <epochTo>]",
 					Action:    exportEvents,
@@ -164,21 +169,22 @@ be gzipped.
 `,
 				},
 				{
-					Name:      "genesis",
-					Usage:     "Export current state into a genesis file",
-					ArgsUsage: "<filename> [--mode=validator]",
-					Action:    exportGenesis,
+					Action:    importEvents,
+					Name:      "import",
+					Usage:     "Import blockchain events file",
+					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 					Flags: []cli.Flag{
 						ModeFlag,
 					},
 					Description: `
-Export current state into a genesis file.
-Requires a first argument of the file to write to.
-Use --mode=validator to generate a genesis without an archive section.
-`,
+    sonictool --datadir=<datadir> events import <filenames> [--mode=validator]
+
+The import command imports events from RLP-encoded files.
+Events are fully verified.`,
 				},
 			},
 		},
+
 		{
 			Action:      checkConfig,
 			Name:        "checkconfig",
