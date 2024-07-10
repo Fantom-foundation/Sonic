@@ -2116,18 +2116,19 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *TraceConfig) (res interface{}, reterr error) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("debug trace transaction failed", r)
+			log.Error("debug trace transaction failed with panic: %v", r)
+			reterr = fmt.Errorf("debug trace transaction failed with panic: %v", r)
 		}
 	}()
 
 	// Assemble the structured logger or the JavaScript tracer
 	var (
-		tracer    vm.Tracer
-		err       error
+		tracer vm.Tracer
+		err    error
 	)
 
 	switch {
