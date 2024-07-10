@@ -76,15 +76,25 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 
 func IsGenesisTrusted(genesisStore *genesisstore.Store, genesisHashes genesis.Hashes) error {
 	g := genesisStore.Genesis()
-	gHeader := genesis.Header{
-		GenesisID:   g.GenesisID,
-		NetworkID:   g.NetworkID,
-		NetworkName: g.NetworkName,
-	}
+
+	// try trusted hashes first
 	for _, allowed := range allowedGenesis {
-		if allowed.Hashes.Equal(genesisHashes) && allowed.Header.Equal(gHeader) {
+		if allowed.Hashes.Equal(genesisHashes) && allowed.Header.Equal(g.Header) {
 			return nil
 		}
 	}
-	return fmt.Errorf("genesis file doesn't refer to any trusted preset")
+
+	// try using SignedMetadata section
+	hash, _, err := GetGenesisMetadata(g.Header, genesisHashes)
+	if err != nil {
+		return fmt.Errorf("failed to calculate hash of genesis: %w", err)
+	}
+	signature, err := g.SignatureSection.GetSignature()
+	if err != nil {
+		return fmt.Errorf("genesis file doesn't refer to any trusted preset, signature not found: %w", err)
+	}
+	if err := CheckGenesisSignature(hash, signature); err != nil {
+		return fmt.Errorf("genesis file doesn't refer to any trusted preset: %w", err)
+	}
+	return nil
 }

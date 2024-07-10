@@ -5,6 +5,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type GenesisTemplate struct {
@@ -14,6 +15,10 @@ type GenesisTemplate struct {
 }
 
 var (
+	allowedGenesisSigners = []common.Address{
+		common.HexToAddress("0xCe5409bE69D1116FEa622be6Fd64475FB4D3bf3e"), // HW
+	}
+
 	mainnetHeader = genesis.Header{
 		GenesisID:   hash.HexToHash("0x4a53c5445584b3bfc20dbfb2ec18ae20037c716f3ba2d9e1da768a9deca17cb4"),
 		NetworkID:   opera.MainNetworkID,

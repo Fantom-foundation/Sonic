@@ -30,6 +30,13 @@ type (
 	FwsArchiveSection interface {
 		GetReader() (io.Reader, error)
 	}
+	SignatureSection interface {
+		GetSignature() ([]byte, error)
+	}
+	SignedMetadata struct {
+		Signature []byte
+		Hashes []byte
+	}
 	Genesis struct {
 		Header
 
@@ -38,6 +45,7 @@ type (
 		RawEvmItems EvmItems
 		FwsLiveSection
 		FwsArchiveSection
+		SignatureSection
 	}
 )
 
