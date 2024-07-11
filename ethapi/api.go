@@ -1398,6 +1398,7 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		args.AccessList = &accessList
 		msg, err := args.ToMessage(b.RPCGasCap(), header.BaseFee)
 		if err != nil {
+			statedb.Release()
 			return nil, 0, nil, err
 		}
 
@@ -1408,9 +1409,11 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		config.NoBaseFee = true
 		vmenv, _, err := b.GetEVM(ctx, msg, statedb, header, &config)
 		if err != nil {
+			statedb.Release()
 			return nil, 0, nil, err
 		}
 		res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.GasLimit))
+		statedb.Release()
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to apply transaction: %v err: %v", args.toTransaction().Hash(), err)
 		}
@@ -2120,16 +2123,19 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 		// Not yet the searched for transaction, execute on top of the current state
 		vmenv, _, err := api.b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
 		if err != nil {
-			return msg, statedb, err
+			statedb.Release()
+			return msg, nil, err
 		}
 		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(tx.Gas())); err != nil {
-			return nil, statedb, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
+			statedb.Release()
+			return nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state
 		statedb.Finalise()
 	}
-	return nil, statedb, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	statedb.Release()
+	return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
 }
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
