@@ -23,7 +23,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 	if err != nil {
 		return fmt.Errorf("failed to check archive state dir: %w", err)
 	}
-	if err := mpt.VerifyArchiveTrie(archiveDir, info.Config, verificationObserver{}); err != nil {
+	if err := mpt.VerifyArchive(archiveDir, info.Config, verificationObserver{}); err != nil {
 		return fmt.Errorf("archive state verification failed: %w", err)
 	}
 	log.Info("Verification of the archive state succeed")
