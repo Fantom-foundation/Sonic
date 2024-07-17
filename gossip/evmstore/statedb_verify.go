@@ -44,7 +44,7 @@ func (s *Store) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Ha
 	if err != nil {
 		return fmt.Errorf("failed to check archive dir: %w", err)
 	}
-	if err := mpt.VerifyArchiveTrie(archiveDir, archiveInfo.Config, observer); err != nil {
+	if err := mpt.VerifyArchive(archiveDir, archiveInfo.Config, observer); err != nil {
 		return fmt.Errorf("archive verification failed: %w", err)
 	}
 	s.Log.Info("Archive verified successfully.")
