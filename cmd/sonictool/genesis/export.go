@@ -3,6 +3,7 @@ package genesis
 import (
 	"context"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/eventcheck/basiccheck"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -43,15 +44,15 @@ func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, 
 	}
 
 	// blocks
-	var maxBlocks idx.Block
-	if !includeArchive {
-		maxBlocks = 300
+	from := idx.Epoch(1)
+	if !includeArchive && to > basiccheck.MaxLiableEpochs {
+		from = to - basiccheck.MaxLiableEpochs
 	}
 	writer = newUnitWriter(out)
 	if err := writer.Start(header, "brs", tmpPath); err != nil {
 		return err
 	}
-	if err := exportBlocksSection(ctx, gdb, writer, to, maxBlocks); err != nil {
+	if err := exportBlocksSection(ctx, gdb, writer, from, to); err != nil {
 		return err
 	}
 
@@ -106,11 +107,12 @@ func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWri
 	return nil
 }
 
-func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to idx.Epoch, maxBlocks idx.Block) error {
+func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
 	toBlock := getEpochBlock(to, gdb)
-	fromBlock := idx.Block(1)
-	if maxBlocks != 0 && toBlock > 1 + maxBlocks {
-		fromBlock = toBlock - maxBlocks
+	fromBlock := getEpochBlock(from, gdb)
+	if fromBlock < 1 {
+		// avoid underflow
+		fromBlock = 1
 	}
 	log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
 	for i := toBlock; i >= fromBlock; i-- {
