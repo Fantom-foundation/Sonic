@@ -4,7 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/common/amount"
 	io2 "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
@@ -19,9 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/triedb"
-	"io"
-	"os"
-	"path/filepath"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -167,7 +169,7 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 
 			bulk.CreateAccount(address)
 			bulk.SetNonce(address, acc.Nonce)
-			bulk.SetBalance(address, acc.Balance.ToBig())
+			bulk.SetBalance(address, amount.NewFromUint256(acc.Balance))
 
 			if !bytes.Equal(acc.CodeHash, emptyCodeHash) {
 				code := rawdb.ReadCode(chaindb, common.BytesToHash(acc.CodeHash))

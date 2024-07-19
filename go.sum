@@ -1,7 +1,7 @@
 github.com/DataDog/zstd v1.5.5 h1:oWf5W7GtOLgp6bciQYDmhHHjdhYkALu6S/5Ni9ZgSvQ=
 github.com/DataDog/zstd v1.5.5/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
-github.com/Fantom-foundation/Carmen/go v0.0.0-20240627085016-204b50159b28 h1:l2/QVcO6e1SR6EPIOYvIyzmJyI4IwKk+/XsIFTCUVgA=
-github.com/Fantom-foundation/Carmen/go v0.0.0-20240627085016-204b50159b28/go.mod h1:vNRGm/b21hDlF8kYyKHkXq1s+jLMKpV4jGwXHylXIIg=
+github.com/Fantom-foundation/Carmen/go v0.0.0-20240720214637-e2e21d535f38 h1:II6sFXE7yRR0wDTuEUixmppF6+Jj/nv/OJe5UrPq3rw=
+github.com/Fantom-foundation/Carmen/go v0.0.0-20240720214637-e2e21d535f38/go.mod h1:vNRGm/b21hDlF8kYyKHkXq1s+jLMKpV4jGwXHylXIIg=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20240529085303-2400937cc3b1 h1:iVbLlmFYPlK31O8psS9H+Y+uop0AC1jqCoRErauaHj0=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20240529085303-2400937cc3b1/go.mod h1:6LG3apXyp0InsMXGq9YmzUiV7H0BOuUHrcu3oQY9boE=
 github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20240320160249-81827a18147c h1:g35kQNkq/VGiFak0joC4hcL/TZIi1KQZkatIlLZnOy0=
