@@ -2,9 +2,9 @@ package evmstore
 
 import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/common/amount"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/inter/state"
-	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/tracing"
@@ -92,7 +92,8 @@ func (c *CarmenStateDB) Empty(addr common.Address) bool {
 }
 
 func (c *CarmenStateDB) GetBalance(addr common.Address) *uint256.Int {
-	return utils.BigIntToUint256(c.db.GetBalance(cc.Address(addr)))
+	res := c.db.GetBalance(cc.Address(addr)).Uint256()
+	return &res
 }
 
 func (c *CarmenStateDB) GetNonce(addr common.Address) uint64 {
@@ -147,12 +148,12 @@ func (c *CarmenStateDB) HasSelfDestructed(addr common.Address) bool {
 	return c.db.HasSuicided(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) AddBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) {
-	c.db.AddBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
+func (c *CarmenStateDB) AddBalance(addr common.Address, value *uint256.Int, reason tracing.BalanceChangeReason) {
+	c.db.AddBalance(cc.Address(addr), amount.NewFromUint256(value))
 }
 
-func (c *CarmenStateDB) SubBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) {
-	c.db.SubBalance(cc.Address(addr), utils.Uint256ToBigInt(amount))
+func (c *CarmenStateDB) SubBalance(addr common.Address, value *uint256.Int, reason tracing.BalanceChangeReason) {
+	c.db.SubBalance(cc.Address(addr), amount.NewFromUint256(value))
 }
 
 func (c *CarmenStateDB) SetBalance(addr common.Address, amount *uint256.Int) {
