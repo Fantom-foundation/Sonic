@@ -1681,44 +1681,27 @@ func (s *PublicTransactionPoolAPI) GetRawTransactionByHash(ctx context.Context, 
 	return tx.MarshalBinary()
 }
 
-// GetTransactionReceipt returns the transaction receipt for the given transaction hash.
-func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
-	tx, blockNumber, index, err := s.b.GetTransaction(ctx, hash)
-	if tx == nil || err != nil {
-		return nil, err
-	}
-	header, err := s.b.HeaderByNumber(ctx, rpc.BlockNumber(blockNumber)) // retrieve header to get block hash
-	if header == nil || err != nil {
-		return nil, err
-	}
-	receipts, err := s.b.GetReceiptsByNumber(ctx, rpc.BlockNumber(blockNumber))
-	if receipts == nil || err != nil {
-		return nil, err
-	}
-	if receipts.Len() <= int(index) {
-		return nil, nil
-	}
-	receipt := receipts[index]
-
+// formatTxReceipt encodes transaction receipt into the expected API output.
+func (s *PublicTransactionPoolAPI) formatTxReceipt(header *evmcore.EvmHeader, tx *types.Transaction, txIndex uint64, receipt *types.Receipt) map[string]interface{} {
 	for _, l := range receipt.Logs {
-		l.TxHash = hash
+		l.TxHash = tx.Hash()
 		l.BlockHash = header.Hash
-		l.BlockNumber = blockNumber
+		l.BlockNumber = header.Number.Uint64()
+		l.TxIndex = uint(txIndex) /* logs cache poisoning hot fix */
 		if l.Topics == nil {
 			l.Topics = []common.Hash{}
 		}
 	}
 
 	// Derive the sender.
-	bigblock := new(big.Int).SetUint64(blockNumber)
-	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), bigblock))
+	signer := gsignercache.Wrap(types.MakeSigner(s.b.ChainConfig(), header.Number))
 	from, _ := internaltx.Sender(signer, tx)
 
 	fields := map[string]interface{}{
 		"blockHash":         header.Hash,
-		"blockNumber":       hexutil.Uint64(blockNumber),
-		"transactionHash":   hash,
-		"transactionIndex":  hexutil.Uint64(index),
+		"blockNumber":       hexutil.Uint64(header.Number.Uint64()),
+		"transactionHash":   tx.Hash(),
+		"transactionIndex":  hexutil.Uint64(txIndex),
 		"from":              from,
 		"to":                tx.To(),
 		"gasUsed":           hexutil.Uint64(receipt.GasUsed),
@@ -1744,11 +1727,56 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	if receipt.Logs == nil {
 		fields["logs"] = [][]*types.Log{}
 	}
-	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
+	// Transactions without a recipient deploy a contract.
 	if tx.To() == nil {
 		fields["contractAddress"] = receipt.ContractAddress
 	}
-	return fields, nil
+
+	return fields
+}
+
+// GetTransactionReceipt returns the transaction receipt for the given transaction hash.
+func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
+	tx, blockNumber, index, err := s.b.GetTransaction(ctx, hash)
+	if tx == nil || err != nil {
+		return nil, err
+	}
+	header, err := s.b.HeaderByNumber(ctx, rpc.BlockNumber(blockNumber)) // retrieve header to get block hash
+	if header == nil || err != nil {
+		return nil, err
+	}
+	receipts, err := s.b.GetReceiptsByNumber(ctx, rpc.BlockNumber(blockNumber))
+	if receipts == nil || err != nil {
+		return nil, err
+	}
+	if receipts.Len() <= int(index) {
+		return nil, nil
+	}
+	return s.formatTxReceipt(header, tx, index, receipts[index]), nil
+}
+
+// GetBlockReceipts returns a set of transaction receipts for the given block by the extended block number.
+func (s *PublicTransactionPoolAPI) GetBlockReceipts(ctx context.Context, number rpc.BlockNumber) ([]map[string]interface{}, error) {
+	header, err := s.b.HeaderByNumber(ctx, number)
+	if header == nil || err != nil {
+		return nil, err
+	}
+
+	receipts, err := s.b.GetReceiptsByNumber(ctx, number)
+	if receipts == nil || err != nil {
+		return nil, err
+	}
+
+	blkReceipts := make([]map[string]interface{}, len(receipts))
+	for i, receipt := range receipts {
+		tx, _, index, err := s.b.GetTransaction(ctx, receipt.TxHash)
+		if err != nil {
+			return nil, err
+		}
+		blkReceipts[i] = s.formatTxReceipt(header, tx, index, receipt)
+	}
+
+	return blkReceipts, nil
 }
 
 // sign is a helper function that signs a transaction with the private key of the given address.
