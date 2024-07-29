@@ -52,7 +52,7 @@ func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.S
 	if err != nil {
 		return nil, err
 	}
-	if stateDb.GetHash() != cc.Hash(stateRoot) {
+	if stateDb.GetHash() != cc.Hash(stateRoot) && blockNum.Sign() != 0 {
 		return nil, fmt.Errorf("unable to get Carmen archive StateDB - unexpected state root (%x != %x)", stateDb.GetHash(), stateRoot)
 	}
 	return CreateCarmenStateDb(stateDb), nil
