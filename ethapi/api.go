@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	cc "github.com/Fantom-foundation/Carmen/go/common"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	bip39 "github.com/tyler-smith/go-bip39"
 	"math/big"
@@ -716,51 +717,43 @@ type StorageResult struct {
 
 // GetProof returns the Merkle-proof for a given account and optionally some storage keys.
 func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Address, storageKeys []string, blockNrOrHash rpc.BlockNumberOrHash) (*AccountResult, error) {
-	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+	state, header, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
 	}
 	defer state.Release()
 
-	storageTrie := state.StorageTrie(address)
-	storageHash := types.EmptyRootHash
-	codeHash := state.GetCodeHash(address)
-	storageProof := make([]StorageResult, len(storageKeys))
-
-	// if we have a storageTrie, (which means the account exists), we can update the storagehash
-	if storageTrie != nil {
-		storageHash = storageTrie.Hash()
-	} else {
-		// no storageTrie means the account does not exist, so the codeHash is the hash of an empty bytearray.
-		codeHash = crypto.Keccak256Hash(nil)
+	keys := make([]common.Hash, len(storageKeys))
+	for i, key := range storageKeys {
+		keys[i] = common.HexToHash(key)
+	}
+	proof, err := state.GetProof(address, keys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate proof: %w", err)
 	}
 
-	// create the proof for the storageKeys
-	for i, key := range storageKeys {
-		if storageTrie != nil {
-			proof, storageError := state.GetStorageProof(address, common.HexToHash(key))
-			if storageError != nil {
-				return nil, storageError
-			}
-			storageProof[i] = StorageResult{key, (*hexutil.Big)(state.GetState(address, common.HexToHash(key)).Big()), toHexSlice(proof)}
-		} else {
-			storageProof[i] = StorageResult{key, &hexutil.Big{}, []string{}}
+	storageProof := make([]StorageResult, len(keys))
+	for i, key := range keys {
+		elements, _, _ := proof.GetStorageElements(cc.Hash(header.Root), cc.Address(address), cc.Key(keys[i]))
+		storageProof[i] = StorageResult{
+			Key:   key.Hex(),
+			Value: (*hexutil.Big)(state.GetState(address, key).Big()),
+			Proof: toHexSlice(elements),
 		}
 	}
 
-	// create the accountProof
-	accountProof, proofErr := state.GetProof(address)
-	if proofErr != nil {
-		return nil, proofErr
-	}
+	_, storageHash, _ := proof.GetStorageElements(cc.Hash(header.Root), cc.Address(address))
+	codeHash := state.GetCodeHash(address)
+
+	accountProof, _ := proof.Extract(cc.Hash(header.Root), cc.Address(address))
 
 	return &AccountResult{
 		Address:      address,
-		AccountProof: toHexSlice(accountProof),
+		AccountProof: toHexSlice(accountProof.GetElements()),
 		Balance:      (*hexutil.U256)(state.GetBalance(address)),
 		CodeHash:     codeHash,
 		Nonce:        hexutil.Uint64(state.GetNonce(address)),
-		StorageHash:  storageHash,
+		StorageHash:  common.Hash(storageHash),
 		StorageProof: storageProof,
 	}, state.Error()
 }
@@ -2208,10 +2201,10 @@ func checkTxFee(gasPrice *big.Int, gas uint64, cap float64) error {
 }
 
 // toHexSlice creates a slice of hex-strings based on []byte.
-func toHexSlice(b [][]byte) []string {
+func toHexSlice(b []string) []string {
 	r := make([]string, len(b))
 	for i := range b {
-		r[i] = hexutil.Encode(b[i])
+		r[i] = hexutil.Encode([]byte(b[i]))
 	}
 	return r
 }
