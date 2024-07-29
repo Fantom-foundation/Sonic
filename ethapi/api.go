@@ -2299,7 +2299,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 	if block.NumberU64() == 0 {
 		return nil, errors.New("genesis is not traceable")
 	}
-	statedb, blockHeader, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
+	statedb, _, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, err
 	}
@@ -2318,7 +2318,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 			TxIndex:   i,
 			TxHash:    tx.Hash(),
 		}
-		res, err := api.traceTx(ctx, msg, txctx, blockHeader, statedb, config)
+		res, err := api.traceTx(ctx, msg, txctx, block.Header(), statedb, config)
 		if err != nil {
 			return nil, err
 		}
