@@ -3,10 +3,10 @@ package evmstore
 import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	"github.com/Fantom-foundation/Carmen/go/common/amount"
+	"github.com/Fantom-foundation/Carmen/go/common/witness"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
-	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
@@ -124,12 +124,16 @@ func (c *CarmenStateDB) GetTransientState(addr common.Address, key common.Hash) 
 	panic("not implemented")
 }
 
-func (c *CarmenStateDB) GetProof(addr common.Address) ([][]byte, error) {
-	panic("not supported")
-}
-
-func (c *CarmenStateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
-	panic("not supported")
+func (c *CarmenStateDB) GetProof(addr common.Address, keys []common.Hash) (witness.Proof, error) {
+	if db, ok := c.db.(carmen.NonCommittableStateDB); ok {
+		cKeys := make([]cc.Key, len(keys))
+		for i, key := range keys {
+			cKeys[i] = cc.Key(key)
+		}
+		return db.CreateWitnessProof(cc.Address(addr), cKeys...)
+	} else {
+		panic("unable get proof from not a NonCommittableStateDB")
+	}
 }
 
 func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
@@ -138,10 +142,6 @@ func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
 
 func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	return common.Hash(c.db.GetCommittedState(cc.Address(addr), cc.Key(hash)))
-}
-
-func (c *CarmenStateDB) StorageTrie(addr common.Address) ethstate.Trie {
-	panic("not supported")
 }
 
 func (c *CarmenStateDB) HasSelfDestructed(addr common.Address) bool {
