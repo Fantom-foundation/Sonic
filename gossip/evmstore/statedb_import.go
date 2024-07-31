@@ -34,7 +34,7 @@ func (s *Store) ImportLiveWorldState(liveReader io.Reader) error {
 	if err := os.MkdirAll(liveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
-	if err := io2.ImportLiveDb(liveDir, liveReader); err != nil {
+	if err := io2.ImportLiveDb(io2.NewLog(), liveDir, liveReader); err != nil {
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
 	return nil
@@ -51,7 +51,7 @@ func (s *Store) ImportArchiveWorldState(archiveReader io.Reader) error {
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
-		if err := io2.ImportArchive(archiveDir, archiveReader); err != nil {
+		if err := io2.ImportArchive(io2.NewLog(), archiveDir, archiveReader); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
 		return nil
@@ -70,7 +70,7 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
-		if err := io2.InitializeArchive(archiveDir, liveReader, blockNum); err != nil {
+		if err := io2.InitializeArchive(io2.NewLog(), archiveDir, liveReader, blockNum); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
 		return nil

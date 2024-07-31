@@ -1,6 +1,7 @@
 package check
 
 import (
+	"context"
 	"fmt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
@@ -11,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
+func CheckArchiveStateDb(ctx context.Context, dataDir string, cacheRatio cachescale.Func) error {
 	// compare with blocks in the gdb
 	if err := checkArchiveBlockRoots(dataDir, cacheRatio); err != nil {
 		return err
@@ -23,7 +24,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 	if err != nil {
 		return fmt.Errorf("failed to check archive state dir: %w", err)
 	}
-	if err := mpt.VerifyArchiveTrie(archiveDir, info.Config, verificationObserver{}); err != nil {
+	if err := mpt.VerifyArchiveTrie(ctx, archiveDir, info.Config, verificationObserver{}); err != nil {
 		return fmt.Errorf("archive state verification failed: %w", err)
 	}
 	log.Info("Verification of the archive state succeed")
