@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/common/amount"
 	io2 "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
@@ -81,7 +82,7 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 // The Store must be closed during the call.
 func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 	liveDir := filepath.Join(s.parameters.Directory, "live")
-	if err := io2.Export(liveDir, out); err != nil {
+	if err := io2.Export(ctx, liveDir, out); err != nil {
 		return fmt.Errorf("failed to export Live StateDB; %v", err)
 	}
 	return nil
@@ -91,7 +92,7 @@ func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 // The Store must be closed during the call.
 func (s *Store) ExportArchiveWorldState(ctx context.Context, out io.Writer) error {
 	archiveDir := filepath.Join(s.parameters.Directory, "archive")
-	if err := io2.ExportArchive(archiveDir, out); err != nil {
+	if err := io2.ExportArchive(ctx, archiveDir, out); err != nil {
 		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
@@ -162,9 +163,14 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 				return fmt.Errorf("invalid account encountered during traversal; %v", err)
 			}
 
+			balance, err := amount.NewFromBigInt(acc.Balance)
+			if err != nil {
+				return fmt.Errorf("failed to convert balance; %w", err)
+			}
+
 			bulk.CreateAccount(address)
 			bulk.SetNonce(address, acc.Nonce)
-			bulk.SetBalance(address, acc.Balance)
+			bulk.SetBalance(address, balance)
 
 
 			if !bytes.Equal(acc.CodeHash, emptyCodeHash) {
