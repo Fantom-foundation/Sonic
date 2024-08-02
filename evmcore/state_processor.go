@@ -121,6 +121,10 @@ func applyTransaction(
 	if err != nil {
 		return nil, 0, result == nil, err
 	}
+	if err := statedb.Error(); err != nil {
+		return nil, 0, result == nil, err
+	}
+
 	// Notify about logs with potential state changes
 	logs := statedb.GetLogs(tx.Hash(), blockHash)
 	for _, l := range logs {

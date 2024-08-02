@@ -178,6 +178,9 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				failed = true
 				log.Error("Cannot replay transaction", "txHash", tx.Hash().String(), "err", err.Error())
 			}
+			if err := state.Error(); err != nil {
+				return nil, fmt.Errorf("StateDB error when replaying tx %s: %w", tx.Hash().String(), err)
+			}
 
 			if res != nil && res.Err != nil {
 				failed = true
@@ -261,6 +264,9 @@ func (s *PublicTxTraceAPI) traceTx(
 			return nil, fmt.Errorf("invalid transaction replay state at %s", tx.Hash().String())
 		}
 		return &at, nil
+	}
+	if err := state.Error(); err != nil {
+		return nil, fmt.Errorf("StateDB error when replaying tx %s: %w", tx.Hash().String(), err)
 	}
 	// If the timer caused an abort, return an appropriate error message
 	if vmenv.Cancelled() {
