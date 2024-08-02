@@ -104,6 +104,12 @@ type (
 		// allows only for EIP155 transactions.
 		AllowUnprotectedTxs bool
 
+		// BatchRequestLimit is maximum number of requests in batch.
+		BatchRequestLimit int
+
+		// JSTracerLimit is a global JS engine limit for RPC debug methods execution.
+		JSTracerLimit int
+
 		RPCBlockExt bool
 	}
 
@@ -219,6 +225,10 @@ func DefaultConfig(scale cachescale.Func) Config {
 		RPCGasCap:   50000000,
 		RPCTxFeeCap: 100, // 100 FTM
 		RPCTimeout:  5 * time.Second,
+
+		BatchRequestLimit: 1000,
+		// Limit 0 means, that there is no limit
+		JSTracerLimit: 0,
 	}
 	sessionCfg := cfg.Protocol.DagStreamLeecher.Session
 	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.Event(sessionCfg.ParallelChunksDownload)*
