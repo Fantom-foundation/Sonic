@@ -141,6 +141,10 @@ func (c *CarmenStateDB) HasSuicided(addr common.Address) bool {
 }
 
 func (c *CarmenStateDB) AddBalance(addr common.Address, amountInt *big.Int) {
+	if amountInt.Sign() < 0 {
+		c.SubBalance(addr, amountInt.Abs(amountInt))
+		return
+	}
 	am, err := amount.NewFromBigInt(amountInt)
 	if err != nil {
 		c.err = errors.Join(c.err, err)
@@ -150,6 +154,10 @@ func (c *CarmenStateDB) AddBalance(addr common.Address, amountInt *big.Int) {
 }
 
 func (c *CarmenStateDB) SubBalance(addr common.Address, amountInt *big.Int) {
+	if amountInt.Sign() < 0 {
+		c.AddBalance(addr, amountInt.Abs(amountInt))
+		return
+	}
 	am, err := amount.NewFromBigInt(amountInt)
 	if err != nil {
 		c.err = errors.Join(c.err, err)
