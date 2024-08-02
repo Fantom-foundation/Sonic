@@ -44,7 +44,7 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
-require github.com/Fantom-foundation/Carmen/go v0.0.0-20240507092214-445df9f3b43c
+require github.com/Fantom-foundation/Carmen/go v0.0.0-20240801115916-95f776fc98c8
 
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect

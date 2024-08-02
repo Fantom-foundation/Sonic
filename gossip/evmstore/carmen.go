@@ -1,7 +1,9 @@
 package evmstore
 
 import (
+	"errors"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/common/amount"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,10 +27,12 @@ type CarmenStateDB struct {
 	// current transaction - set by Prepare
 	txHash  common.Hash
 	txIndex int
+
+	err error
 }
 
 func (c *CarmenStateDB) Error() error {
-	return nil
+	return c.err
 }
 
 func (c *CarmenStateDB) AddLog(log *types.Log) {
@@ -89,7 +93,7 @@ func (c *CarmenStateDB) Empty(addr common.Address) bool {
 }
 
 func (c *CarmenStateDB) GetBalance(addr common.Address) *big.Int {
-	return c.db.GetBalance(cc.Address(addr))
+	return c.db.GetBalance(cc.Address(addr)).ToBig()
 }
 
 func (c *CarmenStateDB) GetNonce(addr common.Address) uint64 {
@@ -136,12 +140,30 @@ func (c *CarmenStateDB) HasSuicided(addr common.Address) bool {
 	return c.db.HasSuicided(cc.Address(addr))
 }
 
-func (c *CarmenStateDB) AddBalance(addr common.Address, amount *big.Int) {
-	c.db.AddBalance(cc.Address(addr), amount)
+func (c *CarmenStateDB) AddBalance(addr common.Address, amountInt *big.Int) {
+	if amountInt.Sign() < 0 {
+		c.SubBalance(addr, amountInt.Abs(amountInt))
+		return
+	}
+	am, err := amount.NewFromBigInt(amountInt)
+	if err != nil {
+		c.err = errors.Join(c.err, err)
+		return
+	}
+	c.db.AddBalance(cc.Address(addr), am)
 }
 
-func (c *CarmenStateDB) SubBalance(addr common.Address, amount *big.Int) {
-	c.db.SubBalance(cc.Address(addr), amount)
+func (c *CarmenStateDB) SubBalance(addr common.Address, amountInt *big.Int) {
+	if amountInt.Sign() < 0 {
+		c.AddBalance(addr, amountInt.Abs(amountInt))
+		return
+	}
+	am, err := amount.NewFromBigInt(amountInt)
+	if err != nil {
+		c.err = errors.Join(c.err, err)
+		return
+	}
+	c.db.SubBalance(cc.Address(addr), am)
 }
 
 func (c *CarmenStateDB) SetBalance(addr common.Address, amount *big.Int) {
