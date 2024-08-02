@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -96,6 +97,8 @@ func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir st
 
 	reader, writer := io.Pipe()
 	defer reader.Close()
+	bufReader := bufio.NewReaderSize(reader, 100 * 1024 * 1024) // 100 MiB
+	bufWriter := bufio.NewWriterSize(writer, 100 * 1024 * 1024) // 100 MiB
 
 	var exportErr error
 	var wg sync.WaitGroup
@@ -103,10 +106,13 @@ func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir st
 	go func() {
 		defer wg.Done()
 		defer writer.Close()
-		exportErr = mptio.ExportBlockFromArchive(ctx, carmenArchiveDir, writer, uint64(recoveredBlock))
+		exportErr = mptio.ExportBlockFromArchive(ctx, carmenArchiveDir, bufWriter, uint64(recoveredBlock))
+		if exportErr == nil {
+			exportErr = bufWriter.Flush()
+		}
 	}()
 
-	err := mptio.ImportLiveDb(carmenLiveDir, reader)
+	err := mptio.ImportLiveDb(carmenLiveDir, bufReader)
 
 	wg.Wait()
 	return errors.Join(err, exportErr)
