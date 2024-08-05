@@ -2183,15 +2183,15 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 			return nil, err
 		}
 		defer t.Destroy()
-			deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
-			go func() {
-				<-deadlineCtx.Done()
-				if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
-					t.Stop(errors.New("execution timeout"))
-				}
-			}()
-			defer cancel()
-			tracer = t
+		deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
+		go func() {
+			<-deadlineCtx.Done()
+			if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
+				t.Stop(errors.New("execution timeout"))
+			}
+		}()
+		defer cancel()
+		tracer = t
 
 	default:
 		tracer = vm.NewStructLogger(config.LogConfig)
