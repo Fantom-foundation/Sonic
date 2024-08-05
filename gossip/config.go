@@ -227,8 +227,8 @@ func DefaultConfig(scale cachescale.Func) Config {
 		RPCTimeout:  5 * time.Second,
 
 		BatchRequestLimit: 1000,
-		// Limit 0 means, that there is no limit
-		JSTracerLimit: 0,
+
+		JSTracerLimit: 1000,
 	}
 	sessionCfg := cfg.Protocol.DagStreamLeecher.Session
 	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.Event(sessionCfg.ParallelChunksDownload)*
