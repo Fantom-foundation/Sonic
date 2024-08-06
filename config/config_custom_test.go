@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"testing"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -12,7 +13,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 func TestConfigFile(t *testing.T) {
@@ -29,7 +29,7 @@ func TestConfigFile(t *testing.T) {
 		OperaStore:    gossip.DefaultStoreConfig(cacheRatio),
 		Lachesis:      abft.DefaultConfig(),
 		LachesisStore: abft.DefaultStoreConfig(cacheRatio),
-		VectorClock:   vecmt.DefaultConfig(cacheRatio),
+		VectorClock:   vecclock.DefaultConfig(cacheRatio),
 	}
 
 	canonical := func(nn []*enode.Node) []*enode.Node {

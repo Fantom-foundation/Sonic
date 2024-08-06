@@ -3,6 +3,7 @@ package gossip
 import (
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -49,7 +50,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 type ServiceFeed struct {
@@ -110,7 +110,7 @@ type Service struct {
 	// application
 	store               *Store
 	engine              lachesis.Consensus
-	dagIndexer          *vecmt.Index
+	dagIndexer          *vecclock.Index
 	engineMu            *sync.RWMutex
 	emitters            []*emitter.Emitter
 	txpool              TxPool
@@ -155,7 +155,7 @@ type Service struct {
 }
 
 func NewService(stack *node.Node, config Config, store *Store, blockProc BlockProc,
-	engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool,
+	engine lachesis.Consensus, dagIndexer *vecclock.Index, newTxPool func(evmcore.StateReader) TxPool,
 	haltCheck func(oldEpoch, newEpoch idx.Epoch, age time.Time) bool) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
@@ -176,7 +176,7 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 	return svc, nil
 }
 
-func newService(config Config, store *Store, blockProc BlockProc, engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool) (*Service, error) {
+func newService(config Config, store *Store, blockProc BlockProc, engine lachesis.Consensus, dagIndexer *vecclock.Index, newTxPool func(evmcore.StateReader) TxPool) (*Service, error) {
 	svc := &Service{
 		config:             config,
 		blockProcTasksDone: make(chan struct{}),
@@ -195,8 +195,8 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 
 	// load epoch DB
 	svc.store.loadEpochStore(svc.store.GetEpoch())
-	es := svc.store.getEpochStore(svc.store.GetEpoch())
-	svc.dagIndexer.Reset(svc.store.GetValidators(), es.table.DagIndex, func(id hash.Event) dag.Event {
+	//es := svc.store.getEpochStore(svc.store.GetEpoch())
+	svc.dagIndexer.Reset(svc.store.GetValidators(), func(id hash.Event) dag.Event {
 		return svc.store.GetEvent(id)
 	})
 
@@ -484,10 +484,7 @@ func (s *Service) Stop() error {
 	s.blockProcWg.Wait()
 	close(s.blockProcTasksDone)
 
-	err := s.dagIndexer.Close()
-	if err != nil {
-		return err
-	}
+	s.dagIndexer.Close()
 
 	return s.store.Commit()
 }

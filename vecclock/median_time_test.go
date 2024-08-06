@@ -1,10 +1,10 @@
-package vecmt
+package vecclock
 
 import (
+	"github.com/Fantom-foundation/go-opera/vecclock/highestbefore"
+	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/vecfc"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -16,87 +16,93 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
-func TestMedianTimeOnIndex(t *testing.T) {
+func testMedianTimeOnIndex(t *testing.T, cfg Config) {
 	nodes := tdag.GenNodes(5)
 	weights := []pos.Weight{5, 4, 3, 2, 1}
 	validators := pos.ArrayToValidators(nodes, weights)
 
-	vi := NewIndex(func(err error) { panic(err) }, LiteConfig())
-	vi.Reset(validators, memorydb.New(), nil)
+	vi := NewIndex(makeTmpDB, cfg)
+	vi.Reset(validators, nil)
 
 	assertar := assert.New(t)
 	{ // seq=0
 		e := hash.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := make(highestbefore.Types, validators.Len())
 
-		before.VSeq.Set(0, vecfc.BranchSeq{Seq: 0})
-		before.VTime.Set(0, 100)
+		before[0].Seq = 0
+		before[0].Time = 100
 
-		before.VSeq.Set(1, vecfc.BranchSeq{Seq: 0})
-		before.VTime.Set(1, 100)
+		before[1].Seq = 0
+		before[1].Time = 100
 
-		before.VSeq.Set(2, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(2, 10)
+		before[2].Seq = 1
+		before[2].Time = 10
 
-		before.VSeq.Set(3, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(3, 10)
+		before[3].Seq = 1
+		before[3].Time = 10
 
-		before.VSeq.Set(4, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(4, 10)
+		before[4].Seq = 1
+		before[4].Time = 10
 
-		vi.SetHighestBefore(e, before)
+		vi.hb.Set(e, before)
 		assertar.Equal(inter.Timestamp(1), vi.MedianTime(e, 1))
 	}
 
 	{ // fork seen = true
 		e := hash.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := make(highestbefore.Types, validators.Len())
 
-		before.SetForkDetected(0)
-		before.VTime.Set(0, 100)
+		before[0] = highestbefore.ForkDetectedSeq
+		before[0].Time = 100
 
-		before.SetForkDetected(1)
-		before.VTime.Set(1, 100)
+		before[1] = highestbefore.ForkDetectedSeq
+		before[1].Time = 100
 
-		before.VSeq.Set(2, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(2, 10)
+		before[2].Seq = 1
+		before[2].Time = 10
 
-		before.VSeq.Set(3, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(3, 10)
+		before[3].Seq = 1
+		before[3].Time = 10
 
-		before.VSeq.Set(4, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(4, 10)
+		before[4].Seq = 1
+		before[4].Time = 10
 
-		vi.SetHighestBefore(e, before)
+		vi.hb.Set(e, before)
 		assertar.Equal(inter.Timestamp(10), vi.MedianTime(e, 1))
 	}
 
 	{ // normal
 		e := hash.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := make(highestbefore.Types, validators.Len())
 
-		before.VSeq.Set(0, vecfc.BranchSeq{Seq: 1})
-		before.VTime.Set(0, 11)
+		before[0].Seq = 1
+		before[0].Time = 11
 
-		before.VSeq.Set(1, vecfc.BranchSeq{Seq: 2})
-		before.VTime.Set(1, 12)
+		before[1].Seq = 2
+		before[1].Time = 12
 
-		before.VSeq.Set(2, vecfc.BranchSeq{Seq: 2})
-		before.VTime.Set(2, 13)
+		before[2].Seq = 2
+		before[2].Time = 13
 
-		before.VSeq.Set(3, vecfc.BranchSeq{Seq: 3})
-		before.VTime.Set(3, 14)
+		before[3].Seq = 3
+		before[3].Time = 14
 
-		before.VSeq.Set(4, vecfc.BranchSeq{Seq: 4})
-		before.VTime.Set(4, 15)
+		before[4].Seq = 4
+		before[4].Time = 15
 
-		vi.SetHighestBefore(e, before)
+		vi.hb.Set(e, before)
 		assertar.Equal(inter.Timestamp(12), vi.MedianTime(e, 1))
 	}
 
+}
+
+func TestMedianTimeOnIndex(t *testing.T) {
+	testMedianTimeOnIndex(t, LiteConfig())
+	// test without cache
+	testMedianTimeOnIndex(t, Config{})
 }
 
 func TestMedianTimeOnDAG(t *testing.T) {
@@ -150,11 +156,13 @@ func TestMedianTimeOnDAG(t *testing.T) {
 		"nodeC002": inter.Timestamp(35),
 	}
 	t.Run("testMedianTimeOnDAG", func(t *testing.T) {
-		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime)
+		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime, LiteConfig())
+		// test without cache
+		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime, Config{})
 	})
 }
 
-func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp) {
+func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp, cfg Config) {
 	assertar := assert.New(t)
 
 	var ordered dag.Events
@@ -171,14 +179,14 @@ func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creatio
 		return events[id]
 	}
 
-	vi := NewIndex(func(err error) { panic(err) }, LiteConfig())
-	vi.Reset(validators, memorydb.New(), getEvent)
+	vi := NewIndex(makeTmpDB, cfg)
+	vi.Reset(validators, getEvent)
 
 	// push
 	for _, e := range ordered {
 		events[e.ID()] = e
-		assertar.NoError(vi.Add(e))
-		vi.Flush()
+		vi.Add(e)
+		vi.Commit()
 	}
 
 	// check
@@ -189,4 +197,8 @@ func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creatio
 		}
 		assertar.Equal(expected, vi.MedianTime(e.ID(), genesis), name)
 	}
+}
+
+func makeTmpDB(name string) kvdb.Store {
+	return memorydb.New()
 }

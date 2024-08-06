@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"sync/atomic"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -12,7 +13,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 type emitterWorldProc struct {
@@ -53,7 +53,7 @@ func (ew *emitterWorldProc) Build(e *inter.MutableEventPayload, onIndexed func()
 	return ew.s.buildEvent(e, onIndexed)
 }
 
-func (ew *emitterWorldProc) DagIndex() *vecmt.Index {
+func (ew *emitterWorldProc) DagIndex() *vecclock.Index {
 	return ew.s.dagIndexer
 }
 

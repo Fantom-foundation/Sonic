@@ -2,16 +2,15 @@ package gossip
 
 import (
 	"errors"
-	"github.com/ethereum/go-ethereum/metrics"
-	"math/big"
-	"sync/atomic"
-
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/metrics"
+	"math/big"
+	"sync/atomic"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
@@ -43,11 +42,8 @@ func (s *Service) buildEvent(e *inter.MutableEventPayload, onIndexed func()) err
 	}
 
 	// indexing event without saving
-	defer s.dagIndexer.DropNotFlushed()
-	err := s.dagIndexer.Add(e)
-	if err != nil {
-		return err
-	}
+	defer s.dagIndexer.Revert()
+	s.dagIndexer.Add(e)
 
 	if onIndexed != nil {
 		onIndexed()
@@ -74,10 +70,7 @@ func (s *Service) buildEvent(e *inter.MutableEventPayload, onIndexed func()) err
 
 // processSavedEvent performs processing which depends on event being saved in DB
 func (s *Service) processSavedEvent(e *inter.EventPayload, es *iblockproc.EpochState) error {
-	err := s.dagIndexer.Add(e)
-	if err != nil {
-		return err
-	}
+	s.dagIndexer.Add(e)
 
 	// check median time
 	if e.MedianTime() != s.dagIndexer.MedianTime(e.ID(), es.EpochStart) {
@@ -93,7 +86,7 @@ func (s *Service) saveAndProcessEvent(e *inter.EventPayload, es *iblockproc.Epoc
 	fixEventTxHashes(e)
 	// indexing event
 	s.store.SetEvent(e)
-	defer s.dagIndexer.DropNotFlushed()
+	defer s.dagIndexer.Revert()
 
 	err := s.processSavedEvent(e, es)
 	if err != nil {
@@ -102,7 +95,7 @@ func (s *Service) saveAndProcessEvent(e *inter.EventPayload, es *iblockproc.Epoc
 	}
 
 	// save event index after success
-	s.dagIndexer.Flush()
+	s.dagIndexer.Commit()
 	return nil
 }
 
@@ -128,8 +121,7 @@ func (s *Service) switchEpochTo(newEpoch idx.Epoch) {
 	s.store.SetHighestLamport(0)
 	// reset dag indexer
 	s.store.resetEpochStore(newEpoch)
-	es := s.store.getEpochStore(newEpoch)
-	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id hash.Event) dag.Event {
+	s.dagIndexer.Reset(s.store.GetValidators(), func(id hash.Event) dag.Event {
 		return s.store.GetEvent(id)
 	})
 	// notify event checkers about new validation data
@@ -179,12 +171,9 @@ func (s *Service) ReprocessEpochEvents() {
 	s.bootstrapping = true
 	// reprocess epoch events, as epoch DBs don't survive restart
 	s.store.ForEachEpochEvent(s.store.GetEpoch(), func(event *inter.EventPayload) bool {
-		err := s.dagIndexer.Add(event)
-		if err != nil {
-			log.Crit("Failed to reindex epoch event", "event", event.String(), "err", err)
-		}
-		s.dagIndexer.Flush()
-		err = s.engine.Process(event)
+		s.dagIndexer.Add(event)
+		s.dagIndexer.Commit()
+		err := s.engine.Process(event)
 		if err != nil {
 			log.Crit("Failed to reprocess epoch event", "event", event.String(), "err", err)
 		}

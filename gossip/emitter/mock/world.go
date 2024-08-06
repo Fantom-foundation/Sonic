@@ -5,20 +5,20 @@
 package mock
 
 import (
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	big "math/big"
 	reflect "reflect"
 
 	inter "github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	validatorpk "github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	opera "github.com/Fantom-foundation/go-opera/opera"
-	vecmt "github.com/Fantom-foundation/go-opera/vecmt"
 	hash "github.com/Fantom-foundation/lachesis-base/hash"
 	idx "github.com/Fantom-foundation/lachesis-base/inter/idx"
 	pos "github.com/Fantom-foundation/lachesis-base/inter/pos"
 	common "github.com/ethereum/go-ethereum/common"
 	types "github.com/ethereum/go-ethereum/core/types"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/Fantom-foundation/go-opera/inter/state"
 )
 
 // MockExternal is a mock of External interface.
@@ -85,10 +85,10 @@ func (mr *MockExternalMockRecorder) Check(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // DagIndex mocks base method.
-func (m *MockExternal) DagIndex() *vecmt.Index {
+func (m *MockExternal) DagIndex() *vecclock.Index {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DagIndex")
-	ret0, _ := ret[0].(*vecmt.Index)
+	ret0, _ := ret[0].(*vecclock.Index)
 	return ret0
 }
 

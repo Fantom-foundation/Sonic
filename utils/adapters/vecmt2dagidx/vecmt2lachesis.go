@@ -1,54 +1,51 @@
 package vecmt2dagidx
 
 import (
+	"github.com/Fantom-foundation/go-opera/vecclock"
+	"github.com/Fantom-foundation/go-opera/vecclock/highestbefore"
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/abft/dagidx"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/vecfc"
-
-	"github.com/Fantom-foundation/go-opera/vecmt"
 )
 
 type Adapter struct {
-	*vecmt.Index
+	*vecclock.Index
 }
 
 var _ abft.DagIndex = (*Adapter)(nil)
 
-type AdapterSeq struct {
-	*vecmt.HighestBefore
+type SeqAdapter struct {
+	highestbefore.Type
 }
 
-type BranchSeq struct {
-	vecfc.BranchSeq
+func (s SeqAdapter) Seq() idx.Event {
+	return s.Type.Seq
 }
 
-// Seq is a maximum observed e.Seq in the branch
-func (b *BranchSeq) Seq() idx.Event {
-	return b.BranchSeq.Seq
+func (s SeqAdapter) MinSeq() idx.Event {
+	return s.Type.MinSeq
 }
 
-// MinSeq is a minimum observed e.Seq in the branch
-func (b *BranchSeq) MinSeq() idx.Event {
-	return b.BranchSeq.MinSeq
+func (s SeqAdapter) IsForkDetected() bool {
+	return s.Type.IsForkDetected()
 }
 
-// Size of the vector clock
-func (b AdapterSeq) Size() int {
-	return b.VSeq.Size()
+type HighestBeforeAdapter highestbefore.Types
+
+func (h HighestBeforeAdapter) Size() int {
+	return len(h)
 }
 
-// Get i's position in the byte-encoded vector clock
-func (b AdapterSeq) Get(i idx.Validator) dagidx.Seq {
-	seq := b.HighestBefore.VSeq.Get(i)
-	return &BranchSeq{seq}
+func (h HighestBeforeAdapter) Get(i idx.Validator) dagidx.Seq {
+	v := highestbefore.Types(h).Get(i)
+	return SeqAdapter{v}
 }
 
 func (v *Adapter) GetMergedHighestBefore(id hash.Event) dagidx.HighestBeforeSeq {
-	return AdapterSeq{v.Index.GetMergedHighestBefore(id)}
+	return HighestBeforeAdapter(v.Index.GetMergedHighestBefore(id))
 }
 
-func Wrap(v *vecmt.Index) *Adapter {
+func Wrap(v *vecclock.Index) *Adapter {
 	return &Adapter{v}
 }

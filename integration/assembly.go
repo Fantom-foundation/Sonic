@@ -2,11 +2,10 @@ package integration
 
 import (
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
-	"github.com/Fantom-foundation/go-opera/vecmt"
+	"github.com/Fantom-foundation/go-opera/vecclock"
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -17,6 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/status-im/keycard-go/hexutils"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 var (
@@ -41,7 +44,7 @@ type Configs struct {
 	OperaStore    gossip.StoreConfig
 	Lachesis      abft.Config
 	LachesisStore abft.StoreConfig
-	VectorClock   vecmt.IndexConfig
+	VectorClock   vecclock.Config
 	DBs           DBsConfig
 }
 
@@ -72,26 +75,16 @@ func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *
 	return gdb, cdb, nil
 }
 
-func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, cfg Configs) (*abft.Lachesis, *vecmt.Index, gossip.BlockProc, error) {
+func rawMakeEngine(chaindataDir string, gdb *gossip.Store, cdb *abft.Store, cfg Configs) (*abft.Lachesis, *vecclock.Index, gossip.BlockProc, error) {
 	blockProc := gossip.DefaultBlockProc()
 	// create consensus
-	vecClock := vecmt.NewIndex(panics("Vector clock"), cfg.VectorClock)
+	makeTmpDB := tmpDBsMaker(path.Join(chaindataDir, "tmp"), cfg.DBs.TmpDBCache.Cache, cfg.DBs.TmpDBCache.Fdlimit)
+	vecClock := vecclock.NewIndex(makeTmpDB, cfg.VectorClock)
 	engine := abft.NewLachesis(cdb, &GossipStoreAdapter{gdb}, vecmt2dagidx.Wrap(vecClock), panics("Lachesis"), cfg.Lachesis)
 	return engine, vecClock, blockProc, nil
 }
 
-func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
-	if isInterrupted(chaindataDir) {
-		return errors.New("genesis processing isn't finished")
-	}
-	dbs, err := GetDbProducer(chaindataDir, cfg.RuntimeCache)
-	if err != nil {
-		return err
-	}
-	return dbs.Close()
-}
-
-func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
+func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecclock.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
 	dbs, err := GetDbProducer(chaindataDir, cfg.DBs.RuntimeCache)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
@@ -116,7 +109,7 @@ func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index,
 		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
 	}
 
-	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, cfg)
+	engine, vecClock, blockProc, err := rawMakeEngine(chaindataDir, gdb, cdb, cfg)
 	if err != nil {
 		err = fmt.Errorf("failed to make engine: %v", err)
 		return nil, nil, nil, nil, gossip.BlockProc{}, dbs.Close, err
@@ -125,11 +118,27 @@ func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index,
 	return engine, vecClock, gdb, cdb, blockProc, dbs.Close, nil
 }
 
+// removeFoldersWithPrefix deletes all folders in the specified directory that start with the given prefix.
+func removeFoldersWithPrefix(directory, prefix string) error {
+	return filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && info.Name() != directory && filepath.Base(path) != "." && filepath.Base(path) != ".." && strings.HasPrefix(info.Name(), prefix) {
+			return os.RemoveAll(path)
+		}
+		return nil
+	})
+}
+
 // MakeEngine makes consensus engine from config.
-func MakeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
+func MakeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecclock.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {
 	if isEmpty(chaindataDir) || isInterrupted(chaindataDir) {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("database is empty or the genesis import interrupted")
 	}
+	_ = os.RemoveAll(path.Join(chaindataDir, "tmp"))
+	removeFoldersWithPrefix(chaindataDir, "lachesis-")
+	removeFoldersWithPrefix(chaindataDir, "gossip-")
 
 	engine, vecClock, gdb, cdb, blockProc, closeDBs, err := makeEngine(chaindataDir, cfg)
 	if err != nil {
