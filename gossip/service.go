@@ -16,6 +16,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/eth/tracers"
 	notify "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -261,6 +262,8 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	}
 
 	rpc.SetExecutionTimeLimit(config.RPCTimeout)
+	rpc.SetBatchItemLimit(config.BatchRequestLimit)
+	tracers.SetConcurentJSLimit(config.JSTracerLimit)
 
 	// create API backend
 	svc.EthAPI = &EthAPIBackend{false, svc, stateReader, txSigner, config.AllowUnprotectedTxs}

@@ -296,6 +296,16 @@ var (
 		Usage: "Time limit for RPC calls execution",
 		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
 	}
+	BatchRequestLimitFlag = cli.IntFlag{
+		Name:  "rpc.batchrequestlimit",
+		Usage: "BatchRequestLimit is maximum number of requests in batch",
+		Value: gossip.DefaultConfig(cachescale.Identity).BatchRequestLimit,
+	}
+	JSTracerLimitFlag = cli.IntFlag{
+		Name:  "rpc.jstracerlimit",
+		Usage: "Limit for concurent js engines in RPC calls execution",
+		Value: gossip.DefaultConfig(cachescale.Identity).JSTracerLimit,
+	}
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
 		Usage: `Mode of the node ("rpc" or "validator")`,

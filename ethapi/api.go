@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -2157,8 +2158,8 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("debug trace transaction failed with panic: %v", r)
-			reterr = fmt.Errorf("debug trace transaction failed with panic: %v", r)
+			log.Error("debug trace transaction failed", "reason", r, "stack", string(debug.Stack()))
+			reterr = fmt.Errorf("debug trace transaction failed with reason: %v", r)
 		}
 	}()
 
@@ -2183,19 +2184,21 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 		if rpcTimeout := api.b.RPCEVMTimeout(); rpcTimeout != 0 && rpcTimeout < timeout {
 			timeout = rpcTimeout
 		}
-		if t, err := tracers.New(*config.Tracer, txctx); err != nil {
+		t, err := tracers.New(*config.Tracer, txctx)
+		if err != nil {
 			return nil, err
-		} else {
-			deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
-			go func() {
-				<-deadlineCtx.Done()
-				if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
-					t.Stop(errors.New("execution timeout"))
-				}
-			}()
-			defer cancel()
-			tracer = t
 		}
+		defer t.Destroy()
+		deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
+		go func() {
+			<-deadlineCtx.Done()
+			if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
+				t.Stop(errors.New("execution timeout"))
+			}
+		}()
+		defer cancel()
+		tracer = t
+
 	default:
 		tracer = vm.NewStructLogger(config.LogConfig)
 	}
@@ -2210,6 +2213,13 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get EVM for tracing: %w", err)
 	}
+
+	// Wait for the context to be done and cancel the evm. Even if the
+	// EVM has finished, cancelling may be done (repeatedly)
+	go func() {
+		<-ctx.Done()
+		vmenv.Cancel()
+	}()
 
 	// Call Prepare to clear out the statedb access list
 	statedb.Prepare(txctx.TxHash, txctx.TxIndex)
@@ -2248,6 +2258,7 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 					if errTracer != nil {
 						return nil, errTracer
 					}
+					defer callTracer.Destroy()
 					if message == nil || vmenv == nil {
 						return nil, err
 					}
