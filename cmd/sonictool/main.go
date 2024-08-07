@@ -127,6 +127,13 @@ The archive state is used for RPC - allows to handle state-related RPC queries.
 		},
 
 		{
+			Name:        "heal",
+			Usage:       "Fix database in dirty state",
+			Action:      heal,
+			Description: "Tries to recover database corrupted by incorrect termination of the client.",
+		},
+
+		{
 			Name:        "compact",
 			Usage:       "Compact all pebble databases",
 			Action:      compactDbs,
