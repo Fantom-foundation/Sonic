@@ -18,6 +18,7 @@ package ethapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1194,10 +1195,10 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args TransactionA
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value
 type ExecutionResult struct {
-	Gas         uint64         `json:"gas"`
-	Failed      bool           `json:"failed"`
-	ReturnValue string         `json:"returnValue"`
-	StructLogs  []StructLogRes `json:"structLogs"`
+	Gas         uint64          `json:"gas"`
+	Failed      bool            `json:"failed"`
+	ReturnValue string          `json:"returnValue"`
+	Logs        json.RawMessage `json:"structLogs"`
 }
 
 // StructLogRes stores a structured log emitted by the EVM while replaying a
@@ -1215,8 +1216,12 @@ type StructLogRes struct {
 }
 
 // FormatLogs formats EVM returned structured logs for json output
-func FormatLogs(logs []vm.StructLog) []StructLogRes {
+func FormatLogs(logs []vm.StructLog) (json.RawMessage, error) {
 	formatted := make([]StructLogRes, len(logs))
+
+	// resultBuffer is buffer for collecting logs
+	resultBuffer := NewJsonResultBuffer()
+
 	for index, trace := range logs {
 		formatted[index] = StructLogRes{
 			Pc:      trace.Pc,
@@ -1247,8 +1252,13 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 			}
 			formatted[index].Storage = &storage
 		}
+
+		err := resultBuffer.AddObject(&formatted[index])
+		if err != nil {
+			return nil, err
+		}
 	}
-	return formatted
+	return resultBuffer.GetResult(), nil
 }
 
 type extBlockApi struct {
@@ -2240,11 +2250,16 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 		if len(result.Revert()) > 0 {
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
+		res, err := FormatLogs(tracer.StructLogs())
+		if err != nil {
+			return nil, err
+		}
+
 		return &ExecutionResult{
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
+			Logs:        res,
 		}, nil
 
 	case *tracers.Tracer:
@@ -2271,6 +2286,10 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 					return callTracer.GetResult()
 				}
 			}
+		}
+
+		if responseSizeLimit > 0 && len(result) > responseSizeLimit {
+			return nil, ErrMaxResponseSize
 		}
 		return result, err
 

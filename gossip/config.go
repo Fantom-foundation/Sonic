@@ -110,6 +110,9 @@ type (
 		// JSTracerLimit is a global JS engine limit for RPC debug methods execution.
 		JSTracerLimit int
 
+		// MaxResponseSize is a limit for maximum response size in some RPC calls
+		MaxResponseSize int
+
 		RPCBlockExt bool
 	}
 
@@ -229,6 +232,8 @@ func DefaultConfig(scale cachescale.Func) Config {
 		BatchRequestLimit: 1000,
 
 		JSTracerLimit: 1000,
+
+		MaxResponseSize: 25 * 1024 * 1024,
 	}
 	sessionCfg := cfg.Protocol.DagStreamLeecher.Session
 	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.Event(sessionCfg.ParallelChunksDownload)*

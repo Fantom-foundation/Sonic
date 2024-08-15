@@ -306,6 +306,11 @@ var (
 		Usage: "Limit for concurent js engines in RPC calls execution",
 		Value: gossip.DefaultConfig(cachescale.Identity).JSTracerLimit,
 	}
+	MaxResponseSizeFlag = cli.IntFlag{
+		Name:  "rpc.maxresponsesize",
+		Usage: "Limit maximum size in some RPC calls execution",
+		Value: gossip.DefaultConfig(cachescale.Identity).MaxResponseSize,
+	}
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
 		Usage: `Mode of the node ("rpc" or "validator")`,
