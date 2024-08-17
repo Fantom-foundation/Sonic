@@ -361,7 +361,7 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (js
 		for _, trace := range traces {
 
 			if traceCount >= args.After {
-				err := resultBuffer.AddObject(trace)
+				err := resultBuffer.AddObject(&trace)
 				if err != nil {
 					return nil, err
 				}
@@ -414,9 +414,11 @@ func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args Filte
 				if res.err != nil {
 					cancelFunc(res.err)
 				} else {
-					err := resultBuffer.AddObject(res.trace)
-					if err != nil {
-						cancelFunc(err)
+					for _, trace := range res.trace {
+						err := resultBuffer.AddObject(&trace)
+						if err != nil {
+							cancelFunc(err)
+						}
 					}
 				}
 			case <-ctx.Done():
