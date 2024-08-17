@@ -8,7 +8,7 @@ import (
 
 const (
 	// bufferStartSize default buffer start size in bytes
-	bufferStartSize = 100000
+	bufferStartSize = 10 * 1024
 )
 
 var (
