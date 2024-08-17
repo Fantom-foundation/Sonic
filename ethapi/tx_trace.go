@@ -343,7 +343,10 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (js
 	var traceAdded, traceCount uint
 
 	// resultBuffer is buffer for collecting result traces
-	resultBuffer := NewJsonResultBuffer()
+	resultBuffer, err := NewJsonResultBuffer()
+	if err != nil {
+		return nil, err
+	}
 	// parse arguments
 	fromBlock, toBlock, fromAddresses, toAddresses := parseFilterArguments(s.b, args)
 
@@ -365,7 +368,7 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (js
 				traceAdded++
 			}
 			if traceAdded >= args.Count {
-				return resultBuffer.GetResult(), nil
+				return resultBuffer.GetResult()
 			}
 			traceCount++
 		}
@@ -375,14 +378,17 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (js
 			return nil, ctx.Err()
 		}
 	}
-	return resultBuffer.GetResult(), nil
+	return resultBuffer.GetResult()
 }
 
 // Filter specified block range in parallel
 func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (json.RawMessage, error) {
 
 	// resultBuffer is buffer for collecting result traces
-	resultBuffer := NewJsonResultBuffer()
+	resultBuffer, err := NewJsonResultBuffer()
+	if err != nil {
+		return nil, err
+	}
 	// parse arguments
 	fromBlock, toBlock, fromAddresses, toAddresses := parseFilterArguments(s.b, args)
 	// add context cancel function
@@ -446,7 +452,7 @@ func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args Filte
 		}
 	}
 
-	return resultBuffer.GetResult(), nil
+	return resultBuffer.GetResult()
 }
 
 // Fills blocks into provided channel for processing and close the channel in the end

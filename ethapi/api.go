@@ -1220,7 +1220,10 @@ func FormatLogs(logs []vm.StructLog) (json.RawMessage, error) {
 	formatted := make([]StructLogRes, len(logs))
 
 	// resultBuffer is buffer for collecting logs
-	resultBuffer := NewJsonResultBuffer()
+	resultBuffer, err := NewJsonResultBuffer()
+	if err != nil {
+		return nil, err
+	}
 
 	for index, trace := range logs {
 		formatted[index] = StructLogRes{
@@ -1258,7 +1261,7 @@ func FormatLogs(logs []vm.StructLog) (json.RawMessage, error) {
 			return nil, err
 		}
 	}
-	return resultBuffer.GetResult(), nil
+	return resultBuffer.GetResult()
 }
 
 type extBlockApi struct {
