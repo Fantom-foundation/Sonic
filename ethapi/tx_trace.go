@@ -46,7 +46,15 @@ func (s *PublicTxTraceAPI) Transaction(ctx context.Context, hash common.Hash) (*
 func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumberOrHash) (*[]txtrace.ActionTrace, error) {
 
 	blockNumber, _ := numberOrHash.Number()
+
+	if blockNumber == rpc.PendingBlockNumber {
+		return nil, fmt.Errorf("cannot trace pending block")
+	}
+
 	currentBlockNumber := s.b.CurrentBlock().NumberU64()
+	if blockNumber == rpc.LatestBlockNumber {
+		blockNumber = rpc.BlockNumber(currentBlockNumber)
+	}
 
 	if uint64(blockNumber.Int64()) > currentBlockNumber {
 		return nil, fmt.Errorf("requested block nr %v > current node block nr %v", blockNumber.Int64(), currentBlockNumber)
@@ -432,17 +440,22 @@ func addBlocksForProcessing(ctx context.Context, fromBlock rpc.BlockNumber, toBl
 // Parses rpc call arguments
 func parseFilterArguments(b Backend, args FilterArgs) (fromBlock rpc.BlockNumber, toBlock rpc.BlockNumber, fromAddresses map[common.Address]struct{}, toAddresses map[common.Address]struct{}) {
 
+	blockHead := rpc.BlockNumber(b.CurrentBlock().NumberU64())
+
 	if args.FromBlock != nil {
 		fromBlock = *args.FromBlock.BlockNumber
+		if fromBlock == rpc.LatestBlockNumber || fromBlock == rpc.PendingBlockNumber {
+			fromBlock = blockHead
+		}
 	}
 
 	if args.ToBlock != nil {
 		toBlock = *args.ToBlock.BlockNumber
 		if toBlock == rpc.LatestBlockNumber || toBlock == rpc.PendingBlockNumber {
-			toBlock = rpc.BlockNumber(b.CurrentBlock().NumberU64())
+			toBlock = blockHead
 		}
 	} else {
-		toBlock = rpc.BlockNumber(b.CurrentBlock().NumberU64())
+		toBlock = blockHead
 	}
 
 	if args.FromAddress != nil {
