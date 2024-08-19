@@ -264,6 +264,7 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	rpc.SetExecutionTimeLimit(config.RPCTimeout)
 	rpc.SetBatchItemLimit(config.BatchRequestLimit)
 	tracers.SetConcurentJSLimit(config.JSTracerLimit)
+	ethapi.SetResponseSizeLimit(config.MaxResponseSize)
 
 	// create API backend
 	svc.EthAPI = &EthAPIBackend{false, svc, stateReader, txSigner, config.AllowUnprotectedTxs}
