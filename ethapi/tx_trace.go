@@ -486,7 +486,7 @@ func parseFilterArguments(b Backend, args FilterArgs) (fromBlock rpc.BlockNumber
 	if args.FromBlock != nil {
 		fromBlock = *args.FromBlock.BlockNumber
 		if fromBlock == rpc.LatestBlockNumber || fromBlock == rpc.PendingBlockNumber {
-			toBlock = blockHead
+			fromBlock = blockHead
 		}
 	}
 
