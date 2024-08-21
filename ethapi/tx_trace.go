@@ -46,14 +46,14 @@ func (s *PublicTxTraceAPI) Transaction(ctx context.Context, hash common.Hash) (*
 func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumberOrHash) (*[]txtrace.ActionTrace, error) {
 
 	blockNumber, _ := numberOrHash.Number()
-	currentBlockNumber := s.b.CurrentBlock().NumberU64()
-
-	if blockNumber == rpc.LatestBlockNumber {
-		blockNumber = rpc.BlockNumber(currentBlockNumber)
-	}
 
 	if blockNumber == rpc.PendingBlockNumber {
 		return nil, fmt.Errorf("cannot trace pending block")
+	}
+
+	currentBlockNumber := s.b.CurrentBlock().NumberU64()
+	if blockNumber == rpc.LatestBlockNumber {
+		blockNumber = rpc.BlockNumber(currentBlockNumber)
 	}
 
 	if uint64(blockNumber.Int64()) > currentBlockNumber {
