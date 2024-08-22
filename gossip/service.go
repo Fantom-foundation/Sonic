@@ -250,10 +250,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 				return svc.processEvent(event)
 			},
 			SwitchEpochTo: svc.SwitchEpochTo,
-			BVs:           svc.ProcessBlockVotes,
-			BR:            svc.ProcessFullBlockRecord,
-			EV:            svc.ProcessEpochVote,
-			ER:            svc.ProcessFullEpochRecord,
 		},
 	})
 	if err != nil {

@@ -12,27 +12,13 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
-	"github.com/Fantom-foundation/go-opera/eventcheck/bvallcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
-	"github.com/Fantom-foundation/go-opera/eventcheck/evallcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/heavycheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/parentlesscheck"
 	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brprocessor"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brstream"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brstream/brstreamleecher"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brstream/brstreamseeder"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvprocessor"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvstream"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvstream/bvstreamleecher"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvstream/bvstreamseeder"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamleecher"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamseeder"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epprocessor"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream/epstreamleecher"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream/epstreamseeder"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -125,18 +111,6 @@ type handler struct {
 	dagSeeder    *dagstreamseeder.Seeder
 	dagProcessor *dagprocessor.Processor
 	dagFetcher   *itemsfetcher.Fetcher
-
-	bvLeecher   *bvstreamleecher.Leecher
-	bvSeeder    *bvstreamseeder.Seeder
-	bvProcessor *bvprocessor.Processor
-
-	brLeecher   *brstreamleecher.Leecher
-	brSeeder    *brstreamseeder.Seeder
-	brProcessor *brprocessor.Processor
-
-	epLeecher   *epstreamleecher.Leecher
-	epSeeder    *epstreamseeder.Seeder
-	epProcessor *epprocessor.Processor
 
 	process processCallback
 
@@ -238,121 +212,6 @@ func newHandler(
 	})
 	h.dagSeeder = dagstreamseeder.New(h.config.Protocol.DagStreamSeeder, dagstreamseeder.Callbacks{
 		ForEachEvent: c.s.ForEachEventRLP,
-	})
-
-	h.bvProcessor = h.makeBvProcessor(c.checkers)
-	h.bvLeecher = bvstreamleecher.New(h.config.Protocol.BvStreamLeecher, bvstreamleecher.Callbacks{
-		LowestBlockToDecide: func() (idx.Epoch, idx.Block) {
-			llrs := h.store.GetLlrState()
-			epoch := h.store.FindBlockEpoch(llrs.LowestBlockToDecide)
-			return epoch, llrs.LowestBlockToDecide
-		},
-		MaxEpochToDecide: func() idx.Epoch {
-			if !h.syncStatus.RequestLLR() {
-				return 0
-			}
-			return h.store.GetLlrState().LowestEpochToFill
-		},
-		IsProcessed: h.store.HasBlockVotes,
-		RequestChunk: func(peer string, r bvstream.Request) error {
-			p := h.peers.Peer(peer)
-			if p == nil {
-				return errNotRegistered
-			}
-			return p.RequestBVsStream(r)
-		},
-		Suspend: func(_ string) bool {
-			return h.bvProcessor.Overloaded()
-		},
-		PeerBlock: func(peer string) idx.Block {
-			p := h.peers.Peer(peer)
-			if p == nil || p.Useless() {
-				return 0
-			}
-			return p.GetProgress().LastBlockIdx
-		},
-	})
-	h.bvSeeder = bvstreamseeder.New(h.config.Protocol.BvStreamSeeder, bvstreamseeder.Callbacks{
-		Iterate: h.store.IterateOverlappingBlockVotesRLP,
-	})
-
-	h.brProcessor = h.makeBrProcessor()
-	h.brLeecher = brstreamleecher.New(h.config.Protocol.BrStreamLeecher, brstreamleecher.Callbacks{
-		LowestBlockToFill: func() idx.Block {
-			return h.store.GetLlrState().LowestBlockToFill
-		},
-		MaxBlockToFill: func() idx.Block {
-			if !h.syncStatus.RequestLLR() {
-				return 0
-			}
-			// rough estimation for the max fill-able block
-			llrs := h.store.GetLlrState()
-			start := llrs.LowestBlockToFill
-			end := llrs.LowestBlockToDecide
-			if end > start+100 && h.store.HasBlock(start+100) {
-				return start + 100
-			}
-			return end
-		},
-		IsProcessed: h.store.HasBlock,
-		RequestChunk: func(peer string, r brstream.Request) error {
-			p := h.peers.Peer(peer)
-			if p == nil {
-				return errNotRegistered
-			}
-			return p.RequestBRsStream(r)
-		},
-		Suspend: func(_ string) bool {
-			return h.brProcessor.Overloaded()
-		},
-		PeerBlock: func(peer string) idx.Block {
-			p := h.peers.Peer(peer)
-			if p == nil || p.Useless() {
-				return 0
-			}
-			return p.GetProgress().LastBlockIdx
-		},
-	})
-	h.brSeeder = brstreamseeder.New(h.config.Protocol.BrStreamSeeder, brstreamseeder.Callbacks{
-		Iterate: h.store.IterateFullBlockRecordsRLP,
-	})
-
-	h.epProcessor = h.makeEpProcessor(h.checkers)
-	h.epLeecher = epstreamleecher.New(h.config.Protocol.EpStreamLeecher, epstreamleecher.Callbacks{
-		LowestEpochToFetch: func() idx.Epoch {
-			llrs := h.store.GetLlrState()
-			if llrs.LowestEpochToFill < llrs.LowestEpochToDecide {
-				return llrs.LowestEpochToFill
-			}
-			return llrs.LowestEpochToDecide
-		},
-		MaxEpochToFetch: func() idx.Epoch {
-			if !h.syncStatus.RequestLLR() {
-				return 0
-			}
-			return h.store.GetLlrState().LowestEpochToDecide + 10000
-		},
-		IsProcessed: h.store.HasHistoryBlockEpochState,
-		RequestChunk: func(peer string, r epstream.Request) error {
-			p := h.peers.Peer(peer)
-			if p == nil {
-				return errNotRegistered
-			}
-			return p.RequestEPsStream(r)
-		},
-		Suspend: func(_ string) bool {
-			return h.epProcessor.Overloaded()
-		},
-		PeerEpoch: func(peer string) idx.Epoch {
-			p := h.peers.Peer(peer)
-			if p == nil || p.Useless() {
-				return 0
-			}
-			return p.GetProgress().Epoch
-		},
-	})
-	h.epSeeder = epstreamseeder.New(h.config.Protocol.EpStreamSeeder, epstreamseeder.Callbacks{
-		Iterate: h.store.IterateEpochPacksRLP,
 	})
 
 	return h, nil
@@ -457,84 +316,6 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 	return newProcessor
 }
 
-func (h *handler) makeBvProcessor(checkers *eventcheck.Checkers) *bvprocessor.Processor {
-	// checkers
-	lightCheck := func(bvs inter.LlrSignedBlockVotes) error {
-		if h.store.HasBlockVotes(bvs.Val.Epoch, bvs.Val.LastBlock(), bvs.Signed.Locator.ID()) {
-			return eventcheck.ErrAlreadyProcessedBVs
-		}
-		return checkers.Basiccheck.ValidateBVs(bvs)
-	}
-	allChecker := bvallcheck.Checker{
-		HeavyCheck: &heavycheck.BVsOnly{Checker: checkers.Heavycheck},
-		LightCheck: lightCheck,
-	}
-	return bvprocessor.New(datasemaphore.New(h.config.Protocol.BVsSemaphoreLimit, getSemaphoreWarningFn("BVs")), h.config.Protocol.BvProcessor, bvprocessor.Callback{
-		// DAG callbacks
-		Item: bvprocessor.ItemCallback{
-			Process: h.process.BVs,
-			Released: func(bvs inter.LlrSignedBlockVotes, peer string, err error) {
-				if eventcheck.IsBan(err) {
-					log.Warn("Incoming BVs rejected", "BVs", bvs.Signed.Locator.ID(), "creator", bvs.Signed.Locator.Creator, "err", err)
-					h.removePeer(peer)
-				}
-			},
-			Check: allChecker.Enqueue,
-		},
-	})
-}
-
-func (h *handler) makeBrProcessor() *brprocessor.Processor {
-	// checkers
-	return brprocessor.New(datasemaphore.New(h.config.Protocol.BVsSemaphoreLimit, getSemaphoreWarningFn("BR")), h.config.Protocol.BrProcessor, brprocessor.Callback{
-		// DAG callbacks
-		Item: brprocessor.ItemCallback{
-			Process: h.process.BR,
-			Released: func(br ibr.LlrIdxFullBlockRecord, peer string, err error) {
-				if eventcheck.IsBan(err) {
-					log.Warn("Incoming BR rejected", "block", br.Idx, "err", err)
-					h.removePeer(peer)
-				}
-			},
-		},
-	})
-}
-
-func (h *handler) makeEpProcessor(checkers *eventcheck.Checkers) *epprocessor.Processor {
-	// checkers
-	lightCheck := func(ev inter.LlrSignedEpochVote) error {
-		if h.store.HasEpochVote(ev.Val.Epoch, ev.Signed.Locator.ID()) {
-			return eventcheck.ErrAlreadyProcessedEV
-		}
-		return checkers.Basiccheck.ValidateEV(ev)
-	}
-	allChecker := evallcheck.Checker{
-		HeavyCheck: &heavycheck.EVOnly{Checker: checkers.Heavycheck},
-		LightCheck: lightCheck,
-	}
-	// checkers
-	return epprocessor.New(datasemaphore.New(h.config.Protocol.BVsSemaphoreLimit, getSemaphoreWarningFn("BR")), h.config.Protocol.EpProcessor, epprocessor.Callback{
-		// DAG callbacks
-		Item: epprocessor.ItemCallback{
-			ProcessEV: h.process.EV,
-			ProcessER: h.process.ER,
-			ReleasedEV: func(ev inter.LlrSignedEpochVote, peer string, err error) {
-				if eventcheck.IsBan(err) {
-					log.Warn("Incoming EV rejected", "event", ev.Signed.Locator.ID(), "creator", ev.Signed.Locator.Creator, "err", err)
-					h.removePeer(peer)
-				}
-			},
-			ReleasedER: func(er ier.LlrIdxFullEpochRecord, peer string, err error) {
-				if eventcheck.IsBan(err) {
-					log.Warn("Incoming ER rejected", "epoch", er.Idx, "err", err)
-					h.removePeer(peer)
-				}
-			},
-			CheckEV: allChecker.Enqueue,
-		},
-	})
-}
-
 func (h *handler) isEventInterested(id hash.Event, epoch idx.Epoch) bool {
 	if id.Epoch() != epoch {
 		return false
@@ -576,14 +357,8 @@ func (h *handler) unregisterPeer(id string) {
 	log.Debug("Removing peer", "peer", id)
 
 	// Unregister the peer from the leecher's and seeder's and peer sets
-	_ = h.epLeecher.UnregisterPeer(id)
-	_ = h.epSeeder.UnregisterPeer(id)
 	_ = h.dagLeecher.UnregisterPeer(id)
 	_ = h.dagSeeder.UnregisterPeer(id)
-	_ = h.brLeecher.UnregisterPeer(id)
-	_ = h.brSeeder.UnregisterPeer(id)
-	_ = h.bvLeecher.UnregisterPeer(id)
-	_ = h.bvSeeder.UnregisterPeer(id)
 	if err := h.peers.UnregisterPeer(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
 	}
@@ -619,42 +394,19 @@ func (h *handler) Start(maxPeers int) {
 	h.txFetcher.Start()
 	h.checkers.Heavycheck.Start()
 
-	h.epProcessor.Start()
-	h.epSeeder.Start()
-	h.epLeecher.Start()
-
 	h.dagProcessor.Start()
 	h.dagSeeder.Start()
 	h.dagLeecher.Start()
 
-	h.bvProcessor.Start()
-	h.bvSeeder.Start()
-	h.bvLeecher.Start()
-
-	h.brProcessor.Start()
-	h.brSeeder.Start()
-	h.brLeecher.Start()
 	h.started.Done()
 }
 
 func (h *handler) Stop() {
 	log.Info("Stopping Fantom protocol")
 
-	h.brLeecher.Stop()
-	h.brSeeder.Stop()
-	h.brProcessor.Stop()
-
-	h.bvLeecher.Stop()
-	h.bvSeeder.Stop()
-	h.bvProcessor.Stop()
-
 	h.dagLeecher.Stop()
 	h.dagSeeder.Stop()
 	h.dagProcessor.Stop()
-
-	h.epLeecher.Stop()
-	h.epSeeder.Stop()
-	h.epProcessor.Stop()
 
 	h.checkers.Heavycheck.Stop()
 	h.txFetcher.Stop()
@@ -767,20 +519,6 @@ func (h *handler) handle(p *peer) error {
 	if err := h.dagLeecher.RegisterPeer(p.id); err != nil {
 		p.Log().Warn("Leecher peer registration failed", "err", err)
 		return err
-	}
-	if p.RunningCap(ProtocolName, []uint{FTM63}) {
-		if err := h.epLeecher.RegisterPeer(p.id); err != nil {
-			p.Log().Warn("Leecher peer registration failed", "err", err)
-			return err
-		}
-		if err := h.bvLeecher.RegisterPeer(p.id); err != nil {
-			p.Log().Warn("Leecher peer registration failed", "err", err)
-			return err
-		}
-		if err := h.brLeecher.RegisterPeer(p.id); err != nil {
-			p.Log().Warn("Leecher peer registration failed", "err", err)
-			return err
-		}
 	}
 	defer h.unregisterPeer(p.id)
 
@@ -1107,139 +845,6 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 
 		_ = h.dagLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
-
-	case msg.Code == RequestBVsStream:
-		var request bvstream.Request
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if request.Limit.Num > hardLimitItems-1 {
-			return errResp(ErrMsgTooLarge, "%v", msg)
-		}
-		if request.Limit.Size > protocolMaxMsgSize*2/3 {
-			return errResp(ErrMsgTooLarge, "%v", msg)
-		}
-
-		pid := p.id
-		_, peerErr := h.bvSeeder.NotifyRequestReceived(bvstreamseeder.Peer{
-			ID:        pid,
-			SendChunk: p.SendBVsStream,
-			Misbehaviour: func(err error) {
-				h.peerMisbehaviour(pid, err)
-			},
-		}, request)
-		if peerErr != nil {
-			return peerErr
-		}
-
-	case msg.Code == BVsStreamResponse:
-		var chunk bvsChunk
-		if err := msg.Decode(&chunk); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if err := checkLenLimits(len(chunk.BVs)+1, chunk); err != nil {
-			return err
-		}
-
-		var last bvstreamleecher.BVsID
-		if len(chunk.BVs) != 0 {
-			_ = h.bvProcessor.Enqueue(p.id, chunk.BVs, nil)
-			last = bvstreamleecher.BVsID{
-				Epoch:     chunk.BVs[len(chunk.BVs)-1].Val.Epoch,
-				LastBlock: chunk.BVs[len(chunk.BVs)-1].Val.LastBlock(),
-				ID:        chunk.BVs[len(chunk.BVs)-1].Signed.Locator.ID(),
-			}
-		}
-
-		_ = h.bvLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
-
-	case msg.Code == RequestBRsStream:
-		var request brstream.Request
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if request.Limit.Num > hardLimitItems-1 {
-			return errResp(ErrMsgTooLarge, "%v", msg)
-		}
-		if request.Limit.Size > protocolMaxMsgSize*2/3 {
-			return errResp(ErrMsgTooLarge, "%v", msg)
-		}
-
-		pid := p.id
-		_, peerErr := h.brSeeder.NotifyRequestReceived(brstreamseeder.Peer{
-			ID:        pid,
-			SendChunk: p.SendBRsStream,
-			Misbehaviour: func(err error) {
-				h.peerMisbehaviour(pid, err)
-			},
-		}, request)
-		if peerErr != nil {
-			return peerErr
-		}
-
-	case msg.Code == BRsStreamResponse:
-		if !h.syncStatus.AcceptBlockRecords() {
-			break
-		}
-
-		msgSize := uint64(msg.Size)
-		var chunk brsChunk
-		if err := msg.Decode(&chunk); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if err := checkLenLimits(len(chunk.BRs)+1, chunk); err != nil {
-			return err
-		}
-
-		var last idx.Block
-		if len(chunk.BRs) != 0 {
-			_ = h.brProcessor.Enqueue(p.id, chunk.BRs, msgSize, nil)
-			last = chunk.BRs[len(chunk.BRs)-1].Idx
-		}
-
-		_ = h.brLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
-
-	case msg.Code == RequestEPsStream:
-		var request epstream.Request
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if request.Limit.Num > hardLimitItems-1 {
-			return errResp(ErrMsgTooLarge, "%v", msg)
-		}
-		if request.Limit.Size > protocolMaxMsgSize*2/3 {
-			return errResp(ErrMsgTooLarge, "%v", msg)
-		}
-
-		pid := p.id
-		_, peerErr := h.epSeeder.NotifyRequestReceived(epstreamseeder.Peer{
-			ID:        pid,
-			SendChunk: p.SendEPsStream,
-			Misbehaviour: func(err error) {
-				h.peerMisbehaviour(pid, err)
-			},
-		}, request)
-		if peerErr != nil {
-			return peerErr
-		}
-
-	case msg.Code == EPsStreamResponse:
-		msgSize := uint64(msg.Size)
-		var chunk epsChunk
-		if err := msg.Decode(&chunk); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if err := checkLenLimits(len(chunk.EPs)+1, chunk); err != nil {
-			return err
-		}
-
-		var last idx.Epoch
-		if len(chunk.EPs) != 0 {
-			_ = h.epProcessor.Enqueue(p.id, chunk.EPs, msgSize, nil)
-			last = chunk.EPs[len(chunk.EPs)-1].Record.Idx
-		}
-
-		_ = h.epLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)

@@ -17,17 +17,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/gossip/filters"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brprocessor"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brstream/brstreamleecher"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockrecords/brstream/brstreamseeder"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvprocessor"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvstream/bvstreamleecher"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/blockvotes/bvstream/bvstreamseeder"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamleecher"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamseeder"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epprocessor"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream/epstreamleecher"
-	"github.com/Fantom-foundation/go-opera/gossip/protocols/epochpacks/epstream/epstreamseeder"
 )
 
 const nominalSize uint = 1
@@ -48,20 +39,11 @@ type (
 		ProgressBroadcastPeriod time.Duration
 
 		DagProcessor dagprocessor.Config
-		BvProcessor  bvprocessor.Config
-		BrProcessor  brprocessor.Config
-		EpProcessor  epprocessor.Config
 
 		DagFetcher       itemsfetcher.Config
 		TxFetcher        itemsfetcher.Config
 		DagStreamLeecher dagstreamleecher.Config
 		DagStreamSeeder  dagstreamseeder.Config
-		BvStreamLeecher  bvstreamleecher.Config
-		BvStreamSeeder   bvstreamseeder.Config
-		BrStreamLeecher  brstreamleecher.Config
-		BrStreamSeeder   brstreamseeder.Config
-		EpStreamLeecher  epstreamleecher.Config
-		EpStreamSeeder   epstreamseeder.Config
 
 		MaxInitialTxHashesSend   int
 		MaxRandomTxHashesSend    int
@@ -171,9 +153,6 @@ func DefaultConfig(scale cachescale.Func) Config {
 			ProgressBroadcastPeriod: 10 * time.Second,
 
 			DagProcessor: dagprocessor.DefaultConfig(scale),
-			BvProcessor:  bvprocessor.DefaultConfig(scale),
-			BrProcessor:  brprocessor.DefaultConfig(scale),
-			EpProcessor:  epprocessor.DefaultConfig(scale),
 			DagFetcher: itemsfetcher.Config{
 				ForgetTimeout:       1 * time.Minute,
 				ArriveTimeout:       1000 * time.Millisecond,
@@ -194,12 +173,6 @@ func DefaultConfig(scale cachescale.Func) Config {
 			},
 			DagStreamLeecher:         dagstreamleecher.DefaultConfig(),
 			DagStreamSeeder:          dagstreamseeder.DefaultConfig(scale),
-			BvStreamLeecher:          bvstreamleecher.DefaultConfig(),
-			BvStreamSeeder:           bvstreamseeder.DefaultConfig(scale),
-			BrStreamLeecher:          brstreamleecher.DefaultConfig(),
-			BrStreamSeeder:           brstreamseeder.DefaultConfig(scale),
-			EpStreamLeecher:          epstreamleecher.DefaultConfig(),
-			EpStreamSeeder:           epstreamseeder.DefaultConfig(scale),
 			MaxInitialTxHashesSend:   20000,
 			MaxRandomTxHashesSend:    250, // match softLimitItems to fit into one message
 			RandomTxHashesSendPeriod: 1 * time.Second,
