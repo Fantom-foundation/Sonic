@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/Fantom-foundation/go-opera/eventcheck/basiccheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
@@ -28,14 +27,6 @@ var (
 	ErrUnknownEpochEV           = errors.New("EV is unprocessable yet")
 
 	errTerminated = errors.New("terminated") // internal err
-)
-
-const (
-	// MaxBlocksPerEpoch is chosen so that even if validator chooses the latest non-liable epoch for BVs,
-	// he still cannot vote for latest blocks (latest = from last 128 epochs), as an epoch has at least one block
-	// The value is larger than a maximum possible number of blocks
-	// in an epoch where a single validator doesn't have 2/3W+1 weight
-	MaxBlocksPerEpoch = idx.Block(basiccheck.MaxLiableEpochs - 128)
 )
 
 // Reader is accessed by the validator to get the current state.

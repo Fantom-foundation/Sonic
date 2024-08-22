@@ -32,6 +32,7 @@ func emptyEvent(ver uint8) EventPayload {
 
 func TestEventPayloadSerialization(t *testing.T) {
 	max := MutableEventPayload{}
+	max.SetVersion(2)
 	max.SetEpoch(math.MaxUint32)
 	max.SetSeq(idx.Event(math.MaxUint32))
 	max.SetLamport(idx.Lamport(math.MaxUint32))
@@ -72,8 +73,7 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max.SetTxs(txs)
 
 	ee := map[string]EventPayload{
-		"empty0": emptyEvent(0),
-		"empty1": emptyEvent(1),
+		"empty2": emptyEvent(2),
 		"max":    *max.Build(),
 		"random": *FakeEvent(12),
 	}
@@ -302,7 +302,7 @@ func randAccessList(r *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
 func FakeEvent(txsNum int) *EventPayload {
 	r := rand.New(rand.NewSource(int64(0)))
 	random := &MutableEventPayload{}
-	random.SetVersion(1)
+	random.SetVersion(2)
 	random.SetNetForkID(uint16(r.Uint32() >> 16))
 	random.SetLamport(1000)
 	random.SetExtra([]byte{byte(r.Uint32())})
@@ -368,7 +368,7 @@ func FakeEvent(txsNum int) *EventPayload {
 	random.SetPayloadHash(CalcPayloadHash(random))
 
 	parent := MutableEventPayload{}
-	parent.SetVersion(1)
+	parent.SetVersion(2)
 	parent.SetLamport(random.Lamport() - 500)
 	parent.SetEpoch(random.Epoch())
 	random.SetParents(hash.Events{parent.Build().ID()})

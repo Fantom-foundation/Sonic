@@ -19,23 +19,6 @@ var (
 	// ErrTipAboveFeeCap is a sanity error to ensure no one is able to specify a
 	// transaction with a tip higher than the total fee cap.
 	ErrTipAboveFeeCap = errors.New("max priority fee per gas higher than max fee per gas")
-	ErrWrongMP        = errors.New("inconsistent misbehaviour proof")
-	ErrNoCrimeInMP    = errors.New("action in misbehaviour proof isn't a criminal offence")
-	ErrWrongCreatorMP = errors.New("wrong creator in misbehaviour proof")
-	ErrMPTooLate      = errors.New("too old misbehaviour proof")
-	ErrMalformedMP    = errors.New("malformed MP union struct")
-	FutureBVsEpoch    = errors.New("future block votes epoch")
-	FutureEVEpoch     = errors.New("future epoch vote")
-	MalformedBVs      = errors.New("malformed BVs")
-	MalformedEV       = errors.New("malformed EV")
-	TooManyBVs        = errors.New("too many BVs")
-	EmptyEV           = errors.New("empty EV")
-	EmptyBVs          = errors.New("empty BVs")
-)
-
-const (
-	MaxBlockVotesPerEvent = 64
-	MaxLiableEpochs       = 32768
 )
 
 type Checker struct {
