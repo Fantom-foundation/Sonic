@@ -136,7 +136,7 @@ func (w *VecFlushable) NewIterator(prefix []byte, start []byte) kvdb.Iterator {
 	panic(errNotImplemented)
 }
 
-func (w *VecFlushable) Stat(property string) (string, error) {
+func (w *VecFlushable) Stat() (string, error) {
 	panic(errNotImplemented)
 }
 

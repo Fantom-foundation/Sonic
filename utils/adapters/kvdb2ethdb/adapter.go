@@ -42,7 +42,3 @@ func (db *Adapter) NewBatchWithSize(int) ethdb.Batch {
 func (db *Adapter) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	return db.Store.NewIterator(prefix, start)
 }
-
-func (db *Adapter) NewSnapshot() (ethdb.Snapshot, error) {
-	panic("not implemented")
-}

@@ -2,6 +2,8 @@ package compactdb
 
 import (
 	"errors"
+	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil"
 	"math/big"
 	"strconv"
 
@@ -73,7 +75,13 @@ func Compact(db kvdb.Store, loggingName string, sizePerIter uint64) error {
 	defer loggedDB.StopLogging()
 
 	// scale number of iterations based on total DB size and sizePerIter
-	diskSizeStr, err := db.Stat("disk.size")
+
+	measurableStore, isMeasurable := db.(dbutil.MeasurableStore)
+	if !isMeasurable {
+		return fmt.Errorf("unable to read database used disk space - not a MeasurableStore")
+	}
+
+	diskSizeStr, err := measurableStore.UsedDiskSpace()
 	if err != nil {
 		return err
 	}

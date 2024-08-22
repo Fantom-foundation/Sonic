@@ -2,6 +2,7 @@ package dbcounter
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil"
 	"sync/atomic"
 
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
@@ -88,6 +89,22 @@ func (ds *Store) GetSnapshot() (kvdb.Snapshot, error) {
 		Snapshot:  snapshot,
 		snCounter: &ds.snCounter,
 	}, nil
+}
+
+func (ds *Store) IoStats() (string, error) {
+	ms, ok := ds.Store.(dbutil.MeasurableStore)
+	if !ok {
+		return "", fmt.Errorf("IoStats not available for %t", ds.Store)
+	}
+	return ms.IoStats()
+}
+
+func (ds *Store) UsedDiskSpace() (string, error) {
+	ms, ok := ds.Store.(dbutil.MeasurableStore)
+	if !ok {
+		return "", fmt.Errorf("UsedDiskSpace not available for %t", ds.Store)
+	}
+	return ms.UsedDiskSpace()
 }
 
 func (db *DBProducer) OpenDB(name string) (kvdb.Store, error) {
