@@ -292,12 +292,6 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	}
 	// write event ID to avoid doublesigning in future after a crash
 	em.writeLastEmittedEventID(e.ID())
-	if e.EpochVote().Epoch != 0 {
-		em.writeLastEmittedEpochVote(e.EpochVote().Epoch)
-	}
-	if len(e.BlockVotes().Votes) != 0 {
-		em.writeLastEmittedBlockVotes(e.BlockVotes().LastBlock())
-	}
 	// broadcast the event
 	em.world.Broadcast(e)
 
@@ -387,10 +381,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 		selfParentTime = selfParentHeader.CreationTime()
 	}
 
-	version := uint8(0)
-	if em.world.GetRules().Upgrades.Llr {
-		version = 1
-	}
+	version := uint8(2) // post-LLR event format
 
 	mutEvent := &inter.MutableEventPayload{}
 	mutEvent.SetVersion(version)
@@ -401,10 +392,6 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 	mutEvent.SetParents(parents)
 	mutEvent.SetLamport(maxLamport + 1)
 	mutEvent.SetCreationTime(inter.MaxTimestamp(inter.Timestamp(time.Now().UnixNano()), selfParentTime+1))
-
-	// add LLR votes
-	em.addLlrEpochVote(mutEvent)
-	em.addLlrBlockVotes(mutEvent)
 
 	// node version
 	if mutEvent.Seq() <= 1 && len(em.config.VersionToPublish) > 0 {

@@ -15,29 +15,22 @@ import (
 )
 
 var (
+	ErrSerUnsupportedVer = errors.New("serialization of unsupported event version")
 	ErrSerMalformedEvent = errors.New("serialization of malformed event")
-	ErrTooLowEpoch       = errors.New("serialization of events with epoch<256 and version=0 is unsupported")
 	ErrUnknownVersion    = errors.New("unknown serialization version")
 )
-
-const MaxSerializationVersion = 1
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024
 
 func (e *Event) MarshalCSER(w *cser.Writer) error {
 	// version
-	if e.Version() > 0 {
-		w.BitsW.Write(2, 0)
-		w.U8(e.Version())
-	} else {
-		if e.Epoch() < 256 {
-			return ErrTooLowEpoch
-		}
+	if e.Version() != 2 {
+		return ErrSerUnsupportedVer
 	}
+	w.BitsW.Write(2, 0)
+	w.U8(e.Version())
 	// base fields
-	if e.Version() > 0 {
-		w.U16(e.NetForkID())
-	}
+	w.U16(e.NetForkID())
 	w.U32(uint32(e.Epoch()))
 	w.U32(uint32(e.Lamport()))
 	w.U32(uint32(e.Creator()))
@@ -68,12 +61,7 @@ func (e *Event) MarshalCSER(w *cser.Writer) error {
 	}
 	// tx hash
 	w.Bool(e.AnyTxs())
-	if e.Version() > 0 {
-		w.Bool(e.AnyMisbehaviourProofs())
-		w.Bool(e.AnyEpochVote())
-		w.Bool(e.AnyBlockVotes())
-	}
-	if e.AnyTxs() || e.AnyMisbehaviourProofs() || e.AnyBlockVotes() || e.AnyEpochVote() {
+	if e.AnyTxs() {
 		w.FixedBytes(e.PayloadHash().Bytes())
 	}
 	// extra
@@ -96,15 +84,13 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 			return cser.ErrNonCanonicalEncoding
 		}
 	}
-	if version > MaxSerializationVersion {
+	if version != 2 {
 		return ErrUnknownVersion
 	}
 
 	// base fields
 	var netForkID uint16
-	if version > 0 {
-		netForkID = r.U16()
-	}
+	netForkID = r.U16()
 	epoch := r.U32()
 	lamport := r.U32()
 	creator := r.U32()
@@ -144,11 +130,8 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 	}
 	// tx hash
 	anyTxs := r.Bool()
-	anyMisbehaviourProofs := version > 0 && r.Bool()
-	anyEpochVote := version > 0 && r.Bool()
-	anyBlockVotes := version > 0 && r.Bool()
 	payloadHash := EmptyPayloadHash(version)
-	if anyTxs || anyMisbehaviourProofs || anyEpochVote || anyBlockVotes {
+	if anyTxs {
 		r.FixedBytes(payloadHash[:])
 		if payloadHash == EmptyPayloadHash(version) {
 			return cser.ErrNonCanonicalEncoding
@@ -156,10 +139,6 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 	}
 	// extra
 	extra := r.SliceBytes(ProtocolMaxMsgSize)
-
-	if version == 0 && epoch < 256 {
-		return ErrTooLowEpoch
-	}
 
 	e.SetVersion(version)
 	e.SetNetForkID(netForkID)
@@ -175,9 +154,6 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 	e.SetParents(parents)
 	e.SetPrevEpochHash(prevEpochHash)
 	e.anyTxs = anyTxs
-	e.anyBlockVotes = anyBlockVotes
-	e.anyEpochVote = anyEpochVote
-	e.anyMisbehaviourProofs = anyMisbehaviourProofs
 	e.SetPayloadHash(payloadHash)
 	e.SetExtra(extra)
 	return nil
@@ -196,59 +172,8 @@ func MarshalTxsCSER(txs types.Transactions, w *cser.Writer) error {
 	return nil
 }
 
-func (bvs LlrBlockVotes) MarshalCSER(w *cser.Writer) error {
-	w.U64(uint64(bvs.Start))
-	w.U32(uint32(bvs.Epoch))
-	w.U32(uint32(len(bvs.Votes)))
-	for _, r := range bvs.Votes {
-		w.FixedBytes(r[:])
-	}
-	return nil
-}
-
-func (bvs *LlrBlockVotes) UnmarshalCSER(r *cser.Reader) error {
-	start := r.U64()
-	epoch := r.U32()
-	num := r.U32()
-	if num > ProtocolMaxMsgSize/32 {
-		return cser.ErrTooLargeAlloc
-	}
-	records := make([]hash.Hash, num)
-	for i := range records {
-		r.FixedBytes(records[i][:])
-	}
-	bvs.Start = idx.Block(start)
-	bvs.Epoch = idx.Epoch(epoch)
-	bvs.Votes = records
-	return nil
-}
-
-func (ers LlrEpochVote) MarshalCSER(w *cser.Writer) error {
-	w.U32(uint32(ers.Epoch))
-	w.FixedBytes(ers.Vote[:])
-	return nil
-}
-
-func (ers *LlrEpochVote) UnmarshalCSER(r *cser.Reader) error {
-	epoch := r.U32()
-	record := hash.Hash{}
-	r.FixedBytes(record[:])
-	ers.Epoch = idx.Epoch(epoch)
-	ers.Vote = record
-	return nil
-}
-
 func (e *EventPayload) MarshalCSER(w *cser.Writer) error {
 	if e.AnyTxs() != (e.txs.Len() != 0) {
-		return ErrSerMalformedEvent
-	}
-	if e.AnyMisbehaviourProofs() != (len(e.misbehaviourProofs) != 0) {
-		return ErrSerMalformedEvent
-	}
-	if e.AnyEpochVote() != (e.epochVote.Epoch != 0) {
-		return ErrSerMalformedEvent
-	}
-	if e.AnyBlockVotes() != (len(e.blockVotes.Votes) != 0) {
 		return ErrSerMalformedEvent
 	}
 	err := e.Event.MarshalCSER(w)
@@ -269,25 +194,6 @@ func (e *EventPayload) MarshalCSER(w *cser.Writer) error {
 				return err
 			}
 			w.SliceBytes(b)
-		}
-	}
-	if e.AnyMisbehaviourProofs() {
-		b, err := rlp.EncodeToBytes(e.misbehaviourProofs)
-		if err != nil {
-			return err
-		}
-		w.SliceBytes(b)
-	}
-	if e.AnyEpochVote() {
-		err = e.EpochVote().MarshalCSER(w)
-		if err != nil {
-			return err
-		}
-	}
-	if e.AnyBlockVotes() {
-		err = e.BlockVotes().MarshalCSER(w)
-		if err != nil {
-			return err
 		}
 	}
 	return nil
@@ -327,40 +233,6 @@ func (e *MutableEventPayload) UnmarshalCSER(r *cser.Reader) error {
 		}
 	}
 	e.txs = txs
-	// mps
-	mps := make([]MisbehaviourProof, 0)
-	if e.AnyMisbehaviourProofs() {
-		b := r.SliceBytes(ProtocolMaxMsgSize)
-		err := rlp.DecodeBytes(b, &mps)
-		if err != nil {
-			return err
-		}
-	}
-	e.misbehaviourProofs = mps
-	// ev
-	ev := LlrEpochVote{}
-	if e.AnyEpochVote() {
-		err := ev.UnmarshalCSER(r)
-		if err != nil {
-			return err
-		}
-		if ev.Epoch == 0 {
-			return cser.ErrNonCanonicalEncoding
-		}
-	}
-	e.epochVote = ev
-	// bvs
-	bvs := LlrBlockVotes{Votes: make([]hash.Hash, 0, 2)}
-	if e.AnyBlockVotes() {
-		err := bvs.UnmarshalCSER(r)
-		if err != nil {
-			return err
-		}
-		if len(bvs.Votes) == 0 || bvs.Start == 0 || bvs.Epoch == 0 {
-			return cser.ErrNonCanonicalEncoding
-		}
-	}
-	e.blockVotes = bvs
 	return nil
 }
 
@@ -442,9 +314,6 @@ func RPCMarshalEvent(e EventI) map[string]interface{} {
 		},
 		"gasPowerUsed":          hexutil.Uint64(e.GasPowerUsed()),
 		"anyTxs":                e.AnyTxs(),
-		"anyMisbehaviourProofs": e.AnyMisbehaviourProofs(),
-		"anyEpochVote":          e.AnyEpochVote(),
-		"anyBlockVotes":         e.AnyBlockVotes(),
 	}
 }
 
@@ -495,9 +364,6 @@ func RPCUnmarshalEvent(fields map[string]interface{}) EventI {
 	e.SetPayloadHash(*mayBeHash("payloadHash"))
 	e.SetGasPowerUsed(mustBeUint64("gasPowerUsed"))
 	e.anyTxs = mustBeBool("anyTxs")
-	e.anyMisbehaviourProofs = mustBeBool("anyMisbehaviourProofs")
-	e.anyEpochVote = mustBeBool("anyEpochVote")
-	e.anyBlockVotes = mustBeBool("anyBlockVotes")
 
 	gas := GasPowerLeft{}
 	obj := fields["gasPowerLeft"].(map[string]interface{})
@@ -544,7 +410,7 @@ func RPCMarshalEventPayload(event EventPayloadI, inclTx bool, fullTx bool) (map[
 func EventIDsToHex(ids hash.Events) []hexutil.Bytes {
 	res := make([]hexutil.Bytes, len(ids))
 	for i, id := range ids {
-		res[i] = hexutil.Bytes(id.Bytes())
+		res[i] = id.Bytes()
 	}
 	return res
 }
