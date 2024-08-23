@@ -17,16 +17,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
-func actualizeLowestIndex(current, upd uint64, exists func(uint64) bool) uint64 {
-	if current == upd {
-		current++
-		for exists(current) {
-			current++
-		}
-	}
-	return current
-}
-
 func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, txs types.Transactions, blockIdx idx.Block, atropos hash.Event, config *params.ChainConfig, time uint64, baseFee *big.Int, blobGasPrice *big.Int) {
 	s.evm.SetRawReceipts(blockIdx, receiptsForStorage)
 	receipts, _ := evmstore.UnwrapStorageReceipts(receiptsForStorage, blockIdx, config, common.Hash(atropos), time, baseFee, blobGasPrice, txs)
@@ -78,20 +68,4 @@ func (s *Store) WriteUpgradeHeight(bs iblockproc.BlockState, es iblockproc.Epoch
 			Height:   bs.LastBlock.Idx + 1,
 		})
 	}
-}
-
-func updateLowestBlockToFill(block idx.Block, store *Store) {
-	store.ModifyLlrState(func(llrs *LlrState) {
-		llrs.LowestBlockToFill = idx.Block(actualizeLowestIndex(uint64(llrs.LowestBlockToFill), uint64(block), func(u uint64) bool {
-			return store.GetBlock(idx.Block(u)) != nil
-		}))
-	})
-}
-
-func updateLowestEpochToFill(epoch idx.Epoch, store *Store) {
-	store.ModifyLlrState(func(llrs *LlrState) {
-		llrs.LowestEpochToFill = idx.Epoch(actualizeLowestIndex(uint64(llrs.LowestEpochToFill), uint64(epoch), func(u uint64) bool {
-			return store.HasHistoryBlockEpochState(idx.Epoch(u))
-		}))
-	})
 }

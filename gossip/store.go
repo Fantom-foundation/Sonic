@@ -47,16 +47,6 @@ type Store struct {
 
 		// API-only
 		BlockHashes kvdb.Store `table:"B"`
-
-		LlrState           kvdb.Store `table:"S"`
-		LlrBlockResults    kvdb.Store `table:"R"`
-		LlrEpochResults    kvdb.Store `table:"Q"`
-		LlrBlockVotes      kvdb.Store `table:"T"`
-		LlrBlockVotesIndex kvdb.Store `table:"J"`
-		LlrEpochVotes      kvdb.Store `table:"E"`
-		LlrEpochVoteIndex  kvdb.Store `table:"I"`
-		LlrLastBlockVotes  kvdb.Store `table:"G"`
-		LlrLastEpochVote   kvdb.Store `table:"F"`
 	}
 
 	prevFlushTime time.Time
@@ -70,18 +60,11 @@ type Store struct {
 		Blocks                 *wlru.Cache  `cache:"-"` // store by pointer
 		BlockHashes            *wlru.Cache  `cache:"-"` // store by value
 		BRHashes               *wlru.Cache  `cache:"-"` // store by value
-		EvmBlocks              *wlru.Cache  `cache:"-"` // store by pointer
 		BlockEpochStateHistory *wlru.Cache  `cache:"-"` // store by pointer
 		BlockEpochState        atomic.Value // store by value
 		HighestLamport         atomic.Value // store by value
-		LastBVs                atomic.Value // store by pointer
-		LastEV                 atomic.Value // store by pointer
-		LlrState               atomic.Value // store by value
-		KvdbEvmSnap            atomic.Value // store by pointer
 		UpgradeHeights         atomic.Value // store by pointer
 		Genesis                atomic.Value // store by value
-		LlrBlockVotesIndex     *VotesCache  // store by pointer
-		LlrEpochVoteIndex      *VotesCache  // store by pointer
 	}
 
 	mutex struct {
@@ -148,9 +131,6 @@ func (s *Store) initCache() {
 	blockEpochStatesNum := s.cfg.Cache.BlockEpochStateNum
 	blockEpochStatesSize := nominalSize * uint(blockEpochStatesNum)
 	s.cache.BlockEpochStateHistory = s.makeCache(blockEpochStatesSize, blockEpochStatesNum)
-
-	s.cache.LlrBlockVotesIndex = NewVotesCache(s.cfg.Cache.LlrBlockVotesIndexes, s.flushLlrBlockVoteWeight)
-	s.cache.LlrEpochVoteIndex = NewVotesCache(s.cfg.Cache.LlrEpochVotesIndexes, s.flushLlrEpochVoteWeight)
 }
 
 // Close closes underlying database.
@@ -190,11 +170,6 @@ func (s *Store) isCommitNeeded(sc, tc uint64) bool {
 func (s *Store) Commit() error {
 	s.FlushBlockEpochState()
 	s.FlushHighestLamport()
-	s.FlushLastBVs()
-	s.FlushLastEV()
-	s.FlushLlrState()
-	s.cache.LlrBlockVotesIndex.FlushMutated(s.flushLlrBlockVoteWeight)
-	s.cache.LlrEpochVoteIndex.FlushMutated(s.flushLlrEpochVoteWeight)
 	es := s.getAnyEpochStore()
 	if es != nil {
 		es.FlushHeads()

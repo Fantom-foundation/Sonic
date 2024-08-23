@@ -311,8 +311,6 @@ func consensusCallbackBeginBlockFn(
 					store.SetBlockIndex(block.Atropos, blockCtx.Idx)
 					store.SetBlockEpochState(bs, es)
 					store.EvmStore().SetCachedEvmBlock(blockCtx.Idx, evmBlock)
-					updateLowestBlockToFill(blockCtx.Idx, store)
-					updateLowestEpochToFill(es.Epoch, store)
 
 					// Update the metrics touched during block processing
 					blockExecutionTimer.Update(time.Since(executionStart))

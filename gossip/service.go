@@ -203,9 +203,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	// load caches for mutable values to avoid race condition
 	svc.store.GetBlockEpochState()
 	svc.store.GetHighestLamport()
-	svc.store.GetLastBVs()
-	svc.store.GetLastEVs()
-	svc.store.GetLlrState()
 	svc.store.GetUpgradeHeights()
 	svc.store.GetGenesisID()
 	netVerStore := verwatcher.NewStore(store.table.NetworkVersion)

@@ -20,8 +20,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamleecher"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamseeder"
 	"github.com/Fantom-foundation/go-opera/inter"
-	"github.com/Fantom-foundation/go-opera/inter/ibr"
-	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
@@ -75,10 +73,6 @@ type dagNotifier interface {
 type processCallback struct {
 	Event         func(*inter.EventPayload) error
 	SwitchEpochTo func(idx.Epoch) error
-	BVs           func(inter.LlrSignedBlockVotes) error
-	BR            func(ibr.LlrIdxFullBlockRecord) error
-	EV            func(inter.LlrSignedEpochVote) error
-	ER            func(ier.LlrIdxFullEpochRecord) error
 }
 
 // handlerConfig is the collection of initialization parameters to create a full

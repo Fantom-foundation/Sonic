@@ -11,8 +11,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/inter"
-	"github.com/Fantom-foundation/go-opera/inter/ibr"
-	"github.com/Fantom-foundation/go-opera/inter/iep"
 )
 
 // Constants to match up protocol versions and messages
@@ -136,22 +134,4 @@ type dagChunk struct {
 	Done      bool
 	IDs       hash.Events
 	Events    inter.EventPayloads
-}
-
-type bvsChunk struct {
-	SessionID uint32
-	Done      bool
-	BVs       []inter.LlrSignedBlockVotes
-}
-
-type brsChunk struct {
-	SessionID uint32
-	Done      bool
-	BRs       []ibr.LlrIdxFullBlockRecord
-}
-
-type epsChunk struct {
-	SessionID uint32
-	Done      bool
-	EPs       []iep.LlrEpochPack
 }
