@@ -32,6 +32,7 @@ func emptyEvent(ver uint8) EventPayload {
 
 func TestEventPayloadSerialization(t *testing.T) {
 	max := MutableEventPayload{}
+	max.SetVersion(2)
 	max.SetEpoch(math.MaxUint32)
 	max.SetSeq(idx.Event(math.MaxUint32))
 	max.SetLamport(idx.Lamport(math.MaxUint32))
@@ -72,10 +73,9 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max.SetTxs(txs)
 
 	ee := map[string]EventPayload{
-		"empty0": emptyEvent(0),
-		"empty1": emptyEvent(1),
+		"empty2": emptyEvent(2),
 		"max":    *max.Build(),
-		"random": *FakeEvent(12, 1, 1, true),
+		"random": *FakeEvent(12),
 	}
 
 	t.Run("ok", func(t *testing.T) {
@@ -136,7 +136,7 @@ func BenchmarkEventPayload_EncodeRLP_empty(b *testing.B) {
 }
 
 func BenchmarkEventPayload_EncodeRLP_NoPayload(b *testing.B) {
-	e := FakeEvent(0, 0, 0, false)
+	e := FakeEvent(0)
 
 	b.ResetTimer()
 
@@ -150,7 +150,7 @@ func BenchmarkEventPayload_EncodeRLP_NoPayload(b *testing.B) {
 }
 
 func BenchmarkEventPayload_EncodeRLP(b *testing.B) {
-	e := FakeEvent(1000, 0, 0, false)
+	e := FakeEvent(1000)
 
 	b.ResetTimer()
 
@@ -183,7 +183,7 @@ func BenchmarkEventPayload_DecodeRLP_empty(b *testing.B) {
 }
 
 func BenchmarkEventPayload_DecodeRLP_NoPayload(b *testing.B) {
-	e := FakeEvent(0, 0, 0, false)
+	e := FakeEvent(0)
 	me := MutableEventPayload{}
 
 	buf, err := rlp.EncodeToBytes(&e)
@@ -202,7 +202,7 @@ func BenchmarkEventPayload_DecodeRLP_NoPayload(b *testing.B) {
 }
 
 func BenchmarkEventPayload_DecodeRLP(b *testing.B) {
-	e := FakeEvent(1000, 0, 0, false)
+	e := FakeEvent(1000)
 	me := MutableEventPayload{}
 
 	buf, err := rlp.EncodeToBytes(&e)
@@ -224,7 +224,7 @@ func TestEventRPCMarshaling(t *testing.T) {
 	t.Run("Event", func(t *testing.T) {
 		require := require.New(t)
 		for i := 0; i < 3; i++ {
-			var event0 EventI = &FakeEvent(i, i, i, i != 0).Event
+			var event0 EventI = &FakeEvent(i).Event
 			mapping := RPCMarshalEvent(event0)
 			bb, err := json.Marshal(mapping)
 			require.NoError(err)
@@ -241,7 +241,7 @@ func TestEventRPCMarshaling(t *testing.T) {
 	t.Run("EventPayload", func(t *testing.T) {
 		require := require.New(t)
 		for i := 0; i < 3; i++ {
-			var event0 = FakeEvent(i, i, i, i != 0)
+			var event0 = FakeEvent(i)
 			mapping, err := RPCMarshalEventPayload(event0, true, false)
 			require.NoError(err)
 			bb, err := json.Marshal(mapping)
@@ -299,10 +299,10 @@ func randAccessList(r *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
 }
 
 // FakeEvent generates random event for testing purpose.
-func FakeEvent(txsNum, mpsNum, bvsNum int, ersNum bool) *EventPayload {
+func FakeEvent(txsNum int) *EventPayload {
 	r := rand.New(rand.NewSource(int64(0)))
 	random := &MutableEventPayload{}
-	random.SetVersion(1)
+	random.SetVersion(2)
 	random.SetNetForkID(uint16(r.Uint32() >> 16))
 	random.SetLamport(1000)
 	random.SetExtra([]byte{byte(r.Uint32())})
@@ -363,41 +363,12 @@ func FakeEvent(txsNum, mpsNum, bvsNum int, ersNum bool) *EventPayload {
 			txs = append(txs, tx)
 		}
 	}
-	mps := []MisbehaviourProof{}
-	for i := 0; i < mpsNum; i++ {
-		// MPs are serialized with RLP, so no need to test extensively
-		mps = append(mps, MisbehaviourProof{
-			EventsDoublesign: &EventsDoublesign{
-				Pair: [2]SignedEventLocator{SignedEventLocator{}, SignedEventLocator{}},
-			},
-			BlockVoteDoublesign: nil,
-			WrongBlockVote:      nil,
-			EpochVoteDoublesign: nil,
-			WrongEpochVote:      nil,
-		})
-	}
-	bvs := LlrBlockVotes{}
-	if bvsNum > 0 {
-		bvs.Start = 1 + idx.Block(rand.Intn(1000))
-		bvs.Epoch = 1 + idx.Epoch(rand.Intn(1000))
-	}
-	for i := 0; i < bvsNum; i++ {
-		bvs.Votes = append(bvs.Votes, randHash(r))
-	}
-	ers := LlrEpochVote{}
-	if ersNum {
-		ers.Epoch = 1 + idx.Epoch(rand.Intn(1000))
-		ers.Vote = randHash(r)
-	}
 
 	random.SetTxs(txs)
-	random.SetMisbehaviourProofs(mps)
-	random.SetEpochVote(ers)
-	random.SetBlockVotes(bvs)
 	random.SetPayloadHash(CalcPayloadHash(random))
 
 	parent := MutableEventPayload{}
-	parent.SetVersion(1)
+	parent.SetVersion(2)
 	parent.SetLamport(random.Lamport() - 500)
 	parent.SetEpoch(random.Epoch())
 	random.SetParents(hash.Events{parent.Build().ID()})

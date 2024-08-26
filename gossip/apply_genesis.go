@@ -110,15 +110,6 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		s.Log.Info("StateDB imported successfully, stateRoot matches", "index", lastBlock.Idx, "root", lastBlock.Root)
 	}
 
-	// write LLR state
-	s.setLlrState(LlrState{
-		LowestEpochToDecide: topEr.Idx + 1,
-		LowestEpochToFill:   topEr.Idx + 1,
-		LowestBlockToDecide: topEr.BlockState.LastBlock.Idx + 1,
-		LowestBlockToFill:   topEr.BlockState.LastBlock.Idx + 1,
-	})
-	s.FlushLlrState()
-
 	s.SetGenesisID(g.GenesisID)
 	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 

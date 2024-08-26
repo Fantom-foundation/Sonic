@@ -120,11 +120,6 @@ func consensusCallbackBeginBlockFn(
 		// events with txs
 		confirmedEvents := make(hash.OrderedEvents, 0, 3*es.Validators.Len())
 
-		mpsCheatersMap := make(map[idx.ValidatorID]struct{})
-		reportCheater := func(reporter, cheater idx.ValidatorID) {
-			mpsCheatersMap[cheater] = struct{}{}
-		}
-
 		return lachesis.BlockCallbacks{
 			ApplyEvent: func(_e dag.Event) {
 				e := _e.(inter.EventI)
@@ -134,52 +129,6 @@ func consensusCallbackBeginBlockFn(
 				}
 				if e.AnyTxs() {
 					confirmedEvents = append(confirmedEvents, e.ID())
-				}
-				if e.AnyMisbehaviourProofs() {
-					mps := store.GetEventPayload(e.ID()).MisbehaviourProofs()
-					for _, mp := range mps {
-						// self-contained parts of proofs are already checked by the checkers
-						if proof := mp.BlockVoteDoublesign; proof != nil {
-							reportCheater(e.Creator(), proof.Pair[0].Signed.Locator.Creator)
-						}
-						if proof := mp.EpochVoteDoublesign; proof != nil {
-							reportCheater(e.Creator(), proof.Pair[0].Signed.Locator.Creator)
-						}
-						if proof := mp.EventsDoublesign; proof != nil {
-							reportCheater(e.Creator(), proof.Pair[0].Locator.Creator)
-						}
-						if proof := mp.WrongBlockVote; proof != nil {
-							// all other votes are the same, see MinAccomplicesForProof
-							if proof.WrongEpoch {
-								actualBlockEpoch := store.FindBlockEpoch(proof.Block)
-								if actualBlockEpoch != 0 && actualBlockEpoch != proof.Pals[0].Val.Epoch {
-									for _, pal := range proof.Pals {
-										reportCheater(e.Creator(), pal.Signed.Locator.Creator)
-									}
-								}
-							} else {
-								actualRecordHash := store.GetBlockRecordHash(proof.Block)
-								if actualRecordHash != nil && proof.GetVote(0) != *actualRecordHash {
-									for _, pal := range proof.Pals {
-										reportCheater(e.Creator(), pal.Signed.Locator.Creator)
-									}
-								}
-							}
-						}
-						if proof := mp.WrongEpochVote; proof != nil {
-							// all other votes are the same, see MinAccomplicesForProof
-							vote := proof.Pals[0]
-							actualRecord := store.GetFullEpochRecord(vote.Val.Epoch)
-							if actualRecord == nil {
-								continue
-							}
-							if vote.Val.Vote != actualRecord.Hash() {
-								for _, pal := range proof.Pals {
-									reportCheater(e.Creator(), pal.Signed.Locator.Creator)
-								}
-							}
-						}
-					}
 				}
 				eventProcessor.ProcessConfirmedEvent(e)
 				for _, em := range *emitters {
@@ -210,17 +159,6 @@ func consensusCallbackBeginBlockFn(
 				skipBlock = skipBlock || (emptyBlock && blockCtx.Time < bs.LastBlock.Time+es.Rules.Blocks.MaxEmptyBlockSkipPeriod)
 				// Finalize the progress of eventProcessor
 				bs = eventProcessor.Finalize(blockCtx, skipBlock) // TODO: refactor to not mutate the bs, it is unclear
-				{                                                 // sort and merge MPs cheaters
-					mpsCheaters := make(lachesis.Cheaters, 0, len(mpsCheatersMap))
-					for vid := range mpsCheatersMap {
-						mpsCheaters = append(mpsCheaters, vid)
-					}
-					sort.Slice(mpsCheaters, func(i, j int) bool {
-						a, b := mpsCheaters[i], mpsCheaters[j]
-						return a < b
-					})
-					bs.EpochCheaters = mergeCheaters(bs.EpochCheaters, mpsCheaters)
-				}
 				if skipBlock {
 					// save the latest block state even if block is skipped
 					store.SetBlockEpochState(bs, es)
@@ -237,18 +175,6 @@ func consensusCallbackBeginBlockFn(
 					if verWatcher != nil {
 						verWatcher.OnNewLog(l)
 					}
-				}
-
-				// skip LLR block/epoch deciding if not activated
-				if !es.Rules.Upgrades.Llr {
-					store.ModifyLlrState(func(llrs *LlrState) {
-						if llrs.LowestBlockToDecide == blockCtx.Idx {
-							llrs.LowestBlockToDecide++
-						}
-						if sealing && es.Epoch+1 == llrs.LowestEpochToDecide {
-							llrs.LowestEpochToDecide++
-						}
-					})
 				}
 
 				evmProcessor := blockProc.EVMModule.Start(blockCtx, statedb, evmStateReader, onNewLogAll, es.Rules, es.Rules.EvmChainConfig(store.GetUpgradeHeights()))
@@ -385,8 +311,6 @@ func consensusCallbackBeginBlockFn(
 					store.SetBlockIndex(block.Atropos, blockCtx.Idx)
 					store.SetBlockEpochState(bs, es)
 					store.EvmStore().SetCachedEvmBlock(blockCtx.Idx, evmBlock)
-					updateLowestBlockToFill(blockCtx.Idx, store)
-					updateLowestEpochToFill(es.Epoch, store)
 
 					// Update the metrics touched during block processing
 					blockExecutionTimer.Update(time.Since(executionStart))

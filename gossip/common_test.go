@@ -265,39 +265,6 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 	return externalReceipts, err
 }
 
-func (env *testEnv) ApplyMPs(spent time.Duration, mps ...inter.MisbehaviourProof) error {
-	env.t = env.t.Add(spent)
-
-	// all callbacks are non-async
-	lastEpoch := idx.Epoch(0)
-	env.callback.buildEvent = func(e *inter.MutableEventPayload) {
-		if e.Epoch() > lastEpoch {
-			e.SetMisbehaviourProofs(mps)
-			lastEpoch = e.Epoch()
-		}
-	}
-	confirmed := false
-	env.callback.onEventConfirmed = func(_e inter.EventI) {
-		// ensure that not only MPs were confirmed, but also no new MPs will be confirmed in future
-		if _e.AnyMisbehaviourProofs() && _e.Epoch() == lastEpoch {
-			confirmed = true
-			// sanity check for gas used
-			e := env.store.GetEventPayload(_e.ID())
-			rule := env.store.GetRules().Economy.Gas
-			if e.GasPowerUsed() < rule.EventGas+uint64(len(e.MisbehaviourProofs()))*rule.MisbehaviourProofGas {
-				panic("GasPowerUsed calculation doesn't include MisbehaviourProofGas")
-			}
-		}
-	}
-	defer func() {
-		env.callback.buildEvent = nil
-	}()
-
-	return env.EmitUntil(func() bool {
-		return confirmed
-	})
-}
-
 func (env *testEnv) EmitUntil(stop func() bool) error {
 	t := time.Now()
 
