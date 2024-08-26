@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil"
 	"regexp"
 	"strings"
 	"sync"
@@ -72,12 +73,18 @@ func (ds *StoreWithMetrics) meter(refresh time.Duration) {
 		merr error
 	)
 
+	measurableStore, isMeasurable := ds.Store.(dbutil.MeasurableStore)
+	if !isMeasurable {
+		ds.log.Error("Failed to read database stats - not a MeasurableStore")
+		return
+	}
+
 	timer := time.NewTimer(refresh)
 	defer timer.Stop()
 	// Iterate ad infinitum and collect the stats
 	for i := 1; errc == nil && merr == nil; i++ {
 		// Retrieve the database size
-		diskSize, err := ds.Stat("disk.size")
+		diskSize, err := measurableStore.UsedDiskSpace()
 		if err != nil {
 			ds.log.Error("Failed to read database stats", "err", err)
 			merr = err
@@ -95,7 +102,7 @@ func (ds *StoreWithMetrics) meter(refresh time.Duration) {
 		}
 
 		// Retrieve the database iostats.
-		ioStats, err := ds.Stat("iostats")
+		ioStats, err := measurableStore.IoStats()
 		if err != nil {
 			ds.log.Error("Failed to read database iostats", "err", err)
 			merr = err

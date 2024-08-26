@@ -7,9 +7,11 @@ import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/stateless"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/trie/utils"
 	"github.com/holiman/uint256"
 )
 
@@ -282,6 +284,16 @@ func (c *CarmenStateDB) AddressInAccessList(addr common.Address) bool {
 
 func (c *CarmenStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	return c.db.IsSlotInAccessList(cc.Address(addr), cc.Key(slot))
+}
+
+// PointCache returns the point cache used in computations of verkle trees
+func (c *CarmenStateDB) PointCache() *utils.PointCache {
+	return nil // used only when IsEIP4762 (verkle trees) enabled
+}
+
+// Witness retrieves the current state witness being collected
+func (c *CarmenStateDB) Witness() *stateless.Witness {
+	return nil // set to not-nil only when vmConfig.EnableWitnessCollection
 }
 
 func (c *CarmenStateDB) Release() {

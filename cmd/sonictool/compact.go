@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/utils/dbutil"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -23,14 +24,10 @@ func compactDbs(ctx *cli.Context) error {
 		return err
 	}
 	chaindataDir := filepath.Join(dataDir, "chaindata")
-	dbs, err := integration.GetDbProducer(chaindataDir, integration.DBCacheConfig{
+	dbs := integration.GetRawDbProducer(chaindataDir, integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
 		Fdlimit: 100,
 	})
-	if err != nil {
-		return fmt.Errorf("failed to make DB producer: %v", err)
-	}
-	defer dbs.Close()
 
 	for _, name := range dbs.Names() {
 		if err := compactDB(name, dbs); err != nil {
@@ -64,12 +61,17 @@ func compactDB(name string, producer kvdb.DBProducer) error {
 }
 
 func showDbStats(db ethdb.Stater) {
-	if stats, err := db.Stat("stats"); err != nil {
+	if stats, err := db.Stat(); err != nil {
 		log.Warn("Failed to read database stats", "error", err)
 	} else {
 		fmt.Println(stats)
 	}
-	if ioStats, err := db.Stat("iostats"); err != nil {
+	measurableStore, isMeasurable := db.(dbutil.MeasurableStore)
+	if !isMeasurable {
+		log.Warn("Failed to read database iostats - not a MeasurableStore")
+		return
+	}
+	if ioStats, err := measurableStore.IoStats(); err != nil {
 		log.Warn("Failed to read database iostats", "error", err)
 	} else {
 		fmt.Println(ioStats)
