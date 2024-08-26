@@ -36,8 +36,8 @@ import (
 )
 
 type GenesisBuilder struct {
-	tmpStateDB state.StateDB
-	carmenDir  string
+	tmpStateDB    state.StateDB
+	carmenDir     string
 	carmenStateDb carmen.StateDB
 
 	totalSupply *big.Int
@@ -258,7 +258,7 @@ func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
 			return buf, nil
 		}
 		if name == genesisstore.FwsLiveSection(0) {
-			err := mptIo.Export(context.Background(), filepath.Join(b.carmenDir, "live"), buf)
+			err := mptIo.Export(context.Background(), mptIo.NewLog(), filepath.Join(b.carmenDir, "live"), buf)
 			if err != nil {
 				return nil, err
 			}
