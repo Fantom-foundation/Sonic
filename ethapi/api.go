@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/common/immutable"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	bip39 "github.com/tyler-smith/go-bip39"
 	"math/big"
@@ -1177,7 +1178,7 @@ func RPCMarshalBlock(block *evmcore.EvmBlock, receipts types.Receipts, inclTx bo
 	size := hexutil.Uint64(block.EthBlock().Size()) // RPC encoded storage size
 	json := &evmcore.EvmBlockJson{
 		EvmHeaderJson: block.Header().ToJson(receipts),
-		Size: &size,
+		Size:          &size,
 	}
 
 	if inclTx {
@@ -2201,10 +2202,10 @@ func checkTxFee(gasPrice *big.Int, gas uint64, cap float64) error {
 }
 
 // toHexSlice creates a slice of hex-strings based on []byte.
-func toHexSlice(b []string) []string {
+func toHexSlice(b []immutable.Bytes) []string {
 	r := make([]string, len(b))
 	for i := range b {
-		r[i] = hexutil.Encode([]byte(b[i]))
+		r[i] = hexutil.Encode(b[i].ToBytes())
 	}
 	return r
 }

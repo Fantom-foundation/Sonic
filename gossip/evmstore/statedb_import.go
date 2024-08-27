@@ -83,7 +83,7 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 // The Store must be closed during the call.
 func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 	liveDir := filepath.Join(s.parameters.Directory, "live")
-	if err := io2.Export(ctx, liveDir, out); err != nil {
+	if err := io2.Export(ctx, io2.NewLog(), liveDir, out); err != nil {
 		return fmt.Errorf("failed to export Live StateDB; %v", err)
 	}
 	return nil
@@ -93,7 +93,7 @@ func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 // The Store must be closed during the call.
 func (s *Store) ExportArchiveWorldState(ctx context.Context, out io.Writer) error {
 	archiveDir := filepath.Join(s.parameters.Directory, "archive")
-	if err := io2.ExportArchive(ctx, archiveDir, out); err != nil {
+	if err := io2.ExportArchive(ctx, io2.NewLog(), archiveDir, out); err != nil {
 		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
