@@ -1,14 +1,16 @@
 package check
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
-	"path/filepath"
 )
 
 func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
@@ -23,7 +25,7 @@ func CheckArchiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 	if err != nil {
 		return fmt.Errorf("failed to check archive state dir: %w", err)
 	}
-	if err := mpt.VerifyArchiveTrie(archiveDir, info.Config, verificationObserver{}); err != nil {
+	if err := mpt.VerifyArchiveTrie(context.Background(), archiveDir, info.Config, verificationObserver{}); err != nil {
 		return fmt.Errorf("archive state verification failed: %w", err)
 	}
 	log.Info("Verification of the archive state succeed")
@@ -50,7 +52,7 @@ func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
 			log.Error("Block root verification failed", "block", i, "err", err)
 			invalidBlocks++
 		}
-		if i % 1000 == 0 {
+		if i%1000 == 0 {
 			log.Info("Block root verification OK", "block", i)
 		}
 	}

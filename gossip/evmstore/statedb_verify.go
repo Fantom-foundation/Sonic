@@ -1,14 +1,16 @@
 package evmstore
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"path/filepath"
 )
 
 func (s *Store) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Hash) error {
@@ -30,7 +32,7 @@ func (s *Store) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Ha
 	if err != nil {
 		return fmt.Errorf("failed to check live state dir: %w", err)
 	}
-	if err := mpt.VerifyFileLiveTrie(liveDir, info.Config, observer); err != nil {
+	if err := mpt.VerifyFileLiveTrie(context.Background(), liveDir, info.Config, observer); err != nil {
 		return fmt.Errorf("live state verification failed: %w", err)
 	}
 	s.Log.Info("Live state verified successfully.")
@@ -44,7 +46,7 @@ func (s *Store) VerifyWorldState(expectedBlockNum uint64, expectedHash common.Ha
 	if err != nil {
 		return fmt.Errorf("failed to check archive dir: %w", err)
 	}
-	if err := mpt.VerifyArchiveTrie(archiveDir, archiveInfo.Config, observer); err != nil {
+	if err := mpt.VerifyArchiveTrie(context.Background(), archiveDir, archiveInfo.Config, observer); err != nil {
 		return fmt.Errorf("archive verification failed: %w", err)
 	}
 	s.Log.Info("Archive verified successfully.")
