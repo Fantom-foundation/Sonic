@@ -1,13 +1,15 @@
 package check
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
-	"path/filepath"
 )
 
 func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
@@ -22,7 +24,7 @@ func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 	if err != nil {
 		return fmt.Errorf("failed to check live state dir: %w", err)
 	}
-	if err := mpt.VerifyFileLiveTrie(liveDir, info.Config, verificationObserver{}); err != nil {
+	if err := mpt.VerifyFileLiveTrie(context.Background(), liveDir, info.Config, verificationObserver{}); err != nil {
 		return fmt.Errorf("live state verification failed: %w", err)
 	}
 	log.Info("Verification of the live state succeed")
