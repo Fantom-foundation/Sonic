@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethparams "github.com/ethereum/go-ethereum/params"
 
+	_ "github.com/Fantom-foundation/Tosca/go/geth_adapter"
+	_ "github.com/Fantom-foundation/Tosca/go/interpreter/lfvm"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 )
@@ -28,6 +30,7 @@ var DefaultVMConfig = vm.Config{
 	StatePrecompiles: map[common.Address]vm.PrecompiledStateContract{
 		evmwriter.ContractAddress: &evmwriter.PreCompiledContract{},
 	},
+	InterpreterImpl: "lfvm",
 }
 
 type RulesRLP struct {
