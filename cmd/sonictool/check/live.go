@@ -1,6 +1,7 @@
 package check
 
 import (
+	"context"
 	"fmt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
@@ -10,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
+func CheckLiveStateDb(ctx context.Context, dataDir string, cacheRatio cachescale.Func) error {
 	// compare with the last block in the gdb
 	if err := checkLiveBlockRoot(dataDir, cacheRatio); err != nil {
 		return err
@@ -22,7 +23,7 @@ func CheckLiveStateDb(dataDir string, cacheRatio cachescale.Func) error {
 	if err != nil {
 		return fmt.Errorf("failed to check live state dir: %w", err)
 	}
-	if err := mpt.VerifyFileLiveTrie(liveDir, info.Config, verificationObserver{}); err != nil {
+	if err := mpt.VerifyFileLiveTrie(ctx, liveDir, info.Config, verificationObserver{}); err != nil {
 		return fmt.Errorf("live state verification failed: %w", err)
 	}
 	log.Info("Verification of the live state succeed")

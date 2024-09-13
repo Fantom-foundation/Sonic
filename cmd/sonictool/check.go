@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/check"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"gopkg.in/urfave/cli.v1"
+	"os/signal"
+	"syscall"
 )
 
 func checkLive(ctx *cli.Context) error {
@@ -17,7 +20,10 @@ func checkLive(ctx *cli.Context) error {
 		return err
 	}
 
-	return check.CheckLiveStateDb(dataDir, cacheRatio)
+	cancelCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	return check.CheckLiveStateDb(cancelCtx, dataDir, cacheRatio)
 }
 
 func checkArchive(ctx *cli.Context) error {
@@ -30,5 +36,8 @@ func checkArchive(ctx *cli.Context) error {
 		return err
 	}
 
-	return check.CheckArchiveStateDb(dataDir, cacheRatio)
+	cancelCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	return check.CheckArchiveStateDb(cancelCtx, dataDir, cacheRatio)
 }

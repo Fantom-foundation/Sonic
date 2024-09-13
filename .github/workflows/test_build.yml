@@ -28,9 +28,3 @@ jobs:
 
       - name: Build
         run: make opera
-
-      - name: Publish
-        uses: actions/upload-artifact@v2
-        with:
-          name: opera
-          path: ./build/opera
