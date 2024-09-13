@@ -121,7 +121,7 @@ func getLastEpochWithState(gdb *gossip.Store, lastCarmenBlock idx.Block) (epochI
 			continue
 		}
 		firstBlockOfEpoch := blockState.LastBlock.Idx
-		if firstBlockOfEpoch > lastCarmenBlock { // TODO check condition
+		if firstBlockOfEpoch > lastCarmenBlock {
 			log.Info("State for the last closed epoch is not available", "epoch", epochIdx)
 			continue
 		}
