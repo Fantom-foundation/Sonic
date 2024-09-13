@@ -10,8 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethparams "github.com/ethereum/go-ethereum/params"
 
-	_ "github.com/Fantom-foundation/Tosca/go/geth_adapter"
-	_ "github.com/Fantom-foundation/Tosca/go/interpreter/lfvm"
+	"github.com/Fantom-foundation/Tosca/go/geth_adapter"
+	"github.com/Fantom-foundation/Tosca/go/interpreter/lfvm"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 )
@@ -26,12 +26,28 @@ const (
 	llrBit                 = 1 << 2
 )
 
-var DefaultVMConfig = vm.Config{
-	StatePrecompiles: map[common.Address]vm.PrecompiledStateContract{
-		evmwriter.ContractAddress: &evmwriter.PreCompiledContract{},
-	},
-	InterpreterImpl: "lfvm",
-}
+var DefaultVMConfig = func() vm.Config {
+
+	// For transaction processing, Tosca's LFVM is used.
+	interpreter, err := lfvm.NewInterpreter(lfvm.Config{})
+	if err != nil {
+		panic(err)
+	}
+	lfvmFactory := geth_adapter.NewGethInterpreterFactory(interpreter)
+
+	// For tracing, Geth's EVM is used.
+	gethFactory := func(evm *vm.EVM) vm.Interpreter {
+		return vm.NewEVMInterpreter(evm)
+	}
+
+	return vm.Config{
+		StatePrecompiles: map[common.Address]vm.PrecompiledStateContract{
+			evmwriter.ContractAddress: &evmwriter.PreCompiledContract{},
+		},
+		Interpreter:           lfvmFactory,
+		InterpreterForTracing: gethFactory,
+	}
+}()
 
 type RulesRLP struct {
 	Name      string

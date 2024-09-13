@@ -6,8 +6,8 @@ toolchain go1.22.3
 
 require (
 	github.com/Fantom-foundation/Carmen/go v0.0.0-20240903120428-3fc9e177f6bb
+	github.com/Fantom-foundation/Tosca v0.0.0-20240916150721-31800db41e5b
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00
-	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/cespare/cp v1.1.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
@@ -18,8 +18,8 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/golang-lru v1.0.2
-	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.3.1
+	github.com/klauspost/pgzip v1.2.6
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.20
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
@@ -36,14 +36,10 @@ require (
 )
 
 require (
-	github.com/Fantom-foundation/Tosca v0.0.0-20240913135757-424477ee6def
-	github.com/klauspost/pgzip v1.2.6
-)
-
-require (
 	github.com/DataDog/zstd v1.5.6 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.2 // indirect
+	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
@@ -83,6 +79,7 @@ require (
 	github.com/hashicorp/go-bexpr v0.1.14 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/holiman/billy v0.0.0-20240322075458-72a4e81ec6da // indirect
+	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
@@ -134,7 +131,7 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20240913104605-d501a06c0154
+replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20240916105249-e7951db0c00b
 
 replace github.com/Fantom-foundation/lachesis-base => github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20240823114058-cda038e6d40b
 
