@@ -45,7 +45,7 @@ func (s *PublicDAGChainAPI) GetEventPayload(ctx context.Context, shortEventID st
 	if event == nil {
 		return nil, fmt.Errorf("event %s not found", shortEventID)
 	}
-	return inter.RPCMarshalEventPayload(event, inclTx, false)
+	return inter.RPCMarshalEventPayload(event, inclTx)
 }
 
 // GetHeads returns IDs of all the epoch events with no descendants.
