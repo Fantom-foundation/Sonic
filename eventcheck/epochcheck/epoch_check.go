@@ -56,7 +56,19 @@ func CalcGasPowerUsed(e inter.EventPayloadI, rules opera.Rules) uint64 {
 	}
 	extraGas := uint64(len(e.Extra())) * gasCfg.ExtraDataGas
 
-	return txsGas + parentsGas + extraGas + gasCfg.EventGas
+	mpsGas := uint64(len(e.MisbehaviourProofs())) * gasCfg.MisbehaviourProofGas
+
+	bvsGas := uint64(0)
+	if e.BlockVotes().Start != 0 {
+		bvsGas = gasCfg.BlockVotesBaseGas + uint64(len(e.BlockVotes().Votes))*gasCfg.BlockVoteGas
+	}
+
+	ersGas := uint64(0)
+	if e.EpochVote().Epoch != 0 {
+		ersGas = gasCfg.EpochVoteGas
+	}
+
+	return txsGas + parentsGas + extraGas + gasCfg.EventGas + mpsGas + bvsGas + ersGas
 }
 
 func (v *Checker) checkGas(e inter.EventPayloadI, rules opera.Rules) error {
@@ -110,7 +122,13 @@ func (v *Checker) Validate(e inter.EventPayloadI) error {
 	if err := CheckTxs(e.Txs(), rules); err != nil {
 		return err
 	}
-	version := uint8(2)
+
+	version := uint8(0)
+	if rules.Upgrades.Sonic {
+		version = 2
+	} else if rules.Upgrades.Llr {
+		version = 1
+	}
 	if e.Version() != version {
 		return ErrWrongVersion
 	}

@@ -2,7 +2,6 @@ package inter
 
 import (
 	"crypto/sha256"
-
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -29,6 +28,9 @@ type EventI interface {
 	// Payload-related fields
 
 	AnyTxs() bool
+	AnyBlockVotes() bool
+	AnyEpochVote() bool
+	AnyMisbehaviourProofs() bool
 	PayloadHash() hash.Hash
 }
 
@@ -47,20 +49,30 @@ type SignedEventLocator struct {
 	Sig     Signature
 }
 
+func AsSignedEventLocator(e EventPayloadI) SignedEventLocator {
+	return SignedEventLocator{
+		Locator: e.Locator(),
+		Sig:     e.Sig(),
+	}
+}
+
 type EventPayloadI interface {
 	EventI
 	Sig() Signature
 
 	Txs() types.Transactions
+	EpochVote() LlrEpochVote
+	BlockVotes() LlrBlockVotes
+	MisbehaviourProofs() []MisbehaviourProof
 }
 
 var emptyPayloadHash1 = CalcPayloadHash(&MutableEventPayload{extEventData: extEventData{version: 1}})
 
 func EmptyPayloadHash(version uint8) hash.Hash {
-	if version == 0 {
-		return hash.Hash(types.EmptyRootHash)
-	} else {
+	if version == 1 {
 		return emptyPayloadHash1
+	} else {
+		return hash.Hash(types.EmptyRootHash)
 	}
 }
 
@@ -83,6 +95,9 @@ type extEventData struct {
 	extra         []byte
 
 	anyTxs                bool
+	anyBlockVotes         bool
+	anyEpochVote          bool
+	anyMisbehaviourProofs bool
 	payloadHash           hash.Hash
 }
 
@@ -92,6 +107,10 @@ type sigData struct {
 
 type payloadData struct {
 	txs                types.Transactions
+	misbehaviourProofs []MisbehaviourProof
+
+	epochVote  LlrEpochVote
+	blockVotes LlrBlockVotes
 }
 
 type Event struct {
@@ -163,6 +182,12 @@ func (e *extEventData) PayloadHash() hash.Hash { return e.payloadHash }
 
 func (e *extEventData) AnyTxs() bool { return e.anyTxs }
 
+func (e *extEventData) AnyMisbehaviourProofs() bool { return e.anyMisbehaviourProofs }
+
+func (e *extEventData) AnyEpochVote() bool { return e.anyEpochVote }
+
+func (e *extEventData) AnyBlockVotes() bool { return e.anyBlockVotes }
+
 func (e *extEventData) GasPowerLeft() GasPowerLeft { return e.gasPowerLeft }
 
 func (e *extEventData) GasPowerUsed() uint64 { return e.gasPowerUsed }
@@ -170,6 +195,12 @@ func (e *extEventData) GasPowerUsed() uint64 { return e.gasPowerUsed }
 func (e *sigData) Sig() Signature { return e.sig }
 
 func (e *payloadData) Txs() types.Transactions { return e.txs }
+
+func (e *payloadData) MisbehaviourProofs() []MisbehaviourProof { return e.misbehaviourProofs }
+
+func (e *payloadData) BlockVotes() LlrBlockVotes { return e.blockVotes }
+
+func (e *payloadData) EpochVote() LlrEpochVote { return e.epochVote }
 
 func CalcTxHash(txs types.Transactions) hash.Hash {
 	return hash.Hash(types.DeriveSha(txs, trie.NewStackTrie(nil)))
@@ -181,8 +212,18 @@ func CalcReceiptsHash(receipts []*types.ReceiptForStorage) hash.Hash {
 	return hash.BytesToHash(hasher.Sum(nil))
 }
 
+func CalcMisbehaviourProofsHash(mps []MisbehaviourProof) hash.Hash {
+	hasher := sha256.New()
+	_ = rlp.Encode(hasher, mps)
+	return hash.BytesToHash(hasher.Sum(nil))
+}
+
 func CalcPayloadHash(e EventPayloadI) hash.Hash {
-	return CalcTxHash(e.Txs())
+	if e.Version() == 1 {
+		return hash.Of(hash.Of(CalcTxHash(e.Txs()).Bytes(), CalcMisbehaviourProofsHash(e.MisbehaviourProofs()).Bytes()).Bytes(), hash.Of(e.EpochVote().Hash().Bytes(), e.BlockVotes().Hash().Bytes()).Bytes())
+	} else {
+		return CalcTxHash(e.Txs())
+	}
 }
 
 func (e *MutableEventPayload) SetVersion(v uint8) { e.version = v }
@@ -208,6 +249,21 @@ func (e *MutableEventPayload) SetSig(v Signature) { e.sig = v }
 func (e *MutableEventPayload) SetTxs(v types.Transactions) {
 	e.txs = v
 	e.anyTxs = len(v) != 0
+}
+
+func (e *MutableEventPayload) SetMisbehaviourProofs(v []MisbehaviourProof) {
+	e.misbehaviourProofs = v
+	e.anyMisbehaviourProofs = len(v) != 0
+}
+
+func (e *MutableEventPayload) SetBlockVotes(v LlrBlockVotes) {
+	e.blockVotes = v
+	e.anyBlockVotes = len(v.Votes) != 0
+}
+
+func (e *MutableEventPayload) SetEpochVote(v LlrEpochVote) {
+	e.epochVote = v
+	e.anyEpochVote = v.Epoch != 0 && v.Vote != hash.Zero
 }
 
 func calcEventID(h hash.Hash) (id [24]byte) {

@@ -24,6 +24,7 @@ const (
 	berlinBit              = 1 << 0
 	londonBit              = 1 << 1
 	llrBit                 = 1 << 2
+	sonicBit               = 1 << 3
 )
 
 var DefaultVMConfig = func() vm.Config {
@@ -134,6 +135,7 @@ type Upgrades struct {
 	Berlin bool
 	London bool
 	Llr    bool
+	Sonic  bool
 }
 
 type UpgradeHeight struct {
@@ -198,6 +200,7 @@ func FakeNetRules() Rules {
 			Berlin: true,
 			London: true,
 			Llr:    false,
+			Sonic:  true,
 		},
 	}
 }

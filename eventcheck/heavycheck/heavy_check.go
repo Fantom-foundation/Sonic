@@ -21,10 +21,6 @@ var (
 	ErrMalformedTxSig           = errors.New("tx has wrong signature")
 	ErrWrongPayloadHash         = errors.New("event has wrong payload hash")
 	ErrPubkeyChanged            = errors.New("validator pubkey has changed, cannot create BVs/EV for older epochs")
-	ErrUnknownEpochEventLocator = errors.New("event locator has unknown epoch")
-	ErrImpossibleBVsEpoch       = errors.New("BVs have an impossible epoch")
-	ErrUnknownEpochBVs          = errors.New("BVs are unprocessable yet")
-	ErrUnknownEpochEV           = errors.New("EV is unprocessable yet")
 
 	errTerminated = errors.New("terminated") // internal err
 )

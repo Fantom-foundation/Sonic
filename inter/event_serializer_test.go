@@ -2,7 +2,6 @@ package inter
 
 import (
 	"bytes"
-	"encoding/json"
 	"math"
 	"math/big"
 	"math/rand"
@@ -73,9 +72,12 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max.SetTxs(txs)
 
 	ee := map[string]EventPayload{
+		"empty0": emptyEvent(0),
+		"empty1": emptyEvent(1),
 		"empty2": emptyEvent(2),
 		"max":    *max.Build(),
-		"random": *FakeEvent(12),
+		"random1": *FakeEvent(1, 12, 1, 1, true),
+		"random2": *FakeEvent(2, 12, 0, 0, false),
 	}
 
 	t.Run("ok", func(t *testing.T) {
@@ -136,7 +138,7 @@ func BenchmarkEventPayload_EncodeRLP_empty(b *testing.B) {
 }
 
 func BenchmarkEventPayload_EncodeRLP_NoPayload(b *testing.B) {
-	e := FakeEvent(0)
+	e := FakeEvent(2, 0, 0, 0, false)
 
 	b.ResetTimer()
 
@@ -150,7 +152,7 @@ func BenchmarkEventPayload_EncodeRLP_NoPayload(b *testing.B) {
 }
 
 func BenchmarkEventPayload_EncodeRLP(b *testing.B) {
-	e := FakeEvent(1000)
+	e := FakeEvent(2, 1000, 0, 0, false)
 
 	b.ResetTimer()
 
@@ -183,7 +185,7 @@ func BenchmarkEventPayload_DecodeRLP_empty(b *testing.B) {
 }
 
 func BenchmarkEventPayload_DecodeRLP_NoPayload(b *testing.B) {
-	e := FakeEvent(0)
+	e := FakeEvent(2, 0, 0, 0, false)
 	me := MutableEventPayload{}
 
 	buf, err := rlp.EncodeToBytes(&e)
@@ -202,7 +204,7 @@ func BenchmarkEventPayload_DecodeRLP_NoPayload(b *testing.B) {
 }
 
 func BenchmarkEventPayload_DecodeRLP(b *testing.B) {
-	e := FakeEvent(1000)
+	e := FakeEvent(2, 22, 0, 0, false)
 	me := MutableEventPayload{}
 
 	buf, err := rlp.EncodeToBytes(&e)
@@ -218,42 +220,6 @@ func BenchmarkEventPayload_DecodeRLP(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-}
-
-func TestEventRPCMarshaling(t *testing.T) {
-	t.Run("Event", func(t *testing.T) {
-		require := require.New(t)
-		for i := 0; i < 3; i++ {
-			var event0 EventI = &FakeEvent(i).Event
-			mapping := RPCMarshalEvent(event0)
-			bb, err := json.Marshal(mapping)
-			require.NoError(err)
-
-			mapping = make(map[string]interface{})
-			err = json.Unmarshal(bb, &mapping)
-			require.NoError(err)
-			event1 := RPCUnmarshalEvent(mapping)
-
-			require.Equal(event0, event1, i)
-		}
-	})
-
-	t.Run("EventPayload", func(t *testing.T) {
-		require := require.New(t)
-		for i := 0; i < 3; i++ {
-			var event0 = FakeEvent(i)
-			mapping, err := RPCMarshalEventPayload(event0, true, false)
-			require.NoError(err)
-			bb, err := json.Marshal(mapping)
-			require.NoError(err)
-
-			mapping = make(map[string]interface{})
-			err = json.Unmarshal(bb, &mapping)
-
-			event1 := RPCUnmarshalEvent(mapping)
-			require.Equal(&event0.SignedEvent.Event, event1, i)
-		}
-	})
 }
 
 func randBig(r *rand.Rand) *big.Int {
@@ -299,14 +265,15 @@ func randAccessList(r *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
 }
 
 // FakeEvent generates random event for testing purpose.
-func FakeEvent(txsNum int) *EventPayload {
+func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPayload {
 	r := rand.New(rand.NewSource(int64(0)))
 	random := &MutableEventPayload{}
-	random.SetVersion(2)
+	random.SetVersion(version)
 	random.SetNetForkID(uint16(r.Uint32() >> 16))
 	random.SetLamport(1000)
 	random.SetExtra([]byte{byte(r.Uint32())})
 	random.SetSeq(idx.Event(r.Uint32() >> 8))
+	random.SetEpoch(idx.Epoch(1234))
 	random.SetCreator(idx.ValidatorID(r.Uint32()))
 	random.SetFrame(idx.Frame(r.Uint32() >> 16))
 	random.SetCreationTime(Timestamp(r.Uint64()))
@@ -363,12 +330,46 @@ func FakeEvent(txsNum int) *EventPayload {
 			txs = append(txs, tx)
 		}
 	}
-
 	random.SetTxs(txs)
+
+	if version == 1 {
+		mps := []MisbehaviourProof{}
+		for i := 0; i < mpsNum; i++ {
+			// MPs are serialized with RLP, so no need to test extensively
+			mps = append(mps, MisbehaviourProof{
+				EventsDoublesign: &EventsDoublesign{
+					Pair: [2]SignedEventLocator{SignedEventLocator{}, SignedEventLocator{}},
+				},
+				BlockVoteDoublesign: nil,
+				WrongBlockVote:      nil,
+				EpochVoteDoublesign: nil,
+				WrongEpochVote:      nil,
+			})
+		}
+		random.SetMisbehaviourProofs(mps)
+
+		bvs := LlrBlockVotes{}
+		if bvsNum > 0 {
+			bvs.Start = 1 + idx.Block(rand.Intn(1000))
+			bvs.Epoch = 1 + idx.Epoch(rand.Intn(1000))
+		}
+		for i := 0; i < bvsNum; i++ {
+			bvs.Votes = append(bvs.Votes, randHash(r))
+		}
+		random.SetBlockVotes(bvs)
+
+		ers := LlrEpochVote{}
+		if ersNum {
+			ers.Epoch = 1 + idx.Epoch(rand.Intn(1000))
+			ers.Vote = randHash(r)
+		}
+		random.SetEpochVote(ers)
+	}
+
 	random.SetPayloadHash(CalcPayloadHash(random))
 
 	parent := MutableEventPayload{}
-	parent.SetVersion(2)
+	parent.SetVersion(1)
 	parent.SetLamport(random.Lamport() - 500)
 	parent.SetEpoch(random.Epoch())
 	random.SetParents(hash.Events{parent.Build().ID()})
