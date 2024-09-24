@@ -1,13 +1,31 @@
 {
-  "_": "This is a sample JSON genesis file. Opera can run a network defined by it when enabled by --jsongenesis parameter.",
+  "_": "This is a sample JSON genesis file. Use 'sonictool genesis json example-genesis.json' to generate a database from it.",
   "rules": {
-    "networkName": "sample-demonet",
-    "networkId": "0x1234",
-    "MaxBlockGas": 20500000000,
-    "MaxEventGas": 10028000000,
-    "MaxEpochGas": 1500000000000,
-    "ShortGasAllocPerSec": 5600000000000,
-    "LongGasAllocPerSec": 2800000000000
+    "Name": "sample-demonet",
+    "NetworkID": 1234,
+    "Blocks": {
+      "MaxBlockGas": 20500000000
+    },
+    "Economy": {
+      "Gas": {
+        "MaxEventGas": 10028000000
+      },
+      "ShortGasPower": {
+        "AllocPerSec": 5600000000000
+      },
+      "LongGasPower": {
+        "AllocPerSec": 2800000000000
+      }
+    },
+    "Epochs": {
+      "MaxEpochGas": 1500000000000
+    },
+    "Upgrades": {
+      "Berlin": true,
+      "London": true,
+      "Llr": false,
+      "Sonic": true
+    }
   },
   "accounts": [
     {
