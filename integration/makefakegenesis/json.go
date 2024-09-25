@@ -17,26 +17,15 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"os"
 )
 
 type GenesisJson struct {
-	Rules    NetworkRules
+	Rules    opera.Rules
 	Accounts []Account     `json:",omitempty"`
 	Txs      []Transaction `json:",omitempty"`
-}
-
-type NetworkRules struct {
-	NetworkName         string
-	NetworkID           hexutil.Uint64
-	MaxBlockGas         *uint64 `json:",omitempty"`
-	MaxEpochGas         *uint64 `json:",omitempty"`
-	MaxEventGas         *uint64 `json:",omitempty"`
-	LongGasAllocPerSec  *uint64 `json:",omitempty"`
-	ShortGasAllocPerSec *uint64 `json:",omitempty"`
 }
 
 type Account struct {
@@ -59,6 +48,7 @@ func LoadGenesisJson(filename string) (*GenesisJson, error) {
 		return nil, fmt.Errorf("failed to read genesis json file; %v", err)
 	}
 	var decoded GenesisJson
+	decoded.Rules = opera.FakeNetRules() // use fakenet rules as defaults
 	err = json.Unmarshal(data, &decoded)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal genesis json file; %v", err)
@@ -68,6 +58,8 @@ func LoadGenesisJson(filename string) (*GenesisJson, error) {
 
 func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 	builder := makegenesis.NewGenesisBuilder()
+
+	fmt.Printf("Building genesis file - rules: %+v\n", json.Rules)
 
 	for _, acc := range json.Accounts {
 		if acc.Balance != nil {
@@ -81,25 +73,6 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				builder.SetStorage(acc.Address, key, val)
 			}
 		}
-	}
-
-	rules := opera.FakeNetRules()
-	rules.Name = json.Rules.NetworkName
-	rules.NetworkID = uint64(json.Rules.NetworkID)
-	if json.Rules.MaxBlockGas != nil {
-		rules.Blocks.MaxBlockGas = *json.Rules.MaxBlockGas
-	}
-	if json.Rules.MaxEventGas != nil {
-		rules.Economy.Gas.MaxEventGas = *json.Rules.MaxEventGas
-	}
-	if json.Rules.MaxEpochGas != nil {
-		rules.Epochs.MaxEpochGas = *json.Rules.MaxEpochGas
-	}
-	if json.Rules.ShortGasAllocPerSec != nil {
-		rules.Economy.ShortGasPower.AllocPerSec = *json.Rules.ShortGasAllocPerSec
-	}
-	if json.Rules.LongGasAllocPerSec != nil {
-		rules.Economy.LongGasPower.AllocPerSec = *json.Rules.LongGasAllocPerSec
 	}
 
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
@@ -127,7 +100,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
 				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
-				Rules:             rules,
+				Rules:             json.Rules,
 			},
 		},
 		Idx: 1,
@@ -146,8 +119,8 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 
 	return builder.Build(genesis.Header{
 		GenesisID:   builder.CurrentHash(),
-		NetworkID:   uint64(json.Rules.NetworkID),
-		NetworkName: json.Rules.NetworkName,
+		NetworkID:   json.Rules.NetworkID,
+		NetworkName: json.Rules.Name,
 	}), nil
 }
 
