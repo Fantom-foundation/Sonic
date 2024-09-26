@@ -218,22 +218,20 @@ func TxAsMessage(tx *types.Transaction, signer types.Signer, baseFee *big.Int) (
 	if !internaltx.IsInternal(tx) {
 		return core.TransactionToMessage(tx, signer, baseFee)
 	} else {
-		return &core.Message{
-			From:       internaltx.InternalSender(tx),
-			To:         tx.To(),
-			Nonce:      tx.Nonce(),
-			Value:      tx.Value(),
-			GasLimit:   tx.Gas(),
-			GasPrice:   tx.GasPrice(),
-			GasFeeCap:  tx.GasFeeCap(),
-			GasTipCap:  tx.GasTipCap(),
-			Data:       tx.Data(),
-			AccessList: tx.AccessList(),
-			/* // TODO: add support for blob gas and hashes
-			BlobGasFeeCap:     *big.Int,
-			BlobHashes:        []common.Hash,
-			*/
-			SkipAccountChecks: true,
+		return &core.Message{ // internal tx - no signature checking
+			From:              internaltx.InternalSender(tx),
+			To:                tx.To(),
+			Nonce:             tx.Nonce(),
+			Value:             tx.Value(),
+			GasLimit:          tx.Gas(),
+			GasPrice:          tx.GasPrice(),
+			GasFeeCap:         tx.GasFeeCap(),
+			GasTipCap:         tx.GasTipCap(),
+			Data:              tx.Data(),
+			AccessList:        tx.AccessList(),
+			BlobGasFeeCap:     tx.BlobGasFeeCap(),
+			BlobHashes:        tx.BlobHashes(),
+			SkipAccountChecks: true, // don't check sender nonce and being EOA
 		}, nil
 	}
 }
