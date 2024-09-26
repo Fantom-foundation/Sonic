@@ -3,6 +3,7 @@ package gossip
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 	"strconv"
 	"strings"
@@ -163,7 +164,11 @@ func (b *EthAPIBackend) GetFullEventID(shortEventID string) (hash.Event, error) 
 	s := strings.Split(shortEventID, ":")
 	if len(s) == 1 {
 		// it's a full hash
-		return hash.HexToEventHash(shortEventID), nil
+		eventHash, err := hexutil.Decode(shortEventID)
+		if err != nil {
+			return hash.Event{}, errors.Wrap(err, "full hash parsing error")
+		}
+		return hash.Event(hash.BytesToHash(eventHash)), nil
 	}
 	// short hash
 	epoch, lamport, prefix, err := decodeShortEventID(s)
