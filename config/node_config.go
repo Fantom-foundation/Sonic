@@ -194,6 +194,12 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(flags.HTTPPathPrefixFlag.Name) {
 		cfg.HTTPPathPrefix = ctx.GlobalString(flags.HTTPPathPrefixFlag.Name)
 	}
+	if ctx.IsSet(flags.BatchRequestLimit.Name) {
+		cfg.BatchRequestLimit = ctx.Int(flags.BatchRequestLimit.Name)
+	}
+	if ctx.IsSet(flags.BatchResponseMaxSize.Name) {
+		cfg.BatchResponseMaxSize = ctx.Int(flags.BatchResponseMaxSize.Name)
+	}
 }
 
 // setWS creates the WebSocket RPC listener interface string from the set
