@@ -1981,6 +1981,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 	defer statedb.Release()
 
 	txctx := &tracers.Context{
+		BlockHash:   block.Hash,
 		BlockNumber: block.Number,
 		TxIndex:     int(index),
 		TxHash:      hash,
@@ -2104,16 +2105,16 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 
 	var (
 		txs       = block.Transactions
-		blockHash = block.Hash
 		signer    = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 		results   = make([]*txTraceResult, len(txs))
 	)
 	for i, tx := range txs {
 		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
 		txctx := &tracers.Context{
-			BlockHash: blockHash,
-			TxIndex:   i,
-			TxHash:    tx.Hash(),
+			BlockHash:   block.Hash,
+			BlockNumber: block.Number,
+			TxIndex:     i,
+			TxHash:      tx.Hash(),
 		}
 		res, err := api.traceTx(ctx, tx, msg, txctx, block.Header(), statedb, config)
 		if err != nil {
