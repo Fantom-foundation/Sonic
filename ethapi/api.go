@@ -2021,9 +2021,9 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, m
 	evmconfig.Tracer = tracer.Hooks
 	evmconfig.NoBaseFee = true
 
-	evmstore.WrapStateDbWithLogger(statedb, tracer.Hooks)
+	loggingStateDB := evmstore.WrapStateDbWithLogger(statedb, tracer.Hooks)
 
-	vmenv, _, err := api.b.GetEVM(ctx, message, statedb, blockHeader, &evmconfig)
+	vmenv, _, err := api.b.GetEVM(ctx, message, loggingStateDB, blockHeader, &evmconfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get EVM for tracing: %w", err)
 	}
@@ -2046,10 +2046,10 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, m
 	defer cancel()
 
 	// Call SetTxContext to clear out the statedb access list
-	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)
+	loggingStateDB.SetTxContext(txctx.TxHash, txctx.TxIndex)
 
 	// Run the transaction with tracing enabled.
-	_, err = evmcore.ApplyTransactionWithEVM(message, api.b.ChainConfig(), new(evmcore.GasPool).AddGas(message.GasLimit), statedb, blockHeader.Number, txctx.BlockHash, tx, &usedGas, vmenv)
+	_, err = evmcore.ApplyTransactionWithEVM(message, api.b.ChainConfig(), new(evmcore.GasPool).AddGas(message.GasLimit), loggingStateDB, blockHeader.Number, txctx.BlockHash, tx, &usedGas, vmenv)
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
