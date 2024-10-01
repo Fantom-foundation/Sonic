@@ -18,8 +18,9 @@ package evmcore
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"math"
+
+	"github.com/ethereum/go-ethereum/core/tracing"
 
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/core"
