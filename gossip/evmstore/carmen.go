@@ -187,7 +187,7 @@ func (c *CarmenStateDB) SelfDestruct(addr common.Address) {
 }
 
 func (c *CarmenStateDB) Selfdestruct6780(addr common.Address) {
-	panic("not implemented")
+	c.db.SuicideNewContract(cc.Address(addr))
 }
 
 func (c *CarmenStateDB) CreateAccount(addr common.Address) {
