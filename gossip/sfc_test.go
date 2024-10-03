@@ -109,7 +109,7 @@ func TestSFC(t *testing.T) {
 			got, err := env.CodeAt(nil, netinit.ContractAddress, nil)
 			require.NoError(err)
 			require.NotEmpty(exp, "genesis NetworkInitializer contract")
-			require.Empty(got, "genesis NetworkInitializer should be destructed")
+			require.Equal(exp, got, "genesis NetworkInitializer contract") // not destructed after EIP-6780
 			require.Equal(exp, hexutil.MustDecode(netinit100.ContractBinRuntime), "genesis NetworkInitializer contract version")
 		}) &&
 		t.Run("Builtin EvmWriter", func(t *testing.T) {
