@@ -381,7 +381,12 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 		selfParentTime = selfParentHeader.CreationTime()
 	}
 
-	version := uint8(2) // post-LLR event format
+	version := uint8(0)
+	if em.world.GetRules().Upgrades.Sonic {
+		version = 2
+	} else if em.world.GetRules().Upgrades.Llr {
+		version = 1
+	}
 
 	mutEvent := &inter.MutableEventPayload{}
 	mutEvent.SetVersion(version)
