@@ -66,6 +66,7 @@ func (s *Store) WriteUpgradeHeight(bs iblockproc.BlockState, es iblockproc.Epoch
 		s.AddUpgradeHeight(opera.UpgradeHeight{
 			Upgrades: es.Rules.Upgrades,
 			Height:   bs.LastBlock.Idx + 1,
+			Time:     bs.LastBlock.Time + 1,
 		})
 	}
 }
