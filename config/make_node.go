@@ -6,7 +6,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/external"
 	"github.com/ethereum/go-ethereum/accounts/scwallet"
 	"github.com/ethereum/go-ethereum/accounts/usbwallet"
+	"github.com/ethereum/go-ethereum/metrics"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/config/flags"
@@ -21,6 +23,10 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"gopkg.in/urfave/cli.v1"
+)
+
+var (
+	chainInfoGauge = metrics.GetOrRegisterGaugeInfo("chain/info", nil)
 )
 
 func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(), error) {
@@ -149,6 +155,9 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 	stack.RegisterAPIs(svc.APIs())
 	stack.RegisterProtocols(svc.Protocols())
 	stack.RegisterLifecycle(svc)
+
+	rules, _ := gdb.GetEpochRules()
+	chainInfoGauge.Update(metrics.GaugeInfoValue{"chain_id": strconv.FormatUint(rules.NetworkID, 10)})
 
 	success = true // skip cleanup in defer - keep it for the returned cleanup function
 	return stack, svc, func() {
