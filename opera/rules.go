@@ -147,6 +147,7 @@ type Upgrades struct {
 type UpgradeHeight struct {
 	Upgrades Upgrades
 	Height   idx.Block
+	Time     inter.Timestamp
 }
 
 var BaseChainConfig = ethparams.ChainConfig{
@@ -180,12 +181,13 @@ var BaseChainConfig = ethparams.ChainConfig{
 // EvmChainConfig returns ChainConfig for transactions signing and execution
 func (r Rules) EvmChainConfig(hh []UpgradeHeight) *ethparams.ChainConfig {
 	cfg := BaseChainConfig
-	zero := new(uint64)
 	cfg.ChainID = new(big.Int).SetUint64(r.NetworkID)
 	for i, h := range hh {
 		height := new(big.Int)
+		timestamp := new(uint64)
 		if i > 0 {
 			height.SetUint64(uint64(h.Height))
+			*timestamp = uint64(h.Time)
 		}
 		if cfg.BerlinBlock == nil && h.Upgrades.Berlin {
 			cfg.BerlinBlock = height
@@ -206,9 +208,8 @@ func (r Rules) EvmChainConfig(hh []UpgradeHeight) *ethparams.ChainConfig {
 		if cfg.CancunTime == nil && h.Upgrades.Sonic {
 			cfg.ArrowGlacierBlock = height
 			cfg.GrayGlacierBlock = height
-			// enabling with no specified block/time breaks the history replay - should be used only at start of a chain
-			cfg.ShanghaiTime = zero
-			cfg.CancunTime = zero
+			cfg.ShanghaiTime = timestamp
+			cfg.CancunTime = timestamp
 		}
 		if !h.Upgrades.Sonic {
 			// disabling upgrade breaks the history replay - should be never used
