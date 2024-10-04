@@ -36,6 +36,7 @@ var (
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
 	blockExecutionTimer = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
+	blockExecutionNonResettingTimer = metrics.GetOrRegisterTimer("chain/execution/nonresetting", nil)
 	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter    = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
@@ -313,7 +314,9 @@ func consensusCallbackBeginBlockFn(
 					store.EvmStore().SetCachedEvmBlock(blockCtx.Idx, evmBlock)
 
 					// Update the metrics touched during block processing
-					blockExecutionTimer.Update(time.Since(executionStart))
+					executionTime := time.Since(executionStart)
+					blockExecutionTimer.Update(executionTime)
+					blockExecutionNonResettingTimer.Update(executionTime)
 
 					// Update the metrics touched by new block
 					headBlockGauge.Update(int64(blockCtx.Idx))
