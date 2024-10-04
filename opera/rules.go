@@ -162,14 +162,14 @@ var BaseChainConfig = ethparams.ChainConfig{
 	ConstantinopleBlock:           big.NewInt(0),
 	PetersburgBlock:               big.NewInt(0),
 	IstanbulBlock:                 big.NewInt(0),
-	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay
+	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay - relevant for ethereum only
 	BerlinBlock:                   nil, // to be overwritten in EvmChainConfig
 	LondonBlock:                   nil, // to be overwritten in EvmChainConfig
-	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay
-	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb
+	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
+	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
 	MergeNetsplitBlock:            nil,
-	ShanghaiTime:                  nil,
-	CancunTime:                    nil,
+	ShanghaiTime:                  nil, // to be overwritten in EvmChainConfig
+	CancunTime:                    nil, // to be overwritten in EvmChainConfig
 	PragueTime:                    nil,
 	VerkleTime:                    nil,
 	TerminalTotalDifficulty:       nil,
@@ -206,15 +206,11 @@ func (r Rules) EvmChainConfig(hh []UpgradeHeight) *ethparams.ChainConfig {
 		}
 
 		if cfg.CancunTime == nil && h.Upgrades.Sonic {
-			cfg.ArrowGlacierBlock = height
-			cfg.GrayGlacierBlock = height
 			cfg.ShanghaiTime = timestamp
 			cfg.CancunTime = timestamp
 		}
 		if !h.Upgrades.Sonic {
 			// disabling upgrade breaks the history replay - should be never used
-			cfg.ArrowGlacierBlock = nil
-			cfg.GrayGlacierBlock = nil
 			cfg.ShanghaiTime = nil
 			cfg.CancunTime = nil
 		}
