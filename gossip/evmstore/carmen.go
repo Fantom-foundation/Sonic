@@ -269,6 +269,9 @@ func (c *CarmenStateDB) Prepare(rules params.Rules, sender, coinbase common.Addr
 			c.db.AddSlotToAccessList(cc.Address(el.Address), cc.Key(key))
 		}
 	}
+	if rules.IsShanghai {
+		c.db.AddAddressToAccessList(cc.Address(coinbase))
+	}
 }
 
 func (c *CarmenStateDB) AddAddressToAccessList(addr common.Address) {
