@@ -24,13 +24,16 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
@@ -313,6 +316,115 @@ func testSetNonce(pool *TxPool, addr common.Address, nonce uint64) {
 	pool.mu.Lock()
 	pool.currentState.(*testTxPoolStateDb).nonces[addr] = nonce
 	pool.mu.Unlock()
+}
+
+// TestEIP4844Transactions tests validation of the blob transaction
+// when adding it to a transaction pool.
+func TestEIP4844Transactions(t *testing.T) {
+
+	pool, key := setupTxPool()
+	pool.reset(nil, nil)
+	defer pool.Stop()
+
+	// get the chain id
+	chainId := params.TestChainConfig.ChainID
+
+	// get sender address and put balance on it
+	from := crypto.PubkeyToAddress(key.PublicKey)
+	balance := new(big.Int)
+	balance.SetString("10000000000000000000000000000", 10)
+	testAddBalance(pool, from, balance)
+
+	tests := []struct {
+		name   string
+		txData string
+		err    error
+	}{
+		{"empty blob tx", "", nil},
+		{"blob tx with data", common.Address{1}.String(), ErrTxTypeNotSupported},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			tx, err := createTestBlobTransaction(chainId, test.txData)
+			if err != nil {
+				t.Fatalf("could not create blob tx: %v", err)
+			}
+
+			signedTx, err := types.SignTx(tx, types.NewCancunSigner(chainId), key)
+			if err != nil {
+				t.Fatalf("could not sign tx: %v", err)
+			}
+
+			_, err = pool.add(signedTx, false)
+
+			if err != test.err {
+				t.Fatalf("expected error %v, got %v", test.err, err)
+			}
+		})
+	}
+}
+
+func createTestBlobTransaction(chainId *big.Int, data string) (*types.Transaction, error) {
+
+	var (
+		sidecar    *types.BlobTxSidecar // The sidecar contains the blob data
+		blobHashes []common.Hash
+	)
+
+	if len(data) > 0 {
+
+		// Ensure the data has the '0x' prefix
+		if !strings.HasPrefix(data, "0x") {
+			data = "0x" + data
+		}
+		// Decode the hex-encoded data
+		bytesData, err := hexutil.Decode(data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode data: %s", err)
+		}
+
+		var Blob kzg4844.Blob // Define a blob array to hold the large data payload, blobs are 128kb in length
+		copy(Blob[:], bytesData)
+
+		// Compute the commitment for the blob data using KZG4844 cryptographic algorithm
+		BlobCommitment, err := kzg4844.BlobToCommitment(&Blob)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute blob commitment: %s", err)
+		}
+
+		// Compute the proof for the blob data, which will be used to verify the transaction
+		BlobProof, err := kzg4844.ComputeBlobProof(&Blob, BlobCommitment)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute blob proof: %s", err)
+		}
+
+		//Prepare the sidecar data for the transaction, which includes the blob and its cryptographic proof
+		sidecar = &types.BlobTxSidecar{
+			Blobs:       []kzg4844.Blob{Blob},
+			Commitments: []kzg4844.Commitment{BlobCommitment},
+			Proofs:      []kzg4844.Proof{BlobProof},
+		}
+
+		// Get blob hashes from the sidecar
+		blobHashes = sidecar.BlobHashes()
+	}
+
+	// Create and return transaction with the blob data and cryptographic proofs
+	return types.NewTx(&types.BlobTx{
+		ChainID:    uint256.MustFromBig(chainId),
+		Nonce:      0,
+		GasTipCap:  uint256.NewInt(1e10),  // max priority fee per gas
+		GasFeeCap:  uint256.NewInt(50e10), // max fee per gas
+		Gas:        250000,                // gas limit for the transaction
+		To:         common.Address{},      // recipient's address
+		Value:      uint256.NewInt(0),     // value transferred in the transaction
+		Data:       nil,                   // No additional data is sent in this transaction
+		BlobFeeCap: uint256.NewInt(3e10),  // fee cap for the blob data
+		BlobHashes: blobHashes,            // blob hashes in the transaction
+		Sidecar:    sidecar,               // sidecar data in the transaction
+	}), nil
 }
 
 func TestInvalidTransactions(t *testing.T) {
