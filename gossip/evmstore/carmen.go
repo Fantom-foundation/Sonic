@@ -200,7 +200,7 @@ func (c *CarmenStateDB) CreateAccount(addr common.Address) {
 }
 
 func (c *CarmenStateDB) CreateContract(addr common.Address) {
-	c.db.CreateAccount(cc.Address(addr))
+	c.db.CreateContract(cc.Address(addr))
 }
 
 func (c *CarmenStateDB) Copy() state.StateDB {
