@@ -322,8 +322,11 @@ func testSetNonce(pool *TxPool, addr common.Address, nonce uint64) {
 // when adding it to a transaction pool.
 func TestEIP4844Transactions(t *testing.T) {
 
-	pool, key := setupTxPool()
-	pool.reset(nil, nil)
+	configCopy := *params.TestChainConfig
+	testConfig := &configCopy
+
+	// initialize the pool
+	pool, key := setupTxPoolWithConfig(testConfig)
 	defer pool.Stop()
 
 	// get the chain id
@@ -338,14 +341,23 @@ func TestEIP4844Transactions(t *testing.T) {
 	tests := []struct {
 		name   string
 		txData string
+		cancun bool
 		err    error
 	}{
-		{"empty blob tx", "", nil},
-		{"blob tx with data", common.Address{1}.String(), ErrTxTypeNotSupported},
+		{"blob tx before cancun", common.Address{1}.String(), false, ErrTxTypeNotSupported},
+		{"empty blob tx", "", true, nil},
+		{"blob tx with data", common.Address{1}.String(), true, ErrTxTypeNotSupported},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+
+			if test.cancun {
+				testConfig.CancunTime = new(uint64)
+			} else {
+				testConfig.CancunTime = nil
+			}
+			pool.reset(nil, nil)
 
 			tx, err := createTestBlobTransaction(chainId, test.txData)
 			if err != nil {
