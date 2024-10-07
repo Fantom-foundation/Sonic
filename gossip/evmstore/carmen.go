@@ -118,12 +118,12 @@ func (c *CarmenStateDB) GetCodeHash(addr common.Address) common.Hash {
 	return common.Hash(c.db.GetCodeHash(cc.Address(addr)))
 }
 
-func (c *CarmenStateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
-	return common.Hash(c.db.GetState(cc.Address(addr), cc.Key(hash)))
+func (c *CarmenStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
+	return common.Hash(c.db.GetState(cc.Address(addr), cc.Key(key)))
 }
 
 func (c *CarmenStateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
-	panic("not implemented")
+	return common.Hash(c.db.GetTransientState(cc.Address(addr), cc.Key(key)))
 }
 
 func (c *CarmenStateDB) GetProof(addr common.Address, keys []common.Hash) (witness.Proof, error) {
@@ -158,8 +158,13 @@ func (c *CarmenStateDB) SubBalance(addr common.Address, value *uint256.Int, reas
 	c.db.SubBalance(cc.Address(addr), amount.NewFromUint256(value))
 }
 
-func (c *CarmenStateDB) SetBalance(addr common.Address, amount *uint256.Int) {
-	panic("not supported")
+func (c *CarmenStateDB) SetBalance(addr common.Address, balance *uint256.Int) {
+	origBalance := c.db.GetBalance(cc.Address(addr)).Uint256()
+	if origBalance.Cmp(balance) < 0 {
+		c.db.AddBalance(cc.Address(addr), amount.NewFromUint256(new(uint256.Int).Sub(balance, &origBalance)))
+	} else {
+		c.db.SubBalance(cc.Address(addr), amount.NewFromUint256(new(uint256.Int).Sub(&origBalance, balance)))
+	}
 }
 
 func (c *CarmenStateDB) SetNonce(addr common.Address, nonce uint64) {
@@ -175,7 +180,7 @@ func (c *CarmenStateDB) SetState(addr common.Address, key, value common.Hash) {
 }
 
 func (c *CarmenStateDB) SetTransientState(addr common.Address, key, value common.Hash) {
-	panic("not implemented")
+	c.db.SetTransientState(cc.Address(addr), cc.Key(key), cc.Value(value))
 }
 
 func (c *CarmenStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
@@ -196,10 +201,6 @@ func (c *CarmenStateDB) CreateAccount(addr common.Address) {
 
 func (c *CarmenStateDB) CreateContract(addr common.Address) {
 	c.db.CreateAccount(cc.Address(addr))
-}
-
-func (c *CarmenStateDB) ForEachStorage(addr common.Address, cb func(key common.Hash, value common.Hash) bool) error {
-	panic("not supported")
 }
 
 func (c *CarmenStateDB) Copy() state.StateDB {
