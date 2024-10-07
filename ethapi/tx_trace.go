@@ -180,7 +180,7 @@ func (s *PublicTxTraceAPI) replayBlock(ctx context.Context, block *evmcore.EvmBl
 				return nil, fmt.Errorf("cannot initialize vm for transaction %s, error: %s", tx.Hash().String(), err.Error())
 			}
 
-			res, err := evmcore.ApplyMessage(vmenv, msg, new(evmcore.GasPool).AddGas(msg.GasLimit))
+			res, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit))
 			failed := false
 			if err != nil {
 				failed = true
@@ -251,7 +251,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	}()
 
 	// Setup the gas pool and stateDB
-	gp := new(evmcore.GasPool).AddGas(msg.GasLimit)
+	gp := new(core.GasPool).AddGas(msg.GasLimit)
 	state.SetTxContext(tx.Hash(), int(index))
 	resultReceipt, err := evmcore.ApplyTransactionWithEVM(msg, b.ChainConfig(), gp, state, header.Number, block.Hash, tx, &index, vmenv)
 

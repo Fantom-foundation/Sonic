@@ -5,11 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"io"
 	"math/big"
 	"os"
 	"path/filepath"
+
+	"github.com/ethereum/go-ethereum/core/tracing"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
@@ -140,6 +141,7 @@ func (d dummyHeaderReturner) GetHeader(common.Hash, uint64) *evmcore.EvmHeader {
 
 func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types.Transactions) error {
 	bs, es := b.currentEpoch.BlockState.Copy(), b.currentEpoch.EpochState.Copy()
+	es.Rules.Economy.MinGasPrice = big.NewInt(0) // < needed since genesis transactions us gas price 0
 
 	blockCtx := iblockproc.BlockCtx{
 		Idx:     bs.LastBlock.Idx + 1,

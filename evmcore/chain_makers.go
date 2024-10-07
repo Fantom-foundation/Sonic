@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
@@ -40,7 +41,7 @@ type BlockGen struct {
 	header  *EvmHeader
 	statedb state.StateDB
 
-	gasPool  *GasPool
+	gasPool  *core.GasPool
 	txs      []*types.Transaction
 	receipts []*types.Receipt
 
@@ -65,7 +66,7 @@ func (b *BlockGen) SetCoinbase(addr common.Address) {
 		panic("coinbase can only be set once")
 	}
 	b.header.Coinbase = addr
-	b.gasPool = new(GasPool).AddGas(b.header.GasLimit)
+	b.gasPool = new(core.GasPool).AddGas(b.header.GasLimit)
 }
 
 // AddTx adds a transaction to the generated block. If no coinbase has
