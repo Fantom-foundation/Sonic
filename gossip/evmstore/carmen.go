@@ -248,9 +248,8 @@ func (c *CarmenStateDB) EndBlock(number uint64) {
 	}
 }
 
-func (c *CarmenStateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
-	// get state hash only
-	return common.Hash(c.db.GetHash()), nil
+func (c *CarmenStateDB) GetStateHash() common.Hash {
+	return common.Hash(c.db.GetHash())
 }
 
 func (c *CarmenStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
