@@ -20,12 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	"github.com/Fantom-foundation/Carmen/go/common/immutable"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	bip39 "github.com/tyler-smith/go-bip39"
-	"math/big"
-	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
@@ -1674,7 +1675,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	} // Print a log with full tx details for manual investigations and interventions
-	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number, 0 /*timestamp*/))
+	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number, uint64(b.CurrentBlock().Time.Unix())))
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -2104,9 +2105,9 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 	defer statedb.Release()
 
 	var (
-		txs       = block.Transactions
-		signer    = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
-		results   = make([]*txTraceResult, len(txs))
+		txs     = block.Transactions
+		signer  = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
+		results = make([]*txTraceResult, len(txs))
 	)
 	for i, tx := range txs {
 		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)

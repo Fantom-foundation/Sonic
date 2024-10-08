@@ -257,6 +257,7 @@ type TxPool struct {
 	istanbul bool // Fork indicator whether we are in the istanbul stage.
 	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
 	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
+	eip4844  bool // Fork indicator whether we are using EIP-4844 type transactions.
 
 	currentState  TxPoolStateDB // Current state in the blockchain head
 	pendingNonces *txNoncer     // Pending state tracking virtual nonces
@@ -655,6 +656,18 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if !pool.eip1559 && tx.Type() == types.DynamicFeeTxType {
 		return ErrTxTypeNotSupported
 	}
+
+	// Reject blob transactions until EIP-4844 activates or if is already EIP-4844 and they are not empty
+	if !pool.eip4844 && tx.Type() == types.BlobTxType {
+		return ErrTxTypeNotSupported
+	} else if pool.eip4844 && tx.Type() == types.BlobTxType {
+		if len(tx.BlobHashes()) > 0 ||
+			(tx.BlobTxSidecar() != nil && len(tx.BlobTxSidecar().BlobHashes()) > 0) {
+
+			return ErrTxTypeNotSupported
+		}
+	}
+
 	// Reject transactions over defined size to prevent DOS attacks
 	if uint64(tx.Size()) > txMaxSize {
 		return ErrOversizedData
@@ -1404,6 +1417,7 @@ func (pool *TxPool) reset(oldHead, newHead *EvmHeader) {
 	pool.istanbul = pool.chainconfig.IsIstanbul(next)
 	pool.eip2718 = pool.chainconfig.IsBerlin(next)
 	pool.eip1559 = pool.chainconfig.IsLondon(next)
+	pool.eip4844 = pool.chainconfig.IsCancun(next, uint64(newHead.Time.Unix()))
 }
 
 // promoteExecutables moves transactions that have become processable from the
