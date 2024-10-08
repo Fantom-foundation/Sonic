@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-killall sonicd
+killall demo_sonicd
