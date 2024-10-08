@@ -343,6 +343,6 @@ func DefaultNodeConfig() node.Config {
 	cfg.Version = version.VersionWithCommit(GitCommit, GitDate)
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ftm", "dag", "abft", "web3")
 	cfg.WSModules = append(cfg.WSModules, "eth", "ftm", "dag", "abft", "web3")
-	cfg.IPCPath = "opera.ipc"
+	cfg.IPCPath = "sonic.ipc"
 	return cfg
 }
