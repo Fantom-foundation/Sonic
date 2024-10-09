@@ -21,28 +21,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/Carmen/go/state/gostate"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/triedb"
-	"github.com/ethereum/go-ethereum/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/triedb/pathdb"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
@@ -195,8 +193,8 @@ func (t *StateTest) checkError(subtest StateSubtest, err error) error {
 }
 
 // Run executes a specific subtest and verifies the post-state and logs
-func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, snapshotter bool, scheme string, postCheck func(err error, st *StateTestState)) (result error) {
-	st, root, err := t.RunNoVerify(subtest, vmconfig, snapshotter, scheme)
+func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, postCheck func(err error, st *StateTestState)) (result error) {
+	st, root, err := t.RunNoVerify(subtest, vmconfig)
 	// Invoke the callback at the end of function for further analysis.
 	defer func() {
 		postCheck(result, &st)
@@ -222,13 +220,12 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, snapshotter bo
 	if logs := rlpHash(st.StateDB.Logs()); logs != common.Hash(post.Logs) {
 		return fmt.Errorf("post state logs hash mismatch: got %x, want %x", logs, post.Logs)
 	}
-	st.StateDB, _ = state.New(root, st.StateDB.Database())
 	return nil
 }
 
 // RunNoVerify runs a specific subtest and returns the statedb and post-state root.
 // Remember to call state.Close after verifying the test result!
-func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapshotter bool, scheme string) (st StateTestState, root common.Hash, err error) {
+func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config) (st StateTestState, root common.Hash, err error) {
 	config, eips, err := GetChainConfig(subtest.Fork)
 	if err != nil {
 		return st, common.Hash{}, UnsupportedForkError{subtest.Fork}
@@ -236,7 +233,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	vmconfig.ExtraEips = eips
 
 	block := t.genesis(config).ToBlock()
-	st = MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter, scheme)
+	st = MakePreState(t.json.Pre)
 
 	var baseFee *big.Int
 	if config.IsLondon(new(big.Int)) {
@@ -317,7 +314,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	st.StateDB.AddBalance(block.Coinbase(), new(uint256.Int), tracing.BalanceChangeUnspecified)
 
 	// Commit state mutations into database.
-	root, _ = st.StateDB.Commit(block.NumberU64(), config.IsEIP158(block.Number()))
+	root, _ = st.StateDB.Commit(config.IsEIP158(block.Number()))
 	if tracer := evm.Config.Tracer; tracer != nil && tracer.OnTxEnd != nil {
 		receipt := &types.Receipt{GasUsed: vmRet.UsedGas}
 		tracer.OnTxEnd(receipt, nil)
@@ -448,59 +445,54 @@ func vmTestBlockHash(n uint64) common.Hash {
 
 // StateTestState groups all the state database objects together for use in tests.
 type StateTestState struct {
-	StateDB   *state.StateDB
-	TrieDB    *triedb.Database
-	Snapshots *snapshot.Tree
+	StateDB state.StateDB
+	close   func() error
 }
 
 // MakePreState creates a state containing the given allocation.
-func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bool, scheme string) StateTestState {
-	tconf := &triedb.Config{Preimages: true}
-	if scheme == rawdb.HashScheme {
-		tconf.HashDB = hashdb.Defaults
-	} else {
-		tconf.PathDB = pathdb.Defaults
+func MakePreState(accounts types.GenesisAlloc) StateTestState {
+	dir, err := os.MkdirTemp("", "eth-tests-db-*")
+	if err != nil {
+		panic(fmt.Sprintf("cannot create temporary directory: %v", err))
 	}
-	triedb := triedb.NewDatabase(db, tconf)
-	sdb := state.NewDatabase(triedb, nil)
-	statedb, _ := state.New(types.EmptyRootHash, sdb)
+
+	parameters := carmen.Parameters{
+		Variant:   gostate.VariantGoMemory,
+		Schema:    carmen.Schema(5),
+		Archive:   carmen.NoArchive,
+		Directory: dir,
+	}
+
+	st, err := carmen.NewState(parameters)
+	if err != nil {
+		panic(fmt.Sprintf("cannot create state: %v", err))
+	}
+
+	carmenstatedb := carmen.CreateCustomStateDBUsing(st, 1024)
+	statedb := evmstore.CreateCarmenStateDb(carmenstatedb)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)
-		statedb.SetBalance(addr, uint256.MustFromBig(a.Balance), tracing.BalanceChangeUnspecified)
+		statedb.AddBalance(addr, uint256.MustFromBig(a.Balance), tracing.BalanceChangeUnspecified)
 		for k, v := range a.Storage {
 			statedb.SetState(addr, k, v)
 		}
 	}
 	// Commit and re-open to start with a clean state.
-	root, _ := statedb.Commit(0, false)
-
-	// If snapshot is requested, initialize the snapshotter and use it in state.
-	var snaps *snapshot.Tree
-	if snapshotter {
-		snapconfig := snapshot.Config{
-			CacheSize:  1,
-			Recovery:   false,
-			NoBuild:    false,
-			AsyncBuild: false,
-		}
-		snaps, _ = snapshot.New(snapconfig, db, triedb, root)
+	if _, err := statedb.Commit(false); err != nil {
+		panic(fmt.Sprintf("cannot commit state: %v", err))
 	}
-	sdb = state.NewDatabase(triedb, snaps)
-	statedb, _ = state.New(root, sdb)
-	return StateTestState{statedb, triedb, snaps}
+
+	return StateTestState{statedb, func() error {
+		return errors.Join(
+			st.Close(),
+			os.RemoveAll(dir))
+	}}
 }
 
 // Close should be called when the state is no longer needed, ie. after running the test.
 func (st *StateTestState) Close() {
-	if st.TrieDB != nil {
-		st.TrieDB.Close()
-		st.TrieDB = nil
-	}
-	if st.Snapshots != nil {
-		// Need to call Disable here to quit the snapshot generator goroutine.
-		st.Snapshots.Disable()
-		st.Snapshots.Release()
-		st.Snapshots = nil
+	if err := st.close(); err != nil {
+		panic(fmt.Sprintf("cannot close state: %v", err))
 	}
 }

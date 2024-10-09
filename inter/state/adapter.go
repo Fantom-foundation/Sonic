@@ -13,6 +13,7 @@ type StateDB interface {
 
 	Error() error
 	GetLogs(hash common.Hash, blockHash common.Hash) []*types.Log
+	Logs() []*types.Log
 	SetTxContext(thash common.Hash, ti int)
 	TxIndex() int
 	GetProof(addr common.Address, keys []common.Hash) (witness.Proof, error)

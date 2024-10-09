@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -31,7 +30,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
@@ -107,67 +105,10 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
-		// If -short flag is used, we don't execute all four permutations, only
-		// one.
-		executionMask := 0xf
-		if testing.Short() {
-			executionMask = (1 << (rand.Int63() & 4))
-		}
-		t.Run(key+"/hash/trie", func(t *testing.T) {
-			if executionMask&0x1 == 0 {
-				t.Skip("test (randomly) skipped due to short-tag")
-			}
+		t.Run(key, func(t *testing.T) {
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
-				test.Run(subtest, vmconfig, false, rawdb.HashScheme, func(err error, state *StateTestState) {
-					result = st.checkFailure(t, err)
-				})
-				return result
-			})
-		})
-		t.Run(key+"/hash/snap", func(t *testing.T) {
-			if executionMask&0x2 == 0 {
-				t.Skip("test (randomly) skipped due to short-tag")
-			}
-			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
-				var result error
-				test.Run(subtest, vmconfig, true, rawdb.HashScheme, func(err error, state *StateTestState) {
-					if state.Snapshots != nil && state.StateDB != nil {
-						if _, err := state.Snapshots.Journal(state.StateDB.IntermediateRoot(false)); err != nil {
-							result = err
-							return
-						}
-					}
-					result = st.checkFailure(t, err)
-				})
-				return result
-			})
-		})
-		t.Run(key+"/path/trie", func(t *testing.T) {
-			if executionMask&0x4 == 0 {
-				t.Skip("test (randomly) skipped due to short-tag")
-			}
-			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
-				var result error
-				test.Run(subtest, vmconfig, false, rawdb.PathScheme, func(err error, state *StateTestState) {
-					result = st.checkFailure(t, err)
-				})
-				return result
-			})
-		})
-		t.Run(key+"/path/snap", func(t *testing.T) {
-			if executionMask&0x8 == 0 {
-				t.Skip("test (randomly) skipped due to short-tag")
-			}
-			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
-				var result error
-				test.Run(subtest, vmconfig, true, rawdb.PathScheme, func(err error, state *StateTestState) {
-					if state.Snapshots != nil && state.StateDB != nil {
-						if _, err := state.Snapshots.Journal(state.StateDB.IntermediateRoot(false)); err != nil {
-							result = err
-							return
-						}
-					}
+				test.Run(subtest, vmconfig, func(err error, state *StateTestState) {
 					result = st.checkFailure(t, err)
 				})
 				return result
@@ -266,7 +207,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 
 			vmconfig.ExtraEips = eips
 			block := t.genesis(config).ToBlock()
-			state := MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, false, rawdb.HashScheme)
+			state := MakePreState(t.json.Pre)
 			defer state.Close()
 
 			var baseFee *big.Int
