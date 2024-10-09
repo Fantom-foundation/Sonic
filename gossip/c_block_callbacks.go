@@ -200,6 +200,7 @@ func consensusCallbackBeginBlockFn(
 						store.AddUpgradeHeight(opera.UpgradeHeight{
 							Upgrades: es.Rules.Upgrades,
 							Height:   blockCtx.Idx + 1,
+							Time:     blockCtx.Time + 1,
 						})
 					}
 					store.SetBlockEpochState(bs, es)

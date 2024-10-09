@@ -22,7 +22,7 @@ type StateDB interface {
 	SetStorage(addr common.Address, storage map[common.Hash]common.Hash)
 	Copy() StateDB
 	Finalise()
-	Commit(deleteEmptyObjects bool) (common.Hash, error)
+	GetStateHash() common.Hash
 
 	BeginBlock(number uint64)
 	EndBlock(number uint64)
