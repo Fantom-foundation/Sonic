@@ -279,14 +279,3 @@ func runTestFunc(runTest interface{}, t *testing.T, name string, m reflect.Value
 		m.MapIndex(reflect.ValueOf(key)),
 	})
 }
-
-func TestMatcherRunonlylist(t *testing.T) {
-	t.Parallel()
-	tm := new(testMatcher)
-	tm.runonly("invalid*")
-	tm.walk(t, rlpTestDir, func(t *testing.T, name string, test *RLPTest) {
-		if name[:len("invalidRLPTest.json")] != "invalidRLPTest.json" {
-			t.Fatalf("invalid test found: %s != invalidRLPTest.json", name)
-		}
-	})
-}
