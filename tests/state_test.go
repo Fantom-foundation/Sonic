@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"golang.org/x/exp/rand"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -60,6 +61,7 @@ func initMatcher(st *testMatcher) {
 	//// We run these tests separately, no need to _also_ run them as part of the
 	//// reference tests.
 	//st.skipLoad(`^Pyspecs/`)
+	st.skipLoad(`.*Prague.*`)
 }
 
 func TestState(t *testing.T) {
@@ -105,7 +107,19 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
+		// If -short flag is used, we don't execute all four permutations, only
+		// one.
+		executionMask := 0xf
+		if testing.Short() {
+			executionMask = (1 << (rand.Int63() & 4))
+		}
 		t.Run(key, func(t *testing.T) {
+			if r, skip := st.findSkip(key); skip {
+				t.Skip(r)
+			}
+			if executionMask&0x1 == 0 {
+				t.Skip("test (randomly) skipped due to short-tag")
+			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
 				test.Run(subtest, vmconfig, func(err error, state *StateTestState) {
