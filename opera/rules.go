@@ -47,6 +47,12 @@ var DefaultVMConfig = func() vm.Config {
 		},
 		Interpreter:           lfvmFactory,
 		InterpreterForTracing: gethFactory,
+
+		// Fantom/Sonic modifications
+		ChargeExcessGas:                 true,
+		IgnoreGasFeeCap:                 true,
+		InsufficientBalanceIsNotAnError: true,
+		SkipTipPaymentToCoinbase:        true,
 	}
 }()
 

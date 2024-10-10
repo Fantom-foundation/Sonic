@@ -63,7 +63,7 @@ func (p *StateProcessor) Process(
 ) {
 	skipped = make([]uint32, 0, len(block.Transactions))
 	var (
-		gp           = new(GasPool).AddGas(block.GasLimit)
+		gp           = new(core.GasPool).AddGas(block.GasLimit)
 		receipt      *types.Receipt
 		skip         bool
 		header       = block.Header()
@@ -100,7 +100,7 @@ func (p *StateProcessor) Process(
 // ApplyTransactionWithEVM attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment similar to ApplyTransaction. However,
 // this method takes an already created EVM instance as input.
-func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *GasPool, statedb state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (receipt *types.Receipt, err error) {
+func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *core.GasPool, statedb state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (receipt *types.Receipt, err error) {
 	if evm.Config.Tracer != nil && evm.Config.Tracer.OnTxStart != nil {
 		evm.Config.Tracer.OnTxStart(evm.GetVMContext(), tx, msg.From)
 		if evm.Config.Tracer.OnTxEnd != nil {
@@ -114,7 +114,7 @@ func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *
 	evm.Reset(txContext, statedb)
 
 	// Apply the transaction to the current state (included in the env).
-	result, err := ApplyMessage(evm, msg, gp)
+	result, err := core.ApplyMessage(evm, msg, gp)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *
 func applyTransaction(
 	msg *core.Message,
 	config *params.ChainConfig,
-	gp *GasPool,
+	gp *core.GasPool,
 	statedb state.StateDB,
 	blockNumber *big.Int,
 	blockHash common.Hash,
@@ -175,7 +175,7 @@ func applyTransaction(
 	evm.Reset(txContext, statedb)
 
 	// Apply the transaction to the current state (included in the env).
-	result, err := ApplyMessage(evm, msg, gp)
+	result, err := core.ApplyMessage(evm, msg, gp)
 	if err != nil {
 		return nil, 0, result == nil, err
 	}

@@ -5,12 +5,13 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"math"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ethereum/go-ethereum/core/tracing"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -427,6 +428,12 @@ func (env *testEnv) callContract(
 	if call.Value == nil {
 		call.Value = new(big.Int)
 	}
+	if call.GasFeeCap == nil {
+		call.GasFeeCap = big.NewInt(math.MaxInt)
+	}
+	if call.GasTipCap == nil {
+		call.GasTipCap = big.NewInt(math.MaxInt)
+	}
 	// Set infinite balance to the fake caller account.
 	state.AddBalance(call.From, uint256.NewInt(math.MaxInt64), tracing.BalanceIncreaseGenesisBalance)
 
@@ -437,8 +444,11 @@ func (env *testEnv) callContract(
 	txContext := evmcore.NewEVMTxContext(msg)
 	context := evmcore.NewEVMBlockContext(block.Header(), env.GetEvmStateReader(), nil)
 	vmenv := vm.NewEVM(context, txContext, state, env.store.GetEvmChainConfig(), opera.DefaultVMConfig)
-	gaspool := new(evmcore.GasPool).AddGas(math.MaxUint64)
-	res, err := evmcore.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
+	gaspool := new(core.GasPool).AddGas(math.MaxUint64)
+	res, err := core.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
+	if err != nil {
+		return nil, 0, false, err
+	}
 
 	ret, usedGas, failed = res.Return(), res.UsedGas, res.Failed()
 	return
@@ -511,7 +521,7 @@ func (env *testEnv) SubscribeFilterLogs(ctx context.Context, query ethereum.Filt
 }
 
 // CallMsgToMessage converts the given CallMsg to an evmcore.Message to allow passing it as a transaction simulator.
-func CallMsgToMessage(msg ethereum.CallMsg) evmcore.Message {
+func CallMsgToMessage(msg ethereum.CallMsg) *core.Message {
 	return &core.Message{
 		From:              msg.From,
 		To:                msg.To,
