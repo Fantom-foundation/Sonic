@@ -314,7 +314,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config) (st St
 	st.StateDB.AddBalance(block.Coinbase(), new(uint256.Int), tracing.BalanceChangeUnspecified)
 
 	// Commit state mutations into database.
-	root, _ = st.StateDB.Commit(config.IsEIP158(block.Number()))
+	root = st.StateDB.GetStateHash()
 	if tracer := evm.Config.Tracer; tracer != nil && tracer.OnTxEnd != nil {
 		receipt := &types.Receipt{GasUsed: vmRet.UsedGas}
 		tracer.OnTxEnd(receipt, nil)
@@ -477,10 +477,6 @@ func MakePreState(accounts types.GenesisAlloc) StateTestState {
 		for k, v := range a.Storage {
 			statedb.SetState(addr, k, v)
 		}
-	}
-	// Commit and re-open to start with a clean state.
-	if _, err := statedb.Commit(false); err != nil {
-		panic(fmt.Sprintf("cannot commit state: %v", err))
 	}
 
 	return StateTestState{statedb, func() error {
