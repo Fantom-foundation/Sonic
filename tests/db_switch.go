@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"errors"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
@@ -11,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"io"
-	"os"
 )
 
 type stateDb interface {
@@ -20,6 +18,7 @@ type stateDb interface {
 
 	Logs() []*types.Log
 	Commit() (stateRootHash common.Hash)
+	Reopen()
 }
 
 type carmenDb struct {
@@ -29,12 +28,7 @@ type carmenDb struct {
 	dir string
 }
 
-func newCarmenDb() (stateDb, error) {
-	dir, err := os.MkdirTemp("", "eth-tests-db-*")
-	if err != nil {
-		return nil, err
-	}
-
+func newCarmenDb(dir string) (stateDb, error) {
 	parameters := carmen.Parameters{
 		Variant:   gostate.VariantGoMemory,
 		Schema:    carmen.Schema(5),
@@ -59,10 +53,7 @@ func newCarmenDb() (stateDb, error) {
 }
 
 func (db *carmenDb) Close() error {
-	return errors.Join(
-		db.st.Close(),
-		os.RemoveAll(db.dir),
-	)
+	return db.st.Close()
 }
 
 func (db *carmenDb) Logs() []*types.Log {
@@ -75,9 +66,18 @@ func (db *carmenDb) Commit() common.Hash {
 	return db.db.GetStateHash()
 }
 
+func (db *carmenDb) Reopen() {
+	carmenstatedb := carmen.CreateCustomStateDBUsing(db.st, 1024)
+	statedb := evmstore.CreateCarmenStateDb(carmenstatedb)
+
+	db.StateDB = statedb
+	db.db = statedb.(*evmstore.CarmenStateDB)
+}
+
 type gethDb struct {
 	vm.StateDB
-	db *state.StateDB
+	db  *state.StateDB
+	sdb state.Database
 }
 
 func newGethDb() (stateDb, error) {
@@ -87,6 +87,7 @@ func newGethDb() (stateDb, error) {
 	return &gethDb{
 		StateDB: statedb,
 		db:      statedb,
+		sdb:     sdb,
 	}, nil
 }
 
@@ -101,4 +102,12 @@ func (db *gethDb) Logs() []*types.Log {
 func (db *gethDb) Commit() common.Hash {
 	root, _ := db.db.Commit(1, true)
 	return root
+}
+
+func (db *gethDb) Reopen() {
+	root := db.Commit()
+	statedb, _ := state.New(root, db.sdb, nil)
+
+	db.StateDB = statedb
+	db.db = statedb
 }

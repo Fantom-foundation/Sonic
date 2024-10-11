@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -40,47 +39,6 @@ import (
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
-
-var dbIml = flag.String("db", "carmen", "database implementation `carmen` or `geth`")
-
-func initDbFactory() func() stateDb {
-	flag.Parse()
-	var dbFactory func() stateDb
-
-	switch *dbIml {
-	case "carmen":
-		dbFactory = func() stateDb {
-			db, err := newCarmenDb()
-			if err != nil {
-				panic(fmt.Sprintf("cannot create carmen db: %v", err))
-			}
-			return db
-		}
-	case "geth":
-		dbFactory = func() stateDb {
-			db, err := newGethDb()
-			if err != nil {
-				panic(fmt.Sprintf("cannot create geth db: %v", err))
-			}
-			return db
-		}
-	case "shadow":
-		dbFactory = func() stateDb {
-			carmenDb, err := newCarmenDb()
-			if err != nil {
-				panic(fmt.Sprintf("cannot create carmen db: %v", err))
-			}
-			gethDb, err := newGethDb()
-			if err != nil {
-				panic(fmt.Sprintf("cannot create geth db: %v", err))
-			}
-
-			return newShadowProxy(carmenDb, gethDb, true)
-		}
-	}
-
-	return dbFactory
-}
 
 // StateTest checks transaction processing without block context.
 // See https://github.com/ethereum/EIPs/issues/176 for the test format specification.
@@ -496,6 +454,9 @@ func MakePreState(accounts types.GenesisAlloc, dbFactory func() stateDb) StateTe
 			statedb.SetState(addr, k, v)
 		}
 	}
+
+	statedb.Commit()
+	statedb.Reopen()
 
 	return StateTestState{statedb}
 }

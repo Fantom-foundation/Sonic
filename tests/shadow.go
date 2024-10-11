@@ -303,8 +303,9 @@ func (s *shadowVmStateDb) Commit() common.Hash {
 	})
 }
 
-func (s *shadowStateDb) GetShadowDB() vm.StateDB {
-	return s.shadow
+func (s *shadowVmStateDb) Reopen() {
+	s.prime.Reopen()
+	s.shadow.Reopen()
 }
 
 func (s *shadowVmStateDb) run(opName string, op func(s vm.StateDB) error) error {

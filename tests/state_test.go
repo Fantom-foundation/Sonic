@@ -19,6 +19,7 @@ package tests
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"golang.org/x/exp/rand"
 	"math/big"
@@ -64,8 +65,48 @@ func initMatcher(st *testMatcher) {
 	st.skipLoad(`.*Prague.*`)
 }
 
+var dbIml = flag.String("db", "carmen", "database implementation `carmen` or `geth`")
+
+func initDbFactory(dir string) func() stateDb {
+	var dbFactory func() stateDb
+
+	switch *dbIml {
+	case "carmen":
+		dbFactory = func() stateDb {
+			db, err := newCarmenDb(dir)
+			if err != nil {
+				panic(fmt.Sprintf("cannot create carmen db: %v", err))
+			}
+			return db
+		}
+	case "geth":
+		dbFactory = func() stateDb {
+			db, err := newGethDb()
+			if err != nil {
+				panic(fmt.Sprintf("cannot create geth db: %v", err))
+			}
+			return db
+		}
+	case "shadow":
+		dbFactory = func() stateDb {
+			carmenDb, err := newCarmenDb(dir)
+			if err != nil {
+				panic(fmt.Sprintf("cannot create carmen db: %v", err))
+			}
+			gethDb, err := newGethDb()
+			if err != nil {
+				panic(fmt.Sprintf("cannot create geth db: %v", err))
+			}
+
+			return newShadowProxy(carmenDb, gethDb, true)
+		}
+	}
+
+	return dbFactory
+}
+
 func TestState(t *testing.T) {
-	dbFactory := initDbFactory()
+	flag.Parse()
 	t.Parallel()
 
 	st := new(testMatcher)
@@ -76,7 +117,7 @@ func TestState(t *testing.T) {
 		benchmarksDir,
 	} {
 		st.walk(t, dir, func(t *testing.T, name string, test *StateTest) {
-			execStateTest(t, st, test, dbFactory)
+			execStateTest(t, st, test)
 		})
 	}
 }
@@ -87,7 +128,7 @@ func TestLegacyState(t *testing.T) {
 	st := new(testMatcher)
 	initMatcher(st)
 	st.walk(t, legacyStateTestDir, func(t *testing.T, name string, test *StateTest) {
-		execStateTest(t, st, test, nil)
+		execStateTest(t, st, test)
 	})
 }
 
@@ -99,11 +140,12 @@ func TestExecutionSpecState(t *testing.T) {
 	st := new(testMatcher)
 
 	st.walk(t, executionSpecStateTestDir, func(t *testing.T, name string, test *StateTest) {
-		execStateTest(t, st, test, nil)
+		execStateTest(t, st, test)
 	})
 }
 
-func execStateTest(t *testing.T, st *testMatcher, test *StateTest, dbFactory func() stateDb) {
+func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
+	dir := t.TempDir()
 	for _, subtest := range test.Subtests() {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
@@ -121,6 +163,14 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest, dbFactory fun
 			if executionMask&0x1 == 0 {
 				t.Skip("test (randomly) skipped due to short-tag")
 			}
+
+			// TODO t.TempDir() is not used because it produces too long names crashing the tests
+			dir, err := os.MkdirTemp(dir, "eth-tests-*")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			dbFactory := initDbFactory(dir)
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
 				test.Run(subtest, vmconfig, dbFactory, func(err error, state *StateTestState) {
