@@ -50,7 +50,7 @@ func NewEVMBlockContext(header *EvmHeader, chain DummyChain, author *common.Addr
 	if header.BaseFee != nil {
 		baseFee = new(big.Int).Set(header.BaseFee)
 	}
-	if header.Difficulty.Sign() == 0 {
+	if header.Difficulty != nil && header.Difficulty.Sign() == 0 {
 		random = &header.MixDigest
 	}
 	return vm.BlockContext{
@@ -60,7 +60,7 @@ func NewEVMBlockContext(header *EvmHeader, chain DummyChain, author *common.Addr
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        uint64(header.Time.Unix()),
-		Difficulty:  new(big.Int).Set(header.Difficulty),
+		Difficulty:  header.Difficulty,
 		BaseFee:     baseFee,
 		GasLimit:    header.GasLimit,
 		Random:      random,
