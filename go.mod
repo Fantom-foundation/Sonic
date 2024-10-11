@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/Fantom-foundation/Carmen/go v0.0.0-20240919111317-5c737f72628f
-	github.com/Fantom-foundation/Tosca v0.0.0-20240923133528-44629f84e630
+	github.com/Fantom-foundation/Tosca v0.0.0-20241009135726-aa99babe0a10
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00
 	github.com/cespare/cp v1.1.1
 	github.com/davecgh/go-spew v1.1.1
