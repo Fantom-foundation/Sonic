@@ -70,7 +70,8 @@ func (db *carmenDb) Logs() []*types.Log {
 }
 
 func (db *carmenDb) Commit() common.Hash {
-	db.db.Finalise()
+	db.db.Finalise() // ends transaction
+	db.db.EndBlock(1)
 	return db.db.GetStateHash()
 }
 
