@@ -64,6 +64,19 @@ func initDbFactory() func() stateDb {
 			}
 			return db
 		}
+	case "shadow":
+		dbFactory = func() stateDb {
+			carmenDb, err := newCarmenDb()
+			if err != nil {
+				panic(fmt.Sprintf("cannot create carmen db: %v", err))
+			}
+			gethDb, err := newGethDb()
+			if err != nil {
+				panic(fmt.Sprintf("cannot create geth db: %v", err))
+			}
+
+			return newShadowProxy(carmenDb, gethDb, true)
+		}
 	}
 
 	return dbFactory
@@ -488,8 +501,6 @@ func MakePreState(accounts types.GenesisAlloc, dbFactory func() stateDb) StateTe
 }
 
 // Close should be called when the state is no longer needed, ie. after running the test.
-func (st *StateTestState) Close() {
-	if err := st.StateDB.Close(); err != nil {
-		panic(fmt.Sprintf("cannot close state: %v", err))
-	}
+func (st *StateTestState) Close() error {
+	return st.StateDB.Close()
 }
