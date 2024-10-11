@@ -20,8 +20,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"golang.org/x/exp/rand"
 	"math/big"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -31,6 +31,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
@@ -61,11 +62,9 @@ func initMatcher(st *testMatcher) {
 	//// We run these tests separately, no need to _also_ run them as part of the
 	//// reference tests.
 	//st.skipLoad(`^Pyspecs/`)
-	st.skipLoad(`.*Prague.*`)
 }
 
 func TestState(t *testing.T) {
-	dbFactory := initDbFactory()
 	t.Parallel()
 
 	st := new(testMatcher)
@@ -76,7 +75,7 @@ func TestState(t *testing.T) {
 		benchmarksDir,
 	} {
 		st.walk(t, dir, func(t *testing.T, name string, test *StateTest) {
-			execStateTest(t, st, test, dbFactory)
+			execStateTest(t, st, test)
 		})
 	}
 }
@@ -87,7 +86,7 @@ func TestLegacyState(t *testing.T) {
 	st := new(testMatcher)
 	initMatcher(st)
 	st.walk(t, legacyStateTestDir, func(t *testing.T, name string, test *StateTest) {
-		execStateTest(t, st, test, nil)
+		execStateTest(t, st, test)
 	})
 }
 
@@ -99,11 +98,11 @@ func TestExecutionSpecState(t *testing.T) {
 	st := new(testMatcher)
 
 	st.walk(t, executionSpecStateTestDir, func(t *testing.T, name string, test *StateTest) {
-		execStateTest(t, st, test, nil)
+		execStateTest(t, st, test)
 	})
 }
 
-func execStateTest(t *testing.T, st *testMatcher, test *StateTest, dbFactory func() stateDb) {
+func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 	for _, subtest := range test.Subtests() {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
@@ -114,21 +113,22 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest, dbFactory fun
 		if testing.Short() {
 			executionMask = (1 << (rand.Int63() & 4))
 		}
-		t.Run(key, func(t *testing.T) {
-			if r, skip := st.findSkip(key); skip {
-				t.Skip(r)
-			}
+		t.Run(key+"/hash/trie", func(t *testing.T) {
 			if executionMask&0x1 == 0 {
 				t.Skip("test (randomly) skipped due to short-tag")
 			}
+			if subtest.Fork == "Prague" {
+				t.Skip("Prague not supported")
+			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
-				test.Run(subtest, vmconfig, dbFactory, func(err error, state *StateTestState) {
+				test.Run(subtest, vmconfig, false, rawdb.HashScheme, func(err error, state *StateTestState) {
 					result = st.checkFailure(t, err)
 				})
 				return result
 			})
 		})
+
 	}
 }
 
@@ -222,7 +222,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 
 			vmconfig.ExtraEips = eips
 			block := t.genesis(config).ToBlock()
-			state := MakePreState(t.json.Pre, nil)
+			state := MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, false, rawdb.HashScheme)
 			defer state.Close()
 
 			var baseFee *big.Int
