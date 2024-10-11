@@ -79,6 +79,12 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 	if !rules.Upgrades.London {
 		baseFee = nil
 	}
+
+	difficulty := new(big.Int)
+	if !rules.Upgrades.Sonic {
+		difficulty.SetUint64(1)
+	}
+
 	return &EvmHeader{
 		Hash:       common.Hash(block.Atropos),
 		ParentHash: common.Hash(prevHash),
@@ -88,6 +94,8 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		GasLimit:   math.MaxUint64,
 		GasUsed:    block.GasUsed,
 		BaseFee:    baseFee,
+		Difficulty: difficulty,
+		MixDigest:  common.Hash{}, // TODO provide pseudorandom data?
 	}
 }
 
@@ -105,6 +113,8 @@ func ConvertFromEthHeader(h *types.Header) *EvmHeader {
 		Time:       inter.FromUnix(int64(h.Time)),
 		Hash:       common.BytesToHash(h.Extra),
 		BaseFee:    h.BaseFee,
+		Difficulty: h.Difficulty,
+		MixDigest:  h.MixDigest,
 	}
 }
 
@@ -127,6 +137,7 @@ func (h *EvmHeader) EthHeader() *types.Header {
 		BaseFee:    h.BaseFee,
 
 		Difficulty: new(big.Int),
+		MixDigest:  h.MixDigest,
 	}
 	// ethHeader.SetExternalHash(h.Hash) < this seems to be an optimization in go-ethereum-substate; skipped for now, needs investigation
 	return ethHeader
@@ -176,7 +187,8 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		Time:       hexutil.Uint64(h.Time.Unix()),
 		TimeNano:   hexutil.Uint64(h.Time),
 		BaseFee:    (*hexutil.Big)(h.BaseFee),
-		Difficulty: new(hexutil.Big),
+		Difficulty: (*hexutil.Big)(h.Difficulty),
+		MixDigest:  h.MixDigest,
 		TotalDiff:  new(hexutil.Big),
 		Hash:       &h.Hash,
 		Epoch:		hexutil.Uint64(hash.Event(h.Hash).Epoch()),
