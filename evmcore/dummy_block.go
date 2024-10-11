@@ -45,6 +45,9 @@ type (
 		GasUsed  uint64
 
 		BaseFee *big.Int
+
+		Difficulty  *big.Int
+		MixDigest   common.Hash
 	}
 
 	EvmBlock struct {
