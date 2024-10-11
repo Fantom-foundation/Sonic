@@ -65,6 +65,7 @@ func initMatcher(st *testMatcher) {
 }
 
 func TestState(t *testing.T) {
+	dbFactory := initDbFactory()
 	t.Parallel()
 
 	st := new(testMatcher)
@@ -75,7 +76,7 @@ func TestState(t *testing.T) {
 		benchmarksDir,
 	} {
 		st.walk(t, dir, func(t *testing.T, name string, test *StateTest) {
-			execStateTest(t, st, test)
+			execStateTest(t, st, test, dbFactory)
 		})
 	}
 }
@@ -86,7 +87,7 @@ func TestLegacyState(t *testing.T) {
 	st := new(testMatcher)
 	initMatcher(st)
 	st.walk(t, legacyStateTestDir, func(t *testing.T, name string, test *StateTest) {
-		execStateTest(t, st, test)
+		execStateTest(t, st, test, nil)
 	})
 }
 
@@ -98,11 +99,11 @@ func TestExecutionSpecState(t *testing.T) {
 	st := new(testMatcher)
 
 	st.walk(t, executionSpecStateTestDir, func(t *testing.T, name string, test *StateTest) {
-		execStateTest(t, st, test)
+		execStateTest(t, st, test, nil)
 	})
 }
 
-func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
+func execStateTest(t *testing.T, st *testMatcher, test *StateTest, dbFactory func() stateDb) {
 	for _, subtest := range test.Subtests() {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
@@ -122,7 +123,7 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
-				test.Run(subtest, vmconfig, func(err error, state *StateTestState) {
+				test.Run(subtest, vmconfig, dbFactory, func(err error, state *StateTestState) {
 					result = st.checkFailure(t, err)
 				})
 				return result
@@ -221,7 +222,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 
 			vmconfig.ExtraEips = eips
 			block := t.genesis(config).ToBlock()
-			state := MakePreState(t.json.Pre)
+			state := MakePreState(t.json.Pre, nil)
 			defer state.Close()
 
 			var baseFee *big.Int
