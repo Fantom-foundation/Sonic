@@ -20,16 +20,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/Carmen/go/state/gostate"
-	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"math/big"
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -44,6 +40,34 @@ import (
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
+
+var dbIml = flag.String("db", "carmen", "database implementation `carmen` or `geth`")
+
+func initDbFactory() func() stateDb {
+	flag.Parse()
+	var dbFactory func() stateDb
+
+	switch *dbIml {
+	case "carmen":
+		dbFactory = func() stateDb {
+			db, err := newCarmenDb()
+			if err != nil {
+				panic(fmt.Sprintf("cannot create carmen db: %v", err))
+			}
+			return db
+		}
+	case "geth":
+		dbFactory = func() stateDb {
+			db, err := newGethDb()
+			if err != nil {
+				panic(fmt.Sprintf("cannot create geth db: %v", err))
+			}
+			return db
+		}
+	}
+
+	return dbFactory
+}
 
 // StateTest checks transaction processing without block context.
 // See https://github.com/ethereum/EIPs/issues/176 for the test format specification.
@@ -193,8 +217,8 @@ func (t *StateTest) checkError(subtest StateSubtest, err error) error {
 }
 
 // Run executes a specific subtest and verifies the post-state and logs
-func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, postCheck func(err error, st *StateTestState)) (result error) {
-	st, root, err := t.RunNoVerify(subtest, vmconfig)
+func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, dbFactory func() stateDb, postCheck func(err error, st *StateTestState)) (result error) {
+	st, root, err := t.RunNoVerify(subtest, vmconfig, dbFactory)
 	// Invoke the callback at the end of function for further analysis.
 	defer func() {
 		postCheck(result, &st)
@@ -225,7 +249,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, postCheck func
 
 // RunNoVerify runs a specific subtest and returns the statedb and post-state root.
 // Remember to call state.Close after verifying the test result!
-func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config) (st StateTestState, root common.Hash, err error) {
+func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, dbFactory func() stateDb) (st StateTestState, root common.Hash, err error) {
 	config, eips, err := GetChainConfig(subtest.Fork)
 	if err != nil {
 		return st, common.Hash{}, UnsupportedForkError{subtest.Fork}
@@ -233,7 +257,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config) (st St
 	vmconfig.ExtraEips = eips
 
 	block := t.genesis(config).ToBlock()
-	st = MakePreState(t.json.Pre)
+	st = MakePreState(t.json.Pre, dbFactory)
 
 	var baseFee *big.Int
 	if config.IsLondon(new(big.Int)) {
@@ -313,8 +337,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config) (st St
 	//   the coinbase gets no txfee, so isn't created, and thus needs to be touched
 	st.StateDB.AddBalance(block.Coinbase(), new(uint256.Int), tracing.BalanceChangeUnspecified)
 
-	// Commit state mutations into database.
-	root = st.StateDB.GetStateHash()
+	root = st.StateDB.Commit()
 	if tracer := evm.Config.Tracer; tracer != nil && tracer.OnTxEnd != nil {
 		receipt := &types.Receipt{GasUsed: vmRet.UsedGas}
 		tracer.OnTxEnd(receipt, nil)
@@ -445,31 +468,13 @@ func vmTestBlockHash(n uint64) common.Hash {
 
 // StateTestState groups all the state database objects together for use in tests.
 type StateTestState struct {
-	StateDB state.StateDB
-	close   func() error
+	StateDB stateDb
 }
 
 // MakePreState creates a state containing the given allocation.
-func MakePreState(accounts types.GenesisAlloc) StateTestState {
-	dir, err := os.MkdirTemp("", "eth-tests-db-*")
-	if err != nil {
-		panic(fmt.Sprintf("cannot create temporary directory: %v", err))
-	}
+func MakePreState(accounts types.GenesisAlloc, dbFactory func() stateDb) StateTestState {
+	statedb := dbFactory()
 
-	parameters := carmen.Parameters{
-		Variant:   gostate.VariantGoMemory,
-		Schema:    carmen.Schema(5),
-		Archive:   carmen.NoArchive,
-		Directory: dir,
-	}
-
-	st, err := carmen.NewState(parameters)
-	if err != nil {
-		panic(fmt.Sprintf("cannot create state: %v", err))
-	}
-
-	carmenstatedb := carmen.CreateCustomStateDBUsing(st, 1024)
-	statedb := evmstore.CreateCarmenStateDb(carmenstatedb)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)
@@ -479,16 +484,12 @@ func MakePreState(accounts types.GenesisAlloc) StateTestState {
 		}
 	}
 
-	return StateTestState{statedb, func() error {
-		return errors.Join(
-			st.Close(),
-			os.RemoveAll(dir))
-	}}
+	return StateTestState{statedb}
 }
 
 // Close should be called when the state is no longer needed, ie. after running the test.
 func (st *StateTestState) Close() {
-	if err := st.close(); err != nil {
+	if err := st.StateDB.Close(); err != nil {
 		panic(fmt.Sprintf("cannot close state: %v", err))
 	}
 }
