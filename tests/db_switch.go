@@ -23,9 +23,10 @@ type stateDb interface {
 
 type carmenDb struct {
 	vm.StateDB
-	db  *evmstore.CarmenStateDB
-	st  carmen.State
-	dir string
+	db   *evmstore.CarmenStateDB
+	st   carmen.State
+	dir  string
+	logs []*types.Log
 }
 
 func newCarmenDb(dir string) (stateDb, error) {
@@ -57,12 +58,15 @@ func (db *carmenDb) Close() error {
 }
 
 func (db *carmenDb) Logs() []*types.Log {
-	return db.db.Logs()
+	return db.logs
 }
 
 func (db *carmenDb) Commit() common.Hash {
+	// save logs before carmen clears them on tx and block end
+	db.logs = db.db.Logs()
+
 	db.db.Finalise() // ends transaction
-	db.db.EndBlock(1)
+	db.db.EndBlock(0)
 	return db.db.GetStateHash()
 }
 
@@ -100,7 +104,7 @@ func (db *gethDb) Logs() []*types.Log {
 }
 
 func (db *gethDb) Commit() common.Hash {
-	root, _ := db.db.Commit(1, true)
+	root, _ := db.db.Commit(0, true)
 	return root
 }
 
