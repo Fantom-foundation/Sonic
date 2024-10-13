@@ -18,7 +18,7 @@ type stateDb interface {
 
 	Logs() []*types.Log
 	Commit() (stateRootHash common.Hash)
-	Reopen()
+	Reset()
 }
 
 type carmenDb struct {
@@ -70,7 +70,7 @@ func (db *carmenDb) Commit() common.Hash {
 	return db.db.GetStateHash()
 }
 
-func (db *carmenDb) Reopen() {
+func (db *carmenDb) Reset() {
 	carmenstatedb := carmen.CreateCustomStateDBUsing(db.st, 1024)
 	statedb := evmstore.CreateCarmenStateDb(carmenstatedb)
 
@@ -108,7 +108,7 @@ func (db *gethDb) Commit() common.Hash {
 	return root
 }
 
-func (db *gethDb) Reopen() {
+func (db *gethDb) Reset() {
 	root := db.Commit()
 	statedb, _ := state.New(root, db.sdb, nil)
 

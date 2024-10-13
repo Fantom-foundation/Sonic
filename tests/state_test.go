@@ -145,7 +145,6 @@ func TestExecutionSpecState(t *testing.T) {
 }
 
 func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
-	dir := t.TempDir()
 	for _, subtest := range test.Subtests() {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
@@ -165,10 +164,15 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 			}
 
 			// TODO t.TempDir() is not used because it produces too long names crashing the tests
-			dir, err := os.MkdirTemp(dir, "eth-tests-*")
+			dir, err := os.MkdirTemp("", "eth-tests-*")
 			if err != nil {
 				t.Fatal(err)
 			}
+			t.Cleanup(func() {
+				if err := os.RemoveAll(dir); err != nil {
+					t.Fatal(err)
+				}
+			})
 
 			dbFactory := initDbFactory(dir)
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
