@@ -289,9 +289,27 @@ func (s *shadowVmStateDb) Logs() []*types.Log {
 	primary := s.prime.Logs()
 	shadow := s.shadow.Logs()
 
-	if !slices.Equal(primary, shadow) {
-		s.logIssue("Logs", primary, shadow)
-		s.err = fmt.Errorf("Logs diverged from shadow DB")
+	for i, a := range primary {
+		b := shadow[i]
+
+		if got, want := a.Address, b.Address; got != want {
+			s.logIssue("Logs", got, want)
+			s.err = fmt.Errorf("Logs diverged from shadow DB")
+			break
+		}
+
+		if got, want := a.Topics, b.Topics; !slices.Equal(got, want) {
+			s.logIssue("Logs", got, want)
+			s.err = fmt.Errorf("Logs diverged from shadow DB")
+			break
+		}
+
+		if got, want := a.Data, b.Data; !slices.Equal(got, want) {
+			s.logIssue("Logs", got, want)
+			s.err = fmt.Errorf("Logs diverged from shadow DB")
+			break
+		}
+
 	}
 
 	return primary
