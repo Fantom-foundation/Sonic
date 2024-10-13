@@ -321,9 +321,9 @@ func (s *shadowVmStateDb) Commit() common.Hash {
 	})
 }
 
-func (s *shadowVmStateDb) Reopen() {
-	s.prime.Reopen()
-	s.shadow.Reopen()
+func (s *shadowVmStateDb) Reset() {
+	s.prime.Reset()
+	s.shadow.Reset()
 }
 
 func (s *shadowVmStateDb) run(opName string, op func(s vm.StateDB) error) error {

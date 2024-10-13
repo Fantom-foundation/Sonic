@@ -456,7 +456,7 @@ func MakePreState(accounts types.GenesisAlloc, dbFactory func() stateDb) StateTe
 	}
 
 	statedb.Commit()
-	statedb.Reopen()
+	statedb.Reset()
 
 	return StateTestState{statedb}
 }
