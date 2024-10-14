@@ -62,7 +62,17 @@ func initMatcher(st *testMatcher) {
 	//// We run these tests separately, no need to _also_ run them as part of the
 	//// reference tests.
 	//st.skipLoad(`^Pyspecs/`)
+
+	// unsupported hard forks
 	st.skipLoad(`.*Prague.*`)
+
+	// re-creation of a non-empty account, not supported by carmen, cannot happen in practice
+	st.skipLoad(`stSStoreTest/InitCollisionParis.json`)
+	st.skipLoad(`stCreate2/create2collisionStorageParis.json`)
+	st.skipLoad(`stCreate2/RevertInCreateInInitCreate2Paris.json`)
+	st.skipLoad(`stSStoreTest/InitCollisionParis.json`)
+	st.skipLoad(`stRevertTest/RevertInCreateInInit_Paris.json`)
+	st.skipLoad(`stExtCodeHash/dynamicAccountOverwriteEmpty_Paris.json`)
 }
 
 var dbIml = flag.String("db", "carmen", "database implementation `carmen` or `geth`")
@@ -100,6 +110,8 @@ func initDbFactory(dir string) func() stateDb {
 
 			return newShadowProxy(carmenDb, gethDb, true)
 		}
+	default:
+		panic(fmt.Sprintf("unknown db implementation: %s", *dbIml))
 	}
 
 	return dbFactory

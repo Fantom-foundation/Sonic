@@ -20,18 +20,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"log"
-	"slices"
-	"strings"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/stateless"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie/utils"
 	"github.com/holiman/uint256"
+	"log"
+	"slices"
+	"strings"
 )
 
 // newShadowProxy creates a StateDB instance bundling two other instances and running each
@@ -242,14 +241,7 @@ func (s *shadowVmStateDb) AddLog(log *types.Log) {
 }
 
 func (s *shadowVmStateDb) GetStorageRoot(addr common.Address) common.Hash {
-	primeRoot := s.prime.GetStorageRoot(addr)
-	shadowRoot := s.shadow.GetStorageRoot(addr)
-
-	if shadowRoot != (common.Hash{}) {
-		return shadowRoot
-	}
-
-	return primeRoot
+	return s.getHash("GetStorageRoot", func(s vm.StateDB) common.Hash { return s.GetStorageRoot(addr) }, addr)
 }
 
 func (s *shadowVmStateDb) CreateContract(addr common.Address) {
