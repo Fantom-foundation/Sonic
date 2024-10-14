@@ -50,7 +50,7 @@ func NewEVMBlockContext(header *EvmHeader, chain DummyChain, author *common.Addr
 	if header.BaseFee != nil {
 		baseFee = new(big.Int).Set(header.BaseFee)
 	}
-	if header.Difficulty != nil && header.Difficulty.Sign() == 0 {
+	if header.Difficulty.Sign() == 0 {
 		random = &header.MixDigest
 	}
 	return vm.BlockContext{
