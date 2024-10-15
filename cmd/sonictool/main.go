@@ -182,6 +182,7 @@ be gzipped.
 					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 					Flags: []cli.Flag{
 						ModeFlag,
+						flags.SuppressFramePanicFlag,
 					},
 					Description: `
     sonictool --datadir=<datadir> events import <filenames> [--mode=validator]
