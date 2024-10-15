@@ -31,7 +31,7 @@ on how you can run your own `sonicd` instance.
 
 ### Launching a network
 
-Launching `sonicd` readonly (non-validator) node for network specified by the genesis file:
+Launching `sonicd` readonly (non-validator) node for the network specified by the genesis file:
 
 ```shell
 sonicd --datadir=<DB path>
@@ -46,7 +46,7 @@ configuration file via:
 sonicd --datadir=<DB path> --config /path/to/your/config.toml
 ```
 
-To get an idea how the file should look like you can use the `dumpconfig` subcommand to
+To get an idea of how the file should look you can use the `dumpconfig` subcommand to
 export the default configuration:
 
 ```shell
@@ -55,7 +55,7 @@ sonictool --datadir=<DB path> dumpconfig
 
 ### Validator
 
-New validator private key may be created with `sonictool --datadir=<DB path> validator new` command.
+A new validator private key may be created with `sonictool --datadir=<DB path> validator new` command.
 
 To launch a validator, you have to use `--validator.id` and `--validator.pubkey` flags to enable 
 events emitter. Check the [Fantom Documentation](https://docs.fantom.foundation) for the detailed process 
@@ -70,7 +70,7 @@ specify password with a file using `--validator.password` flag.
 
 #### Participation in discovery
 
-Optionally you can specify your public IP to straighten connectivity of the network.
+Optionally you can specify your public IP to straighten the connectivity of the network.
 Ensure your TCP/UDP p2p port (5050 by default) isn't blocked by your firewall.
 
 ```shell
