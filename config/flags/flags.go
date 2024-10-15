@@ -331,4 +331,10 @@ var (
 		Usage: "Password to unlock validator private key",
 		Value: "",
 	}
+	
+	// Consensus
+	SuppressFramePanicFlag = cli.BoolFlag{
+		Name:  "suppress-frame-panic",
+		Usage: "Suppress frame missmatch error while importing event files",
+	}
 )
