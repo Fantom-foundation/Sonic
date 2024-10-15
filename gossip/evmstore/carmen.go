@@ -167,7 +167,8 @@ func (c *CarmenStateDB) SubBalance(addr common.Address, amountInt *big.Int) {
 }
 
 func (c *CarmenStateDB) SetBalance(addr common.Address, amount *big.Int) {
-	panic("not supported")
+	balance := c.GetBalance(addr)
+	c.AddBalance(addr, new(big.Int).Sub(amount, balance))
 }
 
 func (c *CarmenStateDB) SetNonce(addr common.Address, nonce uint64) {
