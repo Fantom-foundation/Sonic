@@ -15,15 +15,9 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-//go:generate mockgen -source evm_test.go -destination evm_mock.go -package evmmodule
-
-type stateDB interface {
-	state.StateDB
-}
-
 func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	stateDb := NewMockstateDB(ctrl)
+	stateDb := state.NewMockStateDB(ctrl)
 
 	zero := uint256.NewInt(0)
 	zeroAddress := common.Address{}
