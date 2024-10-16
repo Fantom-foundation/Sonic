@@ -69,9 +69,9 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		baseFee = nil
 	}
 
-	difficulty := new(big.Int)
-	if !p.net.Upgrades.Sonic {
-		difficulty.SetUint64(1)
+	prevRandao := common.Hash{}
+	if p.net.Upgrades.Sonic {
+		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
 	}
 	h := &evmcore.EvmHeader{
 		Number:     p.blockIdx,
@@ -83,8 +83,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		GasLimit:   math.MaxUint64,
 		GasUsed:    p.gasUsed,
 		BaseFee:    baseFee,
-		Difficulty: difficulty,
-		MixDigest:  common.Hash{}, // TODO provide pseudorandom data?
+		PrevRandao: prevRandao,
 	}
 
 	return evmcore.NewEvmBlock(h, txs)
