@@ -20,7 +20,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/rawdb"
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/ethereum/go-ethereum/tests"
@@ -30,29 +31,7 @@ import (
 )
 
 func initMatcher(st *testMatcher) {
-	//// Long tests:
-	//st.slow(`^stAttackTest/ContractCreationSpam`)
-	//st.slow(`^stBadOpcode/badOpcodes`)
-	//st.slow(`^stPreCompiledContracts/modexp`)
-	//st.slow(`^stQuadraticComplexityTest/`)
-	//st.slow(`^stStaticCall/static_Call50000`)
-	//st.slow(`^stStaticCall/static_Return50000`)
-	//st.slow(`^stSystemOperationsTest/CallRecursiveBomb`)
-	//st.slow(`^stTransactionTest/Opcodes_TransactionInit`)
-	//// Very time consuming
-	//st.skipLoad(`^stTimeConsuming/`)
-	//st.skipLoad(`.*vmPerformance/loop.*`)
-	//// Uses 1GB RAM per tested fork
-	//st.skipLoad(`^stStaticCall/static_Call1MB`)
-	//
-	//// Broken tests:
-	//// EOF is not part of cancun
 	st.skipLoad(`^stEOF/`)
-	//
-	//// The tests under Pyspecs are the ones that are published as execution-spec tests.
-	//// We run these tests separately, no need to _also_ run them as part of the
-	//// reference tests.
-	//st.skipLoad(`^Pyspecs/`)
 }
 
 func TestState(t *testing.T) {
@@ -78,8 +57,9 @@ func execStateTest(t *testing.T, st *testMatcher, test *tests.StateTest) {
 
 		t.Run(key, func(t *testing.T) {
 			withTrace(t, 0, func(vmconfig vm.Config) error {
+				factory := createCarmenFactory(t)
 				var result error
-				test.Run(subtest, vmconfig, false, rawdb.HashScheme, func(err error, state *tests.StateTestState) {
+				test.RunWith(subtest, vmconfig, factory, func(err error, state *tests.StateTestState) {
 					result = st.checkFailure(t, err)
 				})
 				return result
@@ -118,4 +98,28 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	} else {
 		t.Log("EVM operation log:\n" + buf.String())
 	}
+}
+
+// createCarmenFactory creates a new factory, that initialises
+// carmen implementation of the state database.
+func createCarmenFactory(t *testing.T) carmenFactory {
+	dir := t.TempDir()
+	parameters := carmen.Parameters{
+		Variant:   gostate.VariantGoMemory,
+		Schema:    carmen.Schema(5),
+		Archive:   carmen.NoArchive,
+		Directory: dir,
+	}
+
+	st, err := carmen.NewState(parameters)
+	if err != nil {
+		t.Fatalf("cannot create state: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := st.Close(); err != nil {
+			t.Fatalf("cannot close state: %v", err)
+		}
+	})
+
+	return carmenFactory{st: st}
 }

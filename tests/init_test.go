@@ -239,9 +239,15 @@ func (tm *testMatcher) runTestFile(t *testing.T, path, name string, runTest inte
 	if len(keys) == 1 {
 		runTestFunc(runTest, t, name, m, keys[0])
 	} else {
+		const maxKeyLen = 32
 		for _, key := range keys {
+			shortName := key
+			// prevent too long names of tests, which can cause problems when creating a temp directories
+			if actualLen := len(shortName); actualLen > maxKeyLen {
+				shortName = shortName[actualLen-maxKeyLen:]
+			}
 			name := name + "/" + key
-			t.Run(key, func(t *testing.T) {
+			t.Run(shortName, func(t *testing.T) {
 				if r, _ := tm.findSkip(name); r != "" {
 					t.Skip(r)
 				}
