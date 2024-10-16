@@ -8,6 +8,8 @@ import (
 	"github.com/holiman/uint256"
 )
 
+//go:generate mockgen -source adapter.go -destination adapter_mock.go -package state
+
 type StateDB interface {
 	vm.StateDB
 
