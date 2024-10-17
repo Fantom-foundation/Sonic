@@ -24,13 +24,11 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
@@ -340,13 +338,14 @@ func TestEIP4844Transactions(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		txData string
+		txData []byte
 		cancun bool
 		err    error
 	}{
-		{"blob tx before cancun", common.Address{1}.String(), false, ErrTxTypeNotSupported},
-		{"empty blob tx", "", true, nil},
-		{"blob tx with data", common.Address{1}.String(), true, ErrTxTypeNotSupported},
+		{"empty blob tx before cancun", nil, false, ErrTxTypeNotSupported},
+		{"blob tx before cancun", common.Address{1}.Bytes(), false, ErrTxTypeNotSupported},
+		{"empty blob tx", nil, true, nil},
+		{"blob tx with data", common.Address{1}.Bytes(), true, ErrTxTypeNotSupported},
 	}
 
 	for _, test := range tests {
@@ -378,27 +377,17 @@ func TestEIP4844Transactions(t *testing.T) {
 	}
 }
 
-func createTestBlobTransaction(chainId *big.Int, data string) (*types.Transaction, error) {
+func createTestBlobTransaction(chainId *big.Int, data []byte) (*types.Transaction, error) {
 
 	var (
 		sidecar    *types.BlobTxSidecar // The sidecar contains the blob data
 		blobHashes []common.Hash
 	)
 
-	if len(data) > 0 {
-
-		// Ensure the data has the '0x' prefix
-		if !strings.HasPrefix(data, "0x") {
-			data = "0x" + data
-		}
-		// Decode the hex-encoded data
-		bytesData, err := hexutil.Decode(data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode data: %s", err)
-		}
+	if data != nil {
 
 		var Blob kzg4844.Blob // Define a blob array to hold the large data payload, blobs are 128kb in length
-		copy(Blob[:], bytesData)
+		copy(Blob[:], data)
 
 		// Compute the commitment for the blob data using KZG4844 cryptographic algorithm
 		BlobCommitment, err := kzg4844.BlobToCommitment(&Blob)
