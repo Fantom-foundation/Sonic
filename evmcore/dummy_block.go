@@ -149,13 +149,14 @@ type EvmHeaderJson struct {
 	TxHash      common.Hash      `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash      `json:"receiptsRoot"     gencodec:"required"`
 	Bloom       types.Bloom      `json:"logsBloom"        gencodec:"required"`
+	Difficulty  *hexutil.Big     `json:"difficulty"       gencodec:"required"`
 	Number      *hexutil.Big     `json:"number"           gencodec:"required"`
 	GasLimit    hexutil.Uint64   `json:"gasLimit"         gencodec:"required"`
 	GasUsed     hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
 	Time        hexutil.Uint64   `json:"timestamp"        gencodec:"required"`
 	TimeNano    hexutil.Uint64   `json:"timestampNano"`
 	Extra       hexutil.Bytes    `json:"extraData"        gencodec:"required"`
-	PrevRandao  common.Hash      `json:"prevRandao"`
+	PrevRandao  common.Hash      `json:"mixHash"`
 	Nonce       types.BlockNonce `json:"nonce"`
 	BaseFee     *hexutil.Big     `json:"baseFeePerGas"`
 	Hash        *common.Hash     `json:"hash"`
@@ -183,6 +184,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		Time:       hexutil.Uint64(h.Time.Unix()),
 		TimeNano:   hexutil.Uint64(h.Time),
 		BaseFee:    (*hexutil.Big)(h.BaseFee),
+		Difficulty: new(hexutil.Big),
 		PrevRandao: h.PrevRandao,
 		TotalDiff:  new(hexutil.Big),
 		Hash:       &h.Hash,
