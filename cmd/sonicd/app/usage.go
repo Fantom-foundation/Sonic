@@ -16,7 +16,7 @@
 
 // Contains the geth command usage template and generator.
 
-package main
+package app
 
 import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/cmdhelper"
