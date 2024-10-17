@@ -1676,7 +1676,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	} // Print a log with full tx details for manual investigations and interventions
-	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number, 0 /*timestamp*/))
+	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number, uint64(b.CurrentBlock().Time.Unix())))
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
