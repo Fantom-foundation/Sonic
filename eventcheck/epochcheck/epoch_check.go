@@ -89,6 +89,9 @@ func CheckTxs(txs types.Transactions, rules opera.Rules) error {
 	if rules.Upgrades.London {
 		maxType = 2
 	}
+	if rules.Upgrades.Sonic {
+		maxType = 3
+	}
 	for _, tx := range txs {
 		if tx.Type() > maxType {
 			return ErrUnsupportedTxType
