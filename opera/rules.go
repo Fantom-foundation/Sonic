@@ -147,23 +147,53 @@ type Upgrades struct {
 type UpgradeHeight struct {
 	Upgrades Upgrades
 	Height   idx.Block
+	Time     inter.Timestamp
+}
+
+var BaseChainConfig = ethparams.ChainConfig{
+	ChainID:                       big.NewInt(1337),
+	HomesteadBlock:                big.NewInt(0),
+	DAOForkBlock:                  nil,
+	DAOForkSupport:                false,
+	EIP150Block:                   big.NewInt(0),
+	EIP155Block:                   big.NewInt(0),
+	EIP158Block:                   big.NewInt(0),
+	ByzantiumBlock:                big.NewInt(0),
+	ConstantinopleBlock:           big.NewInt(0),
+	PetersburgBlock:               big.NewInt(0),
+	IstanbulBlock:                 big.NewInt(0),
+	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay - relevant for ethereum only
+	BerlinBlock:                   nil, // to be overwritten in EvmChainConfig
+	LondonBlock:                   nil, // to be overwritten in EvmChainConfig
+	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
+	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
+	MergeNetsplitBlock:            nil,
+	ShanghaiTime:                  nil, // to be overwritten in EvmChainConfig
+	CancunTime:                    nil, // to be overwritten in EvmChainConfig
+	PragueTime:                    nil,
+	VerkleTime:                    nil,
+	TerminalTotalDifficulty:       nil,
+	TerminalTotalDifficultyPassed: true,
+	Ethash:                        new(ethparams.EthashConfig),
+	Clique:                        nil,
 }
 
 // EvmChainConfig returns ChainConfig for transactions signing and execution
 func (r Rules) EvmChainConfig(hh []UpgradeHeight) *ethparams.ChainConfig {
-	cfg := *ethparams.AllEthashProtocolChanges
+	cfg := BaseChainConfig
 	cfg.ChainID = new(big.Int).SetUint64(r.NetworkID)
-	cfg.BerlinBlock = nil
-	cfg.LondonBlock = nil
 	for i, h := range hh {
 		height := new(big.Int)
+		timestamp := new(uint64)
 		if i > 0 {
 			height.SetUint64(uint64(h.Height))
+			*timestamp = uint64(h.Time)
 		}
 		if cfg.BerlinBlock == nil && h.Upgrades.Berlin {
 			cfg.BerlinBlock = height
 		}
 		if !h.Upgrades.Berlin {
+			// disabling upgrade breaks the history replay - should be never used
 			cfg.BerlinBlock = nil
 		}
 
@@ -171,7 +201,18 @@ func (r Rules) EvmChainConfig(hh []UpgradeHeight) *ethparams.ChainConfig {
 			cfg.LondonBlock = height
 		}
 		if !h.Upgrades.London {
+			// disabling upgrade breaks the history replay - should be never used
 			cfg.LondonBlock = nil
+		}
+
+		if cfg.CancunTime == nil && h.Upgrades.Sonic {
+			cfg.ShanghaiTime = timestamp
+			cfg.CancunTime = timestamp
+		}
+		if !h.Upgrades.Sonic {
+			// disabling upgrade breaks the history replay - should be never used
+			cfg.ShanghaiTime = nil
+			cfg.CancunTime = nil
 		}
 	}
 	return &cfg
