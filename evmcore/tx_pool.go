@@ -658,12 +658,13 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	// Reject blob transactions until EIP-4844 activates or if is already EIP-4844 and they are not empty
-	if !pool.eip4844 && tx.Type() == types.BlobTxType {
-		return ErrTxTypeNotSupported
-	} else if pool.eip4844 && tx.Type() == types.BlobTxType {
+	if tx.Type() == types.BlobTxType {
+		if !pool.eip4844 {
+			return ErrTxTypeNotSupported
+		}
+		// For now, Sonic only supports Blob transactions without blob data.
 		if len(tx.BlobHashes()) > 0 ||
 			(tx.BlobTxSidecar() != nil && len(tx.BlobTxSidecar().BlobHashes()) > 0) {
-
 			return ErrTxTypeNotSupported
 		}
 	}
