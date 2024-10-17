@@ -90,7 +90,6 @@ func (s *Service) processSavedEvent(e *inter.EventPayload, es *iblockproc.EpochS
 
 // saveAndProcessEvent deletes event in a case if it fails validation during event processing
 func (s *Service) saveAndProcessEvent(e *inter.EventPayload, es *iblockproc.EpochState) error {
-	fixEventTxHashes(e)
 	// indexing event
 	s.store.SetEvent(e)
 	defer s.dagIndexer.DropNotFlushed()
