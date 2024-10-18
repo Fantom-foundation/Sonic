@@ -24,6 +24,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -119,6 +120,28 @@ func init() {
 // Setup initializes profiling and logging based on the CLI flags.
 // It should be called as early as possible in the program.
 func Setup(ctx *cli.Context) error {
+	setupMutex.Lock()
+	defer setupMutex.Unlock()
+
+	if setupDone {
+		return nil
+	}
+
+	err := setup(ctx)
+	if err != nil {
+		return err
+	}
+
+	setupDone = true
+	return nil
+}
+
+var (
+	setupMutex sync.Mutex
+	setupDone  = false
+)
+
+func setup(ctx *cli.Context) error {
 	var handler slog.Handler
 	output := io.Writer(os.Stderr)
 	if ctx.GlobalBool(logjsonFlag.Name) {
