@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Fantom-foundation/go-opera/cmd/sonicd/app"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/app"
 )
 
 func main() {
