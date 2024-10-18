@@ -21,19 +21,18 @@ func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []
 
 	seenAddresses := make(map[common.Address]bool)
 	duplicateAddresses := make(map[common.Address]int)
-	duplicateHashes := make(map[common.Hash]bool)
-
+	seenHashes := make(map[common.Hash]bool)
 	uniqueList := make([]*scramblerEntry, 0, len(entries))
 	for _, entry := range entries {
 		// skip any duplicate hashes
-		if _, ok := duplicateHashes[entry.hash]; ok {
+		if _, ok := seenHashes[entry.hash]; ok {
 			continue
 		}
 
 		salt = xorBytes32(salt, entry.hash)
 
 		// Remove txs with duplicate hashes using map
-		duplicateHashes[entry.hash] = true
+		seenHashes[entry.hash] = true
 		uniqueList = append(uniqueList, entry)
 
 		if _, ok := seenAddresses[entry.sender]; ok {
@@ -51,15 +50,15 @@ func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []
 		}
 	}
 
-	sorted := sortFunc(uniqueList, salt)
+	entries = sortFunc(uniqueList, salt)
 
 	// if no duplicate addresses, return early
 	if len(duplicateAddresses) == 0 {
-		return sorted
+		return entries
 	}
 
 	indexMap := make(map[common.Address][]int)
-	for i, entry := range sorted {
+	for i, entry := range entries {
 		// find if address is duplicate
 		occurrence, ok := duplicateAddresses[entry.sender]
 		if !ok {
@@ -83,20 +82,20 @@ func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []
 		for i := 0; i < len(idxs); i++ {
 			for j := 0; j < len(idxs); j++ {
 				var e scramblerEntry
-				a := sorted[idxs[i]].nonce
-				b := sorted[idxs[j]].nonce
+				a := entries[idxs[i]].nonce
+				b := entries[idxs[j]].nonce
 				// txs with smaller nonce must be executed first, otherwise they will never be executed
 				if a < b {
-					e = *sorted[idxs[i]]
-					*sorted[idxs[i]] = *sorted[idxs[j]]
-					*sorted[idxs[j]] = e
+					e = *entries[idxs[i]]
+					*entries[idxs[i]] = *entries[idxs[j]]
+					*entries[idxs[j]] = e
 				}
 
 			}
 		}
 	}
 
-	return sorted
+	return entries
 }
 
 // builtInSort uses golang built in sort func.
