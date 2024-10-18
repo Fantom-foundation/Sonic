@@ -62,7 +62,7 @@ func initMatcher(st *testMatcher) {
 	//// We run these tests separately, no need to _also_ run them as part of the
 	//// reference tests.
 	//st.skipLoad(`^Pyspecs/`)
-	st.skipLoad(`.*Prague.*`)
+	//st.skipLoad(`.*Prague.*`)
 }
 
 var dbIml = flag.String("db", "carmen", "database implementation `carmen` or `geth`")
