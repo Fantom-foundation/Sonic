@@ -17,86 +17,51 @@
 package tests
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/ethereum/go-ethereum/tests"
 	"path/filepath"
-	"reflect"
 	"testing"
 )
 
-func initMatcher(st *testMatcher) {
-	st.skipLoad(`^stEOF/`)
+var (
+	baseDir      = filepath.Join(".", "testdata")
+	stateTestDir = filepath.Join(baseDir, "GeneralStateTests")
+)
+
+func initMatcher(st *tests.TestMatcher) {
+	st.SkipLoad(`^stEOF/`)
 }
 
 func TestState(t *testing.T) {
 	t.Parallel()
 
-	st := new(testMatcher)
+	st := new(tests.TestMatcher)
 	initMatcher(st)
 	for _, dir := range []string{
 		filepath.Join(baseDir, "EIPTests", "StateTests"),
 		stateTestDir,
-		benchmarksDir,
 	} {
-		st.walk(t, dir, func(t *testing.T, name string, test *tests.StateTest) {
+		st.Walk(t, dir, func(t *testing.T, name string, test *tests.StateTest) {
 			execStateTest(t, st, test)
 		})
 	}
 }
 
-func execStateTest(t *testing.T, st *testMatcher, test *tests.StateTest) {
+func execStateTest(t *testing.T, st *tests.TestMatcher, test *tests.StateTest) {
 	for _, subtest := range test.Subtests() {
 		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
 		t.Run(key, func(t *testing.T) {
-			withTrace(t, 0, func(vmconfig vm.Config) error {
-				factory := createCarmenFactory(t)
-				var result error
-				test.RunWith(subtest, vmconfig, factory, func(err error, state *tests.StateTestState) {
-					result = st.checkFailure(t, err)
-				})
-				return result
-			})
+			factory := createCarmenFactory(t)
+			err := test.RunWith(subtest, vm.Config{}, factory, func(err error, state *tests.StateTestState) {})
+			if err := st.CheckFailure(t, err); err != nil {
+				t.Fatal(err)
+			}
 		})
-	}
-}
-
-// Transactions with gasLimit above this value will not get a VM trace on failure.
-const traceErrorLimit = 400000
-
-func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
-	// Use config from command line arguments.
-	config := vm.Config{}
-	err := test(config)
-	if err == nil {
-		return
-	}
-
-	// Test failed, re-run with tracing enabled.
-	t.Error(err)
-	if gasLimit > traceErrorLimit {
-		t.Log("gas limit too high for EVM trace")
-		return
-	}
-	buf := new(bytes.Buffer)
-	w := bufio.NewWriter(buf)
-	config.Tracer = logger.NewJSONLogger(&logger.Config{}, w)
-	err2 := test(config)
-	if !reflect.DeepEqual(err, err2) {
-		t.Errorf("different error for second run: %v", err2)
-	}
-	w.Flush()
-	if buf.Len() == 0 {
-		t.Log("no EVM operation logs generated")
-	} else {
-		t.Log("EVM operation log:\n" + buf.String())
 	}
 }
 
