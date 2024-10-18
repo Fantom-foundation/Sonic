@@ -174,6 +174,9 @@ func applyTransaction(
 	txContext := NewEVMTxContext(msg)
 	evm.Reset(txContext, statedb)
 
+	// Skip checking of base fee limits for internal transactions.
+	evm.Config.NoBaseFee = msg.SkipAccountChecks
+
 	// Apply the transaction to the current state (included in the env).
 	result, err := core.ApplyMessage(evm, msg, gp)
 	if err != nil {

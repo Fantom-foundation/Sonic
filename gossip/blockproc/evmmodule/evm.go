@@ -68,6 +68,11 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 	if !p.net.Upgrades.London {
 		baseFee = nil
 	}
+
+	prevRandao := common.Hash{}
+	if p.net.Upgrades.Sonic {
+		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
+	}
 	h := &evmcore.EvmHeader{
 		Number:     p.blockIdx,
 		Hash:       common.Hash(p.block.Atropos),
@@ -78,6 +83,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		GasLimit:   math.MaxUint64,
 		GasUsed:    p.gasUsed,
 		BaseFee:    baseFee,
+		PrevRandao: prevRandao,
 	}
 
 	return evmcore.NewEvmBlock(h, txs)
@@ -126,11 +132,7 @@ func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs [
 	p.statedb.EndBlock(evmBlock.Number.Uint64())
 
 	// Get state root
-	newStateHash, err := p.statedb.Commit(true)
-	if err != nil {
-		log.Crit("Failed to commit state", "err", err)
-	}
-	evmBlock.Root = newStateHash
+	evmBlock.Root = p.statedb.GetStateHash()
 
 	return
 }

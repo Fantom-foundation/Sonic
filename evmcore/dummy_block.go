@@ -45,6 +45,8 @@ type (
 		GasUsed  uint64
 
 		BaseFee *big.Int
+
+		PrevRandao common.Hash
 	}
 
 	EvmBlock struct {
@@ -76,6 +78,12 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 	if !rules.Upgrades.London {
 		baseFee = nil
 	}
+
+	prevRandao := common.Hash{}
+	if rules.Upgrades.Sonic {
+		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
+	}
+
 	return &EvmHeader{
 		Hash:       common.Hash(block.Atropos),
 		ParentHash: common.Hash(prevHash),
@@ -85,6 +93,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		GasLimit:   math.MaxUint64,
 		GasUsed:    block.GasUsed,
 		BaseFee:    baseFee,
+		PrevRandao: prevRandao,
 	}
 }
 
@@ -102,6 +111,7 @@ func ConvertFromEthHeader(h *types.Header) *EvmHeader {
 		Time:       inter.FromUnix(int64(h.Time)),
 		Hash:       common.BytesToHash(h.Extra),
 		BaseFee:    h.BaseFee,
+		PrevRandao: h.MixDigest,
 	}
 }
 
@@ -124,6 +134,7 @@ func (h *EvmHeader) EthHeader() *types.Header {
 		BaseFee:    h.BaseFee,
 
 		Difficulty: new(big.Int),
+		MixDigest:  h.PrevRandao,
 	}
 	// ethHeader.SetExternalHash(h.Hash) < this seems to be an optimization in go-ethereum-substate; skipped for now, needs investigation
 	return ethHeader
@@ -145,7 +156,7 @@ type EvmHeaderJson struct {
 	Time        hexutil.Uint64   `json:"timestamp"        gencodec:"required"`
 	TimeNano    hexutil.Uint64   `json:"timestampNano"`
 	Extra       hexutil.Bytes    `json:"extraData"        gencodec:"required"`
-	MixDigest   common.Hash      `json:"mixHash"`
+	PrevRandao  common.Hash      `json:"mixHash"`
 	Nonce       types.BlockNonce `json:"nonce"`
 	BaseFee     *hexutil.Big     `json:"baseFeePerGas"`
 	Hash        *common.Hash     `json:"hash"`
@@ -174,9 +185,10 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		TimeNano:   hexutil.Uint64(h.Time),
 		BaseFee:    (*hexutil.Big)(h.BaseFee),
 		Difficulty: new(hexutil.Big),
+		PrevRandao: h.PrevRandao,
 		TotalDiff:  new(hexutil.Big),
 		Hash:       &h.Hash,
-		Epoch:		hexutil.Uint64(hash.Event(h.Hash).Epoch()),
+		Epoch:      hexutil.Uint64(hash.Event(h.Hash).Epoch()),
 	}
 	if receipts != nil { // if receipts resolution fails, don't set ReceiptsHash at all
 		if receipts.Len() != 0 {
