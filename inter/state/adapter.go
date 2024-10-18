@@ -8,6 +8,8 @@ import (
 	"github.com/holiman/uint256"
 )
 
+//go:generate mockgen -source adapter.go -destination adapter_mock.go -package state
+
 type StateDB interface {
 	vm.StateDB
 
@@ -21,7 +23,7 @@ type StateDB interface {
 	SetStorage(addr common.Address, storage map[common.Hash]common.Hash)
 	Copy() StateDB
 	Finalise()
-	Commit(deleteEmptyObjects bool) (common.Hash, error)
+	GetStateHash() common.Hash
 
 	BeginBlock(number uint64)
 	EndBlock(number uint64)

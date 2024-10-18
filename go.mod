@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/Fantom-foundation/Carmen/go v0.0.0-20240919111317-5c737f72628f
-	github.com/Fantom-foundation/Tosca v0.0.0-20240923133528-44629f84e630
+	github.com/Fantom-foundation/Tosca v0.0.0-20241009135726-aa99babe0a10
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00
 	github.com/cespare/cp v1.1.1
 	github.com/davecgh/go-spew v1.1.1
@@ -131,7 +131,7 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241010144554-28e21b08ad3b
+replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241016110649-0dd3a9b6f237
 
 replace github.com/Fantom-foundation/lachesis-base => github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20240823114058-cda038e6d40b
 
