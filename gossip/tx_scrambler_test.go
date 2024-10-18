@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/exp/rand"
+	"reflect"
 	"testing"
 )
 
@@ -16,10 +17,6 @@ func TestGetExecutionOrder_SortIsDeterministic(t *testing.T) {
 		{
 			"builtInSort",
 			builtInSort,
-		},
-		{
-			"quickSort",
-			quickSort,
 		},
 	}
 	for _, test := range tests {
@@ -34,13 +31,26 @@ func TestGetExecutionOrder_SortIsDeterministic(t *testing.T) {
 			// sort two same arrays
 			entries = getExecutionOrder(entries, test.sort)
 			cpy = getExecutionOrder(cpy, test.sort)
-			for index, _ := range entries {
-				// first occurrence of changed order means algorithm is not deterministic
-				if *entries[index] != *cpy[index] {
-					t.Fatal("slices have different order - algorithm is not deterministic")
-				}
+			if !reflect.DeepEqual(entries, cpy) {
+				t.Fatal("slices have different order - algorithm is not deterministic")
 			}
 		})
+	}
+}
+
+func TestGetExecutionOrder_SortIsDeterministic2(t *testing.T) {
+	entryA := &scramblerEntry{
+		hash: common.Hash{1},
+	}
+	entryB := &scramblerEntry{
+		hash: common.Hash{2},
+	}
+
+	res1 := getExecutionOrder([]*scramblerEntry{entryA, entryB}, builtInSort)
+	res2 := getExecutionOrder([]*scramblerEntry{entryB, entryA}, builtInSort)
+
+	if !reflect.DeepEqual(res1, res2) {
+		t.Fatal("slices have different order - algorithm is not deterministic")
 	}
 }
 
@@ -53,10 +63,6 @@ func TestGetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) {
 		{
 			"builtInSort",
 			builtInSort,
-		},
-		{
-			"quickSort",
-			quickSort,
 		},
 	}
 	for _, test := range tests {
@@ -164,32 +170,12 @@ func BenchmarkSortAlgorithms_BuiltIn(b *testing.B) {
 	}
 }
 
-func BenchmarkSortAlgorithms_QuickSort(b *testing.B) {
-	const (
-		numLoops   = 4
-		multiplier = 10
-	)
-	size := 10
-
-	for _ = range numLoops {
-		b.Run(fmt.Sprintf("quickSort_%d", size), func(b *testing.B) {
-			for i := 1; i <= b.N; i++ {
-				b.StopTimer()
-				entries := createRandomScramblerTestInput(size)
-				b.StartTimer()
-				getExecutionOrder(entries, quickSort)
-			}
-		})
-		size = size * multiplier
-	}
-}
-
 func createRandomScramblerTestInput(size int) []*scramblerEntry {
 	var entries []*scramblerEntry
 	for i := 0; i < size; i++ {
 		entries = append(entries, &scramblerEntry{
 			hash:   common.Hash{byte(rand.Intn(100 - 1))},
-			sender: common.Address{byte(rand.Intn(10 - 1))},
+			sender: common.Address{byte(rand.Intn(100 - 1))},
 			nonce:  uint64(rand.Intn(10 - 1)),
 		})
 	}

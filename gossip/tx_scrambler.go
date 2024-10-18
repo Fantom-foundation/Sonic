@@ -2,9 +2,7 @@ package gossip
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/bitutil"
 	"slices"
 )
 
@@ -14,27 +12,29 @@ type scramblerEntry struct {
 	nonce  uint64
 }
 
-type scramblerSortFunc func(entries []*scramblerEntry, seed []byte) []*scramblerEntry
+type scramblerSortFunc func(entries []*scramblerEntry, salt [32]byte) []*scramblerEntry
 
 // getExecutionOrder first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
 // Furthermore, if there are entries with same sender, these entries are sorted by their nonce (lower comes first).
 func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []*scramblerEntry {
-	hashList := make([]byte, 0)
+	var salt [32]byte
+
 	seenAddresses := make(map[common.Address]bool)
 	duplicateAddresses := make(map[common.Address]int)
+	duplicateHashes := make(map[common.Hash]bool)
 
-	m := make(map[common.Hash]bool)
-	uniqueList := make([]*scramblerEntry, 0)
+	uniqueList := make([]*scramblerEntry, 0, len(entries))
 	for _, entry := range entries {
 		// skip any duplicate hashes
-		if _, ok := m[entry.hash]; ok {
+		if _, ok := duplicateHashes[entry.hash]; ok {
 			continue
 		}
 
+		salt = xorBytes32(salt, entry.hash)
+
 		// Remove txs with duplicate hashes using map
-		m[entry.hash] = true
+		duplicateHashes[entry.hash] = true
 		uniqueList = append(uniqueList, entry)
-		hashList = append(hashList, entry.hash.Bytes()...)
 
 		if _, ok := seenAddresses[entry.sender]; ok {
 			// map number of occurrence
@@ -50,8 +50,8 @@ func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []
 			seenAddresses[entry.sender] = true
 		}
 	}
-	seed := sha256.Sum256(hashList)
-	sorted := sortFunc(uniqueList, seed[:])
+
+	sorted := sortFunc(uniqueList, salt)
 
 	// if no duplicate addresses, return early
 	if len(duplicateAddresses) == 0 {
@@ -100,57 +100,19 @@ func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []
 }
 
 // builtInSort uses golang built in sort func.
-func builtInSort(entries []*scramblerEntry, seed []byte) []*scramblerEntry {
+func builtInSort(entries []*scramblerEntry, salt [32]byte) []*scramblerEntry {
+	var aX, bX [32]byte
 	slices.SortFunc(entries, func(a, b *scramblerEntry) int {
-		var (
-			aX = make([]byte, 32)
-			bX = make([]byte, 32)
-		)
-
-		bitutil.XORBytes(aX, a.hash.Bytes()[:], seed[:])
-		bitutil.XORBytes(bX, b.hash.Bytes()[:], seed[:])
+		aX = xorBytes32(a.hash, salt)
+		bX = xorBytes32(b.hash, salt)
 		return bytes.Compare(aX[:], bX[:])
 	})
 	return entries
 }
 
-// quickSort is a quicksort implementation for comparing XORed entries hashes.
-func quickSort(entries []*scramblerEntry, seed []byte) []*scramblerEntry {
-	qSort(entries, seed, 0, len(entries)-1)
-	return entries
-}
-
-func qSort(entries []*scramblerEntry, seed []byte, low, high int) {
-	if low < high {
-		pivot := partition(entries, seed, low, high)
-		qSort(entries, seed, low, pivot-1)
-		qSort(entries, seed, pivot+1, high)
+func xorBytes32(a, b [32]byte) (dst [32]byte) {
+	for i := 0; i < 32; i++ {
+		dst[i] = a[i] ^ b[i]
 	}
-}
-
-func partition(entries []*scramblerEntry, seed []byte, low, high int) int {
-	pivot := entries[high]
-	pivotX := xorWithSeed(pivot.hash.Bytes(), seed)
-	i := low - 1
-
-	for j := low; j < high; j++ {
-		currentX := xorWithSeed(entries[j].hash.Bytes(), seed)
-		if bytes.Compare(currentX, pivotX) < 0 {
-			i++
-			// wwap entries[i] and entries[j]
-			entries[i], entries[j] = entries[j], entries[i]
-		}
-	}
-	// wwap the pivot to its correct position
-	entries[i+1], entries[high] = entries[high], entries[i+1]
-	return i + 1
-}
-
-// xorWithSeed returns XORed hash with seed.
-func xorWithSeed(hash, seed []byte) []byte {
-	dst := make([]byte, 32)
-	for i := range dst {
-		dst[i] = hash[i] ^ seed[i]
-	}
-	return dst
+	return
 }
