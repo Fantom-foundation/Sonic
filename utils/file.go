@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -49,6 +49,6 @@ func FileGet(path string) []byte {
 		log.Crit("Failed to open file", "file", path, "err", err)
 	}
 	defer fh.Close()
-	res, _ := ioutil.ReadAll(fh)
+	res, _ := io.ReadAll(fh)
 	return res
 }

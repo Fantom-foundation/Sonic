@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -46,7 +45,7 @@ func New(scryptN int, scryptP int) *Keystore {
 
 func (ks Keystore) ReadKey(wantPubkey validatorpk.PubKey, filename, auth string) (*PrivateKey, error) {
 	// Load the key from the keystore and decrypt its contents
-	keyjson, err := ioutil.ReadFile(filename)
+	keyjson, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +56,7 @@ func (ks Keystore) ReadKey(wantPubkey validatorpk.PubKey, filename, auth string)
 	// Make sure we're really operating on the requested key (no swap attacks)
 	keySecp256k1 := key.Decoded.(*ecdsa.PrivateKey)
 	gotPubkey := crypto.FromECDSAPub(&keySecp256k1.PublicKey)
-	if bytes.Compare(wantPubkey.Raw, gotPubkey) != 0 {
+	if !bytes.Equal(wantPubkey.Raw, gotPubkey) {
 		return nil, fmt.Errorf("key content mismatch: have public key %X, want %X", gotPubkey, wantPubkey.Raw)
 	}
 	return key, nil

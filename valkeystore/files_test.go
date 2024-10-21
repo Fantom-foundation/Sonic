@@ -1,7 +1,6 @@
 package valkeystore
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestFileKeystoreAdd(t *testing.T) {
-	dir, err := ioutil.TempDir("", "valkeystore_test")
+	dir, err := os.MkdirTemp("", "valkeystore_test")
 	if err != nil {
 		return
 	}
@@ -48,7 +47,7 @@ func TestFileKeystoreAdd(t *testing.T) {
 }
 
 func TestFileKeystoreRead(t *testing.T) {
-	dir, err := ioutil.TempDir("", "valkeystore_test")
+	dir, err := os.MkdirTemp("", "valkeystore_test")
 	if err != nil {
 		return
 	}

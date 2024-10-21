@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
@@ -71,10 +70,10 @@ func TestFileHash_ReadWrite(t *testing.T) {
 
 func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pieceSize uint64) {
 	require := require.New(t)
-	tmpDirPath, err := ioutil.TempDir("", "filehash*")
+	tmpDirPath, err := os.MkdirTemp("", "filehash*")
 	defer os.RemoveAll(tmpDirPath)
 	require.NoError(err)
-	f, err := ioutil.TempFile(tmpDirPath, "testnet.g")
+	f, err := os.CreateTemp(tmpDirPath, "testnet.g")
 	filePath := f.Name()
 	require.NoError(err)
 	writer := WrapWriter(f, pieceSize, func(i int) TmpWriter {
