@@ -37,7 +37,7 @@ eth.getBalance(eth.accounts[0]);
 
 * Get node1 address:
 ```sh
-../build/sonictool --datadir=tool.datadir cli --exec "ftm.accounts[0]" http://localhost:4001
+../build/sonictool --datadir=tool.datadir cli --exec "eth.accounts[0]" http://localhost:4001
 ```
  output shows address:
 ```js
