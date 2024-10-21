@@ -3,13 +3,14 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 	"math"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
@@ -613,14 +614,14 @@ func (h *handler) handleEventHashes(p *peer, announces hash.Events) {
 	_ = h.dagFetcher.NotifyAnnounces(p.id, eventIDsToInterfaces(notTooHigh), time.Now(), requestEvents)
 }
 
-func (h *handler) handleEvents(p *peer, events dag.Events, ordered bool) {
+func (h *handler) handleEvents(peer *peer, events dag.Events, ordered bool) {
 	// Mark the hashes as present at the remote node
 	now := time.Now()
 	for _, e := range events {
 		for _, tx := range e.(inter.EventPayloadI).Txs() {
 			txtime.Saw(tx.Hash(), now)
 		}
-		p.MarkEvent(e.ID())
+		peer.MarkEvent(e.ID())
 	}
 	// filter too high events
 	notTooHigh := make(dag.Events, 0, len(events))
@@ -641,7 +642,6 @@ func (h *handler) handleEvents(p *peer, events dag.Events, ordered bool) {
 		return
 	}
 	// Schedule all the events for connection
-	peer := *p
 	requestEvents := func(ids []interface{}) error {
 		return peer.RequestEvents(interfacesToEventIDs(ids))
 	}
