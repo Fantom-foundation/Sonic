@@ -209,27 +209,27 @@ func (c *Config) Validate() error {
 	p := c.Protocol
 	defaultChunkSize := dag.Metric{Num: idx.Event(p.DagStreamLeecher.Session.DefaultChunkItemsNum), Size: p.DagStreamLeecher.Session.DefaultChunkItemsSize}
 	if defaultChunkSize.Num > hardLimitItems-1 {
-		return fmt.Errorf("DefaultChunkSize.Num has to be at not greater than %d", hardLimitItems-1)
+		return fmt.Errorf("defaultChunkSize.Num has to be at not greater than %d", hardLimitItems-1)
 	}
 	if defaultChunkSize.Size > protocolMaxMsgSize/2 {
-		return fmt.Errorf("DefaultChunkSize.Num has to be at not greater than %d", protocolMaxMsgSize/2)
+		return fmt.Errorf("defaultChunkSize.Num has to be at not greater than %d", protocolMaxMsgSize/2)
 	}
 	if p.EventsSemaphoreLimit.Num < 2*defaultChunkSize.Num ||
 		p.EventsSemaphoreLimit.Size < 2*defaultChunkSize.Size {
-		return fmt.Errorf("EventsSemaphoreLimit has to be at least 2 times greater than %s (DefaultChunkSize)", defaultChunkSize.String())
+		return fmt.Errorf("eventsSemaphoreLimit has to be at least 2 times greater than %s (DefaultChunkSize)", defaultChunkSize.String())
 	}
 	if p.EventsSemaphoreLimit.Num < 2*p.DagProcessor.EventsBufferLimit.Num ||
 		p.EventsSemaphoreLimit.Size < 2*p.DagProcessor.EventsBufferLimit.Size {
-		return fmt.Errorf("EventsSemaphoreLimit has to be at least 2 times greater than %s (EventsBufferLimit)", p.DagProcessor.EventsBufferLimit.String())
+		return fmt.Errorf("eventsSemaphoreLimit has to be at least 2 times greater than %s (EventsBufferLimit)", p.DagProcessor.EventsBufferLimit.String())
 	}
 	if p.EventsSemaphoreLimit.Size < 2*protocolMaxMsgSize {
-		return fmt.Errorf("EventsSemaphoreLimit.Size has to be at least %d", 2*protocolMaxMsgSize)
+		return fmt.Errorf("eventsSemaphoreLimit.Size has to be at least %d", 2*protocolMaxMsgSize)
 	}
 	if p.MsgsSemaphoreLimit.Size < protocolMaxMsgSize {
-		return fmt.Errorf("MsgsSemaphoreLimit.Size has to be at least %d", protocolMaxMsgSize)
+		return fmt.Errorf("msgsSemaphoreLimit.Size has to be at least %d", protocolMaxMsgSize)
 	}
 	if p.DagProcessor.EventsBufferLimit.Size < protocolMaxMsgSize {
-		return fmt.Errorf("EventsBufferLimit.Size has to be at least %d", protocolMaxMsgSize)
+		return fmt.Errorf("eventsBufferLimit.Size has to be at least %d", protocolMaxMsgSize)
 	}
 
 	return nil

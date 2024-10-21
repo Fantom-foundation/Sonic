@@ -74,6 +74,6 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 		t.Fatalf("Expected 1 receipt, got %d", len(receipts))
 	}
 	if want, got := types.ReceiptStatusSuccessful, receipts[0].Status; want != got {
-		t.Errorf("Expected status %v, got %v", want, got)
+		t.Errorf("expected status %v, got %v", want, got)
 	}
 }

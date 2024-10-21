@@ -271,7 +271,7 @@ func (s *PublicTxTraceAPI) traceTx(
 	}
 	// If the timer caused an abort, return an appropriate error message
 	if vmenv.Cancelled() {
-		return nil, fmt.Errorf("EVM was cancelled when replaying tx")
+		return nil, fmt.Errorf("eVM was cancelled when replaying tx")
 	}
 
 	// check correct replay state

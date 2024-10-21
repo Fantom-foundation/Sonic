@@ -11,7 +11,7 @@ import (
 func Check() error {
 	locked, reason, eLockPath, _ := read(datadir)
 	if locked {
-		return fmt.Errorf("Node isn't allowed to start due to a previous error. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, reason)
+		return fmt.Errorf("node isn't allowed to start due to a previous error. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, reason)
 	}
 	return nil
 }
@@ -28,7 +28,7 @@ func SetDefaultDatadir(dir string) {
 // Permanent error
 func Permanent(err error) {
 	eLockPath, _ := write(datadir, err.Error())
-	panic(fmt.Errorf("Node is permanently stopping due to an issue. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, err.Error()))
+	panic(fmt.Errorf("node is permanently stopping due to an issue. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, err.Error()))
 }
 
 func readAll(reader io.Reader, max int) ([]byte, error) {

@@ -146,11 +146,11 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 
 	store, err := NewMemStore(tb)
 	if err != nil {
-		panic(fmt.Errorf("NewMemStore failed; %w", err))
+		panic(fmt.Errorf("newMemStore failed; %w", err))
 	}
 	err = store.ApplyGenesis(genesis)
 	if err != nil {
-		panic(fmt.Errorf("ApplyGenesis failed; %w", err))
+		panic(fmt.Errorf("applyGenesis failed; %w", err))
 	}
 
 	// install blockProc callbacks

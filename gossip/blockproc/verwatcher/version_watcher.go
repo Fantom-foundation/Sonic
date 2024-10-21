@@ -32,10 +32,10 @@ func New(store *Store) *VerWarcher {
 
 func (w *VerWarcher) Pause() error {
 	if w.store.GetNetworkVersion() > version.AsU64() {
-		return fmt.Errorf("Network upgrade %s was activated. Current node version is %s. "+
+		return fmt.Errorf("network upgrade %s was activated. Current node version is %s. "+
 			"Please upgrade your node to continue syncing.", version.U64ToString(w.store.GetNetworkVersion()), version.AsString())
 	} else if w.store.GetMissedVersion() > 0 {
-		return fmt.Errorf("Node's state is dirty because node was upgraded after the network upgrade %s was activated. "+
+		return fmt.Errorf("node's state is dirty because node was upgraded after the network upgrade %s was activated. "+
 			"Please re-sync the chain data to continue.", version.U64ToString(w.store.GetMissedVersion()))
 	}
 	return nil

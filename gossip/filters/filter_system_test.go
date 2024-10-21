@@ -267,7 +267,7 @@ func TestInvalidLogFilterCreation(t *testing.T) {
 
 	for i, test := range testCases {
 		if _, err := api.NewFilter(test); err == nil {
-			t.Errorf("Expected NewFilter for case #%d to fail", i)
+			t.Errorf("expected NewFilter for case #%d to fail", i)
 		}
 	}
 }
@@ -288,7 +288,7 @@ func TestInvalidGetLogsRequest(t *testing.T) {
 
 	for i, test := range testCases {
 		if _, err := api.GetLogs(context.Background(), test); err == nil {
-			t.Errorf("Expected Logs for case #%d to fail", i)
+			t.Errorf("expected Logs for case #%d to fail", i)
 		}
 	}
 }
