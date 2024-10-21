@@ -17,12 +17,13 @@
 package flags
 
 import (
+	"strings"
+
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	pcsclite "github.com/gballet/go-libpcsclite"
 	"gopkg.in/urfave/cli.v1"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/node"
 )
@@ -292,14 +293,14 @@ var (
 		Value: gossip.DefaultConfig(cachescale.Identity).RPCTimeout,
 	}
 	BatchRequestLimit = &cli.IntFlag{
-		Name:     "rpc.batch-request-limit",
-		Usage:    "Maximum number of requests in a batch",
-		Value:    node.DefaultConfig.BatchRequestLimit,
+		Name:  "rpc.batch-request-limit",
+		Usage: "Maximum number of requests in a batch",
+		Value: node.DefaultConfig.BatchRequestLimit,
 	}
 	BatchResponseMaxSize = &cli.IntFlag{
-		Name:     "rpc.batch-response-max-size",
-		Usage:    "Maximum number of bytes returned from a batched call",
-		Value:    node.DefaultConfig.BatchResponseMaxSize,
+		Name:  "rpc.batch-response-max-size",
+		Usage: "Maximum number of bytes returned from a batched call",
+		Value: node.DefaultConfig.BatchResponseMaxSize,
 	}
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
@@ -331,10 +332,10 @@ var (
 		Usage: "Password to unlock validator private key",
 		Value: "",
 	}
-	
+
 	// Consensus
 	SuppressFramePanicFlag = cli.BoolFlag{
-		Name:  "suppress-frame-panic",
+		Name:  "lachesis.suppress-frame-panic",
 		Usage: "Suppress frame missmatch error while importing event files",
 	}
 )
