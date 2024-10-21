@@ -1,9 +1,10 @@
 package emitter
 
 import (
-	"github.com/Fantom-foundation/go-opera/version"
 	"math/rand"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/version"
 
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/opera"
