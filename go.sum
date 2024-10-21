@@ -6,8 +6,8 @@ github.com/Fantom-foundation/Tosca v0.0.0-20241009135726-aa99babe0a10 h1:D7askaA
 github.com/Fantom-foundation/Tosca v0.0.0-20241009135726-aa99babe0a10/go.mod h1:DtJlv3NCjaFxBKGXR7HQfLhLSu+BY5OILQ/4s7MR6lA=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241016110649-0dd3a9b6f237 h1:9v5ZQuDpRl/d6wlLKzq5zy3mohc/2otrCX+UJmLVYHs=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241016110649-0dd3a9b6f237/go.mod h1:p4knNH76zBuqbEfc6CbZTOnaQNU0WvhzW5f0qq6aMoU=
-github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20240823114058-cda038e6d40b h1:oggmwdVb9tJiUJrcFvs5A3JOC1t2I231N4/RW2YXr8w=
-github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20240823114058-cda038e6d40b/go.mod h1:YaNcYnDsDooGLKqsrTt+tafplgorZ0l8C1IwmryrIWs=
+github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20241018103023-632a59c242f5 h1:dv1iFhsUfIfixwoNJWWZItWqOfKLV1mLA8eJLA1wceU=
+github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20241018103023-632a59c242f5/go.mod h1:YaNcYnDsDooGLKqsrTt+tafplgorZ0l8C1IwmryrIWs=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/Masterminds/semver/v3 v3.2.1 h1:RN9w6+7QoMeJVGyfmbcgs28Br8cvmnucEXnY0rYXWg0=
