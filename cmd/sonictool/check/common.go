@@ -2,6 +2,9 @@ package check
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
@@ -9,8 +12,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"os"
-	"path/filepath"
 )
 
 func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.ArchiveType, skipArchiveCheck bool) (*gossip.Store, kvdb.FullDBProducer, error) {
@@ -39,7 +40,7 @@ func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.Archiv
 
 	gdb, err := gossip.NewStore(dbs, gdbConfig)
 	if err != nil {
-		fmt.Errorf("failed to create gossip store: %w", err)
+		return nil, nil, fmt.Errorf("failed to create gossip store: %w", err)
 	}
 
 	err = gdb.EvmStore().Open()
@@ -50,7 +51,7 @@ func createGdb(dataDir string, cacheRatio cachescale.Func, archive carmen.Archiv
 	return gdb, dbs, nil
 }
 
-type verificationObserver struct {}
+type verificationObserver struct{}
 
 func (o verificationObserver) StartVerification() {}
 
