@@ -2,9 +2,10 @@ package evmwriter
 
 import (
 	"bytes"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"math/big"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/core/tracing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -55,7 +56,7 @@ func init() {
 
 type PreCompiledContract struct{}
 
-func (_ PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm.TxContext, caller common.Address, input []byte, suppliedGas uint64) ([]byte, uint64, error) {
+func (PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm.TxContext, caller common.Address, input []byte, suppliedGas uint64) ([]byte, uint64, error) {
 	if caller != driver.ContractAddress {
 		return nil, 0, vm.ErrExecutionReverted
 	}

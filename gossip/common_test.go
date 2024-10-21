@@ -510,14 +510,12 @@ func (env *testEnv) SendTransaction(ctx context.Context, tx *types.Transaction) 
 // returning all the results in one batch.
 func (env *testEnv) FilterLogs(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error) {
 	panic("not implemented yet")
-	return nil, nil
 }
 
 // SubscribeFilterLogs creates a background log filtering operation, returning
 // a subscription immediately, which can be used to stream the found events.
 func (env *testEnv) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
 	panic("not implemented yet")
-	return nil, nil
 }
 
 // CallMsgToMessage converts the given CallMsg to an evmcore.Message to allow passing it as a transaction simulator.

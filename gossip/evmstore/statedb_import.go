@@ -118,10 +118,7 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 	}
 	evmItems.ForEach(func(key, value []byte) bool {
 		err := db.Put(key, value)
-		if err != nil {
-			return false
-		}
-		return true
+		return err == nil
 	})
 
 	s.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)

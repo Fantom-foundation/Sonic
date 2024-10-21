@@ -38,10 +38,9 @@ func TestThreadPool(t *testing.T) {
 			releaseB(gotB)
 
 			releaseA(gotA)
-			gotB, releaseB = pool.Lock(10)
-			require.Equal(8, gotB)
-
 			// don't releaseB(gotB) to check pools isolation
+			gotB, _ = pool.Lock(10)
+			require.Equal(8, gotB)
 		})
 	}
 }
