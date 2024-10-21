@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag/tdag"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/ethereum/go-ethereum/common"
@@ -56,12 +55,6 @@ func TestEmitter(t *testing.T) {
 	external.EXPECT().StateDB().
 		Return(nil).
 		AnyTimes()
-	external.EXPECT().GetLastEvent(idx.Epoch(1), cfg.Validator.ID).
-		Return(nil).
-		Times(1)
-	external.EXPECT().GetHeads(idx.Epoch(1)).
-		Return(hash.Events{(&tdag.TestEvent{}).ID(), (&tdag.TestEvent{}).ID()}).
-		Times(0)
 
 	em := NewEmitter(cfg, World{
 		External: external,
@@ -121,18 +114,5 @@ func TestEmitter(t *testing.T) {
 
 	t.Run("tick", func(t *testing.T) {
 		em.tick()
-	})
-
-	t.Run("chooseParentsGenesis", func(t *testing.T) {
-		selfParent, parents, ok := em.chooseParents(idx.Epoch(1), cfg.Validator.ID)
-		if selfParent != nil {
-			t.Error("genesis event must not have self parent")
-		}
-		if len(parents) > 0 {
-			t.Error("genesis event must not have any parents")
-		}
-		if !ok {
-			t.Error("genesis parent assignment must succeed without any parents")
-		}
 	})
 }
