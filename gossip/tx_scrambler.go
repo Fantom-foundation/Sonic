@@ -12,101 +12,91 @@ type scramblerEntry struct {
 	nonce  uint64
 }
 
-type scramblerSortFunc func(entries []*scramblerEntry, salt [32]byte) []*scramblerEntry
-
 // getExecutionOrder first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
 // Furthermore, if there are entries with same sender, these entries are sorted by their nonce (lower comes first).
-func getExecutionOrder(entries []*scramblerEntry, sortFunc scramblerSortFunc) []*scramblerEntry {
-	var salt [32]byte
+func getExecutionOrder(entries []*scramblerEntry) []*scramblerEntry {
+	uniqueList, salt, hasDuplicateAddresses := unifyEntries(entries)
+	scrambleTransactions(uniqueList, salt)
 
-	seenAddresses := make(map[common.Address]bool)
-	duplicateAddresses := make(map[common.Address]int)
+	// no need to sort more
+	if !hasDuplicateAddresses {
+		return uniqueList
+	}
+
+	return sortTransactionsByNonce(uniqueList)
+}
+
+// sortTransactionsByNonce finds any duplicate senders and sorts their transactions by nonce ascending.
+func sortTransactionsByNonce(entries []*scramblerEntry) []*scramblerEntry {
+	senderNonceOrder := deepCopyEntries(entries)
+	// sort copied slice so that it has all txs from same address together + sorted by nonce ascending
+	slices.SortFunc(senderNonceOrder, func(a, b *scramblerEntry) int {
+		cmp := a.sender.Cmp(b.sender)
+		if cmp != 0 {
+			return cmp
+		}
+		if a.nonce > b.nonce {
+			return 1
+		}
+		return -1
+	})
+
+	// find the first entry for each sender in the senderNonceOrder
+	senderIndex := make(map[common.Address]int)
+	for idx, entry := range senderNonceOrder {
+		if _, ok := senderIndex[entry.sender]; !ok {
+			senderIndex[entry.sender] = idx
+		}
+	}
+
+	// replace already scrambled entries so that they are sorted by nonce
+	for idx := 0; idx < len(entries); idx++ {
+		sender := entries[idx].sender
+		entries[idx] = senderNonceOrder[senderIndex[sender]]
+		senderIndex[sender]++
+	}
+
+	return entries
+}
+
+// scrambleTransactions scrambles transactions by comparing its XORed hashes with salt
+func scrambleTransactions(list []*scramblerEntry, salt [32]byte) {
+	var aX, bX [32]byte
+	slices.SortFunc(list, func(a, b *scramblerEntry) int {
+		aX = xorBytes32(a.hash, salt)
+		bX = xorBytes32(b.hash, salt)
+		return bytes.Compare(aX[:], bX[:])
+	})
+}
+
+// unifyEntries removes any transactions with duplicate hashes and creates the XOR salt from the unique tx list.
+// Furthermore, it returns whether given list of entries contains duplicate addresses.
+func unifyEntries(entries []*scramblerEntry) ([]*scramblerEntry, [32]byte, bool) {
+	var (
+		salt                  [32]byte
+		hasDuplicateAddresses bool
+	)
+
 	seenHashes := make(map[common.Hash]bool)
+	seenAddresses := make(map[common.Address]bool)
 	uniqueList := make([]*scramblerEntry, 0, len(entries))
 	for _, entry := range entries {
 		// skip any duplicate hashes
 		if _, ok := seenHashes[entry.hash]; ok {
 			continue
 		}
+		// mark whether we have duplicate addresses
+		if _, ok := seenAddresses[entry.sender]; ok {
+			hasDuplicateAddresses = true
+		}
 
 		salt = xorBytes32(salt, entry.hash)
-
-		// Remove txs with duplicate hashes using map
-		seenHashes[entry.hash] = true
 		uniqueList = append(uniqueList, entry)
-
-		if _, ok := seenAddresses[entry.sender]; ok {
-			// map number of occurrence
-			if _, ok := duplicateAddresses[entry.sender]; ok {
-				// if already marked as duplicate, only increment the occurrence
-				duplicateAddresses[entry.sender]++
-			} else {
-				// if not yet marked, mark it with 2 because at this point, this address has been seen second time
-				duplicateAddresses[entry.sender] = 2
-			}
-		} else {
-			// mark seen address
-			seenAddresses[entry.sender] = true
-		}
+		seenHashes[entry.hash] = true
+		seenAddresses[entry.sender] = true
 	}
 
-	entries = sortFunc(uniqueList, salt)
-
-	// if no duplicate addresses, return early
-	if len(duplicateAddresses) == 0 {
-		return entries
-	}
-
-	indexMap := make(map[common.Address][]int)
-	for i, entry := range entries {
-		// find if address is duplicate
-		occurrence, ok := duplicateAddresses[entry.sender]
-		if !ok {
-			continue
-		}
-		// if first time found, mark create array and mark first index
-		idxs, ok := indexMap[entry.sender]
-		if !ok {
-			indexMap[entry.sender] = []int{i}
-			continue
-		}
-
-		// if we have not found all indexes of given address, append and continue
-		if len(idxs) != occurrence {
-			indexMap[entry.sender] = append(idxs, i)
-			continue
-		}
-	}
-
-	for _, idxs := range indexMap {
-		for i := 0; i < len(idxs); i++ {
-			for j := 0; j < len(idxs); j++ {
-				var e scramblerEntry
-				a := entries[idxs[i]].nonce
-				b := entries[idxs[j]].nonce
-				// txs with smaller nonce must be executed first, otherwise they will never be executed
-				if a < b {
-					e = *entries[idxs[i]]
-					*entries[idxs[i]] = *entries[idxs[j]]
-					*entries[idxs[j]] = e
-				}
-
-			}
-		}
-	}
-
-	return entries
-}
-
-// builtInSort uses golang built in sort func.
-func builtInSort(entries []*scramblerEntry, salt [32]byte) []*scramblerEntry {
-	var aX, bX [32]byte
-	slices.SortFunc(entries, func(a, b *scramblerEntry) int {
-		aX = xorBytes32(a.hash, salt)
-		bX = xorBytes32(b.hash, salt)
-		return bytes.Compare(aX[:], bX[:])
-	})
-	return entries
+	return uniqueList, salt, hasDuplicateAddresses
 }
 
 func xorBytes32(a, b [32]byte) (dst [32]byte) {
@@ -114,4 +104,15 @@ func xorBytes32(a, b [32]byte) (dst [32]byte) {
 		dst[i] = a[i] ^ b[i]
 	}
 	return
+}
+
+// deepCopyEntries returns deep copy of entries.
+func deepCopyEntries(entries []*scramblerEntry) []*scramblerEntry {
+	cpy := make([]*scramblerEntry, len(entries))
+	// make a deep copy
+	for i, e := range entries {
+		copied := *e
+		cpy[i] = &copied
+	}
+	return cpy
 }
