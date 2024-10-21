@@ -1,7 +1,7 @@
 package compactdb
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -14,7 +14,7 @@ import (
 )
 
 func tmpDir(name string) string {
-	dir, err := ioutil.TempDir("", name)
+	dir, err := os.MkdirTemp("", name)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +72,6 @@ func TestTrimAfterDiff(t *testing.T) {
 	a, b := trimAfterDiff([]byte{}, []byte{}, 1)
 	require.Equal(t, []byte{}, a)
 	require.Equal(t, []byte{}, b)
-
 
 	a, b = trimAfterDiff([]byte{1, 2}, []byte{1, 3}, 1)
 	require.Equal(t, []byte{1, 2}, a)
