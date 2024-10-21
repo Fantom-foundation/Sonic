@@ -21,13 +21,10 @@ func testGaugeConcurrency(t *testing.T) {
 		turn := i
 		go func() {
 			defer wg.Done()
-			select {
-			case <-barrier:
-				g.Mark(turn)
-				if v := int64(g.rateToGauge(float64(2*end), 1)); v < turn {
-					t.Errorf("%d >= %d", v, end)
-				}
-				return
+			<-barrier
+			g.Mark(turn)
+			if v := int64(g.rateToGauge(float64(2*end), 1)); v < turn {
+				t.Errorf("%d >= %d", v, end)
 			}
 		}()
 	}
