@@ -2,6 +2,9 @@ package evmstore
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
@@ -10,8 +13,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/utils/wlru"
 	"github.com/ethereum/go-ethereum/core/types"
-	"os"
-	"path/filepath"
 )
 
 const nominalSize uint = 1
@@ -21,14 +22,14 @@ type Store struct {
 	cfg StoreConfig
 
 	mainDB kvdb.Store
-	table struct {
+	table  struct {
 		// API-only tables
 		Receipts    kvdb.Store `table:"r"`
 		TxPositions kvdb.Store `table:"x"`
 		Txs         kvdb.Store `table:"X"`
 	}
 
-	EvmLogs  topicsdb.Index
+	EvmLogs topicsdb.Index
 
 	cache struct {
 		TxPositions *wlru.Cache `cache:"-"` // store by pointer
@@ -40,7 +41,7 @@ type Store struct {
 
 	logger.Instance
 
-	parameters carmen.Parameters
+	parameters  carmen.Parameters
 	carmenState carmen.State
 	liveStateDb carmen.StateDB
 }
@@ -48,10 +49,10 @@ type Store struct {
 // NewStore creates store over key-value db.
 func NewStore(mainDB kvdb.Store, cfg StoreConfig) *Store {
 	s := &Store{
-		cfg:      cfg,
-		mainDB:   mainDB,
-		Instance: logger.New("evm-store"),
-		rlp:      rlpstore.Helper{logger.New("rlp")},
+		cfg:        cfg,
+		mainDB:     mainDB,
+		Instance:   logger.New("evm-store"),
+		rlp:        rlpstore.Helper{Instance: logger.New("rlp")},
 		parameters: cfg.StateDb,
 	}
 

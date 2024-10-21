@@ -3,10 +3,11 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/metrics"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -27,10 +28,10 @@ var (
 )
 
 var (
-	sentTxsPromotedCounter = metrics.GetOrRegisterCounter("p2p_sent_txs_promoted", nil)
+	sentTxsPromotedCounter    = metrics.GetOrRegisterCounter("p2p_sent_txs_promoted", nil)
 	droppedTxsPromotedCounter = metrics.GetOrRegisterCounter("p2p_dropped_txs_promoted", nil)
-	sentTxsRequestedCounter = metrics.GetOrRegisterCounter("p2p_sent_txs_requested", nil)
-	sentTxHashesCounter = metrics.GetOrRegisterCounter("p2p_sent_tx_hashes", nil)
+	sentTxsRequestedCounter   = metrics.GetOrRegisterCounter("p2p_sent_txs_requested", nil)
+	sentTxHashesCounter       = metrics.GetOrRegisterCounter("p2p_sent_tx_hashes", nil)
 )
 
 const (
@@ -124,7 +125,7 @@ func newPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, cfg PeerCacheConfi
 		knownTxs:            mapset.NewSet(),
 		knownEvents:         mapset.NewSet(),
 		queue:               make(chan broadcastItem, cfg.MaxQueuedItems),
-		queuedDataSemaphore: datasemaphore.New(dag.Metric{cfg.MaxQueuedItems, cfg.MaxQueuedSize}, getSemaphoreWarningFn("Peers queue")),
+		queuedDataSemaphore: datasemaphore.New(dag.Metric{Num: cfg.MaxQueuedItems, Size: cfg.MaxQueuedSize}, getSemaphoreWarningFn("Peers queue")),
 		term:                make(chan struct{}),
 	}
 
@@ -202,7 +203,7 @@ func (p *peer) SendTransactionHashes(txids []common.Hash) error {
 }
 
 func memSize(v rlp.RawValue) dag.Metric {
-	return dag.Metric{1, uint64(len(v) + 1024)}
+	return dag.Metric{Num: 1, Size: uint64(len(v) + 1024)}
 }
 
 func (p *peer) asyncSendEncodedItem(raw rlp.RawValue, code uint64, queue chan broadcastItem) bool {

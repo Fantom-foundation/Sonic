@@ -25,9 +25,9 @@ type Store struct {
 	dbs kvdb.FlushableDBProducer
 	cfg StoreConfig
 
-	mainDB          kvdb.Store
-	evm             *evmstore.Store
-	table           struct {
+	mainDB kvdb.Store
+	evm    *evmstore.Store
+	table  struct {
 		Version kvdb.Store `table:"_"`
 
 		// Main DAG tables
@@ -98,7 +98,7 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) (*Store, error) {
 		mainDB:        mainDB,
 		Instance:      logger.New("gossip-store"),
 		prevFlushTime: time.Now(),
-		rlp:           rlpstore.Helper{logger.New("rlp")},
+		rlp:           rlpstore.Helper{Instance: logger.New("rlp")},
 	}
 
 	table.MigrateTables(&s.table, s.mainDB)
