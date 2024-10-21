@@ -38,7 +38,7 @@ func (b *HighestBefore) SetForkDetected(i idx.Validator) {
 	b.VSeq.SetForkDetected(i)
 }
 
-func (self *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.Validator) {
+func (hb *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.Validator) {
 	other := _other.(*HighestBefore)
 	for branchID := idx.Validator(0); branchID < num; branchID++ {
 		hisSeq := other.VSeq.Get(branchID)
@@ -46,7 +46,7 @@ func (self *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.
 			// hisSeq doesn't observe anything about this branchID
 			continue
 		}
-		mySeq := self.VSeq.Get(branchID)
+		mySeq := hb.VSeq.Get(branchID)
 
 		if mySeq.IsForkDetected() {
 			// mySeq observes the maximum already
@@ -54,24 +54,24 @@ func (self *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.
 		}
 		if hisSeq.IsForkDetected() {
 			// set fork detected
-			self.SetForkDetected(branchID)
+			hb.SetForkDetected(branchID)
 		} else {
 			if mySeq.Seq == 0 || mySeq.MinSeq > hisSeq.MinSeq {
 				// take hisSeq.MinSeq
 				mySeq.MinSeq = hisSeq.MinSeq
-				self.VSeq.Set(branchID, mySeq)
+				hb.VSeq.Set(branchID, mySeq)
 			}
 			if mySeq.Seq < hisSeq.Seq {
 				// take hisSeq.Seq
 				mySeq.Seq = hisSeq.Seq
-				self.VSeq.Set(branchID, mySeq)
-				self.VTime.Set(branchID, other.VTime.Get(branchID))
+				hb.VSeq.Set(branchID, mySeq)
+				hb.VTime.Set(branchID, other.VTime.Get(branchID))
 			}
 		}
 	}
 }
 
-func (self *HighestBefore) GatherFrom(to idx.Validator, _other vecengine.HighestBeforeI, from []idx.Validator) {
+func (hb *HighestBefore) GatherFrom(to idx.Validator, _other vecengine.HighestBeforeI, from []idx.Validator) {
 	other := _other.(*HighestBefore)
 	// read all branches to find highest event
 	highestBranchSeq := vecfc.BranchSeq{}
@@ -88,6 +88,6 @@ func (self *HighestBefore) GatherFrom(to idx.Validator, _other vecengine.Highest
 			highestBranchTime = vtime
 		}
 	}
-	self.VSeq.Set(to, highestBranchSeq)
-	self.VTime.Set(to, highestBranchTime)
+	hb.VSeq.Set(to, highestBranchSeq)
+	hb.VTime.Set(to, highestBranchTime)
 }
