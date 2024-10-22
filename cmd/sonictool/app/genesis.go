@@ -2,6 +2,9 @@ package app
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/config/flags"
@@ -14,8 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
-	"os"
-	"strconv"
 )
 
 var (
@@ -106,9 +107,12 @@ func fakeGenesisImport(ctx *cli.Context) error {
 	}
 	dataDir := ctx.GlobalString(flags.DataDirFlag.Name)
 	if dataDir == "" {
-		return fmt.Errorf("--%s need to be set", flags.DataDirFlag.Name)
+		return fmt.Errorf("failed to read %s, it needs to be set", flags.DataDirFlag.Name)
 	}
 	validatorsNumber, err := strconv.ParseUint(ctx.Args().First(), 10, 32)
+	if err != nil {
+		return fmt.Errorf("failed to parse the number of validators: %w", err)
+	}
 	if validatorsNumber < 1 {
 		return fmt.Errorf("the number of validators must be at least 1")
 	}
