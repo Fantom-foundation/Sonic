@@ -27,7 +27,7 @@ import (
 // Implement our EthTest Manager
 type TestManager struct {
 	// stateManager *StateManager
-	eventMux *notify.TypeMux
+	eventMux *notify.Feed
 
 	db     ethdb.Database
 	txPool *TxPool
@@ -63,7 +63,7 @@ func (tm *TestManager) TxPool() *TxPool {
 // 	return tm.stateManager
 // }
 
-func (tm *TestManager) EventMux() *notify.TypeMux {
+func (tm *TestManager) EventMux() *notify.Feed {
 	return tm.eventMux
 }
 
@@ -77,7 +77,7 @@ func (tm *TestManager) Db() ethdb.Database {
 
 func NewTestManager() *TestManager {
 	testManager := &TestManager{}
-	testManager.eventMux = new(notify.TypeMux)
+	testManager.eventMux = new(notify.Feed)
 	testManager.db = rawdb.NewMemoryDatabase()
 	// testManager.txPool = NewTxPool(testManager)
 	// testManager.blockChain = NewBlockChain(testManager)
