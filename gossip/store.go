@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -65,10 +64,6 @@ type Store struct {
 		HighestLamport         atomic.Value // store by value
 		UpgradeHeights         atomic.Value // store by pointer
 		Genesis                atomic.Value // store by value
-	}
-
-	mutex struct {
-		WriteLlrState sync.Mutex
 	}
 
 	rlp rlpstore.Helper

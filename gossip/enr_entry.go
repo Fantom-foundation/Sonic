@@ -17,7 +17,3 @@ type Enr struct {
 func (e Enr) ENRKey() string {
 	return "opera"
 }
-
-func (s *Service) currentEnr() *Enr {
-	return &Enr{}
-}

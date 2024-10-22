@@ -1,7 +1,6 @@
 package heavycheck
 
 import (
-	"bytes"
 	"errors"
 	"runtime"
 	"sync"
@@ -17,10 +16,10 @@ import (
 )
 
 var (
-	ErrWrongEventSig            = errors.New("event has wrong signature")
-	ErrMalformedTxSig           = errors.New("tx has wrong signature")
-	ErrWrongPayloadHash         = errors.New("event has wrong payload hash")
-	ErrPubkeyChanged            = errors.New("validator pubkey has changed, cannot create BVs/EV for older epochs")
+	ErrWrongEventSig    = errors.New("event has wrong signature")
+	ErrMalformedTxSig   = errors.New("tx has wrong signature")
+	ErrWrongPayloadHash = errors.New("event has wrong payload hash")
+	ErrPubkeyChanged    = errors.New("validator pubkey has changed, cannot create BVs/EV for older epochs")
 
 	errTerminated = errors.New("terminated") // internal err
 )
@@ -120,21 +119,6 @@ func (v *Checker) ValidateEventLocator(e inter.SignedEventLocator, authEpoch idx
 	}
 	if !verifySignature(e.Locator.HashToSign(), e.Sig, pubkey) {
 		return ErrWrongEventSig
-	}
-	return nil
-}
-
-func (v *Checker) matchPubkey(creator idx.ValidatorID, epoch idx.Epoch, want []byte, authErr error) error {
-	pubkeys := v.reader.GetEpochPubKeysOf(epoch)
-	if len(pubkeys) == 0 {
-		return authErr
-	}
-	pubkey, ok := pubkeys[creator]
-	if !ok {
-		return epochcheck.ErrAuth
-	}
-	if bytes.Compare(pubkey.Bytes(), want) != 0 {
-		return ErrPubkeyChanged
 	}
 	return nil
 }

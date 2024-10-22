@@ -1,22 +1,20 @@
 package app
 
 import (
-	"context"
 	"fmt"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"os"
-	"strings"
-	"testing"
-	"time"
 
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/Fantom-foundation/go-opera/cmd/cmdtest"
 )
@@ -107,29 +105,4 @@ func exec(t *testing.T, args ...string) *testcli {
 	tt.readConfig()
 
 	return tt
-}
-
-// waitForEndpoint attempts to connect to an RPC endpoint until it succeeds.
-func waitForEndpoint(t *testing.T, endpoint string, timeout time.Duration) {
-	probe := func() bool {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-		c, err := rpc.DialContext(ctx, endpoint)
-		if c != nil {
-			_, err = c.SupportedModules()
-			c.Close()
-		}
-		return err == nil
-	}
-
-	start := time.Now()
-	for {
-		if probe() {
-			return
-		}
-		if time.Since(start) > timeout {
-			t.Fatal("endpoint", endpoint, "did not open within", timeout)
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
 }
