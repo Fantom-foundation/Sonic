@@ -1,13 +1,14 @@
 package tests
 
 import (
-	"fmt"
+	"context"
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/tests/contracts/basefee"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
-func TestBaseFee_Install(t *testing.T) {
+func TestBaseFee_CanReadBaseFeeFromHeadAndBlockAndHistory(t *testing.T) {
 	net, err := StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
@@ -20,42 +21,45 @@ func TestBaseFee_Install(t *testing.T) {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}
 
-	fmt.Printf("Contract deployed successfully\n")
-
-	fee, err := contract.GetBaseFee(nil)
+	// Collect the current base fee from the head state.
+	receipt, err := net.Apply(contract.LogCurrentBaseFee)
 	if err != nil {
-		t.Fatalf("failed to get base fee; %v", err)
+		t.Fatalf("failed to log current base fee; %v", err)
 	}
 
-	fmt.Printf("Base fee from archive: %v\n", fee)
-
-	// Create an account to send test queries.
-	account := NewAccount()
-	if err := net.EndowAccount(account.Address(), 1e18); err != nil {
-		t.Fatalf("failed to endow account; %v", err)
+	if len(receipt.Logs) != 1 {
+		t.Fatalf("unexpected number of logs; expected 1, got %d", len(receipt.Logs))
 	}
 
-	txOpts, err := net.GetTransactOptions(account)
+	entry, err := contract.ParseCurrentFee(*receipt.Logs[0])
 	if err != nil {
-		t.Fatalf("failed to get transact options; %v", err)
+		t.Fatalf("failed to parse log; %v", err)
 	}
-	tx, err := contract.LogCurrentBaseFee(txOpts)
+	fromLog := entry.Fee
+
+	// Collect the base fee from the block header.
+	client, err := net.GetClient()
 	if err != nil {
-		t.Fatalf("failed to get current base fee; %v", err)
+		t.Fatalf("failed to get client; %v", err)
 	}
+	defer client.Close()
 
-	receipt, err := net.GetReceipt(tx.Hash())
+	block, err := client.BlockByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
-		t.Fatalf("failed to get receipt; %v", err)
+		t.Fatalf("failed to get block header; %v", err)
+	}
+	fromBlock := block.BaseFee()
+
+	// Collect the base fee from the archive.
+	fromArchive, err := contract.GetBaseFee(&bind.CallOpts{BlockNumber: receipt.BlockNumber})
+	if err != nil {
+		t.Fatalf("failed to get base fee from archive; %v", err)
 	}
 
-	for i, log := range receipt.Logs {
-		entry, err := contract.ParseCurrentFee(*log)
-		if err != nil {
-			t.Fatalf("failed to parse log; %v", err)
-		}
-		fmt.Printf("Log %d: %v\n", i, entry.Fee)
+	if fromLog.Cmp(fromBlock) != 0 {
+		t.Fatalf("base fee mismatch; from log %v, from block %v", fromLog, fromBlock)
 	}
-
-	t.Fail()
+	if fromLog.Cmp(fromArchive) != 0 {
+		t.Fatalf("base fee mismatch; from log %v, from archive %v", fromLog, fromArchive)
+	}
 }
