@@ -139,7 +139,17 @@ func (c *CarmenStateDB) GetProof(addr common.Address, keys []common.Hash) (witne
 }
 
 func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
-	return common.Hash{} // TODO
+	empty := c.db.HasEmptyStorage(cc.Address(addr))
+	var h common.Hash
+	if !empty {
+		// Carmen does not provide a method to get the storage root for performance reasons
+		// as getting a storage root needs computation of hashes in the trie.
+		// In practice, the method GetStorageRoot here is used in the EVM only to assess
+		// if the storage is empty. For this reason, this method returns a dummy hash here just
+		// not to equal to the empty hash when the storage is not empty.
+		h[0] = 1
+	}
+	return h
 }
 
 func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
