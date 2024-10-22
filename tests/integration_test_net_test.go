@@ -42,6 +42,7 @@ func TestIntegrationTestNet_CanFetchInformationFromTheNetwork(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to the integration test network: %v", err)
 	}
+	defer client.Close()
 
 	block, err := client.BlockNumber(context.Background())
 	if err != nil {
@@ -106,7 +107,7 @@ func TestIntegrationTestNet_CanDeployContracts(t *testing.T) {
 	}
 }
 
-func TestIntegrationTestNet_CanSendTransactions(t *testing.T) {
+func TestIntegrationTestNet_CanInteractWithContract(t *testing.T) {
 	dataDir := t.TempDir()
 	net, err := StartIntegrationTestNet(dataDir)
 	if err != nil {
