@@ -33,6 +33,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	golang.org/x/sys v0.25.0
 	gopkg.in/urfave/cli.v1 v1.20.0
+	pgregory.net/rand v1.0.2
 )
 
 require (

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/stretchr/testify/require"

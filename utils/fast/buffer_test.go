@@ -2,8 +2,9 @@ package fast
 
 import (
 	"bytes"
-	"math/rand"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/stretchr/testify/require"
 )

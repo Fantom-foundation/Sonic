@@ -1,7 +1,7 @@
 package gossip
 
 import (
-	"math/rand"
+	"pgregory.net/rand"
 )
 
 // wrsItem interface should be implemented by any entries that are to be selected from
@@ -149,5 +149,5 @@ func (n *wrsNode) choose(val int64) (wrsItem, int64) {
 		}
 		val -= w
 	}
-	panic(nil)
+	panic("no item to choose from")
 }

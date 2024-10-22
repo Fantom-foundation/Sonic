@@ -4,10 +4,10 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/go-opera/utils/fast"
 )

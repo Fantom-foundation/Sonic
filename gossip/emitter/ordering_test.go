@@ -19,9 +19,10 @@ package emitter
 import (
 	"crypto/ecdsa"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/txpool"

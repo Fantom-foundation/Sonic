@@ -3,13 +3,15 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 	"math"
-	"math/rand"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/p2p/enode"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
@@ -248,7 +250,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 		}
 		var selfParent inter.EventI
 		if e.SelfParent() != nil {
-			selfParent = parents[0].(inter.EventI)
+			selfParent = parents[0]
 		}
 		if err := checkers.Parentscheck.Validate(e, parents); err != nil {
 			return err

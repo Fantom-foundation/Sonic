@@ -20,10 +20,11 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"math/rand"
 	"sort"
 	"sync"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"

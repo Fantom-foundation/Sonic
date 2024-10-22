@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"math"
 	"math/big"
-	"math/rand"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -72,10 +73,10 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max.SetTxs(txs)
 
 	ee := map[string]EventPayload{
-		"empty0": emptyEvent(0),
-		"empty1": emptyEvent(1),
-		"empty2": emptyEvent(2),
-		"max":    *max.Build(),
+		"empty0":  emptyEvent(0),
+		"empty1":  emptyEvent(1),
+		"empty2":  emptyEvent(2),
+		"max":     *max.Build(),
 		"random1": *FakeEvent(1, 12, 1, 1, true),
 		"random2": *FakeEvent(2, 12, 0, 0, false),
 	}
@@ -266,7 +267,7 @@ func randAccessList(r *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
 
 // FakeEvent generates random event for testing purpose.
 func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPayload {
-	r := rand.New(rand.NewSource(int64(0)))
+	r := rand.New(0)
 	random := &MutableEventPayload{}
 	random.SetVersion(version)
 	random.SetNetForkID(uint16(r.Uint32() >> 16))

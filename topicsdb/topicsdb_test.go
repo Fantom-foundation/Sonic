@@ -3,10 +3,11 @@ package topicsdb
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"runtime/debug"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"

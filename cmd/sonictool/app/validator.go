@@ -2,13 +2,14 @@ package app
 
 import (
 	"crypto/ecdsa"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
@@ -38,7 +39,7 @@ func validatorKeyCreate(ctx *cli.Context) error {
 		return fmt.Errorf("failed to get passphrase: %w", err)
 	}
 
-	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
+	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand.New())
 	if err != nil {
 		return fmt.Errorf("failed to create account: %w", err)
 	}
