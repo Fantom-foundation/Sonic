@@ -15,7 +15,7 @@ type scramblerEntry struct {
 // getExecutionOrder first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
 // Furthermore, if there are entries with same sender, these entries are sorted by their nonce (lower comes first).
 func getExecutionOrder(entries []*scramblerEntry) []*scramblerEntry {
-	uniqueList, salt, hasDuplicateAddresses := unifyEntries(entries)
+	uniqueList, salt, hasDuplicateAddresses := analyseEntryList(entries)
 	scrambleTransactions(uniqueList, salt)
 
 	// no need to sort more
@@ -38,6 +38,7 @@ func sortTransactionsByNonce(entries []*scramblerEntry) []*scramblerEntry {
 		if a.nonce > b.nonce {
 			return 1
 		}
+		// todo resolve same nonce and same address - add gas comparsion and only allow bigger gas
 		return -1
 	})
 
@@ -69,9 +70,9 @@ func scrambleTransactions(list []*scramblerEntry, salt [32]byte) {
 	})
 }
 
-// unifyEntries removes any transactions with duplicate hashes and creates the XOR salt from the unique tx list.
+// analyseEntryList removes any transactions with duplicate hashes and creates the XOR salt from the unique tx list.
 // Furthermore, it returns whether given list of entries contains duplicate addresses.
-func unifyEntries(entries []*scramblerEntry) ([]*scramblerEntry, [32]byte, bool) {
+func analyseEntryList(entries []*scramblerEntry) ([]*scramblerEntry, [32]byte, bool) {
 	var (
 		salt                  [32]byte
 		hasDuplicateAddresses bool
