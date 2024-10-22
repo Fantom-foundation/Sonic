@@ -1,10 +1,11 @@
 package dagstreamleecher
 
 import (
-	"math/rand"
 	"strconv"
 	"testing"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/stretchr/testify/require"
 

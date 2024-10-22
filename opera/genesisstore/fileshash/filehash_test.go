@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"path"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/stretchr/testify/require"

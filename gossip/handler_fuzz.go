@@ -6,8 +6,9 @@ package gossip
 import (
 	"bytes"
 	"errors"
-	"math/rand"
 	"sync"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	_ "github.com/dvyukov/go-fuzz/go-fuzz-defs"

@@ -3,11 +3,12 @@ package emitter
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
@@ -112,7 +113,7 @@ func NewEmitter(
 ) *Emitter {
 	// Randomize event time to decrease chance of 2 parallel instances emitting event at the same time
 	// It increases the chance of detecting parallel instances
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(uint64(time.Now().UnixNano()))
 	config.EmitIntervals = config.EmitIntervals.RandomizeEmitTime(r)
 
 	return &Emitter{

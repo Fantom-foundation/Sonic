@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"

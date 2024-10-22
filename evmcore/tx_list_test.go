@@ -18,8 +18,9 @@ package evmcore
 
 import (
 	"math/big"
-	"math/rand"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"

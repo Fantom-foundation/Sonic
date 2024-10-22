@@ -1,8 +1,9 @@
 package emitter
 
 import (
-	"math/rand"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/go-opera/version"
 

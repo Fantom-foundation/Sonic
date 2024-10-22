@@ -1,7 +1,7 @@
 package randat
 
 import (
-	"math/rand"
+	"pgregory.net/rand"
 )
 
 type cached struct {
@@ -21,6 +21,6 @@ func RandAt(seed uint64) uint64 {
 		return cache.r
 	}
 	cache.seed = seed
-	cache.r = rand.New(rand.NewSource(gSeed ^ int64(seed))).Uint64()
+	cache.r = rand.New(uint64(gSeed ^ int64(seed))).Uint64()
 	return cache.r
 }

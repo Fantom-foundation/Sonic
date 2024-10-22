@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/rand"
 	"strings"
 	"sync"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -249,7 +250,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 		}
 		var selfParent inter.EventI
 		if e.SelfParent() != nil {
-			selfParent = parents[0].(inter.EventI)
+			selfParent = parents[0]
 		}
 		if err := checkers.Parentscheck.Validate(e, parents); err != nil {
 			return err
