@@ -7,7 +7,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/version"
-	_ "github.com/Fantom-foundation/go-opera/version"
 	"gopkg.in/urfave/cli.v1"
 )
 
