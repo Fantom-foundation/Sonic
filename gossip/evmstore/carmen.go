@@ -73,6 +73,27 @@ func (c *CarmenStateDB) GetLogs(txHash common.Hash, blockHash common.Hash) []*ty
 	return logs
 }
 
+func (c *CarmenStateDB) Logs() []*types.Log {
+	carmenLogs := c.db.GetLogs()
+	logs := make([]*types.Log, len(carmenLogs))
+	for i, clog := range carmenLogs {
+		log := &types.Log{
+			Address:     common.Address(clog.Address),
+			Topics:      nil,
+			Data:        clog.Data,
+			BlockNumber: c.blockNum,
+			TxHash:      c.txHash,
+			TxIndex:     uint(c.txIndex),
+			Index:       clog.Index,
+		}
+		for _, topic := range clog.Topics {
+			log.Topics = append(log.Topics, common.Hash(topic))
+		}
+		logs[i] = log
+	}
+	return logs
+}
+
 func (c *CarmenStateDB) AddPreimage(hash common.Hash, preimage []byte) {
 	// ignored - preimages of keys hashes are relevant only for geth trie
 }
