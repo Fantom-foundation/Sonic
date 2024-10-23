@@ -21,6 +21,7 @@ const (
 	TestNetworkID   uint64 = 0xfa2
 	FakeNetworkID   uint64 = 0xfa3
 	DefaultEventGas uint64 = 28000
+	SonicMaxCodeSize   int = 0xB000
 	berlinBit              = 1 << 0
 	londonBit              = 1 << 1
 	llrBit                 = 1 << 2
@@ -208,6 +209,7 @@ func (r Rules) EvmChainConfig(hh []UpgradeHeight) *ethparams.ChainConfig {
 		if cfg.CancunTime == nil && h.Upgrades.Sonic {
 			cfg.ShanghaiTime = timestamp
 			cfg.CancunTime = timestamp
+			cfg.MaxCodeSize = SonicMaxCodeSize
 		}
 		if !h.Upgrades.Sonic {
 			// disabling upgrade breaks the history replay - should be never used
