@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/version"
 	"os"
 	"os/signal"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/tracing"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
+	"github.com/Fantom-foundation/go-opera/version"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/console/prompt"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
@@ -250,11 +250,22 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 
 		<-stopNodeSig
 		log.Info("Got interrupt, shutting down...")
-		go stack.Close()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if err := stack.Close(); err != nil {
+				log.Warn("Error during shutdown", "err", err)
+			}
+		}()
 		for i := 10; i > 0; i-- {
-			<-stopNodeSig
-			if i > 1 {
-				log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
+			select {
+			case <-stopNodeSig:
+				if i > 1 {
+					log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
+				}
+			case <-done:
+				log.Info("Shutdown complete.")
+				return
 			}
 		}
 		// received 10 interrupts - kill the node forcefully

@@ -20,7 +20,7 @@ attach_and_exec() {
             echo "  - attempt ${attempt}: " >&2
         fi
 
-        res=$(../build/sonictool --datadir="${PWD}" cli --exec "${CMD}" http://127.0.0.1:${RPCP} 2> /dev/null)
+        res=$(../build/sonictool --datadir=tool.datadir cli --exec "${CMD}" http://127.0.0.1:${RPCP} 2> /dev/null)
         if [ $? -eq 0 ]
         then
             #echo "success" >&2
