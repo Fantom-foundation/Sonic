@@ -1,7 +1,6 @@
 package compactdb
 
 import (
-	"os"
 	"path"
 	"testing"
 
@@ -13,17 +12,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-func tmpDir(name string) string {
-	dir, err := os.MkdirTemp("", name)
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
-
 func TestLastKey(t *testing.T) {
 	testLastKey(t, memorydb.New())
-	dir := tmpDir("test-last-key")
+	dir := t.TempDir()
 	ldb, err := leveldb.New(path.Join(dir, "ldb"), 16*opt.MiB, 64, nil, nil)
 	require.NoError(t, err)
 	defer ldb.Close()

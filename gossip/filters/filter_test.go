@@ -19,7 +19,6 @@ package filters
 import (
 	"context"
 	"math/big"
-	"os"
 	"path"
 	"testing"
 
@@ -54,11 +53,7 @@ func makeReceipt(addr common.Address) *types.Receipt {
 }
 
 func BenchmarkFilters(b *testing.B) {
-	dir, err := os.MkdirTemp("", "filtertest")
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := b.TempDir()
 
 	backend := newTestBackend()
 	ldb, err := rawdb.NewLevelDBDatabase(path.Join(dir, "backend-db"), 100, 1000, "", false)
