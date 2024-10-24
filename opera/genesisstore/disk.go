@@ -48,13 +48,13 @@ func checkFileHeader(reader io.Reader) error {
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(headerAndVersion[:len(FileHeader)], FileHeader) != 0 {
+	if !bytes.Equal(headerAndVersion[:len(FileHeader)], FileHeader) {
 		return errors.New("expected a genesis file, mismatched file header")
 	}
-	if bytes.Compare(headerAndVersion[len(FileHeader):], FileVersion) != 0 {
+	if !bytes.Equal(headerAndVersion[len(FileHeader):], FileVersion) {
 		got := hexutils.BytesToHex(headerAndVersion[len(FileHeader):])
 		expected := hexutils.BytesToHex(FileVersion)
-		return errors.New(fmt.Sprintf("wrong version of genesis file, got=%s, expected=%s", got, expected))
+		return fmt.Errorf("wrong version of genesis file, got=%s, expected=%s", got, expected)
 	}
 	return nil
 }
@@ -125,8 +125,8 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 
 		off := offset // standalone variable for each Unit instance
 		units = append(units, readersmap.Unit{
-			Name:   unit.UnitName,
-			ReaderProvider: func () (io.Reader, error) {
+			Name: unit.UnitName,
+			ReaderProvider: func() (io.Reader, error) {
 				unitReader := io.NewSectionReader(rawReader, off+headerSize, off+headerSize+int64(dataCompressedSize))
 				gzipReader, err := gzip.NewReader(unitReader)
 				if err != nil {
