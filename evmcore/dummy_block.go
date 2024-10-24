@@ -166,9 +166,9 @@ type EvmHeaderJson struct {
 
 type EvmBlockJson struct {
 	*EvmHeaderJson
-	Txs         []interface{}    `json:"transactions"`
-	Size        *hexutil.Uint64  `json:"size"` // RLP encoded storage size of the block
-	Uncles      []common.Hash    `json:"uncles"`
+	Txs    []interface{}   `json:"transactions"`
+	Size   *hexutil.Uint64 `json:"size"` // RLP encoded storage size of the block
+	Uncles []common.Hash   `json:"uncles"`
 }
 
 func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
