@@ -5,22 +5,45 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/exp/rand"
 	"math"
-	"math/big"
 	"reflect"
 	"testing"
 )
 
 func TestTxScrambler_AnalyseEntryList_RemovesDuplicateTransactions(t *testing.T) {
-	entries := createScramblerTestInputRepeatedHashes(2, 10)
-	entries, _, _ = analyseEntryList(entries)
+	entries := []*scramblerEntry{
+		{hash: common.Hash{1}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{3}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{1}},
+	}
 
-	checkDuplicateHashes(t, entries)
+	shuffleEntries(entries)
+	result, _, _ := analyseEntryList(entries)
+	if len(result) == 0 {
+		t.Fatal("analyseEntryList returned empty list")
+	}
+
+	seen := map[common.Hash]struct{}{}
+	for _, entry := range result {
+		if _, seen := seen[entry.hash]; seen {
+			t.Fatalf("duplicate hash %v", entry.hash)
+		}
+		seen[entry.hash] = struct{}{}
+	}
 }
 
 func TestTxScrambler_UnifyEntries_SaltCreationIsDeterministic(t *testing.T) {
-	entries := createScramblerTestInputRepeatedAddr(2, 10)
+	entries := []*scramblerEntry{
+		{hash: common.Hash{1}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{3}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{1}},
+	}
+
 	_, wantedSalt, _ := analyseEntryList(entries)
-	for _ = range 10 {
+	for range 10 {
 		shuffleEntries(entries)
 		_, gotSalt, _ := analyseEntryList(entries)
 		if gotSalt != wantedSalt {
@@ -31,40 +54,95 @@ func TestTxScrambler_UnifyEntries_SaltCreationIsDeterministic(t *testing.T) {
 }
 
 func TestTxScrambler_AnalyseEntryList_ReportsDuplicateAddresses(t *testing.T) {
-	entries := createScramblerTestInputRepeatedAddr(2, 10)
-	_, _, hasDuplicateAddresses := analyseEntryList(entries)
-	if !hasDuplicateAddresses {
-		t.Error("entries have duplicate addresses")
+	tests := []struct {
+		name         string
+		input        []*scramblerEntry
+		hasDuplicate bool
+	}{
+		{
+			name: "has duplicate address",
+			input: []*scramblerEntry{
+				{sender: common.Address{1}},
+				{sender: common.Address{3}},
+				{sender: common.Address{2}},
+				{sender: common.Address{3}},
+			},
+			hasDuplicate: true,
+		},
+		{
+			name: "has no duplicate address",
+			input: []*scramblerEntry{
+				{sender: common.Address{1}},
+				{sender: common.Address{2}},
+				{sender: common.Address{3}},
+			},
+			hasDuplicate: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, _, hasDuplicateAddresses := analyseEntryList(test.input)
+			if hasDuplicateAddresses != hasDuplicateAddresses {
+				t.Error("wrongly reported duplicate address")
+			}
+		})
 	}
 
-	entries = createScramblerTestInputRepeatedHashes(2, 10)
-	_, _, hasDuplicateAddresses = analyseEntryList(entries)
-	if hasDuplicateAddresses {
-		t.Error("entries does not have duplicate addresses")
-	}
 }
 
 func TestTxScrambler_ScrambleTransactions_ScrambleIsDeterministic(t *testing.T) {
-	res1 := createScramblerTestInputRepeatedAddr(2, 10)
+	res1 := []*scramblerEntry{
+		{hash: common.Hash{1}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{3}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{1}},
+	}
+
 	res2 := deepCopyEntries(res1)
-	// shuffle one array
-	shuffleEntries(res2)
 
 	for i := 0; i < 10; i++ {
 		salt := createRandomSalt()
 		scrambleTransactions(res1, salt)
 		for j := 0; j < 10; j++ {
+			shuffleEntries(res2)
 			scrambleTransactions(res2, salt)
 			if !reflect.DeepEqual(res1, res2) {
 				t.Error("scramble is not deterministic")
 			}
 		}
 	}
-
 }
 
 func TestTxScrambler_SortTransactionsByNonce_SortsSameSenderByNonce(t *testing.T) {
-	entries := createScramblerTestInputRepeatedAddr(2, 10)
+	entries := []*scramblerEntry{
+		{
+			hash:   common.Hash{1},
+			sender: common.Address{1},
+			nonce:  1,
+		},
+		{
+			hash:   common.Hash{2},
+			sender: common.Address{2},
+			nonce:  1,
+		},
+		{
+			hash:   common.Hash{3},
+			sender: common.Address{3},
+			nonce:  1,
+		},
+		{
+			hash:   common.Hash{4},
+			sender: common.Address{2},
+			nonce:  2,
+		},
+		{
+			hash:   common.Hash{5},
+			sender: common.Address{1},
+			nonce:  2,
+		},
+	}
+
 	entries = sortTransactionsByNonce(entries)
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
@@ -78,88 +156,209 @@ func TestTxScrambler_SortTransactionsByNonce_SortsSameSenderByNonce(t *testing.T
 }
 
 func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_IdenticalData(t *testing.T) {
-	const numLoops = 5
 	tests := []struct {
-		name        string
-		createInput func(size int64) []*scramblerEntry
+		name    string
+		entries []*scramblerEntry
 	}{
 		{
-			name:        "identical hashes",
-			createInput: createScramblerTestInputOnlySameHashes,
+			name: "identical hashes",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+			},
 		},
 		{
-			name:        "identical sender different nonces",
-			createInput: createScramblerTestInputOnlySameAddr,
+			name: "identical addresses",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{1},
+					nonce:  2,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{1},
+					nonce:  3,
+				},
+			},
 		},
 		{
-			name:        "identical sender and nonces",
-			createInput: createScramblerTestInputOnlySameAddrAndNonce,
+			name: "identical addresses and nonces",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+			},
 		},
 	}
 
-	size := int64(3)
-	for i := 0; i < numLoops; i++ {
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				res1 := test.createInput(size)
-				res2 := deepCopyEntries(res1)
-				// shuffle one array
-				shuffleEntries(res2)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			res1 := test.entries
+			res2 := deepCopyEntries(res1)
+			// shuffle one array
+			shuffleEntries(res2)
 
-				res1 = getExecutionOrder(res1)
-				res2 = getExecutionOrder(res2)
-				if !reflect.DeepEqual(res1, res2) {
-					t.Errorf("slices have different order - algorithm is not deterministic; input size: %d", size)
-				}
-			})
-		}
-		size = size * 4
+			res1 = getExecutionOrder(res1)
+			res2 = getExecutionOrder(res2)
+			if !reflect.DeepEqual(res1, res2) {
+				t.Error("slices have different order - algorithm is not deterministic")
+			}
+		})
 	}
 }
 
 func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testing.T) {
-	const numLoops = 5
 	tests := []struct {
-		name        string
-		createInput func(size int64, numRepeats int64) []*scramblerEntry
+		name    string
+		entries []*scramblerEntry
 	}{
 		{
-			name:        "repeated hashes",
-			createInput: createScramblerTestInputRepeatedHashes,
+			name: "repeated hashes",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{2},
+					nonce:  2,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{3},
+					nonce:  3,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{2},
+					nonce:  2,
+				},
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+			},
 		},
 		{
-			name:        "repeated sender different nonces",
-			createInput: createScramblerTestInputRepeatedAddr,
+			name: "repeated addresses",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{2},
+					nonce:  2,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{3},
+					nonce:  3,
+				},
+				{
+					hash:   common.Hash{4},
+					sender: common.Address{2},
+					nonce:  4,
+				},
+				{
+					hash:   common.Hash{5},
+					sender: common.Address{1},
+					nonce:  5,
+				},
+			},
 		},
 		{
-			name:        "repeated sender and nonces",
-			createInput: createScramblerTestInputRepeatedAddrAndNonce,
+			name: "repeated addresses and nonces",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{2},
+					nonce:  2,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{3},
+					nonce:  3,
+				},
+				{
+					hash:   common.Hash{4},
+					sender: common.Address{2},
+					nonce:  2,
+				},
+				{
+					hash:   common.Hash{5},
+					sender: common.Address{1},
+					nonce:  1,
+				},
+			},
 		},
 	}
 
-	size := int64(3)
-	for i := 0; i < numLoops; i++ {
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				// skip numRepeats 0 and 1
-				res1 := test.createInput(size, int64(i+2))
-				res2 := deepCopyEntries(res1)
-				// shuffle one array
-				shuffleEntries(res2)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			res1 := test.entries
+			res2 := deepCopyEntries(res1)
+			// shuffle one array
+			shuffleEntries(res2)
 
-				res1 = getExecutionOrder(res1)
-				res2 = getExecutionOrder(res2)
-				if !reflect.DeepEqual(res1, res2) {
-					t.Errorf("slices have different order - algorithm is not deterministic; input size: %d", size)
-				}
-			})
-		}
-		size = size * 4
+			res1 = getExecutionOrder(res1)
+			res2 = getExecutionOrder(res2)
+			if !reflect.DeepEqual(res1, res2) {
+				t.Error("slices have different order - algorithm is not deterministic")
+			}
+		})
 	}
 }
 
 func TestTxScrambler_GetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) {
-	entries := createScramblerTestInputRepeatedHashes(5, 10)
+	entries := []*scramblerEntry{
+		{hash: common.Hash{1}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{3}},
+		{hash: common.Hash{2}},
+		{hash: common.Hash{1}},
+	}
 	shuffleEntries(entries)
 	entries = getExecutionOrder(entries)
 
@@ -167,32 +366,65 @@ func TestTxScrambler_GetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) 
 }
 
 func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonce(t *testing.T) {
-	const numLoops = 5
-	for l := 1; l <= numLoops; l++ {
-		entries := createScramblerTestInputRepeatedAddr(int64(l*2), int64(10*l))
-		entries = getExecutionOrder(entries)
+	entries := []*scramblerEntry{
+		{
+			hash:   common.Hash{1},
+			sender: common.Address{1},
+			nonce:  2,
+		},
+		{
+			hash:   common.Hash{2},
+			sender: common.Address{1},
+			nonce:  4,
+		},
+		{
+			hash:   common.Hash{3},
+			sender: common.Address{1},
+			nonce:  1,
+		},
+		{
+			hash:   common.Hash{4},
+			sender: common.Address{1},
+			nonce:  5,
+		},
+		{
+			hash:   common.Hash{5},
+			sender: common.Address{1},
+			nonce:  3,
+		},
+	}
+	entries = getExecutionOrder(entries)
 
-		for i := 0; i < len(entries); i++ {
-			for j := i + 1; j < len(entries); j++ {
-				if entries[i].sender == entries[j].sender {
-					if entries[i].nonce > entries[j].nonce {
-						t.Errorf("incorrect nonce order %d must be before %d", entries[j].nonce, entries[i].nonce)
-					}
+	for i := 0; i < len(entries); i++ {
+		for j := i + 1; j < len(entries); j++ {
+			if entries[i].sender == entries[j].sender {
+				if entries[i].nonce > entries[j].nonce {
+					t.Errorf("incorrect nonce order %d must be before %d", entries[j].nonce, entries[i].nonce)
 				}
 			}
 		}
 	}
 }
 
-func BenchmarkTxScrambler(b *testing.B) {
-	const (
-		numLoops   = 4
-		multiplier = 10
-	)
-	size := int64(10)
+func TestTxScrambler_GetExecutionOrder_RandomInput(t *testing.T) {
+	// this tests these input sizes:
+	// 1, 4, 16, 64, 256, 1024
+	for i := int64(1); i <= 1024; i = i * 4 {
+		input := createRandomScramblerTestInput(i)
+		cpy := deepCopyEntries(input)
+		shuffleEntries(cpy)
+		input = getExecutionOrder(input)
+		cpy = getExecutionOrder(input)
+		if !reflect.DeepEqual(input, cpy) {
+			t.Error("slices have different order - algorithm is not deterministic")
+		}
+	}
 
-	for _ = range numLoops {
-		b.Run(fmt.Sprintf("builtIn_%d", size), func(b *testing.B) {
+}
+
+func BenchmarkTxScrambler(b *testing.B) {
+	for size := int64(10); size < 100_000; size *= 10 {
+		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
 			for i := 1; i <= b.N; i++ {
 				b.StopTimer()
 				entries := createRandomScramblerTestInput(size)
@@ -200,117 +432,18 @@ func BenchmarkTxScrambler(b *testing.B) {
 				getExecutionOrder(entries)
 			}
 		})
-		size = size * multiplier
 	}
 }
 
-// createRandomScramblerTestInput creates a testing createInput with randomized
-// hash and address. This means both address and hashes can repeat.
 func createRandomScramblerTestInput(size int64) []*scramblerEntry {
 	var entries []*scramblerEntry
 	for i := int64(0); i < size; i++ {
-		r := rand.Intn(10 - 1)
 		entries = append(entries, &scramblerEntry{
-			hash:   common.Hash{byte(r)},
-			sender: common.Address{byte(r)},
-			nonce:  uint64(r),
+			hash:   common.Hash{byte(rand.Intn(1000 - 1))},
+			sender: common.Address{byte(rand.Intn(100 - 1))},
+			nonce:  uint64(rand.Intn(10 - 1)),
 		})
 	}
-
-	return entries
-}
-
-func createScramblerTestInputOnlySameAddrAndNonce(size int64) []*scramblerEntry {
-	return createScramblerTestInputRepeatedAddrAndNonce(size, size)
-}
-
-// createScramblerTestInputRepeatedAddrAndNonce creates testing input of given size which
-// swaps the sender and nonce only every X entries. This relies on the numRepeats param.
-// If numRepeats == size it only creates duplicate inputs.
-// If numRepeats == 1 only different inputs are created.
-// Note: Entries are randomly shuffled after creation.
-func createScramblerTestInputRepeatedAddrAndNonce(numRepeats int64, size int64) []*scramblerEntry {
-	var (
-		entries []*scramblerEntry
-		addr    common.Address
-		nonce   uint64
-	)
-	for i := int64(0); i < size; i++ {
-		if i%numRepeats == 0 {
-			// note: same hash different addr/nonce can never happen
-			addr = common.BigToAddress(big.NewInt(i))
-			nonce = uint64(i)
-		}
-		entries = append(entries, &scramblerEntry{
-			hash:   common.BigToHash(big.NewInt(i)),
-			sender: addr,
-			nonce:  nonce,
-		})
-	}
-	shuffleEntries(entries)
-
-	return entries
-}
-
-func createScramblerTestInputOnlySameHashes(size int64) []*scramblerEntry {
-	return createScramblerTestInputRepeatedHashes(size, size)
-}
-
-// createScramblerTestInputRepeatedHashes creates testing input of given size
-// which swaps the hash only every X entries. This relies on the numRepeats param.
-// If numRepeats == size it only creates duplicate inputs.
-// If numRepeats == 1 only different inputs are created.
-// Note: Entries are randomly shuffled after creation.
-func createScramblerTestInputRepeatedHashes(numRepeats int64, size int64) []*scramblerEntry {
-	var (
-		entries []*scramblerEntry
-		hash    common.Hash
-		addr    common.Address
-		nonce   uint64
-	)
-	for i := int64(0); i < size; i++ {
-		if i%numRepeats == 0 {
-			// note: same hash different addr/nonce can never happen
-			hash = common.BigToHash(big.NewInt(i))
-			addr = common.BigToAddress(big.NewInt(i))
-			nonce = uint64(i)
-		}
-		entries = append(entries, &scramblerEntry{
-			hash:   hash,
-			sender: addr,
-			nonce:  nonce,
-		})
-	}
-	shuffleEntries(entries)
-
-	return entries
-}
-
-func createScramblerTestInputOnlySameAddr(size int64) []*scramblerEntry {
-	return createScramblerTestInputRepeatedAddr(size, size)
-}
-
-// createScramblerTestInputRepeatedAddr creates testing input of given size which
-// swaps the address only every X entries. This relies on the numRepeats param.
-// If numRepeats == size it only creates inputs with same sender.
-// If numRepeats == 1 only different inputs are created.
-// Note: Entries are randomly shuffled after creation.
-func createScramblerTestInputRepeatedAddr(numRepeats int64, size int64) []*scramblerEntry {
-	var (
-		entries []*scramblerEntry
-		addr    common.Address
-	)
-	for i := int64(0); i < size; i++ {
-		if i%numRepeats == 0 {
-			addr = common.BigToAddress(big.NewInt(i))
-		}
-		entries = append(entries, &scramblerEntry{
-			hash:   common.BigToHash(big.NewInt(i)),
-			sender: addr,
-			nonce:  uint64(i),
-		})
-	}
-	shuffleEntries(entries)
 
 	return entries
 }
@@ -324,12 +457,12 @@ func shuffleEntries(entries []*scramblerEntry) {
 
 // checkDuplicateHashes checks hash of each entry and fails test if duplicate hash is found.
 func checkDuplicateHashes(t *testing.T, entries []*scramblerEntry) {
-	seenHashes := make(map[common.Hash]bool)
+	seenHashes := make(map[common.Hash]struct{})
 	for _, entry := range entries {
-		if _, ok := seenHashes[entry.hash]; ok {
-			t.Fatal("found duplicate hash in entries")
+		if _, found := seenHashes[entry.hash]; found {
+			t.Fatalf("found duplicate hash in entries: %s", entry.hash)
 		}
-		seenHashes[entry.hash] = true
+		seenHashes[entry.hash] = struct{}{}
 	}
 }
 

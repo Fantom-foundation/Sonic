@@ -10,6 +10,7 @@ type scramblerEntry struct {
 	hash   common.Hash
 	sender common.Address
 	nonce  uint64
+	gas    uint64
 }
 
 // getExecutionOrder first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
@@ -28,7 +29,7 @@ func getExecutionOrder(entries []*scramblerEntry) []*scramblerEntry {
 
 // sortTransactionsByNonce finds any duplicate senders and sorts their transactions by nonce ascending.
 func sortTransactionsByNonce(entries []*scramblerEntry) []*scramblerEntry {
-	senderNonceOrder := deepCopyEntries(entries)
+	senderNonceOrder := slices.Clone(entries)
 	// sort copied slice so that it has all txs from same address together + sorted by nonce ascending
 	slices.SortFunc(senderNonceOrder, func(a, b *scramblerEntry) int {
 		cmp := a.sender.Cmp(b.sender)
@@ -38,20 +39,23 @@ func sortTransactionsByNonce(entries []*scramblerEntry) []*scramblerEntry {
 		if a.nonce > b.nonce {
 			return 1
 		}
-		// todo resolve same nonce and same address - add gas comparsion and only allow bigger gas
-		return -1
+		if a.nonce < b.nonce {
+			return -1
+		}
+		// todo resolve same nonce and same address - add gas comparison and only allow bigger gas
+		return 0
 	})
 
 	// find the first entry for each sender in the senderNonceOrder
 	senderIndex := make(map[common.Address]int)
 	for idx, entry := range senderNonceOrder {
-		if _, ok := senderIndex[entry.sender]; !ok {
+		if _, found := senderIndex[entry.sender]; !found {
 			senderIndex[entry.sender] = idx
 		}
 	}
 
 	// replace already scrambled entries so that they are sorted by nonce
-	for idx := 0; idx < len(entries); idx++ {
+	for idx := range entries {
 		sender := entries[idx].sender
 		entries[idx] = senderNonceOrder[senderIndex[sender]]
 		senderIndex[sender]++
@@ -78,8 +82,8 @@ func analyseEntryList(entries []*scramblerEntry) ([]*scramblerEntry, [32]byte, b
 		hasDuplicateAddresses bool
 	)
 
-	seenHashes := make(map[common.Hash]bool)
-	seenAddresses := make(map[common.Address]bool)
+	seenHashes := make(map[common.Hash]struct{})
+	seenAddresses := make(map[common.Address]struct{})
 	uniqueList := make([]*scramblerEntry, 0, len(entries))
 	for _, entry := range entries {
 		// skip any duplicate hashes
@@ -93,8 +97,8 @@ func analyseEntryList(entries []*scramblerEntry) ([]*scramblerEntry, [32]byte, b
 
 		salt = xorBytes32(salt, entry.hash)
 		uniqueList = append(uniqueList, entry)
-		seenHashes[entry.hash] = true
-		seenAddresses[entry.sender] = true
+		seenHashes[entry.hash] = struct{}{}
+		seenAddresses[entry.sender] = struct{}{}
 	}
 
 	return uniqueList, salt, hasDuplicateAddresses
