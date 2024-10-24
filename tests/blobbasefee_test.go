@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/tests/contracts/blobbasefee"
@@ -72,9 +73,6 @@ func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) 
 
 // helper functions to calculate blob base fee based on https://eips.ethereum.org/EIPS/eip-4844#gas-accounting
 func getBlobBaseFeeFrom(header *types.Header) uint64 {
-	// source for constants: https://eips.ethereum.org/EIPS/eip-4844#parameters
-	MIN_BASE_FEE_PER_BLOB_GAS := uint64(1)
-	BLOB_BASE_FEE_UPDATE_FRACTION := uint64(3338477)
 	blobGasUsed := uint64(0)
 	if header.BlobGasUsed != nil {
 		blobGasUsed = *header.BlobGasUsed
@@ -83,17 +81,8 @@ func getBlobBaseFeeFrom(header *types.Header) uint64 {
 	if header.ExcessBlobGas != nil {
 		excessBlobGas = *header.ExcessBlobGas
 	}
-	return blobGasUsed * fakeExponential(MIN_BASE_FEE_PER_BLOB_GAS, excessBlobGas, BLOB_BASE_FEE_UPDATE_FRACTION)
-}
-
-// fakeExponential approximates factor * e ** (numerator / denominator) using Taylor expansion.
-// (https://eips.ethereum.org/EIPS/eip-4844#helpers)
-func fakeExponential(factor, numerator, denominator uint64) uint64 {
-	output := uint64(0)
-	numeratorAccumulator := factor * denominator
-	for i := uint64(1); numeratorAccumulator > 0; i++ {
-		output += numeratorAccumulator
-		numeratorAccumulator = (numeratorAccumulator * numerator) / (denominator * i)
-	}
-	return output / denominator
+	// source for constants: https://eips.ethereum.org/EIPS/eip-4844#parameters
+	const MIN_BASE_FEE_PER_BLOB_GAS = uint64(1)
+	const BLOB_BASE_FEE_UPDATE_FRACTION = uint64(3338477)
+	return blobGasUsed * (MIN_BASE_FEE_PER_BLOB_GAS * uint64(math.Exp(float64(excessBlobGas)/float64(BLOB_BASE_FEE_UPDATE_FRACTION))))
 }
