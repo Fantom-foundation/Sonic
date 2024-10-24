@@ -91,9 +91,9 @@ func getBlobBaseFeeFrom(header *types.Header) uint64 {
 func fakeExponential(factor, numerator, denominator uint64) uint64 {
 	output := uint64(0)
 	numeratorAccumulator := factor * denominator
-	for i := 1; numeratorAccumulator > 0; i++ {
+	for i := uint64(1); numeratorAccumulator > 0; i++ {
 		output += numeratorAccumulator
-		numeratorAccumulator *= numerator
+		numeratorAccumulator = (numeratorAccumulator * numerator) / (denominator * i)
 	}
-	return output
+	return output / denominator
 }
