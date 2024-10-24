@@ -75,6 +75,12 @@ func createCarmenFactory(t *testing.T) carmenFactory {
 	if err != nil {
 		t.Fatalf("cannot create temp dir: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Fatalf("cannot remove temp dir: %v", err)
+		}
+	})
+
 	parameters := carmen.Parameters{
 		Variant:   gostate.VariantGoMemory,
 		Schema:    carmen.Schema(5),
@@ -89,9 +95,6 @@ func createCarmenFactory(t *testing.T) carmenFactory {
 	t.Cleanup(func() {
 		if err := st.Close(); err != nil {
 			t.Fatalf("cannot close state: %v", err)
-		}
-		if err := os.RemoveAll(dir); err != nil {
-			t.Fatalf("cannot remove temp dir: %v", err)
 		}
 	})
 
