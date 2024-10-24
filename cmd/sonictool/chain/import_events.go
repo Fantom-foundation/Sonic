@@ -5,6 +5,14 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
@@ -17,13 +25,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/status-im/keycard-go/hexutils"
 	"gopkg.in/urfave/cli.v1"
-	"io"
-	"math"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
-	"time"
 )
 
 func EventsImport(ctx *cli.Context, files ...string) error {
@@ -73,13 +74,13 @@ func checkEventsFileHeader(reader io.Reader) error {
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(headerAndVersion[:len(eventsFileHeader)], eventsFileHeader) != 0 {
+	if !bytes.Equal(headerAndVersion[:len(eventsFileHeader)], eventsFileHeader) {
 		return errors.New("expected an events file, mismatched file header")
 	}
-	if bytes.Compare(headerAndVersion[len(eventsFileHeader):], eventsFileVersion) != 0 {
+	if !bytes.Equal(headerAndVersion[len(eventsFileHeader):], eventsFileVersion) {
 		got := hexutils.BytesToHex(headerAndVersion[len(eventsFileHeader):])
 		expected := hexutils.BytesToHex(eventsFileVersion)
-		return errors.New(fmt.Sprintf("wrong version of events file, got=%s, expected=%s", got, expected))
+		return fmt.Errorf("wrong version of events file, got=%s, expected=%s", got, expected)
 	}
 	return nil
 }

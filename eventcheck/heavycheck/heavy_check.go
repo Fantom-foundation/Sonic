@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	ErrWrongEventSig            = errors.New("event has wrong signature")
-	ErrMalformedTxSig           = errors.New("tx has wrong signature")
-	ErrWrongPayloadHash         = errors.New("event has wrong payload hash")
-	ErrPubkeyChanged            = errors.New("validator pubkey has changed, cannot create BVs/EV for older epochs")
+	ErrWrongEventSig    = errors.New("event has wrong signature")
+	ErrMalformedTxSig   = errors.New("tx has wrong signature")
+	ErrWrongPayloadHash = errors.New("event has wrong payload hash")
+	ErrPubkeyChanged    = errors.New("validator pubkey has changed, cannot create BVs/EV for older epochs")
 
 	errTerminated = errors.New("terminated") // internal err
 )
@@ -133,7 +133,7 @@ func (v *Checker) matchPubkey(creator idx.ValidatorID, epoch idx.Epoch, want []b
 	if !ok {
 		return epochcheck.ErrAuth
 	}
-	if bytes.Compare(pubkey.Bytes(), want) != 0 {
+	if !bytes.Equal(pubkey.Bytes(), want) {
 		return ErrPubkeyChanged
 	}
 	return nil
