@@ -1,9 +1,10 @@
 package dagstreamleecher
 
 import (
-	"math/rand"
 	"slices"
 	"time"
+
+	"pgregory.net/rand"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher"
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher/basepeerleecher"

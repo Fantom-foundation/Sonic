@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"math/rand"
 	"sync"
 	"testing"
+
+	"pgregory.net/rand"
 
 	"github.com/stretchr/testify/require"
 )
@@ -32,9 +33,9 @@ func TestNumQueue(t *testing.T) {
 
 		q := NewNumQueue(0)
 		output := make(chan uint64, 10)
-		nums := rand.Perm(N)
+		numbers := rand.Perm(N)
 
-		for _, n := range nums {
+		for _, n := range numbers {
 			go func(n uint64) {
 				q.WaitFor(n - 1)
 				output <- n

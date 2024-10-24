@@ -1,11 +1,13 @@
 package gossip
 
 import (
+	"sync/atomic"
+
+	"pgregory.net/rand"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p/enode"
-	"math/rand"
-	"sync/atomic"
 )
 
 var isMaybeSyncedGauge = metrics.GetOrRegisterGauge("chain/maybeSynced", nil)
