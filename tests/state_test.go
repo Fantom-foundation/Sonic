@@ -22,6 +22,7 @@ import (
 	"github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/tests"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -68,7 +69,12 @@ func execStateTest(t *testing.T, st *tests.TestMatcher, test *tests.StateTest) {
 // createCarmenFactory creates a new factory, that initialises
 // carmen implementation of the state database.
 func createCarmenFactory(t *testing.T) carmenFactory {
-	dir := t.TempDir()
+	// ethereum tests creates extensively long test names, which causes t.TempDir fails
+	// on a too long names. For this reason, we use os.MkdirTemp instead.
+	dir, err := os.MkdirTemp("", "eth-tests-carmen-*")
+	if err != nil {
+		t.Fatalf("cannot create temp dir: %v", err)
+	}
 	parameters := carmen.Parameters{
 		Variant:   gostate.VariantGoMemory,
 		Schema:    carmen.Schema(5),
@@ -83,6 +89,9 @@ func createCarmenFactory(t *testing.T) carmenFactory {
 	t.Cleanup(func() {
 		if err := st.Close(); err != nil {
 			t.Fatalf("cannot close state: %v", err)
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			t.Fatalf("cannot remove temp dir: %v", err)
 		}
 	})
 
