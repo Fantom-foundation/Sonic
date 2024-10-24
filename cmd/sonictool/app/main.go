@@ -1,17 +1,17 @@
-package main
+package app
 
 import (
-	"fmt"
+	"os"
+	"sort"
+
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/version"
 	_ "github.com/Fantom-foundation/go-opera/version"
 	"gopkg.in/urfave/cli.v1"
-	"os"
-	"sort"
 )
 
-func main() {
+func Run() error {
 	app := cli.NewApp()
 	app.Name = "sonictool"
 	app.Usage = "the Sonic management tool"
@@ -40,10 +40,10 @@ Initialize the database using data from the genesis file.
 
 			Subcommands: []cli.Command{
 				{
-					Name:   "json",
-					Usage:  "Initialize the database from a testing JSON genesis file",
+					Name:      "json",
+					Usage:     "Initialize the database from a testing JSON genesis file",
 					ArgsUsage: "<filename>",
-					Action: jsonGenesisImport,
+					Action:    jsonGenesisImport,
 					Flags: []cli.Flag{
 						ExperimentalFlag,
 						ModeFlag,
@@ -182,6 +182,7 @@ be gzipped.
 					ArgsUsage: "<filename> (<filename 2> ... <filename N>)",
 					Flags: []cli.Flag{
 						ModeFlag,
+						flags.SuppressFramePanicFlag,
 					},
 					Description: `
     sonictool --datadir=<datadir> events import <filenames> [--mode=validator]
@@ -397,8 +398,5 @@ Converts an account private key to a validator private key and saves in the vali
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
-	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	return app.Run(os.Args)
 }

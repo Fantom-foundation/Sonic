@@ -73,6 +73,27 @@ func (c *CarmenStateDB) GetLogs(txHash common.Hash, blockHash common.Hash) []*ty
 	return logs
 }
 
+func (c *CarmenStateDB) Logs() []*types.Log {
+	carmenLogs := c.db.GetLogs()
+	logs := make([]*types.Log, len(carmenLogs))
+	for i, clog := range carmenLogs {
+		log := &types.Log{
+			Address:     common.Address(clog.Address),
+			Topics:      nil,
+			Data:        clog.Data,
+			BlockNumber: c.blockNum,
+			TxHash:      c.txHash,
+			TxIndex:     uint(c.txIndex),
+			Index:       clog.Index,
+		}
+		for _, topic := range clog.Topics {
+			log.Topics = append(log.Topics, common.Hash(topic))
+		}
+		logs[i] = log
+	}
+	return logs
+}
+
 func (c *CarmenStateDB) AddPreimage(hash common.Hash, preimage []byte) {
 	// ignored - preimages of keys hashes are relevant only for geth trie
 }
@@ -139,7 +160,17 @@ func (c *CarmenStateDB) GetProof(addr common.Address, keys []common.Hash) (witne
 }
 
 func (c *CarmenStateDB) GetStorageRoot(addr common.Address) common.Hash {
-	return common.Hash{} // TODO
+	empty := c.db.HasEmptyStorage(cc.Address(addr))
+	var h common.Hash
+	if !empty {
+		// Carmen does not provide a method to get the storage root for performance reasons
+		// as getting a storage root needs computation of hashes in the trie.
+		// In practice, the method GetStorageRoot here is used in the EVM only to assess
+		// if the storage is empty. For this reason, this method returns a dummy hash here just
+		// not to equal to the empty hash when the storage is not empty.
+		h[0] = 1
+	}
+	return h
 }
 
 func (c *CarmenStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {

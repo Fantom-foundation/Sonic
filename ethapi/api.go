@@ -972,11 +972,12 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 		return nil, err
 	}
 	vmConfig := opera.DefaultVMConfig
-	vmConfig.NoBaseFee = true
 	evm, vmError, err := b.GetEVM(ctx, msg, state, header, &vmConfig)
 	if err != nil {
 		return nil, err
 	}
+	// Skip gas price checks for API runs.
+	evm.Config.NoBaseFee = true
 	// Wait for the context to be done and cancel the evm. Even if the
 	// EVM has finished, cancelling may be done (repeatedly)
 	go func() {
