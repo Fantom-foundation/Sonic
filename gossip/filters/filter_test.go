@@ -18,9 +18,7 @@ package filters
 
 import (
 	"context"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"path"
 	"testing"
 
@@ -55,11 +53,7 @@ func makeReceipt(addr common.Address) *types.Receipt {
 }
 
 func BenchmarkFilters(b *testing.B) {
-	dir, err := ioutil.TempDir("", "filtertest")
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := b.TempDir()
 
 	backend := newTestBackend()
 	ldb, err := rawdb.NewLevelDBDatabase(path.Join(dir, "backend-db"), 100, 1000, "", false)
@@ -272,16 +266,16 @@ func getGenesisBlockForTesting(db ethdb.Database, address common.Address, balanc
 		Alloc:   types.GenesisAlloc{address: {Balance: balance}},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 		Config: &params.ChainConfig{
-			BerlinBlock:   new(big.Int),
-			LondonBlock:   new(big.Int),
-			IstanbulBlock: new(big.Int),
-			PetersburgBlock: new(big.Int),
+			BerlinBlock:         new(big.Int),
+			LondonBlock:         new(big.Int),
+			IstanbulBlock:       new(big.Int),
+			PetersburgBlock:     new(big.Int),
 			ConstantinopleBlock: new(big.Int),
-			ByzantiumBlock:  new(big.Int),
-			EIP158Block: new(big.Int),
-			EIP155Block: new(big.Int),
-			EIP150Block: new(big.Int),
-			HomesteadBlock: new(big.Int),
+			ByzantiumBlock:      new(big.Int),
+			EIP158Block:         new(big.Int),
+			EIP155Block:         new(big.Int),
+			EIP150Block:         new(big.Int),
+			HomesteadBlock:      new(big.Int),
 		},
 	}
 	return genesis.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))
