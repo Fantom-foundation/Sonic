@@ -24,11 +24,11 @@ func getExecutionOrder(entries []*scramblerEntry) []*scramblerEntry {
 		return uniqueList
 	}
 
-	return sortTransactionsByNonce(uniqueList)
+	return sortTransactionsWithSameSender(uniqueList)
 }
 
-// sortTransactionsByNonce finds any duplicate senders and sorts their transactions by nonce ascending.
-func sortTransactionsByNonce(entries []*scramblerEntry) []*scramblerEntry {
+// sortTransactionsWithSameSender finds any duplicate senders and sorts their transactions by nonce ascending.
+func sortTransactionsWithSameSender(entries []*scramblerEntry) []*scramblerEntry {
 	senderNonceOrder := slices.Clone(entries)
 	// sort copied slice so that it has all txs from same address together + sorted by nonce ascending
 	slices.SortFunc(senderNonceOrder, func(a, b *scramblerEntry) int {
@@ -42,8 +42,13 @@ func sortTransactionsByNonce(entries []*scramblerEntry) []*scramblerEntry {
 		if a.nonce < b.nonce {
 			return -1
 		}
-		// todo resolve same nonce and same address - add gas comparison and only allow bigger gas
-		return 0
+		// if nonce is equal, sort by gas
+		if a.gas > b.gas {
+			return -1
+		} else {
+			// if both nonce and gas is equal, order between those do not matter
+			return 1
+		}
 	})
 
 	// find the first entry for each sender in the senderNonceOrder

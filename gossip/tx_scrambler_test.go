@@ -114,7 +114,7 @@ func TestTxScrambler_ScrambleTransactions_ScrambleIsDeterministic(t *testing.T) 
 	}
 }
 
-func TestTxScrambler_SortTransactionsByNonce_SortsSameSenderByNonce(t *testing.T) {
+func TestTxScrambler_SortTransactionsWithSameSender_SortsByNonce(t *testing.T) {
 	entries := []*scramblerEntry{
 		{
 			hash:   common.Hash{1},
@@ -143,12 +143,56 @@ func TestTxScrambler_SortTransactionsByNonce_SortsSameSenderByNonce(t *testing.T
 		},
 	}
 
-	entries = sortTransactionsByNonce(entries)
+	entries = sortTransactionsWithSameSender(entries)
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
 			if entries[i].sender == entries[j].sender {
 				if entries[i].nonce > entries[j].nonce {
 					t.Errorf("incorrect nonce order %d must be before %d", entries[j].nonce, entries[i].nonce)
+				}
+			}
+		}
+	}
+}
+
+func TestTxScrambler_SortTransactionsWithSameSender_SortsByGasIfNonceIsSame(t *testing.T) {
+	entries := []*scramblerEntry{
+		{
+			hash:   common.Hash{1},
+			sender: common.Address{1},
+			nonce:  1,
+			gas:    1,
+		},
+		{
+			hash:   common.Hash{2},
+			sender: common.Address{1},
+			nonce:  1,
+			gas:    2,
+		},
+		{
+			hash:   common.Hash{3},
+			sender: common.Address{2},
+			nonce:  1,
+			gas:    3,
+		},
+		{
+			hash:   common.Hash{4},
+			sender: common.Address{2},
+			nonce:  1,
+			gas:    4,
+		},
+	}
+
+	shuffleEntries(entries)
+	entries = sortTransactionsWithSameSender(entries)
+	for i := 0; i < len(entries); i++ {
+		for j := i + 1; j < len(entries); j++ {
+			if entries[i].sender == entries[j].sender {
+				if entries[i].nonce > entries[j].nonce {
+					t.Errorf("incorrect nonce order %d must be before %d", entries[j].nonce, entries[i].nonce)
+				}
+				if entries[i].nonce == entries[j].nonce && entries[i].gas < entries[j].gas {
+					t.Errorf("incorrect gas order %d must be before %d", entries[i].gas, entries[j].gas)
 				}
 			}
 		}
@@ -207,16 +251,42 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_IdenticalData(t *test
 					hash:   common.Hash{1},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    1,
 				},
 				{
 					hash:   common.Hash{2},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    2,
 				},
 				{
 					hash:   common.Hash{3},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    3,
+				},
+			},
+		},
+		{
+			name: "identical addresses, nonces and gas",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+					gas:    1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{1},
+					nonce:  1,
+					gas:    1,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{1},
+					nonce:  1,
+					gas:    1,
 				},
 			},
 		},
@@ -250,26 +320,31 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testi
 					hash:   common.Hash{1},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    1,
 				},
 				{
 					hash:   common.Hash{2},
 					sender: common.Address{2},
 					nonce:  2,
+					gas:    2,
 				},
 				{
 					hash:   common.Hash{3},
 					sender: common.Address{3},
 					nonce:  3,
+					gas:    3,
 				},
 				{
 					hash:   common.Hash{2},
 					sender: common.Address{2},
 					nonce:  2,
+					gas:    2,
 				},
 				{
 					hash:   common.Hash{1},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    1,
 				},
 			},
 		},
@@ -310,26 +385,66 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testi
 					hash:   common.Hash{1},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    1,
 				},
 				{
 					hash:   common.Hash{2},
 					sender: common.Address{2},
 					nonce:  2,
+					gas:    2,
 				},
 				{
 					hash:   common.Hash{3},
 					sender: common.Address{3},
 					nonce:  3,
+					gas:    3,
 				},
 				{
 					hash:   common.Hash{4},
 					sender: common.Address{2},
 					nonce:  2,
+					gas:    4,
 				},
 				{
 					hash:   common.Hash{5},
 					sender: common.Address{1},
 					nonce:  1,
+					gas:    5,
+				},
+			},
+		},
+		{
+			name: "repeated addresses, nonces and gas",
+			entries: []*scramblerEntry{
+				{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+					nonce:  1,
+					gas:    1,
+				},
+				{
+					hash:   common.Hash{2},
+					sender: common.Address{2},
+					nonce:  2,
+					gas:    2,
+				},
+				{
+					hash:   common.Hash{3},
+					sender: common.Address{3},
+					nonce:  3,
+					gas:    3,
+				},
+				{
+					hash:   common.Hash{4},
+					sender: common.Address{2},
+					nonce:  2,
+					gas:    4,
+				},
+				{
+					hash:   common.Hash{5},
+					sender: common.Address{1},
+					nonce:  1,
+					gas:    5,
 				},
 			},
 		},
@@ -365,34 +480,37 @@ func TestTxScrambler_GetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) 
 	checkDuplicateHashes(t, entries)
 }
 
-func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonce(t *testing.T) {
+func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonceAndGas(t *testing.T) {
 	entries := []*scramblerEntry{
 		{
 			hash:   common.Hash{1},
 			sender: common.Address{1},
-			nonce:  2,
+			nonce:  1,
 		},
 		{
 			hash:   common.Hash{2},
 			sender: common.Address{1},
-			nonce:  4,
+			nonce:  2,
 		},
 		{
 			hash:   common.Hash{3},
 			sender: common.Address{1},
-			nonce:  1,
+			nonce:  3,
+			gas:    1,
 		},
 		{
 			hash:   common.Hash{4},
 			sender: common.Address{1},
-			nonce:  5,
+			nonce:  3,
+			gas:    2,
 		},
 		{
 			hash:   common.Hash{5},
 			sender: common.Address{1},
-			nonce:  3,
+			nonce:  4,
 		},
 	}
+	shuffleEntries(entries)
 	entries = getExecutionOrder(entries)
 
 	for i := 0; i < len(entries); i++ {
@@ -400,6 +518,9 @@ func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonce(t *testing.T) {
 			if entries[i].sender == entries[j].sender {
 				if entries[i].nonce > entries[j].nonce {
 					t.Errorf("incorrect nonce order %d must be before %d", entries[j].nonce, entries[i].nonce)
+				}
+				if entries[i].nonce == entries[j].nonce && entries[i].gas < entries[j].gas {
+					t.Errorf("incorrect gas order %d must be before %d", entries[j].gas, entries[i].gas)
 				}
 			}
 		}
@@ -442,6 +563,7 @@ func createRandomScramblerTestInput(size int64) []*scramblerEntry {
 			hash:   common.Hash{byte(rand.Intn(1000 - 1))},
 			sender: common.Address{byte(rand.Intn(100 - 1))},
 			nonce:  uint64(rand.Intn(10 - 1)),
+			gas:    uint64(rand.Intn(10 - 1)),
 		})
 	}
 
