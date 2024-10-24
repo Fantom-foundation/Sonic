@@ -69,6 +69,7 @@ func NewEVMBlockContext(header *EvmHeader, chain DummyChain, author *common.Addr
 		BaseFee:     baseFee,
 		GasLimit:    header.GasLimit,
 		Random:      random,
+		BlobBaseFee: big.NewInt(1), // TODO issue #147
 	}
 }
 
