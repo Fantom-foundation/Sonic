@@ -19,16 +19,16 @@ func getExecutionOrder(entries []*scramblerEntry) []*scramblerEntry {
 	uniqueList, salt, hasDuplicateAddresses := analyseEntryList(entries)
 	scrambleTransactions(uniqueList, salt)
 
-	// no need to sort more
-	if !hasDuplicateAddresses {
-		return uniqueList
+	// do we need to sort more?
+	if hasDuplicateAddresses {
+		sortTransactionsWithSameSender(uniqueList)
 	}
 
-	return sortTransactionsWithSameSender(uniqueList)
+	return uniqueList
 }
 
 // sortTransactionsWithSameSender finds any duplicate senders and sorts their transactions by nonce ascending.
-func sortTransactionsWithSameSender(entries []*scramblerEntry) []*scramblerEntry {
+func sortTransactionsWithSameSender(entries []*scramblerEntry) {
 	senderNonceOrder := slices.Clone(entries)
 	// sort copied slice so that it has all txs from same address together + sorted by nonce ascending
 	slices.SortFunc(senderNonceOrder, func(a, b *scramblerEntry) int {
@@ -66,7 +66,7 @@ func sortTransactionsWithSameSender(entries []*scramblerEntry) []*scramblerEntry
 		senderIndex[sender]++
 	}
 
-	return entries
+	return
 }
 
 // scrambleTransactions scrambles transactions by comparing its XORed hashes with salt

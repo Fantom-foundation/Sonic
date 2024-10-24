@@ -143,7 +143,7 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByNonce(t *testing.T) {
 		},
 	}
 
-	entries = sortTransactionsWithSameSender(entries)
+	sortTransactionsWithSameSender(entries)
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
 			if entries[i].sender == entries[j].sender {
@@ -184,7 +184,7 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByGasIfNonceIsSame(t *t
 	}
 
 	shuffleEntries(entries)
-	entries = sortTransactionsWithSameSender(entries)
+	sortTransactionsWithSameSender(entries)
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
 			if entries[i].sender == entries[j].sender {
