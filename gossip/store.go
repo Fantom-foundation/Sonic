@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,9 +24,9 @@ type Store struct {
 	dbs kvdb.FlushableDBProducer
 	cfg StoreConfig
 
-	mainDB          kvdb.Store
-	evm             *evmstore.Store
-	table           struct {
+	mainDB kvdb.Store
+	evm    *evmstore.Store
+	table  struct {
 		Version kvdb.Store `table:"_"`
 
 		// Main DAG tables
@@ -49,7 +48,7 @@ type Store struct {
 		BlockHashes kvdb.Store `table:"B"`
 	}
 
-	prevFlushTime time.Time
+	prevFlushTime atomic.Value
 
 	epochStore atomic.Value
 
@@ -65,10 +64,6 @@ type Store struct {
 		HighestLamport         atomic.Value // store by value
 		UpgradeHeights         atomic.Value // store by pointer
 		Genesis                atomic.Value // store by value
-	}
-
-	mutex struct {
-		WriteLlrState sync.Mutex
 	}
 
 	rlp rlpstore.Helper
@@ -97,9 +92,10 @@ func NewStore(dbs kvdb.FlushableDBProducer, cfg StoreConfig) (*Store, error) {
 		cfg:           cfg,
 		mainDB:        mainDB,
 		Instance:      logger.New("gossip-store"),
-		prevFlushTime: time.Now(),
-		rlp:           rlpstore.Helper{logger.New("rlp")},
+		prevFlushTime: atomic.Value{},
+		rlp:           rlpstore.Helper{Instance: logger.New("rlp")},
 	}
+	s.prevFlushTime.Store(time.Now())
 
 	table.MigrateTables(&s.table, s.mainDB)
 
@@ -162,7 +158,7 @@ func (s *Store) IsCommitNeeded() bool {
 func (s *Store) isCommitNeeded(sc, tc uint64) bool {
 	period := s.cfg.MaxNonFlushedPeriod * time.Duration(sc) / 1000
 	size := (uint64(s.cfg.MaxNonFlushedSize) / 2) * tc / 1000
-	return time.Since(s.prevFlushTime) > period ||
+	return time.Since(s.prevFlushTime.Load().(time.Time)) > period || // RACE
 		uint64(s.dbs.NotFlushedSizeEst()) > size
 }
 
@@ -179,8 +175,9 @@ func (s *Store) Commit() error {
 }
 
 func (s *Store) flushDBs() error {
-	s.prevFlushTime = time.Now()
-	flushID := bigendian.Uint64ToBytes(uint64(s.prevFlushTime.UnixNano()))
+	now := time.Now()
+	s.prevFlushTime.Store(now)
+	flushID := bigendian.Uint64ToBytes(uint64(now.UnixNano()))
 	return s.dbs.Flush(flushID)
 }
 
