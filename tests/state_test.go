@@ -20,7 +20,7 @@ import (
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/gostate"
-	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/tests"
 	"os"
 	"path/filepath"
@@ -58,7 +58,14 @@ func execStateTest(t *testing.T, st *tests.TestMatcher, test *tests.StateTest) {
 
 		t.Run(key, func(t *testing.T) {
 			factory := createCarmenFactory(t)
-			err := test.RunWith(subtest, vm.Config{}, factory, func(err error, state *tests.StateTestState) {})
+
+			config := opera.DefaultVMConfig
+			config.ChargeExcessGas = false
+			config.IgnoreGasFeeCap = false
+			config.InsufficientBalanceIsNotAnError = false
+			config.SkipTipPaymentToCoinbase = false
+
+			err := test.RunWith(subtest, config, factory, func(err error, state *tests.StateTestState) {})
 			if err := st.CheckFailure(t, err); err != nil {
 				t.Fatal(err)
 			}
