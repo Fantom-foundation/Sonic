@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"math"
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/tests/contracts/blobbasefee"
@@ -54,35 +53,43 @@ func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) 
 	// Collect the blob base fee from the archive.
 	fromArchive, err := contract.GetBlobBaseFee(&bind.CallOpts{BlockNumber: receipt.BlockNumber})
 	if err != nil {
-		t.Fatalf("failed to get blob base fee from archive; %v", err)
+		t.Errorf("failed to get blob base fee from archive; %v", err)
 	}
 
-	// we check blob base fee is zero because it is not implemented yet
-	if fromLog != 0 {
-		t.Fatalf("invalid blob base fee from log; %v", fromLog)
+	// we check blob base fee is zero because it is not implemented yet. TODO issue #147
+	if fromLog != 1 {
+		t.Errorf("invalid blob base fee from log; %v", fromLog)
 	}
 
 	if fromLog != fromArchive.Uint64() {
-		t.Fatalf("blob base fee mismatch; from log %v, from archive %v", fromLog, fromArchive)
+		t.Errorf("blob base fee mismatch; from log %v, from archive %v", fromLog, fromArchive)
 	}
 
 	if fromLog != fromBlock {
-		t.Fatalf("blob base fee mismatch; from log %v, from block %v", fromLog, fromBlock)
+		t.Errorf("blob base fee mismatch; from log %v, from block %v", fromLog, fromBlock)
 	}
 }
 
 // helper functions to calculate blob base fee based on https://eips.ethereum.org/EIPS/eip-4844#gas-accounting
 func getBlobBaseFeeFrom(header *types.Header) uint64 {
-	blobGasUsed := uint64(0)
-	if header.BlobGasUsed != nil {
-		blobGasUsed = *header.BlobGasUsed
-	}
-	excessBlobGas := float64(0)
+	excessBlobGas := uint64(0)
 	if header.ExcessBlobGas != nil {
-		excessBlobGas = float64(*header.ExcessBlobGas)
+		excessBlobGas = uint64(*header.ExcessBlobGas)
 	}
 	// source for constants: https://eips.ethereum.org/EIPS/eip-4844#parameters
-	const MIN_FEE_PER_BLOB_GAS = float64(1)
-	const UPDATE_FRACTION = float64(3338477)
-	return blobGasUsed * uint64(MIN_FEE_PER_BLOB_GAS*math.Exp(excessBlobGas/UPDATE_FRACTION))
+	const MIN_FEE_PER_BLOB_GAS = uint64(1)
+	const UPDATE_FRACTION = uint64(3338477)
+	return fakeExponential(MIN_FEE_PER_BLOB_GAS, excessBlobGas, UPDATE_FRACTION)
+}
+
+// fakeExponential approximates (factor*e^(numerator/denominator)) using Taylor expansion
+// source: https://eips.ethereum.org/EIPS/eip-4844#helpers
+func fakeExponential(factor, numerator, denominator uint64) uint64 {
+	output := uint64(0)
+	accumulator := factor * denominator
+	for i := uint64(1); accumulator > 0; i++ {
+		output += accumulator
+		accumulator = (accumulator * numerator) / (denominator * i)
+	}
+	return output / denominator
 }
