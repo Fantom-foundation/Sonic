@@ -21,7 +21,7 @@ type dummyTxPool struct {
 
 	signer types.Signer
 
-	lock sync.RWMutex // Protects the transaction pool
+	lock sync.RWMutex
 }
 
 // AddRemotes appends a batch of transactions to the pool, and notifies any
@@ -150,6 +150,8 @@ func (p *dummyTxPool) SampleHashes(max int) []common.Hash {
 }
 
 func (p *dummyTxPool) Count() int {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	return len(p.pool)
 }
 
