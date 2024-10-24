@@ -40,15 +40,16 @@ func TestExecutionSpecBlocktests(t *testing.T) {
 }
 
 func execBlockTest(t *testing.T, bt *tests.TestMatcher, test *tests.BlockTest) {
-	// original test:
+	//original test:
 	//if err := bt.CheckFailure(t, test.Run(false, rawdb.HashScheme, true, nil, nil)); err != nil {
 	//	t.Errorf("test with config failed: %v", err)
 	//}
 
-	sonicTest := BlockTest{*test}
-	factory := createCarmenFactory(t)
-	if err := bt.CheckFailure(t, sonicTest.Run(factory)); err != nil {
-		t.Errorf("test with config failed: %v", err)
-	}
-
+	t.Run("carmen", func(t *testing.T) {
+		sonicTest := BlockTest{*test}
+		factory := carmenStateDBFactory{createCarmenFactory(t)}
+		if err := bt.CheckFailure(t, sonicTest.Run(factory)); err != nil {
+			t.Errorf("test with config failed: %v", err)
+		}
+	})
 }

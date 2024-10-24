@@ -3,6 +3,7 @@ package tests
 import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	adaptor "github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/tracing"
@@ -73,4 +74,19 @@ func (c *carmenStateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Ha
 	c.CarmenStateDB.Finalise()
 	c.CarmenStateDB.EndBlock(block)
 	return c.CarmenStateDB.GetStateHash(), nil
+}
+
+// testStateDBFactory is an interface for creating StateDB for tests.
+type testStateDBFactory interface {
+	// NewTestStateDB creates a new StateTestState instance.
+	newTestStateDB(accounts types.GenesisAlloc) adaptor.StateDB
+}
+
+// carmenFactory is a factory for creating Carmen backed StateDB.
+type carmenStateDBFactory struct {
+	parent carmenFactory
+}
+
+func (f carmenStateDBFactory) newTestStateDB(accounts types.GenesisAlloc) adaptor.StateDB {
+	return f.parent.NewTestStateDB(accounts).StateDB.(*carmenStateDB).CarmenStateDB
 }
