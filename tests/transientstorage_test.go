@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/tests/contracts/transientstorage"
@@ -61,8 +62,8 @@ func TestTransientStorage_TransientStorageIsValidInTransaction(t *testing.T) {
 		t.Fatalf("unexpected value; expected 0, got valueBefore %v, fromArchive %v, FromArchiveHead %v", valueBefore, fromArchive, fromArchiveHead)
 	}
 
-	// Check that the log value is non-zero
-	if fromLog.Sign() == 0 {
+	// Check that the log value is the same as set in contract
+	if fromLog.Cmp(big.NewInt(42)) != 0 {
 		t.Fatalf("unexpected log value; expected non-zero, got %v", fromLog)
 	}
 }
