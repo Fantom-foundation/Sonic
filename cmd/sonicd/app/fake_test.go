@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"github.com/Fantom-foundation/go-opera/config"
