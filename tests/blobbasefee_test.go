@@ -77,12 +77,12 @@ func getBlobBaseFeeFrom(header *types.Header) uint64 {
 	if header.BlobGasUsed != nil {
 		blobGasUsed = *header.BlobGasUsed
 	}
-	excessBlobGas := uint64(0)
+	excessBlobGas := float64(0)
 	if header.ExcessBlobGas != nil {
-		excessBlobGas = *header.ExcessBlobGas
+		excessBlobGas = float64(*header.ExcessBlobGas)
 	}
 	// source for constants: https://eips.ethereum.org/EIPS/eip-4844#parameters
-	const MIN_BASE_FEE_PER_BLOB_GAS = uint64(1)
-	const BLOB_BASE_FEE_UPDATE_FRACTION = uint64(3338477)
-	return blobGasUsed * (MIN_BASE_FEE_PER_BLOB_GAS * uint64(math.Exp(float64(excessBlobGas)/float64(BLOB_BASE_FEE_UPDATE_FRACTION))))
+	const MIN_FEE_PER_BLOB_GAS = float64(1)
+	const UPDATE_FRACTION = float64(3338477)
+	return blobGasUsed * uint64(MIN_FEE_PER_BLOB_GAS*math.Exp(excessBlobGas/UPDATE_FRACTION))
 }
