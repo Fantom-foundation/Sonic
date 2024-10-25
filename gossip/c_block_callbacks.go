@@ -35,9 +35,9 @@ var (
 	headHeaderGauge    = metrics.GetOrRegisterGauge("chain/head/header", nil)
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
-	blockExecutionTimer = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
+	blockExecutionTimer             = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
 	blockExecutionNonResettingTimer = metrics.GetOrRegisterTimer("chain/execution/nonresetting", nil)
-	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
+	blockAgeGauge                   = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter    = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
 	skippedTxsMeter      = metrics.GetOrRegisterMeter("chain/txs/skipped", nil)
@@ -183,7 +183,7 @@ func consensusCallbackBeginBlockFn(
 
 				// Execute pre-internal transactions
 				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-				preInternalReceipts := evmProcessor.Execute(preInternalTxs)
+				preInternalReceipts := evmProcessor.Execute(preInternalTxs, common.Hash{})
 				bs = txListener.Finalize()
 				for _, r := range preInternalReceipts {
 					if r.Status == 0 {
@@ -212,7 +212,7 @@ func consensusCallbackBeginBlockFn(
 				blockFn := func() {
 					// Execute post-internal transactions
 					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-					internalReceipts := evmProcessor.Execute(internalTxs)
+					internalReceipts := evmProcessor.Execute(internalTxs, common.Hash{})
 					for _, r := range internalReceipts {
 						if r.Status == 0 {
 							log.Warn("Internal transaction reverted", "txid", r.TxHash.String())
@@ -238,7 +238,10 @@ func consensusCallbackBeginBlockFn(
 						txs = append(txs, e.Txs()...)
 					}
 
-					_ = evmProcessor.Execute(txs)
+					prevRandao := block.GetPrevRandao()
+
+					// todo pass salt from scrambler if txcount > 1 to avoid unnecessary compua
+					_ = evmProcessor.Execute(txs, prevRandao)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
 					block.SkippedTxs = skippedTxs
