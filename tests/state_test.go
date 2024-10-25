@@ -30,6 +30,14 @@ import (
 var (
 	baseDir      = filepath.Join(".", "testdata")
 	stateTestDir = filepath.Join(baseDir, "GeneralStateTests")
+
+	unsupportedForks = map[string]struct{}{
+		"ConstantinopleFix": {},
+		"Constantinople":    {},
+		"Byzantium":         {},
+		"Frontier":          {},
+		"Homestead":         {},
+	}
 )
 
 func initMatcher(st *tests.TestMatcher) {
@@ -57,6 +65,10 @@ func execStateTest(t *testing.T, st *tests.TestMatcher, test *tests.StateTest) {
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
 		t.Run(key, func(t *testing.T) {
+			if _, ok := unsupportedForks[subtest.Fork]; ok {
+				t.Skipf("unsupported fork %s", subtest.Fork)
+			}
+
 			factory := createCarmenFactory(t)
 
 			config := opera.DefaultVMConfig
