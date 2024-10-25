@@ -158,7 +158,7 @@ func (s *Store) IsCommitNeeded() bool {
 func (s *Store) isCommitNeeded(sc, tc uint64) bool {
 	period := s.cfg.MaxNonFlushedPeriod * time.Duration(sc) / 1000
 	size := (uint64(s.cfg.MaxNonFlushedSize) / 2) * tc / 1000
-	return time.Since(s.prevFlushTime.Load().(time.Time)) > period || // RACE
+	return time.Since(s.prevFlushTime.Load().(time.Time)) > period ||
 		uint64(s.dbs.NotFlushedSizeEst()) > size
 }
 
