@@ -162,12 +162,12 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	}))
 
 	// Execute genesis transactions
-	evmProcessor.Execute(genesisTxs)
+	evmProcessor.Execute(genesisTxs, common.Hash{})
 	bs = txListener.Finalize()
 
 	// Execute pre-internal transactions
 	preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, b.tmpStateDB)
-	evmProcessor.Execute(preInternalTxs)
+	evmProcessor.Execute(preInternalTxs, common.Hash{})
 	bs = txListener.Finalize()
 
 	// Seal epoch if requested
@@ -179,7 +179,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 
 	// Execute post-internal transactions
 	internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, b.tmpStateDB)
-	evmProcessor.Execute(internalTxs)
+	evmProcessor.Execute(internalTxs, common.Hash{})
 
 	evmBlock, skippedTxs, receipts := evmProcessor.Finalize()
 	for _, r := range receipts {

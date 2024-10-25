@@ -61,6 +61,7 @@ type OperaEVMProcessor struct {
 	incomingTxs types.Transactions
 	skippedTxs  []uint32
 	receipts    types.Receipts
+	prevRandao  common.Hash
 }
 
 func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlock {
@@ -69,10 +70,6 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		baseFee = nil
 	}
 
-	prevRandao := common.Hash{}
-	if p.net.Upgrades.Sonic {
-		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
-	}
 	h := &evmcore.EvmHeader{
 		Number:     p.blockIdx,
 		Hash:       common.Hash(p.block.Atropos),
@@ -83,13 +80,14 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		GasLimit:   math.MaxUint64,
 		GasUsed:    p.gasUsed,
 		BaseFee:    baseFee,
-		PrevRandao: prevRandao,
+		PrevRandao: p.prevRandao,
 	}
 
 	return evmcore.NewEvmBlock(h, txs)
 }
 
-func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
+func (p *OperaEVMProcessor) Execute(txs types.Transactions, prevRandao common.Hash) types.Receipts {
+	p.prevRandao = prevRandao
 	evmProcessor := evmcore.NewStateProcessor(p.evmCfg, p.reader)
 	txsOffset := uint(len(p.incomingTxs))
 
@@ -121,10 +119,7 @@ func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
 }
 
 func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs []uint32, receipts types.Receipts) {
-	evmBlock = p.evmBlockWith(
-		// Filter skipped transactions. Receipts are filtered already
-		inter.FilterSkippedTxs(p.incomingTxs, p.skippedTxs),
-	)
+	evmBlock = p.evmBlockWith(inter.FilterSkippedTxs(p.incomingTxs, p.skippedTxs))
 	skippedTxs = p.skippedTxs
 	receipts = p.receipts
 

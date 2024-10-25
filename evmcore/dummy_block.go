@@ -47,7 +47,7 @@ type (
 
 		BaseFee *big.Int
 
-		PrevRandao common.Hash
+		PrevRandao common.Hash // == mixHash/mixDigest
 	}
 
 	EvmBlock struct {
@@ -82,7 +82,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 
 	prevRandao := common.Hash{}
 	if rules.Upgrades.Sonic {
-		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
+		prevRandao = block.GetPrevRandao()
 	}
 
 	return &EvmHeader{

@@ -51,12 +51,10 @@ func NewEVMBlockContext(header *EvmHeader, chain DummyChain, author *common.Addr
 		baseFee = new(big.Int).Set(header.BaseFee)
 	}
 
-	// Before Sonic upgrade random is always empty
-	// and difficulty is not 0
 	difficulty := big.NewInt(1)
 	if header.PrevRandao.Cmp(common.Hash{}) != 0 {
 		random = &header.PrevRandao
-		difficulty.SetUint64(0)
+		difficulty.Set(random.Big())
 	}
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,
