@@ -6,6 +6,8 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/tests/contracts/blobbasefee"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -56,6 +58,13 @@ func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) 
 		t.Errorf("failed to get blob base fee from archive; %v", err)
 	}
 
+	// call the blob base fee rpc method
+	fromRpc := new(hexutil.Uint64)
+	err = client.Client().Call(&fromRpc, "eth_blobBaseFee")
+	if err != nil {
+		t.Fatalf("failed to get blob base fee from rpc; %v", err)
+	}
+
 	// we check blob base fee is zero because it is not implemented yet. TODO issue #147
 	if fromLog != 1 {
 		t.Errorf("invalid blob base fee from log; %v", fromLog)
@@ -68,6 +77,10 @@ func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) 
 	if fromLog != fromBlock {
 		t.Errorf("blob base fee mismatch; from log %v, from block %v", fromLog, fromBlock)
 	}
+
+	if fromLog != uint64(*fromRpc) {
+		t.Errorf("blob base fee mismatch; from log %v, from rpc %v", fromLog, fromRpc)
+	}
 }
 
 // helper functions to calculate blob base fee based on https://eips.ethereum.org/EIPS/eip-4844#gas-accounting
@@ -76,20 +89,5 @@ func getBlobBaseFeeFrom(header *types.Header) uint64 {
 	if header.ExcessBlobGas != nil {
 		excessBlobGas = uint64(*header.ExcessBlobGas)
 	}
-	// source for constants: https://eips.ethereum.org/EIPS/eip-4844#parameters
-	const MIN_FEE_PER_BLOB_GAS = uint64(1)
-	const UPDATE_FRACTION = uint64(3338477)
-	return fakeExponential(MIN_FEE_PER_BLOB_GAS, excessBlobGas, UPDATE_FRACTION)
-}
-
-// fakeExponential approximates (factor*e^(numerator/denominator)) using Taylor expansion
-// source: https://eips.ethereum.org/EIPS/eip-4844#helpers
-func fakeExponential(factor, numerator, denominator uint64) uint64 {
-	output := uint64(0)
-	accumulator := factor * denominator
-	for i := uint64(1); accumulator > 0; i++ {
-		output += accumulator
-		accumulator = (accumulator * numerator) / (denominator * i)
-	}
-	return output / denominator
+	return eip4844.CalcBlobFee(excessBlobGas).Uint64()
 }
