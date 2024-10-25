@@ -45,10 +45,13 @@ func sortTransactionsWithSameSender(entries []*scramblerEntry) {
 		// if nonce is equal, sort by gas
 		if a.gas > b.gas {
 			return -1
-		} else {
-			// if both nonce and gas is equal, order between those do not matter
+		}
+		if a.gas < b.gas {
 			return 1
 		}
+		// if both nonce and gas are equal, sort by hash
+		// note: at this point, hashes can never be same - duplicates are removed
+		return a.hash.Cmp(b.hash)
 	})
 
 	// find the first entry for each sender in the senderNonceOrder
@@ -114,15 +117,4 @@ func xorBytes32(a, b [32]byte) (dst [32]byte) {
 		dst[i] = a[i] ^ b[i]
 	}
 	return
-}
-
-// deepCopyEntries returns deep copy of entries.
-func deepCopyEntries(entries []*scramblerEntry) []*scramblerEntry {
-	cpy := make([]*scramblerEntry, len(entries))
-	// make a deep copy
-	for i, e := range entries {
-		copied := *e
-		cpy[i] = &copied
-	}
-	return cpy
 }

@@ -20,8 +20,8 @@ func TestTxScrambler_AnalyseEntryList_RemovesDuplicateTransactions(t *testing.T)
 
 	shuffleEntries(entries)
 	result, _, _ := analyseEntryList(entries)
-	if len(result) == 0 {
-		t.Fatal("analyseEntryList returned empty list")
+	if len(result) != 3 {
+		t.Fatalf("unexpected length of result list, wanted 3, got %d", len(result))
 	}
 
 	seen := map[common.Hash]struct{}{}
@@ -143,6 +143,7 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByNonce(t *testing.T) {
 		},
 	}
 
+	shuffleEntries(entries)
 	sortTransactionsWithSameSender(entries)
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
@@ -188,13 +189,49 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByGasIfNonceIsSame(t *t
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
 			if entries[i].sender == entries[j].sender {
-				if entries[i].nonce > entries[j].nonce {
-					t.Errorf("incorrect nonce order %d must be before %d", entries[j].nonce, entries[i].nonce)
-				}
 				if entries[i].nonce == entries[j].nonce && entries[i].gas < entries[j].gas {
 					t.Errorf("incorrect gas order %d must be before %d", entries[i].gas, entries[j].gas)
 				}
 			}
+		}
+	}
+}
+
+func TestTxScrambler_SortTransactionsWithSameSender_SortsByHashIfNonceAndGasIsSame(t *testing.T) {
+	entries := []*scramblerEntry{
+		{
+			hash:   common.Hash{0},
+			sender: common.Address{1},
+			nonce:  1,
+			gas:    1,
+		},
+		{
+			hash:   common.Hash{1},
+			sender: common.Address{1},
+			nonce:  1,
+			gas:    1,
+		},
+		{
+			hash:   common.Hash{2},
+			sender: common.Address{1},
+			nonce:  1,
+			gas:    1,
+		},
+		{
+			hash:   common.Hash{3},
+			sender: common.Address{1},
+			nonce:  1,
+			gas:    1,
+		},
+	}
+
+	shuffleEntries(entries)
+	sortTransactionsWithSameSender(entries)
+	// addrs, nonces and gas is same for every entry
+	// we expect that entries are sorted by hash ascending
+	for i := 0; i < len(entries); i++ {
+		if got, want := entries[i].hash, (common.Hash{byte(i)}); got != want {
+			t.Fatalf("wrong order, got: %s, want: %s", got, want)
 		}
 	}
 }
@@ -438,13 +475,13 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testi
 					hash:   common.Hash{4},
 					sender: common.Address{2},
 					nonce:  2,
-					gas:    4,
+					gas:    2,
 				},
 				{
 					hash:   common.Hash{5},
 					sender: common.Address{1},
 					nonce:  1,
-					gas:    5,
+					gas:    1,
 				},
 			},
 		},
@@ -594,4 +631,15 @@ func createRandomSalt() [32]byte {
 		salt[i] = byte(rand.Intn(math.MaxUint8))
 	}
 	return salt
+}
+
+// deepCopyEntries returns deep copy of entries.
+func deepCopyEntries(entries []*scramblerEntry) []*scramblerEntry {
+	cpy := make([]*scramblerEntry, len(entries))
+	// make a deep copy
+	for i, e := range entries {
+		copied := *e
+		cpy[i] = &copied
+	}
+	return cpy
 }
