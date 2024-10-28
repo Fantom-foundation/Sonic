@@ -65,7 +65,7 @@ func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) 
 		t.Fatalf("failed to get blob base fee from rpc; %v", err)
 	}
 
-	// we check blob base fee is zero because it is not implemented yet. TODO issue #147
+	// we check blob base fee is one because it is not implemented yet. TODO issue #147
 	if fromLog != 1 {
 		t.Errorf("invalid blob base fee from log; %v", fromLog)
 	}
