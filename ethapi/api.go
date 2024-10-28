@@ -154,6 +154,13 @@ func (s *PublicEthereumAPI) EffectiveBaseFee(ctx context.Context) *hexutil.Big {
 	return (*hexutil.Big)(s.b.EffectiveMinGasPrice(ctx))
 }
 
+func (s *PublicEthereumAPI) BlobBaseFee(ctx context.Context) *hexutil.Big {
+	// As blobs are not supported yet, blob base fee is equal to min blob gas price
+	// because calculation of blob base fee is based on the blob gas price and
+	// excess blob gas and that is always 0 for now
+	return (*hexutil.Big)(big.NewInt(params.BlobTxMinBlobGasprice))
+}
+
 // Syncing returns true if node is syncing
 func (s *PublicEthereumAPI) Syncing() (interface{}, error) {
 	progress := s.b.Progress()
