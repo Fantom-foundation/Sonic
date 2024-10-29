@@ -380,6 +380,7 @@ func spillBlockEvents(store *Store, block *inter.Block, network opera.Rules) (*i
 		e := store.GetEventPayload(id)
 		if e == nil {
 			log.Crit("Block event not found", "event", id.String())
+			break
 		}
 		fullEvents[i] = e
 		gasPowerUsedSum += e.GasPowerUsed()
