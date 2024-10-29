@@ -336,8 +336,8 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_IdenticalData(t *test
 			// shuffle one array
 			shuffleEntries(res2)
 
-			res1 = getExecutionOrder(res1)
-			res2 = getExecutionOrder(res2)
+			res1 = filterAndOrderTransactions(res1)
+			res2 = filterAndOrderTransactions(res2)
 			if !reflect.DeepEqual(res1, res2) {
 				t.Error("slices have different order - algorithm is not deterministic")
 			}
@@ -494,8 +494,8 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testi
 			// shuffle one array
 			shuffleEntries(res2)
 
-			res1 = getExecutionOrder(res1)
-			res2 = getExecutionOrder(res2)
+			res1 = filterAndOrderTransactions(res1)
+			res2 = filterAndOrderTransactions(res2)
 			if !reflect.DeepEqual(res1, res2) {
 				t.Error("slices have different order - algorithm is not deterministic")
 			}
@@ -512,7 +512,7 @@ func TestTxScrambler_GetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) 
 		{hash: common.Hash{1}},
 	}
 	shuffleEntries(entries)
-	entries = getExecutionOrder(entries)
+	entries = filterAndOrderTransactions(entries)
 
 	checkDuplicateHashes(t, entries)
 }
@@ -548,7 +548,7 @@ func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonceAndGas(t *testing.T
 		},
 	}
 	shuffleEntries(entries)
-	entries = getExecutionOrder(entries)
+	entries = filterAndOrderTransactions(entries)
 
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
@@ -571,8 +571,8 @@ func TestTxScrambler_GetExecutionOrder_RandomInput(t *testing.T) {
 		input := createRandomScramblerTestInput(i)
 		cpy := deepCopyEntries(input)
 		shuffleEntries(cpy)
-		input = getExecutionOrder(input)
-		cpy = getExecutionOrder(input)
+		input = filterAndOrderTransactions(input)
+		cpy = filterAndOrderTransactions(input)
 		if !reflect.DeepEqual(input, cpy) {
 			t.Error("slices have different order - algorithm is not deterministic")
 		}
@@ -587,7 +587,7 @@ func BenchmarkTxScrambler(b *testing.B) {
 				b.StopTimer()
 				entries := createRandomScramblerTestInput(size)
 				b.StartTimer()
-				getExecutionOrder(entries)
+				filterAndOrderTransactions(entries)
 			}
 		})
 	}
