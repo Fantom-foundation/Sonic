@@ -2,34 +2,39 @@
 pragma solidity ^0.8.20;
 
 contract InvalidStart {
-    function createWithInvalidCode() public {
+    // byteccode source: https://eips.ethereum.org/EIPS/eip-3541#test-cases
+    bytes public invalidBytecode = hex"60ef60005360016000f3";
+    bytes public validBytecode = hex"60fe60005360016000f3";
+    function createContractWithInvalidCode() public {
+        createOrRevert(invalidBytecode);
+    }
+
+    function createContractWithValidCode() public {
+        createOrRevert(validBytecode);
+    }
+
+    function createOrRevert(bytes memory bytecode) public {
         assembly {
-            mstore(0, calldataload(0))
-            if iszero(create(0, 0, calldatasize())) {
+            let emptyContract := create(0, add(bytecode, 0x20), mload(bytecode))
+            if iszero(emptyContract) {
                 revert(0, 0)
             }
         }
     }
 
-    function create2WithInvalidCode() public {
-        assembly {
-            mstore(0, calldataload(0))
-            if iszero(create2(0, 0, calldatasize(), 0)) {
-                revert(0, 0)
-            }
-        }
+    function create2ContractWithInvalidCode() public {
+        create2OrRevert(invalidBytecode);
     }
 
-    // This function creates a contract with no code and attempts to transfer to it.
-    function createEmptyContractAndTransferToIt() public {
-        bytes memory bytecode = hex""; // empty code
-        address newContract;
-        bool result;
+    function create2ContractWithValidCode() public {
+        create2OrRevert(validBytecode);
+    }
 
+    function create2OrRevert(bytes memory btcd) public {
         assembly {
-            newContract := create(0, add(bytecode, 0x20), mload(bytecode))
-            result := call(gas(), newContract, 1, 0, 0, 0, 0)
-            if iszero(result) {
+            // Deploy the contract that self-destructs
+            let emptyContract := create2(0, add(btcd, 0x20), mload(btcd), 0)
+            if iszero(emptyContract) {
                 revert(0, 0)
             }
         }
