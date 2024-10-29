@@ -57,7 +57,7 @@ func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumb
 	}
 
 	if uint64(blockNumber.Int64()) > currentBlockNumber {
-		return nil, fmt.Errorf("requested block nr %v > current node block nr %v", blockNumber.Int64(), currentBlockNumber)
+		return nil, fmt.Errorf("requested block number %v is greater than current head block number %v", blockNumber.Int64(), currentBlockNumber)
 	}
 
 	defer func(start time.Time) {
@@ -88,7 +88,13 @@ func (s *PublicTxTraceAPI) Get(ctx context.Context, hash common.Hash, traceIndex
 
 // traceTxHash looks for a block of this transaction hash and trace it
 func (s *PublicTxTraceAPI) traceTxHash(ctx context.Context, hash common.Hash, traceIndex *[]hexutil.Uint) (*[]txtrace.ActionTrace, error) {
-	_, blockNumber, _, _ := s.b.GetTransaction(ctx, hash)
+	tx, blockNumber, _, err := s.b.GetTransaction(ctx, hash)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get transaction %s: %v", hash.String(), err)
+	}
+	if tx == nil {
+		return nil, fmt.Errorf("transaction %s not found", hash.String())
+	}
 	blkNr := rpc.BlockNumber(blockNumber)
 	block, err := s.b.BlockByNumber(ctx, blkNr)
 	if err != nil {
