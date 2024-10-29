@@ -6,6 +6,8 @@ github.com/Fantom-foundation/Carmen/go v0.0.0-20241023071438-8b3c25fd1ff8 h1:uDl
 github.com/Fantom-foundation/Carmen/go v0.0.0-20241023071438-8b3c25fd1ff8/go.mod h1:vNRGm/b21hDlF8kYyKHkXq1s+jLMKpV4jGwXHylXIIg=
 github.com/Fantom-foundation/Tosca v0.0.0-20241009135726-aa99babe0a10 h1:D7askaARHcrcXDVZHweaxxz2wKvo/ipvjA/qooyEkNM=
 github.com/Fantom-foundation/Tosca v0.0.0-20241009135726-aa99babe0a10/go.mod h1:DtJlv3NCjaFxBKGXR7HQfLhLSu+BY5OILQ/4s7MR6lA=
+github.com/Fantom-foundation/Tosca v0.0.0-20241028082205-7b33705a4675 h1:Meqtt0eM9UAw1ceQ1tGiD497V0IVfqj8c6UrFJhkFNE=
+github.com/Fantom-foundation/Tosca v0.0.0-20241028082205-7b33705a4675/go.mod h1:8i7r+dUOkXjEC61SaFoRet6JYjRaSoiM/PhviP6K4Y8=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241022121122-7063a6b506bd h1:WoAkgzLLlyh3Zpnd/3gW8Ym5sHtugLCA4rQdT5udVF8=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241022121122-7063a6b506bd/go.mod h1:p4knNH76zBuqbEfc6CbZTOnaQNU0WvhzW5f0qq6aMoU=
 github.com/Fantom-foundation/lachesis-base-sonic v0.0.0-20241018103023-632a59c242f5 h1:dv1iFhsUfIfixwoNJWWZItWqOfKLV1mLA8eJLA1wceU=
