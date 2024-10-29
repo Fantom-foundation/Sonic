@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"bytes"
+	"cmp"
 	"github.com/ethereum/go-ethereum/common"
 	"slices"
 )
@@ -36,18 +37,15 @@ func sortTransactionsWithSameSender(entries []*scramblerEntry) {
 		if cmp != 0 {
 			return cmp
 		}
-		if a.nonce > b.nonce {
-			return 1
+		// if addresses are same, sort by nonce
+		res := compareAsc(a.nonce, b.nonce)
+		if res != 0 {
+			return res
 		}
-		if a.nonce < b.nonce {
-			return -1
-		}
-		// if nonce is equal, sort by gas
-		if a.gas > b.gas {
-			return -1
-		}
-		if a.gas < b.gas {
-			return 1
+		// if nonce is same, sort by gas
+		res = compareDesc(a.gas, b.gas)
+		if res != 0 {
+			return res
 		}
 		// if both nonce and gas are equal, sort by hash
 		// note: at this point, hashes can never be same - duplicates are removed
@@ -117,4 +115,26 @@ func xorBytes32(a, b [32]byte) (dst [32]byte) {
 		dst[i] = a[i] ^ b[i]
 	}
 	return
+}
+
+func compareAsc[T cmp.Ordered](a T, b T) int {
+	if a > b {
+		return 1
+	}
+	if a < b {
+		return -1
+	}
+	return 0
+
+}
+
+func compareDesc[T cmp.Ordered](a T, b T) int {
+	if a > b {
+		return -1
+	}
+	if a < b {
+		return 1
+	}
+	return 0
+
 }
