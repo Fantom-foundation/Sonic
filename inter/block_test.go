@@ -3,7 +3,6 @@ package inter
 import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"math/rand"
-	"reflect"
 	"testing"
 )
 
@@ -20,7 +19,7 @@ func TestBlock_ComputePrevRandao_ComputationIsDeterministic(t *testing.T) {
 		blk.Events[i], blk.Events[j] = blk.Events[j], blk.Events[i]
 	})
 	randao2 := blk.GetPrevRandao()
-	if !reflect.DeepEqual(randao1, randao2) {
+	if randao1 != randao2 {
 		t.Error("computation is not deterministic")
 	}
 }

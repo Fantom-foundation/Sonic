@@ -48,6 +48,9 @@ func TestPrevRandao(t *testing.T) {
 		t.Fatalf("failed to get block header; %v", err)
 	}
 	fromBlock := block.MixDigest().Big() // MixDigest == MixHash == PrevRandao
+	if block.Difficulty().Uint64() != 0 {
+		t.Errorf("incorrect block difficulty: %d", block.Difficulty().Uint64())
+	}
 
 	// Collect the prevrandao from the archive.
 	fromArchive, err := contract.GetPrevRandao(&bind.CallOpts{BlockNumber: receipt.BlockNumber})
@@ -60,9 +63,9 @@ func TestPrevRandao(t *testing.T) {
 	}
 
 	if fromLog.Cmp(fromBlock) != 0 {
-		t.Fatalf("prevrandao mismatch; from log %v, from block %v", fromLog, fromBlock)
+		t.Errorf("prevrandao mismatch; from log %v, from block %v", fromLog, fromBlock)
 	}
 	if fromLog.Cmp(fromArchive) != 0 {
-		t.Fatalf("prevrandao mismatch; from log %v, from archive %v", fromLog, fromArchive)
+		t.Errorf("prevrandao mismatch; from log %v, from archive %v", fromLog, fromArchive)
 	}
 }
