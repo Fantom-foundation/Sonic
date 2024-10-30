@@ -237,7 +237,7 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByHashIfNonceAndGasIsSa
 	}
 }
 
-func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_IdenticalData(t *testing.T) {
+func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalData(t *testing.T) {
 	tests := []struct {
 		name    string
 		entries []ScramblerEntry
@@ -346,7 +346,7 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_IdenticalData(t *test
 	}
 }
 
-func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testing.T) {
+func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData(t *testing.T) {
 	tests := []struct {
 		name    string
 		entries []ScramblerEntry
@@ -504,7 +504,7 @@ func TestTxScrambler_GetExecutionOrder_SortIsDeterministic_RepeatedData(t *testi
 	}
 }
 
-func TestTxScrambler_GetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) {
+func TestTxScrambler_FilterAndOrderTransactions_SortRemovesDuplicateHashes(t *testing.T) {
 	entries := []ScramblerEntry{
 		&dummyScramblerEntry{hash: common.Hash{1}},
 		&dummyScramblerEntry{hash: common.Hash{2}},
@@ -518,7 +518,7 @@ func TestTxScrambler_GetExecutionOrder_SortRemovesDuplicateHashes(t *testing.T) 
 	checkDuplicateHashes(t, entries)
 }
 
-func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonceAndGas(t *testing.T) {
+func TestTxScrambler_FilterAndOrderTransactions_SortsSameSenderByNonceAndGas(t *testing.T) {
 	entries := []ScramblerEntry{
 		&dummyScramblerEntry{
 			hash:   common.Hash{1},
@@ -565,7 +565,7 @@ func TestTxScrambler_GetExecutionOrder_SortsSameSenderByNonceAndGas(t *testing.T
 	}
 }
 
-func TestTxScrambler_GetExecutionOrder_RandomInput(t *testing.T) {
+func TestTxScrambler_FilterAndOrderTransactions_RandomInput(t *testing.T) {
 	// this tests these input sizes:
 	// 1, 4, 16, 64, 256, 1024
 	for i := int64(1); i <= 1024; i = i * 4 {
