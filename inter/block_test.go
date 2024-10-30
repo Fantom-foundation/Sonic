@@ -23,19 +23,3 @@ func TestBlock_ComputePrevRandao_ComputationIsDeterministic(t *testing.T) {
 		t.Error("computation is not deterministic")
 	}
 }
-
-func TestBlock_ComputePrevRandao_First8BytesAreZero(t *testing.T) {
-	b := make([]byte, 32)
-	for i := range 8 {
-		b[i] = byte(i)
-	}
-	blk := Block{Events: []hash.Event{
-		hash.BytesToEvent(b),
-	}}
-	randao := blk.GetPrevRandao()
-	for i := range 8 {
-		if randao[i] != 0 {
-			t.Errorf("byte at position %d is not zero", i)
-		}
-	}
-}
