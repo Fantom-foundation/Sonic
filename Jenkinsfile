@@ -32,10 +32,13 @@ pipeline {
                 sh 'go test ./...'
             }
         }
-
-        stage('Clean up') {
-            steps {
-                sh 'make clean'
+    }
+    post {
+        always {
+            stage('Clean up') {
+                steps {
+                    sh 'make clean'
+                }
             }
         }
     }
