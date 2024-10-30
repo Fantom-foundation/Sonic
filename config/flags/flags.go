@@ -336,6 +336,6 @@ var (
 	// Consensus
 	SuppressFramePanicFlag = cli.BoolFlag{
 		Name:  "lachesis.suppress-frame-panic",
-		Usage: "Suppress frame missmatch error while importing event files",
+		Usage: "Suppress frame missmatch error (when testing on historical imported/synced events)",
 	}
 )
