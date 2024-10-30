@@ -35,11 +35,7 @@ pipeline {
     }
     post {
         always {
-            stage('Clean up') {
-                steps {
-                    sh 'make clean'
-                }
-            }
+            sh 'make clean'
         }
     }
 }
