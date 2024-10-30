@@ -31,8 +31,8 @@ var (
 
 // AccessCostMetaData contains all meta data concerning the AccessCost contract.
 var AccessCostMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"}],\"name\":\"LogCost\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getCoinBaseAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOrigin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"touchAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"touchCoinBase\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"touchOrigin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
-	Bin: "0x6080604052348015600e575f5ffd5b506102db8061001c5f395ff3fe608060405234801561000f575f5ffd5b5060043610610055575f3560e01c80638102f66114610059578063d847a22b14610063578063df1f29ee1461007f578063ed9435631461009d578063f3c4df1a146100bb575b5f5ffd5b6100616100c5565b005b61007d600480360381019061007891906101c1565b6100d7565b005b610087610143565b60405161009491906101fb565b60405180910390f35b6100a561014a565b6040516100b291906101fb565b60405180910390f35b6100c3610151565b005b6100d56100d0610143565b6100d7565b565b5f5a90505f8273ffffffffffffffffffffffffffffffffffffffff163190507fc3263769c8cc487b9d31817141d5ff9ce159867184d644cc2b238d6c54619fdf5a83610123919061024a565b604051610130919061028c565b60405180910390a1805f81905550505050565b5f32905090565b5f41905090565b61016161015c61014a565b6100d7565b565b5f5ffd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f61019082610167565b9050919050565b6101a081610186565b81146101aa575f5ffd5b50565b5f813590506101bb81610197565b92915050565b5f602082840312156101d6576101d5610163565b5b5f6101e3848285016101ad565b91505092915050565b6101f581610186565b82525050565b5f60208201905061020e5f8301846101ec565b92915050565b5f819050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61025482610214565b915061025f83610214565b92508282039050818111156102775761027661021d565b5b92915050565b61028681610214565b82525050565b5f60208201905061029f5f83018461027d565b9291505056fea264697066735822122073c49b26d3bd90cd612bebdbb14dd83319893649247f63113daee7d763443afd64736f6c634300081c0033",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"}],\"name\":\"LogCost\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"getAddressAccessCost\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCoinBaseAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOrigin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"touchAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"touchCoinBase\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"touchOrigin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x6080604052348015600e575f5ffd5b5061037c8061001c5f395ff3fe608060405234801561000f575f5ffd5b5060043610610060575f3560e01c806359eeba54146100645780638102f66114610095578063d847a22b1461009f578063df1f29ee146100bb578063ed943563146100d9578063f3c4df1a146100f7575b5f5ffd5b61007e6004803603810190610079919061023b565b610101565b60405161008c92919061027e565b60405180910390f35b61009d61013f565b005b6100b960048036038101906100b4919061023b565b610151565b005b6100c36101bd565b6040516100d091906102b4565b60405180910390f35b6100e16101c4565b6040516100ee91906102b4565b60405180910390f35b6100ff6101cb565b005b5f5f5f5a90505f8473ffffffffffffffffffffffffffffffffffffffff163190505f5a8361012f91906102fa565b9050818194509450505050915091565b61014f61014a6101bd565b610151565b565b5f5a90505f8273ffffffffffffffffffffffffffffffffffffffff163190507fc3263769c8cc487b9d31817141d5ff9ce159867184d644cc2b238d6c54619fdf5a8361019d91906102fa565b6040516101aa919061032d565b60405180910390a1805f81905550505050565b5f32905090565b5f41905090565b6101db6101d66101c4565b610151565b565b5f5ffd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f61020a826101e1565b9050919050565b61021a81610200565b8114610224575f5ffd5b50565b5f8135905061023581610211565b92915050565b5f602082840312156102505761024f6101dd565b5b5f61025d84828501610227565b91505092915050565b5f819050919050565b61027881610266565b82525050565b5f6040820190506102915f83018561026f565b61029e602083018461026f565b9392505050565b6102ae81610200565b82525050565b5f6020820190506102c75f8301846102a5565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61030482610266565b915061030f83610266565b9250828203905081811115610327576103266102cd565b5b92915050565b5f6020820190506103405f83018461026f565b9291505056fea2646970667358221220259ec4172cbd962628f3264673289353d7a0e4e5196d3d4a7442090fa3f59f7864736f6c634300081c0033",
 }
 
 // AccessCostABI is the input ABI used to generate the binding from.
@@ -200,6 +200,38 @@ func (_AccessCost *AccessCostTransactorRaw) Transfer(opts *bind.TransactOpts) (*
 // Transact invokes the (paid) contract method with params as input values.
 func (_AccessCost *AccessCostTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _AccessCost.Contract.contract.Transact(opts, method, params...)
+}
+
+// GetAddressAccessCost is a free data retrieval call binding the contract method 0x59eeba54.
+//
+// Solidity: function getAddressAccessCost(address addr) view returns(uint256, uint256)
+func (_AccessCost *AccessCostCaller) GetAddressAccessCost(opts *bind.CallOpts, addr common.Address) (*big.Int, *big.Int, error) {
+	var out []interface{}
+	err := _AccessCost.contract.Call(opts, &out, "getAddressAccessCost", addr)
+
+	if err != nil {
+		return *new(*big.Int), *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out1 := *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+
+	return out0, out1, err
+
+}
+
+// GetAddressAccessCost is a free data retrieval call binding the contract method 0x59eeba54.
+//
+// Solidity: function getAddressAccessCost(address addr) view returns(uint256, uint256)
+func (_AccessCost *AccessCostSession) GetAddressAccessCost(addr common.Address) (*big.Int, *big.Int, error) {
+	return _AccessCost.Contract.GetAddressAccessCost(&_AccessCost.CallOpts, addr)
+}
+
+// GetAddressAccessCost is a free data retrieval call binding the contract method 0x59eeba54.
+//
+// Solidity: function getAddressAccessCost(address addr) view returns(uint256, uint256)
+func (_AccessCost *AccessCostCallerSession) GetAddressAccessCost(addr common.Address) (*big.Int, *big.Int, error) {
+	return _AccessCost.Contract.GetAddressAccessCost(&_AccessCost.CallOpts, addr)
 }
 
 // GetCoinBaseAddress is a free data retrieval call binding the contract method 0xed943563.

@@ -32,4 +32,13 @@ contract AccessCost {
     function getCoinBaseAddress() public view returns (address) {
         return block.coinbase;
     }
+
+    function getAddressAccessCost(
+        address addr
+    ) public view returns (uint256, uint256) {
+        uint256 before = gasleft();
+        uint256 b = addr.balance;
+        uint256 cost = before - gasleft();
+        return (b, cost);
+    }
 }

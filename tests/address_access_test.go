@@ -27,9 +27,13 @@ func TestAddressAccess(t *testing.T) {
 		return contract.TouchAddress(opts, someAccountAddress)
 	})
 	checkTxExecution(t, receipt, err)
-	coldAccess, err := contract.ParseLogCost(*receipt.Logs[0])
+	txColdAccess, err := contract.ParseLogCost(*receipt.Logs[0])
 	if err != nil {
 		t.Fatalf("Failed to parse log: %v", err)
+	}
+	_, viewColdAccess, err := contract.GetAddressAccessCost(nil, someAccountAddress)
+	if err != nil {
+		t.Fatalf("Failed to get address access cost: %v", err)
 	}
 
 	t.Run("coinbase yields zero address", func(t *testing.T) {
@@ -43,7 +47,7 @@ func TestAddressAccess(t *testing.T) {
 		}
 	})
 
-	t.Run("access is warm", func(t *testing.T) {
+	t.Run("tx access is warm", func(t *testing.T) {
 		tests := map[string]func(*bind.TransactOpts) (*types.Transaction, error){
 			"coinbase": contract.TouchCoinBase,
 			"origin":   contract.TouchOrigin,
@@ -66,7 +70,43 @@ func TestAddressAccess(t *testing.T) {
 				}
 
 				// Difference must be the extra cost of a cold access
-				diff := new(big.Int).Sub(coldAccess.Cost, warmAccess.Cost)
+				diff := new(big.Int).Sub(txColdAccess.Cost, warmAccess.Cost)
+				if want, got := big.NewInt(2500), diff; want.Cmp(got) != 0 {
+					t.Errorf("Expected cost difference %v, got %v", want, got)
+				}
+			})
+		}
+	})
+
+	t.Run("archive access is warm", func(t *testing.T) {
+
+		tests := map[string]func() (*big.Int, error){
+			"origin": func() (*big.Int, error) {
+				originAddr, err := contract.GetOrigin(nil)
+				if err != nil {
+					return nil, err
+				}
+				_, cost, err := contract.GetAddressAccessCost(nil, originAddr)
+				return cost, err
+			},
+			"coinbase": func() (*big.Int, error) {
+				coinbaseAddr, err := contract.GetCoinBaseAddress(nil)
+				if err != nil {
+					return nil, err
+				}
+				_, cost, err := contract.GetAddressAccessCost(nil, coinbaseAddr)
+				return cost, err
+			},
+		}
+
+		for name, access := range tests {
+			t.Run(name, func(t *testing.T) {
+
+				cost, err := access()
+				if err != nil {
+					t.Fatalf("Failed to get address access cost: %v", err)
+				}
+				diff := new(big.Int).Sub(viewColdAccess, cost)
 				if want, got := big.NewInt(2500), diff; want.Cmp(got) != 0 {
 					t.Errorf("Expected cost difference %v, got %v", want, got)
 				}
