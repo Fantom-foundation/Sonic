@@ -239,7 +239,6 @@ func consensusCallbackBeginBlockFn(
 					}
 
 					prevRandao := block.GetPrevRandao()
-
 					_ = evmProcessor.Execute(txs, prevRandao)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()

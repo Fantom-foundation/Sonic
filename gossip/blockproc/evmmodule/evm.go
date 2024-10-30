@@ -70,6 +70,12 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		baseFee = nil
 	}
 
+	prevRandao := common.Hash{}
+	// This condition must be kept, otherwise Opera will not be able to synchronize
+	if p.net.Upgrades.Sonic {
+		prevRandao = p.prevRandao
+	}
+
 	h := &evmcore.EvmHeader{
 		Number:     p.blockIdx,
 		Hash:       common.Hash(p.block.Atropos),
@@ -80,7 +86,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		GasLimit:   math.MaxUint64,
 		GasUsed:    p.gasUsed,
 		BaseFee:    baseFee,
-		PrevRandao: p.prevRandao,
+		PrevRandao: prevRandao,
 	}
 
 	return evmcore.NewEvmBlock(h, txs)
