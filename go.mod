@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/Fantom-foundation/Carmen/go v0.0.0-20241023071438-8b3c25fd1ff8
-	github.com/Fantom-foundation/Tosca v0.0.0-20241028082205-7b33705a4675
+	github.com/Fantom-foundation/Tosca v0.0.0-20241030110959-25dd89ef8111
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20240116072301-a75735c4ef00
 	github.com/cespare/cp v1.1.1
 	github.com/davecgh/go-spew v1.1.1
@@ -31,6 +31,7 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
+	go.uber.org/mock v0.4.0
 	golang.org/x/sys v0.25.0
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
@@ -117,7 +118,6 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/net v0.29.0 // indirect
