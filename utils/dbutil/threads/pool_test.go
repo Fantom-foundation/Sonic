@@ -16,11 +16,9 @@ func TestMain(m *testing.M) {
 
 func TestThreadPool(t *testing.T) {
 
-	pool := ThreadPool{}
-
 	for name, pool := range map[string]*ThreadPool{
 		"global": &GlobalPool,
-		"local":  &pool,
+		"local":  {},
 	} {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
@@ -44,6 +42,7 @@ func TestThreadPool(t *testing.T) {
 			require.Equal(8, gotB)
 
 			// don't releaseB(gotB) to check pools isolation
+			_ = releaseB
 		})
 	}
 }
