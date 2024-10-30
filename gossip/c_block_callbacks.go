@@ -240,7 +240,6 @@ func consensusCallbackBeginBlockFn(
 
 					prevRandao := block.GetPrevRandao()
 
-					// todo pass salt from scrambler if txcount > 1 to avoid unnecessary compua
 					_ = evmProcessor.Execute(txs, prevRandao)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()

@@ -32,6 +32,8 @@ func (b *Block) GetPrevRandao() common.Hash {
 
 // computePrevRandao computes the PrevRandao from transaction hashes.
 func (b *Block) computePrevRandao() {
+	// reset the value
+	b.prevRandao = common.Hash{}
 	for _, event := range b.Events {
 		for i := 0; i < 24; i++ {
 			// first 8 bytes should be ignored as they are not pseudo-random.

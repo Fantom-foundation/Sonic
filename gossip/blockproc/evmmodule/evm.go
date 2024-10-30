@@ -119,7 +119,10 @@ func (p *OperaEVMProcessor) Execute(txs types.Transactions, prevRandao common.Ha
 }
 
 func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs []uint32, receipts types.Receipts) {
-	evmBlock = p.evmBlockWith(inter.FilterSkippedTxs(p.incomingTxs, p.skippedTxs))
+	evmBlock = p.evmBlockWith(
+		// Filter skipped transactions. Receipts are filtered already
+		inter.FilterSkippedTxs(p.incomingTxs, p.skippedTxs),
+	)
 	skippedTxs = p.skippedTxs
 	receipts = p.receipts
 
