@@ -49,7 +49,7 @@ func TestPrevRandao(t *testing.T) {
 	}
 	fromBlock := block.MixDigest().Big() // MixDigest == MixHash == PrevRandao
 	if block.Difficulty().Uint64() != 0 {
-		t.Errorf("incorrect block difficulty: %d", block.Difficulty().Uint64())
+		t.Errorf("incorrect header difficulty got: %d, want: %d", block.Difficulty().Uint64(), 0)
 	}
 
 	// Collect the prevrandao from the archive.

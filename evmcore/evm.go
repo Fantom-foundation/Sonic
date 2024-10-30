@@ -51,8 +51,10 @@ func NewEVMBlockContext(header *EvmHeader, chain DummyChain, author *common.Addr
 		baseFee = new(big.Int).Set(header.BaseFee)
 	}
 
+	// For legacy Opera network, the difficulty is always 1 and random nil
 	difficulty := big.NewInt(1)
 	if header.PrevRandao.Cmp(common.Hash{}) != 0 {
+		// Difficulty must be set to 0 when PREVRANDAO is enabled.
 		random = &header.PrevRandao
 		difficulty.SetUint64(0)
 	}
