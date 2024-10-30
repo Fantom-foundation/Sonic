@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/tests/contracts/invalidstart"
@@ -84,7 +83,6 @@ func getTransactionWithCodeAndNoReceiver(r *require.Assertions, code []byte, net
 		Gas:      500_000, // some gas that is big enough to run the code
 		GasPrice: price,
 		To:       nil,
-		Value:    big.NewInt(0),
 		Nonce:    nonce,
 		Data:     code,
 	}), types.NewLondonSigner(chainId), net.validator.PrivateKey)

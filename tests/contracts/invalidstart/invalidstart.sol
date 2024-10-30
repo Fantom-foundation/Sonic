@@ -13,7 +13,7 @@ contract InvalidStart {
         createOrRevert(validBytecode);
     }
 
-    function createOrRevert(bytes memory bytecode) public {
+    function createOrRevert(bytes memory bytecode) private {
         assembly {
             let emptyContract := create(0, add(bytecode, 0x20), mload(bytecode))
             if iszero(emptyContract) {
@@ -30,7 +30,7 @@ contract InvalidStart {
         create2OrRevert(validBytecode);
     }
 
-    function create2OrRevert(bytes memory bytecode) public {
+    function create2OrRevert(bytes memory bytecode) private {
         assembly {
             // Deploy the contract that self-destructs
             let emptyContract := create2(0, add(bytecode, 0x20), mload(bytecode), 0)
