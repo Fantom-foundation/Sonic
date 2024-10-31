@@ -24,7 +24,15 @@ func New() *EVMModule {
 	return &EVMModule{}
 }
 
-func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, reader evmcore.DummyChain, onNewLog func(*types.Log), net opera.Rules, evmCfg *params.ChainConfig) blockproc.EVMProcessor {
+func (p *EVMModule) Start(
+	block iblockproc.BlockCtx,
+	statedb state.StateDB,
+	reader evmcore.DummyChain,
+	onNewLog func(*types.Log),
+	net opera.Rules,
+	evmCfg *params.ChainConfig,
+	prevrandao common.Hash,
+) blockproc.EVMProcessor {
 	var prevBlockHash common.Hash
 	if block.Idx != 0 {
 		prevBlockHash = reader.GetHeader(common.Hash{}, uint64(block.Idx-1)).Hash
@@ -42,6 +50,7 @@ func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, read
 		evmCfg:        evmCfg,
 		blockIdx:      utils.U64toBig(uint64(block.Idx)),
 		prevBlockHash: prevBlockHash,
+		prevRandao:    prevrandao,
 	}
 }
 
@@ -92,8 +101,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 	return evmcore.NewEvmBlock(h, txs)
 }
 
-func (p *OperaEVMProcessor) Execute(txs types.Transactions, prevRandao common.Hash) types.Receipts {
-	p.prevRandao = prevRandao
+func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
 	evmProcessor := evmcore.NewStateProcessor(p.evmCfg, p.reader)
 	txsOffset := uint(len(p.incomingTxs))
 

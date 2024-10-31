@@ -177,13 +177,27 @@ func consensusCallbackBeginBlockFn(
 						verWatcher.OnNewLog(l)
 					}
 				}
+				// new block
+				var block = &inter.Block{
+					Time:    blockCtx.Time,
+					Atropos: cBlock.Atropos,
+					Events:  hash.Events(confirmedEvents),
+				}
 
-				evmProcessor := blockProc.EVMModule.Start(blockCtx, statedb, evmStateReader, onNewLogAll, es.Rules, es.Rules.EvmChainConfig(store.GetUpgradeHeights()))
+				evmProcessor := blockProc.EVMModule.Start(
+					blockCtx,
+					statedb,
+					evmStateReader,
+					onNewLogAll,
+					es.Rules,
+					es.Rules.EvmChainConfig(store.GetUpgradeHeights()),
+					block.GetPrevRandao(),
+				)
 				executionStart := time.Now()
 
 				// Execute pre-internal transactions
 				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-				preInternalReceipts := evmProcessor.Execute(preInternalTxs, common.Hash{})
+				preInternalReceipts := evmProcessor.Execute(preInternalTxs)
 				bs = txListener.Finalize()
 				for _, r := range preInternalReceipts {
 					if r.Status == 0 {
@@ -212,7 +226,7 @@ func consensusCallbackBeginBlockFn(
 				blockFn := func() {
 					// Execute post-internal transactions
 					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-					internalReceipts := evmProcessor.Execute(internalTxs, common.Hash{})
+					internalReceipts := evmProcessor.Execute(internalTxs)
 					for _, r := range internalReceipts {
 						if r.Status == 0 {
 							log.Warn("Internal transaction reverted", "txid", r.TxHash.String())
@@ -222,12 +236,6 @@ func consensusCallbackBeginBlockFn(
 					// sort events by Lamport time
 					sort.Sort(confirmedEvents)
 
-					// new block
-					var block = &inter.Block{
-						Time:    blockCtx.Time,
-						Atropos: cBlock.Atropos,
-						Events:  hash.Events(confirmedEvents),
-					}
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.Txs = append(block.Txs, tx.Hash())
 					}
@@ -238,8 +246,7 @@ func consensusCallbackBeginBlockFn(
 						txs = append(txs, e.Txs()...)
 					}
 
-					prevRandao := block.GetPrevRandao()
-					_ = evmProcessor.Execute(txs, prevRandao)
+					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
 					block.SkippedTxs = skippedTxs
