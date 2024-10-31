@@ -178,6 +178,8 @@ func TestSelfDestruct(t *testing.T) {
 					},
 				},
 				effects: map[string]effectFunction{
+					"contract has storage":         contractStorageIs(big.NewInt(123)),
+					"contract has code":            contractCodeSizeIsNot(big.NewInt(0)),
 					"contract keeps balance":       contractBalanceIs(someBalance),
 					"beneficiary gains no balance": beneficiaryBalanceIs(big.NewInt(0)),
 				},
