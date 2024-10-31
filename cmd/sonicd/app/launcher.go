@@ -54,6 +54,7 @@ func initFlags() {
 	// Flags for testing purpose.
 	testFlags = []cli.Flag{
 		config.FakeNetFlag,
+		flags.SuppressFramePanicFlag,
 	}
 
 	// Flags that configure the node.
@@ -190,7 +191,10 @@ func initApp() {
 		}
 
 		// Start metrics export if enabled
-		metrics.SetupMetrics(ctx)
+		err := metrics.SetupMetrics(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to setup metrics: %w", err)
+		}
 		// Start system runtime metrics collection
 		go ethmetrics.CollectProcessMetrics(3 * time.Second)
 		return nil

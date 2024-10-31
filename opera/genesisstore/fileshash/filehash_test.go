@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
@@ -71,13 +70,11 @@ func TestFileHash_ReadWrite(t *testing.T) {
 
 func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pieceSize uint64) {
 	require := require.New(t)
-	tmpDirPath, err := ioutil.TempDir("", "filehash*")
-	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath := t.TempDir()
+	file, err := os.CreateTemp(tmpDirPath, "testnet.g")
+	filePath := file.Name()
 	require.NoError(err)
-	f, err := ioutil.TempFile(tmpDirPath, "testnet.g")
-	filePath := f.Name()
-	require.NoError(err)
-	writer := WrapWriter(f, pieceSize, func(i int) TmpWriter {
+	writer := WrapWriter(file, pieceSize, func(i int) TmpWriter {
 		tmpFh, err := os.OpenFile(path.Join(tmpDirPath, fmt.Sprintf("genesis%d.dat", i)), os.O_CREATE|os.O_RDWR, os.ModePerm)
 		require.NoError(err)
 		return dropableFile{
@@ -93,15 +90,15 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 	root, err := writer.Flush()
 	require.NoError(err)
 	require.Equal(expRoot.Hex(), root.Hex())
-	f.Close()
+	file.Close()
 
 	maxMemUsage := memUsageOf(pieceSize, getPiecesNum(uint64(len(content)), pieceSize))
 
 	// normal case: correct root hash and content after reading file partially
 	if len(content) > 0 {
-		f, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
-		reader := WrapReader(f, maxMemUsage, root)
+		reader := WrapReader(file, maxMemUsage, root)
 		readB := make([]byte, rand.Int63n(int64(len(content))))
 		err = ioread.ReadAll(reader, readB)
 		require.NoError(err)
@@ -111,9 +108,9 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 
 	// normal case: correct root hash and content after reading the whole file
 	{
-		f, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
-		reader := WrapReader(f, maxMemUsage, root)
+		reader := WrapReader(file, maxMemUsage, root)
 		readB := make([]byte, len(content))
 		err = ioread.ReadAll(reader, readB)
 		require.NoError(err)
@@ -125,9 +122,9 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 
 	// correct root hash and reading too much content
 	{
-		f, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
-		reader := WrapReader(f, maxMemUsage, root)
+		reader := WrapReader(file, maxMemUsage, root)
 		readB := make([]byte, len(content)+1)
 		require.Error(ioread.ReadAll(reader, readB), io.EOF)
 		reader.Close()
@@ -135,9 +132,9 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 
 	// passing the wrong root hash to reader
 	{
-		f, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
-		maliciousReader := WrapReader(f, maxMemUsage, hash.HexToHash("0x00"))
+		maliciousReader := WrapReader(file, maxMemUsage, hash.HexToHash("0x00"))
 		data := make([]byte, 1)
 		err = ioread.ReadAll(maliciousReader, data)
 		require.Contains(err.Error(), ErrInit.Error())
@@ -148,21 +145,22 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 	headerOffset := 4 + 8 + getPiecesNum(uint64(len(content)), pieceSize)*32
 	if len(content) > 0 {
 		// mutate content byte
-		f, err = os.OpenFile(filePath, os.O_RDWR, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDWR, 0600)
 		require.NoError(err)
 		s := []byte{0}
 		contentPos := rand.Int63n(int64(len(content)))
 		pos := int64(headerOffset) + contentPos
-		_, err = f.ReadAt(s, pos)
+		_, err = file.ReadAt(s, pos)
 		require.NoError(err)
 		s[0]++
-		_, err = f.WriteAt(s, pos)
+		_, err = file.WriteAt(s, pos)
 		require.NoError(err)
-		require.NoError(f.Close())
+		require.NoError(file.Close())
 
 		// try to read
-		f, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
-		maliciousReader := WrapReader(f, maxMemUsage, root)
+		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		require.NoError(err)
+		maliciousReader := WrapReader(file, maxMemUsage, root)
 		data := make([]byte, contentPos+1)
 		err = ioread.ReadAll(maliciousReader, data)
 		require.Contains(err.Error(), ErrHashMismatch.Error())
@@ -170,30 +168,31 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 
 		// restore
 		s[0]--
-		f, err = os.OpenFile(filePath, os.O_RDWR, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDWR, 0600)
 		require.NoError(err)
-		_, err = f.WriteAt(s, pos)
+		_, err = file.WriteAt(s, pos)
 		require.NoError(err)
-		require.NoError(f.Close())
+		require.NoError(file.Close())
 	}
 
 	// modify a piece hash in file to make the wrong one
 	{
 		// mutate content byte
-		f, err = os.OpenFile(filePath, os.O_RDWR, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDWR, 0600)
 		require.NoError(err)
 		pos := rand.Int63n(int64(headerOffset))
 		s := []byte{0}
-		_, err = f.ReadAt(s, pos)
+		_, err = file.ReadAt(s, pos)
 		require.NoError(err)
 		s[0]++
-		_, err = f.WriteAt(s, pos)
+		_, err = file.WriteAt(s, pos)
 		require.NoError(err)
-		require.NoError(f.Close())
+		require.NoError(file.Close())
 
 		// try to read
-		f, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
-		maliciousReader := WrapReader(f, maxMemUsage*2, root)
+		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		require.NoError(err)
+		maliciousReader := WrapReader(file, maxMemUsage*2, root)
 		data := make([]byte, 1)
 		err = ioread.ReadAll(maliciousReader, data)
 		require.Contains(err.Error(), ErrInit.Error())
@@ -201,18 +200,18 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 
 		// restore
 		s[0]--
-		f, err = os.OpenFile(filePath, os.O_RDWR, 0600)
+		file, err = os.OpenFile(filePath, os.O_RDWR, 0600)
 		require.NoError(err)
-		_, err = f.WriteAt(s, pos)
+		_, err = file.WriteAt(s, pos)
 		require.NoError(err)
-		require.NoError(f.Close())
+		require.NoError(file.Close())
 	}
 
 	// hashed file requires too much memory
 	{
-		f, err = os.OpenFile(filePath, os.O_WRONLY, 0600)
+		file, err = os.OpenFile(filePath, os.O_WRONLY, 0600)
 		require.NoError(err)
-		oomReader := WrapReader(f, maxMemUsage-1, root)
+		oomReader := WrapReader(file, maxMemUsage-1, root)
 		data := make([]byte, 1)
 		err = ioread.ReadAll(oomReader, data)
 		require.Errorf(err, "hashed file requires too much memory")
