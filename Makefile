@@ -30,7 +30,7 @@ sonic-image:
 
 .PHONY: test
 test:
-	go test ./...
+	go test -cover ./...
 
 .PHONY: coverage
 coverage:
@@ -48,3 +48,20 @@ fuzz:
 .PHONY: clean
 clean:
 	rm -fr ./build/*
+
+# Linting
+
+STATICCHECK_VERSION = 2024.1.1
+.PHONY: staticcheck
+staticcheck: 
+	@go install honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VERSION)
+	staticcheck ./...
+
+ERRCHECK_VERSION = v1.7.0
+.PHONY: errcheck
+errorcheck:
+	@go install github.com/kisielk/errcheck@$(ERRCHECK_VERSION)
+	errcheck ./...
+
+.PHONY: lint
+lint: staticcheck errorcheck
