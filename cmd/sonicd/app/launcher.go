@@ -54,6 +54,7 @@ func initFlags() {
 	// Flags for testing purpose.
 	testFlags = []cli.Flag{
 		config.FakeNetFlag,
+		flags.SuppressFramePanicFlag,
 	}
 
 	// Flags that configure the node.
