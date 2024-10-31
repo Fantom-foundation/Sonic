@@ -184,6 +184,7 @@ func consensusCallbackBeginBlockFn(
 					Events:  hash.Events(confirmedEvents),
 				}
 
+				// Exclude first events which exceed MaxBlockGas
 				block, blockEvents := spillBlockEvents(store, block, es.Rules)
 				txs := make(types.Transactions, 0, blockEvents.Len()*10)
 				for _, e := range blockEvents {
@@ -203,6 +204,7 @@ func consensusCallbackBeginBlockFn(
 
 				// Execute pre-internal transactions
 				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
+				// Pre-internal transactions needs to be executed BEFORE sealing is requested
 				preInternalReceipts := evmProcessor.Execute(preInternalTxs)
 				bs = txListener.Finalize()
 				for _, r := range preInternalReceipts {
@@ -232,6 +234,7 @@ func consensusCallbackBeginBlockFn(
 				blockFn := func() {
 					// Execute post-internal transactions
 					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
+					// Post-internal transactions needs to be executed AFTER sealing is requested
 					internalReceipts := evmProcessor.Execute(internalTxs)
 					for _, r := range internalReceipts {
 						if r.Status == 0 {
