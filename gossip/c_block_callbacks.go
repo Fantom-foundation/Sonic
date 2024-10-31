@@ -184,6 +184,12 @@ func consensusCallbackBeginBlockFn(
 					Events:  hash.Events(confirmedEvents),
 				}
 
+				block, blockEvents := spillBlockEvents(store, block, es.Rules)
+				txs := make(types.Transactions, 0, blockEvents.Len()*10)
+				for _, e := range blockEvents {
+					txs = append(txs, e.Txs()...)
+				}
+
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
 					statedb,
@@ -238,12 +244,6 @@ func consensusCallbackBeginBlockFn(
 
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.Txs = append(block.Txs, tx.Hash())
-					}
-
-					block, blockEvents := spillBlockEvents(store, block, es.Rules)
-					txs := make(types.Transactions, 0, blockEvents.Len()*10)
-					for _, e := range blockEvents {
-						txs = append(txs, e.Txs()...)
 					}
 
 					_ = evmProcessor.Execute(txs)
