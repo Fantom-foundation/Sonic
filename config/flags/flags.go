@@ -302,6 +302,11 @@ var (
 		Usage: "Maximum number of bytes returned from a batched call",
 		Value: node.DefaultConfig.BatchResponseMaxSize,
 	}
+	MaxResponseSizeFlag = cli.IntFlag{
+		Name:  "rpc.maxresponsesize",
+		Usage: "Limit maximum size in some RPC calls execution",
+		Value: gossip.DefaultConfig(cachescale.Identity).MaxResponseSize,
+	}
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
 		Usage: `Mode of the node ("rpc" or "validator")`,
