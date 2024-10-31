@@ -2,6 +2,7 @@ package ethapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -311,7 +312,7 @@ type FilterArgs struct {
 }
 
 // Filter is function for trace_filter rpc call
-func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtrace.ActionTrace, error) {
+func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (json.RawMessage, error) {
 	// add log after execution
 	defer func(start time.Time) {
 		data := getLogData(args, start)
@@ -328,10 +329,16 @@ func (s *PublicTxTraceAPI) Filter(ctx context.Context, args FilterArgs) (*[]txtr
 }
 
 // Filter specified block range in series
-func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (*[]txtrace.ActionTrace, error) {
+func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (json.RawMessage, error) {
 
 	var traceAdded, traceCount uint
-	callTraces := make([]txtrace.ActionTrace, 0)
+
+	// resultBuffer is buffer for collecting result traces
+	resultBuffer, err := NewJsonResultBuffer()
+	if err != nil {
+		return nil, err
+	}
+
 	// parse arguments
 	fromBlock, toBlock, fromAddresses, toAddresses := parseFilterArguments(s.b, args)
 
@@ -346,11 +353,14 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (*[
 		for _, trace := range traces {
 
 			if traceCount >= args.After {
-				callTraces = append(callTraces, trace)
+				err := resultBuffer.AddObject(&trace)
+				if err != nil {
+					return nil, err
+				}
 				traceAdded++
 			}
 			if traceAdded >= args.Count {
-				return &callTraces, nil
+				return resultBuffer.GetResult()
 			}
 			traceCount++
 		}
@@ -360,14 +370,17 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (*[
 			return nil, ctx.Err()
 		}
 	}
-	return &callTraces, nil
+	return resultBuffer.GetResult()
 }
 
 // Filter specified block range in parallel
-func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (*[]txtrace.ActionTrace, error) {
+func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (json.RawMessage, error) {
 
-	// struct for collecting result traces
-	callTraces := make([]txtrace.ActionTrace, 0)
+	// resultBuffer is buffer for collecting result traces
+	resultBuffer, err := NewJsonResultBuffer()
+	if err != nil {
+		return nil, err
+	}
 	// parse arguments
 	fromBlock, toBlock, fromAddresses, toAddresses := parseFilterArguments(s.b, args)
 	// add context cancel function
@@ -393,7 +406,12 @@ func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args Filte
 				if res.err != nil {
 					cancelFunc(res.err)
 				} else {
-					callTraces = append(callTraces, res.trace...)
+					for _, trace := range res.trace {
+						err := resultBuffer.AddObject(&trace)
+						if err != nil {
+							cancelFunc(err)
+						}
+					}
 				}
 			case <-ctx.Done():
 				return
@@ -427,7 +445,7 @@ func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args Filte
 			return nil, context.Cause(ctx)
 		}
 	}
-	return &callTraces, nil
+	return resultBuffer.GetResult()
 }
 
 // Fills blocks into provided channel for processing and close the channel in the end
