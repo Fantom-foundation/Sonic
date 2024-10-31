@@ -210,7 +210,7 @@ func (em *Emitter) tick() {
 
 	em.recheckChallenges()
 	em.recheckIdleTime()
-	if time.Since(em.prevEmittedAtTime) >= em.intervals.Min {
+	if time.Since(em.prevEmittedAtTime) >= time.Second /*em.intervals.Min*/ {
 		_, err := em.EmitEvent()
 		if err != nil {
 			em.Log.Error("Event emitting error", "err", err)
@@ -227,12 +227,14 @@ func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
 		time.Since(em.cache.poolTime) < em.config.TxsCacheInvalidation {
 		return em.cache.sortedTxs.Copy()
 	}
+	fmt.Printf("getSortedTxs: poolCount: %d\n", poolCount)
 	// Build the cache
 	pendingTxs, err := em.world.TxPool.Pending(true)
 	if err != nil {
 		em.Log.Error("Tx pool transactions fetching error", "err", err)
 		return nil
 	}
+	fmt.Printf("getSortedTxs: pendingTxs: %d\n", len(pendingTxs))
 	for from, txs := range pendingTxs {
 		// Filter the excessive transactions from each sender
 		if len(txs) > em.config.MaxTxsPerAddress {
@@ -257,7 +259,9 @@ func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
 		txs[from] = lazyTxs
 	}
 
-	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, em.world.GetRules().Economy.MinGasPrice)
+	// This function also sorts out under-priced transactions.
+	//sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, em.world.GetRules().Economy.MinGasPrice)
+	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, nil)
 	em.cache.sortedTxs = sortedTxs
 	em.cache.poolCount = poolCount
 	em.cache.poolBlock = em.world.GetLatestBlockIndex()
@@ -266,13 +270,19 @@ func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
 }
 
 func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
+
+	fmt.Printf("\n#### Begin EmitEvent\n")
+	defer fmt.Printf("#### End EmitEvent\n")
+
 	if em.config.Validator.ID == 0 {
 		// short circuit if not a validator
 		return nil, nil
 	}
 	sortedTxs := em.getSortedTxs()
+	fmt.Printf("EmitEvent: sortedTxs: %d\n", sortedTxs.Len())
 
 	if em.world.IsBusy() {
+		fmt.Printf("world is busy\n")
 		return nil, nil
 	}
 
@@ -281,8 +291,11 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 
 	e, err := em.createEvent(sortedTxs)
 	if e == nil || err != nil {
+		fmt.Printf("failed to create an event: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("EmitEvent: created event with %d transactions\n", e.Txs().Len())
+
 	em.syncStatus.prevLocalEmittedID = e.ID()
 
 	err = em.world.Process(e)
@@ -293,6 +306,7 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	// write event ID to avoid doublesigning in future after a crash
 	em.writeLastEmittedEventID(e.ID())
 	// broadcast the event
+	fmt.Printf("EmitEvent: Broadcasting event with %d transactions\n", e.Txs().Len())
 	em.world.Broadcast(e)
 
 	// metrics
@@ -443,15 +457,18 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 	}
 
 	// Add txs
+	fmt.Printf("createEvent: Adding transactions: %d\n", sortedTxs.Len())
 	em.addTxs(mutEvent, sortedTxs)
 
 	// Check if event should be emitted
 	// Check only if no txs were added, since check in a case with added txs was performed above
-	if mutEvent.Txs().Len() == 0 {
-		if !em.isAllowedToEmit(mutEvent, mutEvent.Txs().Len() != 0, metric, selfParentHeader) {
-			return nil, nil
+	/*
+		if mutEvent.Txs().Len() == 0 {
+			if !em.isAllowedToEmit(mutEvent, mutEvent.Txs().Len() != 0, metric, selfParentHeader) {
+				return nil, nil
+			}
 		}
-	}
+	*/
 
 	// calc Payload hash
 	mutEvent.SetPayloadHash(inter.CalcPayloadHash(mutEvent))

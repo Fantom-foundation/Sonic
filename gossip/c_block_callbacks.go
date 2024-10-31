@@ -35,9 +35,9 @@ var (
 	headHeaderGauge    = metrics.GetOrRegisterGauge("chain/head/header", nil)
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
-	blockExecutionTimer = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
+	blockExecutionTimer             = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
 	blockExecutionNonResettingTimer = metrics.GetOrRegisterTimer("chain/execution/nonresetting", nil)
-	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
+	blockAgeGauge                   = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter    = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
 	skippedTxsMeter      = metrics.GetOrRegisterMeter("chain/txs/skipped", nil)
@@ -238,12 +238,41 @@ func consensusCallbackBeginBlockFn(
 						txs = append(txs, e.Txs()...)
 					}
 
+					fmt.Printf("----------------\n")
+					fmt.Printf("Block: %d\n", blockCtx.Idx)
+					fmt.Printf("Number of transactions: %d\n", len(txs))
+					for i, tx := range txs {
+						fmt.Printf("Tx %d:\n", i)
+						if price := tx.GasPrice(); price != nil {
+							fmt.Printf("  Gas-Price:   %d\n", price)
+						} else {
+							fmt.Printf("  Gas-Price: nil\n")
+						}
+						if cap := tx.GasFeeCap(); cap != nil {
+							fmt.Printf("  Gas-Fee Cap: %d\n", cap)
+						} else {
+							fmt.Printf("  Gas-Fee Cap: nil\n")
+						}
+						if cap := tx.GasTipCap(); cap != nil {
+							fmt.Printf("  Gas-Tip Cap: %d\n", cap)
+						} else {
+							fmt.Printf("  Gas-Tip Cap: nil\n")
+						}
+					}
+					fmt.Printf("----------------\n")
+
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
 					block.SkippedTxs = skippedTxs
 					block.Root = hash.Hash(evmBlock.Root)
 					block.GasUsed = evmBlock.GasUsed
+
+					fmt.Printf("----------------\n")
+					fmt.Printf("Block: %d\n", blockCtx.Idx)
+					fmt.Printf("Number of skipped transactions: %d\n", len(block.SkippedTxs))
+					fmt.Printf("Number of receipts: %d\n", len(allReceipts))
+					fmt.Printf("----------------\n")
 
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)

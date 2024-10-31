@@ -705,16 +705,18 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrUnderpriced
 	}
 	// Ensure Opera-specific hard bounds
-	if recommendedGasTip, minPrice := pool.chain.EffectiveMinTip(), pool.chain.MinGasPrice(); recommendedGasTip != nil && minPrice != nil {
-		if tx.GasTipCapIntCmp(recommendedGasTip) < 0 {
-			log.Trace("Rejecting underpriced tx: recommendedGasTip", "recommendedGasTip", recommendedGasTip, "tx.GasTipCap", tx.GasTipCap())
-			return ErrUnderpriced
+	/*
+		if recommendedGasTip, minPrice := pool.chain.EffectiveMinTip(), pool.chain.MinGasPrice(); recommendedGasTip != nil && minPrice != nil {
+			if tx.GasTipCapIntCmp(recommendedGasTip) < 0 {
+				log.Trace("Rejecting underpriced tx: recommendedGasTip", "recommendedGasTip", recommendedGasTip, "tx.GasTipCap", tx.GasTipCap())
+				return ErrUnderpriced
+			}
+			if tx.GasFeeCapIntCmp(new(big.Int).Add(recommendedGasTip, minPrice)) < 0 {
+				log.Trace("Rejecting underpriced tx: recommendedGasTip+minPrice", "recommendedGasTip", recommendedGasTip, "minPrice", minPrice, "tx.GasFeeCap", tx.GasFeeCap())
+				return ErrUnderpriced
+			}
 		}
-		if tx.GasFeeCapIntCmp(new(big.Int).Add(recommendedGasTip, minPrice)) < 0 {
-			log.Trace("Rejecting underpriced tx: recommendedGasTip+minPrice", "recommendedGasTip", recommendedGasTip, "minPrice", minPrice, "tx.GasFeeCap", tx.GasFeeCap())
-			return ErrUnderpriced
-		}
-	}
+	*/
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow

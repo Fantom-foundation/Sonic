@@ -2,6 +2,8 @@ package tests
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -40,12 +42,12 @@ func TestGasFee_CanSendLowPricedTransactions(t *testing.T) {
 	t.Logf("Suggested gas price: %v\n", price)
 
 	// sample different gas prices
-	for i := range 10 {
+	for i := range 2 {
 		//107_625_105_000
 
 		cap := price
 		//cap := big.NewInt(100_000_000_000 + int64(i)*1_000_000_000) // 100 Gwei + i Gwei
-		price = new(big.Int).Sub(price, big.NewInt(1_000_000_000)) // decrease by 1 Gwei
+		price = new(big.Int).Sub(price, big.NewInt(10_000_000_000)) // decrease by 1 Gwei
 
 		// Type 2 -- Dynamic Fee Transactions (London)
 		transaction, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{
@@ -69,6 +71,22 @@ func TestGasFee_CanSendLowPricedTransactions(t *testing.T) {
 		}
 
 	}
+
+	t.Fail()
+}
+
+func TestUpdate(t *testing.T) {
+	encoded := "000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000267b2245636f6e6f6d79223a7b224d696e4761735072696365223a353832353738303935347d7d0000000000000000000000000000000000000000000000000000"
+	encoded = "000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000267b2245636f6e6f6d79223a7b224d696e4761735072696365223a363037393432323431377d7d0000000000000000000000000000000000000000000000000000"
+	data := make([]byte, hex.DecodedLen(len(encoded)))
+
+	len, err := hex.Decode(data, []byte(encoded))
+	if err != nil {
+		t.Fatalf("Failed to decode hex: %v", err)
+	}
+	t.Logf("Decoded %d bytes\n", len)
+
+	fmt.Printf(string(data))
 
 	t.Fail()
 }

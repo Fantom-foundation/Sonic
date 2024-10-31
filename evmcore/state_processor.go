@@ -180,6 +180,7 @@ func applyTransaction(
 	// Apply the transaction to the current state (included in the env).
 	result, err := core.ApplyMessage(evm, msg, gp)
 	if err != nil {
+		fmt.Printf("Failed to apply message: %v - skipped: %t\n", err, result == nil)
 		return nil, 0, result == nil, err
 	}
 	// Notify about logs with potential state changes
