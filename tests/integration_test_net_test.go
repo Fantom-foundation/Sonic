@@ -75,9 +75,15 @@ func TestIntegrationTestNet_CanEndowAccountsWithTokens(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		increment := int64(1000)
-		if err := net.EndowAccount(address, increment); err != nil {
+
+		receipt, err := net.EndowAccount(address, increment)
+		if err != nil {
 			t.Fatalf("Failed to endow account 1: %v", err)
 		}
+		if want, got := types.ReceiptStatusSuccessful, receipt.Status; want != got {
+			t.Fatalf("Expected status %v, got %v", want, got)
+		}
+
 		want := balance.Add(balance, big.NewInt(int64(increment)))
 		balance, err = client.BalanceAt(context.Background(), address, nil)
 		if err != nil {
