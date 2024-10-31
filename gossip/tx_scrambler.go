@@ -3,7 +3,11 @@ package gossip
 import (
 	"bytes"
 	"cmp"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
+	"math/big"
 	"slices"
 )
 
@@ -15,8 +19,46 @@ type ScramblerEntry interface {
 	Sender() common.Address
 	// Nonce returns the transaction nonce
 	Nonce() uint64
-	// GasPrice returns the transaction gasPrice price
-	GasPrice() uint64
+	// GasPrice returns the transaction gas price
+	GasPrice() *big.Int
+	// Unwrap returns the wrapped transaction.
+	Unwrap() *types.Transaction
+}
+
+// FilterAndOrderTransactions filters out duplicate transactions and sorts them.
+func FilterAndOrderTransactions(entries []ScramblerEntry) types.Transactions {
+	sorted := filterAndOrderTransactions(entries)
+	txs := make(types.Transactions, len(sorted))
+	for idx, e := range sorted {
+		txs[idx] = e.Unwrap()
+	}
+
+	return txs
+}
+
+// newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
+func newScramblerTransaction(signer types.Signer, tx *types.Transaction) ScramblerEntry {
+	sender, err := types.Sender(signer, tx)
+	if err != nil {
+		log.Crit(fmt.Sprintf("cannot derive sender for tx %s", tx.Hash()), "err", err)
+	}
+	return &scramblerTransaction{
+		Transaction: tx,
+		sender:      sender,
+	}
+}
+
+type scramblerTransaction struct {
+	*types.Transaction
+	sender common.Address
+}
+
+func (tx *scramblerTransaction) Unwrap() *types.Transaction {
+	return tx.Transaction
+}
+
+func (tx *scramblerTransaction) Sender() common.Address {
+	return tx.sender
 }
 
 // filterAndOrderTransactions first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
@@ -48,7 +90,7 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 			return res
 		}
 		// if nonce is same, sort by gas price
-		res = cmp.Compare(b.GasPrice(), a.GasPrice())
+		res = b.GasPrice().Cmp(a.GasPrice())
 		if res != 0 {
 			return res
 		}

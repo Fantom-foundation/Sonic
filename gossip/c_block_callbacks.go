@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -35,9 +36,9 @@ var (
 	headHeaderGauge    = metrics.GetOrRegisterGauge("chain/head/header", nil)
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
-	blockExecutionTimer = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
+	blockExecutionTimer             = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
 	blockExecutionNonResettingTimer = metrics.GetOrRegisterTimer("chain/execution/nonresetting", nil)
-	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
+	blockAgeGauge                   = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter    = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
 	skippedTxsMeter      = metrics.GetOrRegisterMeter("chain/txs/skipped", nil)
@@ -178,7 +179,8 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				evmProcessor := blockProc.EVMModule.Start(blockCtx, statedb, evmStateReader, onNewLogAll, es.Rules, es.Rules.EvmChainConfig(store.GetUpgradeHeights()))
+				chainCfg := es.Rules.EvmChainConfig(store.GetUpgradeHeights())
+				evmProcessor := blockProc.EVMModule.Start(blockCtx, statedb, evmStateReader, onNewLogAll, es.Rules, chainCfg)
 				executionStart := time.Now()
 
 				// Execute pre-internal transactions
@@ -208,6 +210,7 @@ func consensusCallbackBeginBlockFn(
 					txListener.Update(bs, es)
 				}
 
+				blockNumber := big.NewInt(0).SetUint64(uint64(blockCtx.Idx))
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				blockFn := func() {
 					// Execute post-internal transactions
@@ -233,11 +236,16 @@ func consensusCallbackBeginBlockFn(
 					}
 
 					block, blockEvents := spillBlockEvents(store, block, es.Rules)
-					txs := make(types.Transactions, 0, blockEvents.Len()*10)
+					toBeSorted := make([]ScramblerEntry, 0, blockEvents.Len()*10)
+
+					signer := types.MakeSigner(chainCfg, blockNumber, uint64(blockCtx.Time))
 					for _, e := range blockEvents {
-						txs = append(txs, e.Txs()...)
+						for _, tx := range e.Txs() {
+							toBeSorted = append(toBeSorted, newScramblerTransaction(signer, tx))
+						}
 					}
 
+					txs := FilterAndOrderTransactions(toBeSorted)
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()

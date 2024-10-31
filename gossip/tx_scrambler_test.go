@@ -4,7 +4,9 @@ import (
 	"cmp"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"golang.org/x/exp/rand"
+	"math/big"
 	"slices"
 	"testing"
 )
@@ -162,25 +164,25 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByGasIfNonceIsSame(t *t
 			hash:     common.Hash{1},
 			sender:   common.Address{1},
 			nonce:    1,
-			gasPrice: 1,
+			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{2},
 			sender:   common.Address{1},
 			nonce:    1,
-			gasPrice: 2,
+			gasPrice: big.NewInt(2),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{3},
 			sender:   common.Address{2},
 			nonce:    1,
-			gasPrice: 3,
+			gasPrice: big.NewInt(3),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{4},
 			sender:   common.Address{2},
 			nonce:    1,
-			gasPrice: 4,
+			gasPrice: big.NewInt(4),
 		},
 	}
 
@@ -189,7 +191,7 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByGasIfNonceIsSame(t *t
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
 			if entries[i].Sender() == entries[j].Sender() {
-				if entries[i].Nonce() == entries[j].Nonce() && entries[i].GasPrice() < entries[j].GasPrice() {
+				if entries[i].Nonce() == entries[j].Nonce() && entries[i].GasPrice().Uint64() < entries[j].GasPrice().Uint64() {
 					t.Errorf("incorrect gas price order %d must be before %d", entries[i].GasPrice(), entries[j].GasPrice())
 				}
 			}
@@ -203,25 +205,25 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByHashIfNonceAndGasIsSa
 			hash:     common.Hash{0},
 			sender:   common.Address{1},
 			nonce:    1,
-			gasPrice: 1,
+			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{1},
 			sender:   common.Address{1},
 			nonce:    1,
-			gasPrice: 1,
+			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{2},
 			sender:   common.Address{1},
 			nonce:    1,
-			gasPrice: 1,
+			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{3},
 			sender:   common.Address{1},
 			nonce:    1,
-			gasPrice: 1,
+			gasPrice: big.NewInt(1),
 		},
 	}
 
@@ -288,19 +290,19 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalDat
 					hash:     common.Hash{1},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 2,
+					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 3,
+					gasPrice: big.NewInt(3),
 				},
 			},
 		},
@@ -311,19 +313,19 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalDat
 					hash:     common.Hash{1},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 			},
 		},
@@ -357,31 +359,31 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 					hash:     common.Hash{1},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
 					sender:   common.Address{2},
 					nonce:    2,
-					gasPrice: 2,
+					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
 					sender:   common.Address{3},
 					nonce:    3,
-					gasPrice: 3,
+					gasPrice: big.NewInt(3),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
 					sender:   common.Address{2},
 					nonce:    2,
-					gasPrice: 2,
+					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 			},
 		},
@@ -422,31 +424,31 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 					hash:     common.Hash{1},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
 					sender:   common.Address{2},
 					nonce:    2,
-					gasPrice: 2,
+					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
 					sender:   common.Address{3},
 					nonce:    3,
-					gasPrice: 3,
+					gasPrice: big.NewInt(3),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{4},
 					sender:   common.Address{2},
 					nonce:    2,
-					gasPrice: 4,
+					gasPrice: big.NewInt(4),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{5},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 5,
+					gasPrice: big.NewInt(5),
 				},
 			},
 		},
@@ -457,31 +459,31 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 					hash:     common.Hash{1},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
 					sender:   common.Address{2},
 					nonce:    2,
-					gasPrice: 2,
+					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
 					sender:   common.Address{3},
 					nonce:    3,
-					gasPrice: 3,
+					gasPrice: big.NewInt(3),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{4},
 					sender:   common.Address{2},
 					nonce:    2,
-					gasPrice: 2,
+					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{5},
 					sender:   common.Address{1},
 					nonce:    1,
-					gasPrice: 1,
+					gasPrice: big.NewInt(1),
 				},
 			},
 		},
@@ -533,13 +535,13 @@ func TestTxScrambler_FilterAndOrderTransactions_SortsSameSenderByNonceAndGas(t *
 			hash:     common.Hash{3},
 			sender:   common.Address{1},
 			nonce:    3,
-			gasPrice: 1,
+			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{4},
 			sender:   common.Address{1},
 			nonce:    3,
-			gasPrice: 2,
+			gasPrice: big.NewInt(2),
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{5},
@@ -556,7 +558,7 @@ func TestTxScrambler_FilterAndOrderTransactions_SortsSameSenderByNonceAndGas(t *
 				if entries[i].Nonce() > entries[j].Nonce() {
 					t.Errorf("incorrect nonce order %d must be before %d", entries[j].Nonce(), entries[i].Nonce())
 				}
-				if entries[i].Nonce() == entries[j].Nonce() && entries[i].GasPrice() < entries[j].GasPrice() {
+				if entries[i].Nonce() == entries[j].Nonce() && entries[i].GasPrice().Uint64() < entries[j].GasPrice().Uint64() {
 					t.Errorf("incorrect gas price order %d must be before %d", entries[j].GasPrice(), entries[i].GasPrice())
 				}
 			}
@@ -588,7 +590,7 @@ func compareFunc(a ScramblerEntry, b ScramblerEntry) int {
 	if res != 0 {
 		return res
 	}
-	res = cmp.Compare(a.GasPrice(), b.GasPrice())
+	res = a.GasPrice().Cmp(b.GasPrice())
 	if res != 0 {
 		return res
 	}
@@ -617,7 +619,7 @@ func createRandomScramblerTestInput(size int64) []ScramblerEntry {
 			hash:     common.Hash{byte(r)},
 			sender:   common.Address{byte(r)},
 			nonce:    uint64(r),
-			gasPrice: uint64(r),
+			gasPrice: big.NewInt(int64(r)),
 		})
 	}
 
@@ -655,7 +657,12 @@ type dummyScramblerEntry struct {
 	hash     common.Hash    // transaction hash
 	sender   common.Address // sender of the transaction
 	nonce    uint64         // transaction nonce
-	gasPrice uint64         // transaction gasPrice
+	gasPrice *big.Int       // transaction gasPrice
+}
+
+func (s *dummyScramblerEntry) Unwrap() *types.Transaction {
+	// unused
+	return nil
 }
 
 func (s *dummyScramblerEntry) Hash() common.Hash {
@@ -670,6 +677,6 @@ func (s *dummyScramblerEntry) Nonce() uint64 {
 	return s.nonce
 }
 
-func (s *dummyScramblerEntry) GasPrice() uint64 {
+func (s *dummyScramblerEntry) GasPrice() *big.Int {
 	return s.gasPrice
 }
