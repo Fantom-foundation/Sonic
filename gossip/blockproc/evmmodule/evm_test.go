@@ -60,6 +60,7 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 		&params.ChainConfig{
 			LondonBlock: big.NewInt(0),
 		},
+		common.Hash{},
 	)
 
 	// This inner transaction has a gas price of 0, which is less than the MinGasPrice
@@ -68,7 +69,7 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 	nonce := uint64(15)
 	inner := types.NewTransaction(nonce, targetAddress, common.Big0, 1e10, common.Big0, nil)
 
-	receipts := processor.Execute([]*types.Transaction{inner}, common.Hash{})
+	receipts := processor.Execute([]*types.Transaction{inner})
 
 	if len(receipts) != 1 {
 		t.Fatalf("Expected 1 receipt, got %d", len(receipts))
