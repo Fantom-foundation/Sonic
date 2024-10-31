@@ -18,6 +18,7 @@ package ethapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -2003,7 +2004,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, message *core.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *tracers.TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, message *core.Message, txctx *tracers.Context, blockHeader *evmcore.EvmHeader, statedb state.StateDB, config *tracers.TraceConfig) (json.RawMessage, error) {
 	var (
 		tracer  *tracers.Tracer
 		err     error
@@ -2064,7 +2065,17 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, m
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
-	return tracer.GetResult()
+
+	result, err := tracer.GetResult()
+	if err != nil {
+		return nil, err
+	}
+
+	if responseSizeLimit > 0 && len(result) > responseSizeLimit {
+		return nil, ErrMaxResponseSize
+	}
+
+	return result, nil
 }
 
 // txTraceResult is the result of a single transaction trace.
@@ -2114,9 +2125,10 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 	defer statedb.Release()
 
 	var (
-		txs     = block.Transactions
-		signer  = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
-		results = make([]*txTraceResult, len(txs))
+		txs           = block.Transactions
+		signer        = gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
+		results       = make([]*txTraceResult, len(txs))
+		resultsLength int
 	)
 	for i, tx := range txs {
 		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
@@ -2130,6 +2142,13 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 		if err != nil {
 			return nil, err
 		}
+
+		// limit the response size.
+		resultsLength += len(res)
+		if responseSizeLimit > 0 && resultsLength > responseSizeLimit {
+			return nil, ErrMaxResponseSize
+		}
+
 		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
 		statedb.Finalise()
 	}
