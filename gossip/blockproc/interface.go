@@ -48,10 +48,18 @@ type ConfirmedEventsModule interface {
 }
 
 type EVMProcessor interface {
-	Execute(txs types.Transactions, randao common.Hash) types.Receipts
+	Execute(txs types.Transactions) types.Receipts
 	Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs []uint32, receipts types.Receipts)
 }
 
 type EVM interface {
-	Start(block iblockproc.BlockCtx, statedb state.StateDB, reader evmcore.DummyChain, onNewLog func(*types.Log), net opera.Rules, evmCfg *params.ChainConfig) EVMProcessor
+	Start(
+		block iblockproc.BlockCtx,
+		statedb state.StateDB,
+		reader evmcore.DummyChain,
+		onNewLog func(*types.Log),
+		net opera.Rules,
+		evmCfg *params.ChainConfig,
+		prevrandao common.Hash,
+	) EVMProcessor
 }
