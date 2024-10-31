@@ -1,7 +1,6 @@
 package valkeystore
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -13,11 +12,7 @@ import (
 )
 
 func TestFileKeystoreAdd(t *testing.T) {
-	dir, err := ioutil.TempDir("", "valkeystore_test")
-	if err != nil {
-		return
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	require := require.New(t)
 	keystore := NewFileKeystore(dir, encryption.New(keystore.LightScryptN, keystore.LightScryptP))
@@ -48,12 +43,7 @@ func TestFileKeystoreAdd(t *testing.T) {
 }
 
 func TestFileKeystoreRead(t *testing.T) {
-	dir, err := ioutil.TempDir("", "valkeystore_test")
-	if err != nil {
-		return
-	}
-	defer os.RemoveAll(dir)
-
+	dir := t.TempDir()
 	require := require.New(t)
 	keystore := NewFileKeystore(dir, encryption.New(keystore.LightScryptN, keystore.LightScryptP))
 
