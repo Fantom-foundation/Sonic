@@ -4,25 +4,34 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
 const interval = 10000
-const withDelay = false
+const withDelay = true
+const withSymetricDelay = true
 const withNoise = false
 
 func TestSimulateSync(t *testing.T) {
 	const N = 10
-	const T = 20
+	const T = 100
 	runSync(N, T, t)
 }
 
 func runSync(N, T int, t *testing.T) {
 
+	times := []string{}
+	estOffsetError := []string{}
+	estDelayError := []string{}
+
 	// Create offsets for N nodes (secret).
 	offsets := make([]int, N)
 	for i := 0; i < N; i++ {
 		offsets[i] = rand.Intn(interval)
+	}
+	for i, offset := range offsets {
+		fmt.Printf("N%d: %d\n", i, offset)
 	}
 
 	// Create N nodes.
@@ -43,21 +52,48 @@ func runSync(N, T int, t *testing.T) {
 				if i == j {
 					delay[i][j] = 0
 				} else {
-					delay[i][j] = rand.Intn(interval/10) + 1 // 1 to 100 ms delay
+					// TODO: define a maximum delay as a constant/parameter
+					delay[i][j] = rand.Intn(interval/10) + 1 // up to 10% of interval
 				}
 			}
 		}
 	}
 
-	// Run simulation.
-	output := true
-	if output {
-		fmt.Printf("Iteration")
+	if withSymetricDelay {
 		for i := range N {
-			fmt.Printf(",N%d", i)
+			for j := range N {
+				delay[i][j] = delay[j][i]
+			}
 		}
-		fmt.Printf("\n")
 	}
+
+	builder := &strings.Builder{}
+	builder.WriteString("Iteration,")
+	for i := range N {
+		builder.WriteString(fmt.Sprintf("N%d,", i))
+	}
+	builder.WriteString("\n")
+	times = append(times, builder.String())
+
+	builder = &strings.Builder{}
+	builder.WriteString("Iteration,")
+	for i := range N {
+		builder.WriteString(fmt.Sprintf("N%d,", i))
+	}
+	builder.WriteString("\n")
+	estOffsetError = append(estOffsetError, builder.String())
+
+	builder = &strings.Builder{}
+	builder.WriteString("Iteration,")
+	for i := range N {
+		for j := range N {
+			builder.WriteString(fmt.Sprintf("%d-%d,", i, j))
+		}
+	}
+	builder.WriteString("\n")
+	estDelayError = append(estDelayError, builder.String())
+
+	// Run simulation.
 	for step := range T {
 
 		// Compute the next emit time.
@@ -77,37 +113,69 @@ func runSync(N, T int, t *testing.T) {
 			}
 		}
 
-		if output {
-			fmt.Printf("%d,", step)
+		{
+			builder := &strings.Builder{}
+			builder.WriteString(fmt.Sprintf("%d,", step))
 			for i := range N {
-				fmt.Printf("%d,", emitTimes[i]+interval)
+				builder.WriteString(fmt.Sprintf("%d,", emitTimes[i]+interval))
 			}
-			fmt.Printf("\n")
+			builder.WriteString("\n")
+			times = append(times, builder.String())
+		}
+
+		// Print the offset estimate errors.
+		{
+			builder := &strings.Builder{}
+			builder.WriteString(fmt.Sprintf("%d,", step))
+			for i := range N {
+				is := offsets[i]
+				est := nodes[i].GetEstimatedGlobalOffset()
+				diff := est - is
+				//builder.WriteString(fmt.Sprintf("%d-%d = %d,", est, is, diff))
+				builder.WriteString(fmt.Sprintf("%d,", diff))
+			}
+			builder.WriteString("\n")
+			estOffsetError = append(estOffsetError, builder.String())
 		}
 
 		// Print the delay estimate errors.
-		if false {
+		{
+			builder := &strings.Builder{}
+			builder.WriteString(fmt.Sprintf("%d,", step))
 			for i := range N {
 				for j := range N {
 					is := delay[i][j]
 					est := nodes[j].delayEstimate[i]
-					diff := is - est
+					diff := est - is
 					//fmt.Printf("%d,%d,%d,", is, est, diff)
-					fmt.Printf("%d,", diff)
+					//fmt.Printf("%d-%d=%d,", is, est, diff)
+					builder.WriteString(fmt.Sprintf("%d,", diff))
 					//fmt.Printf("N%d->N%d: is %d, est %d\n", i, j, delay[i][j], nodes[j].delayEstimate[i])
 				}
 			}
-			fmt.Printf("\n")
+			builder.WriteString("\n")
+			estDelayError = append(estDelayError, builder.String())
 		}
 	}
 
-	/*
-		for i := range N {
-			for j := range N {
-				fmt.Printf("N%d->N%d: is %d, est %d\n", i, j, delay[i][j], nodes[j].delayEstimate[i])
-			}
+	if true {
+		for _, line := range times {
+			fmt.Print(line)
 		}
-	*/
+		fmt.Printf("\n")
+	}
+	if true {
+		for _, line := range estOffsetError {
+			fmt.Print(line)
+		}
+		fmt.Printf("\n")
+	}
+	if true {
+		for _, line := range estDelayError {
+			fmt.Print(line)
+		}
+		fmt.Printf("\n")
+	}
 
 	t.Fail()
 }
@@ -133,62 +201,69 @@ func newNode(N, id int) Node {
 	}
 }
 
-func (n *Node) GetNextEmitTime() int {
+func (n *Node) GetEstimatedGlobalOffset() int {
 	// compute the offset this node should emit its message
 	should := interval * n.id / n.N
 
 	// estimated local offset to global time
-	offset := n.lastEmitTime - should
+	return n.lastEmitTime - should
+}
+
+func (n *Node) GetNextEmitTime() int {
+	// estimated local offset to global time
+	offset := n.GetEstimatedGlobalOffset()
 
 	// refresh the delay estimate
 	{
+		// collect the observed delays of the last iteration
+		lastDelays := make([]int, n.N)
 		for i := range n.N {
-			expectedSend := interval*i/n.N + offset
+			expectedSend := interval * i / n.N
 			lastReceived := n.lastReceiveTimes[i]
-			lastDelay := lastReceived - expectedSend
+			lastDelays[i] = lastReceived - expectedSend - offset
+		}
 
-			//fmt.Printf("N%d: source %d, expected %d, received %d, delay %d\n", n.id, i, expectedSend, lastReceived, lastDelay)
-			if lastDelay >= 0 {
-				n.delayEstimate[i] = lastDelay*1/3 + n.delayEstimate[i]*2/3
+		// align the observed delays to minimize the impact on the offset
+		// Note: part of the offset could 'hide' in the observed delays
+		min := math.MaxInt
+		for i := range n.N {
+			if i != n.id {
+				if lastDelays[i] < min {
+					min = lastDelays[i]
+				}
 			}
 		}
-	}
+		//fmt.Printf("N: %d, min: %d\n", n.id, min)
+		if min < math.MaxInt {
+			min -= 1 // minimum expected delay
+			for i := range n.N {
+				lastDelays[i] -= min
+			}
+		}
 
-	// TODO: factor in the delay estimate
+		// update the delay estimates as a running average
+		for i := range n.N {
+			n.delayEstimate[i] = (lastDelays[i]*1 + n.delayEstimate[i]*2) / 3
+		}
+	}
 
 	// compute the mean time of all received messages
 	sum := 0
-	min := math.MaxInt
-	max := math.MinInt
 	for i := range n.lastReceiveTimes {
 		cur := n.lastReceiveTimes[i]
-		//cur = cur - n.delayEstimate[i]
-
+		cur = cur - n.delayEstimate[i]
 		sum += cur
-		if n.lastReceiveTimes[i] < min {
-			min = cur
-		}
-		if n.lastReceiveTimes[i] > max {
-			max = cur
-		}
 	}
 	mean := sum / len(n.lastReceiveTimes)
 
-	//fmt.Printf("N:%d, min:%d, max:%d, spread: %d, mean:%d\n", n.id, min, max, max-min, mean)
-
-	//spread := (max-min)/4 + interval/4 // 50:50 mix of actual spread and intended interval
+	// compute the offset this node should emit its message
+	should := interval * n.id / n.N
 
 	// The spread between the first and last message should be (N-1)/N of the interval.
 	spread := interval * (n.N - 1) / n.N
 	target := mean - spread/2 + should
 
 	delta := (target - n.lastEmitTime) / 2
-
-	/*
-		if n.id == 0 {
-			fmt.Printf("N%d: mean %d, target %d, delta %d, last-emit: %d, next-emit: %d\n", n.id, mean, target, delta, n.lastEmitTime, n.lastEmitTime+delta)
-		}
-	*/
 
 	n.lastEmitTime += delta
 	return n.lastEmitTime
