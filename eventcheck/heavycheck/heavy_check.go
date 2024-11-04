@@ -1,7 +1,6 @@
 package heavycheck
 
 import (
-	"bytes"
 	"errors"
 	"runtime"
 	"sync"
@@ -120,21 +119,6 @@ func (v *Checker) ValidateEventLocator(e inter.SignedEventLocator, authEpoch idx
 	}
 	if !verifySignature(e.Locator.HashToSign(), e.Sig, pubkey) {
 		return ErrWrongEventSig
-	}
-	return nil
-}
-
-func (v *Checker) matchPubkey(creator idx.ValidatorID, epoch idx.Epoch, want []byte, authErr error) error {
-	pubkeys := v.reader.GetEpochPubKeysOf(epoch)
-	if len(pubkeys) == 0 {
-		return authErr
-	}
-	pubkey, ok := pubkeys[creator]
-	if !ok {
-		return epochcheck.ErrAuth
-	}
-	if !bytes.Equal(pubkey.Bytes(), want) {
-		return ErrPubkeyChanged
 	}
 	return nil
 }

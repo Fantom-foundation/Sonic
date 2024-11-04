@@ -84,14 +84,3 @@ func (v *Checker) Validate(e inter.EventPayloadI) error {
 
 	return nil
 }
-
-func (v *Checker) validateEventLocator(e inter.EventLocator) error {
-	if e.NetForkID != 0 {
-		return ErrWrongNetForkID
-	}
-	if e.Seq >= math.MaxInt32-1 || e.Epoch >= math.MaxInt32-1 ||
-		e.Lamport >= math.MaxInt32-1 {
-		return base.ErrHugeValue
-	}
-	return nil
-}
