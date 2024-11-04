@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/prevrandao"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"math/big"
 	"testing"
 )
 
@@ -36,7 +37,6 @@ func TestPrevRandao(t *testing.T) {
 	}
 	fromLog := entry.Prevrandao
 
-	// Collect the prevrandao from the block header.
 	client, err := net.GetClient()
 	if err != nil {
 		t.Fatalf("failed to get client; %v", err)
@@ -47,7 +47,7 @@ func TestPrevRandao(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get block header; %v", err)
 	}
-	fromBlock := block.MixDigest().Big() // MixDigest == MixHash == PrevRandao
+	fromLatestBlock := block.MixDigest().Big() // MixDigest == MixHash == PrevRandao
 	if block.Difficulty().Uint64() != 0 {
 		t.Errorf("incorrect header difficulty got: %d, want: %d", block.Difficulty().Uint64(), 0)
 	}
@@ -62,10 +62,19 @@ func TestPrevRandao(t *testing.T) {
 		t.Fatalf("invalid prevrandao from log; %v", fromLog)
 	}
 
-	if fromLog.Cmp(fromBlock) != 0 {
-		t.Errorf("prevrandao mismatch; from log %v, from block %v", fromLog, fromBlock)
+	if fromLog.Cmp(fromLatestBlock) != 0 {
+		t.Errorf("prevrandao mismatch; from log %v, from block %v", fromLog, fromLatestBlock)
 	}
 	if fromLog.Cmp(fromArchive) != 0 {
 		t.Errorf("prevrandao mismatch; from log %v, from archive %v", fromLog, fromArchive)
+	}
+
+	fromBlockThree, err := contract.GetPrevRandao(&bind.CallOpts{BlockNumber: big.NewInt(3)})
+	if err != nil {
+		t.Fatalf("failed to get prevrandao from archive; %v", err)
+	}
+
+	if fromBlockThree.Cmp(fromLatestBlock) == 0 {
+		t.Errorf("prevrandao must be different for each block, found same: %s, %s", fromBlockThree, fromLatestBlock)
 	}
 }
