@@ -74,7 +74,6 @@ func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
 			"--ws", "--ws.addr", "0.0.0.0", "--ws.port", "18546", "--ws.api", "admin,eth,ftm",
-			"--pprof", "--pprof.addr", "0.0.0.0",
 			"--datadir.minfreedisk", "0",
 		}
 		sonicd.Run()
@@ -125,27 +124,27 @@ func (n *IntegrationTestNet) Stop() {
 func (n *IntegrationTestNet) EndowAccount(
 	address common.Address,
 	value int64,
-) error {
+) (*types.Receipt, error) {
 	client, err := n.GetClient()
 	if err != nil {
-		return fmt.Errorf("failed to connect to the network: %w", err)
+		return nil, fmt.Errorf("failed to connect to the network: %w", err)
 	}
 	defer client.Close()
 
 	chainId, err := client.ChainID(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to get chain ID: %w", err)
+		return nil, fmt.Errorf("failed to get chain ID: %w", err)
 	}
 
 	// The requested funds are moved from the validator account to the target account.
 	nonce, err := client.NonceAt(context.Background(), n.validator.Address(), nil)
 	if err != nil {
-		return fmt.Errorf("failed to get nonce: %w", err)
+		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
 
 	price, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to get gas price: %w", err)
+		return nil, fmt.Errorf("failed to get gas price: %w", err)
 	}
 
 	transaction, err := types.SignTx(types.NewTx(&types.AccessListTx{
@@ -157,10 +156,9 @@ func (n *IntegrationTestNet) EndowAccount(
 		Nonce:    nonce,
 	}), types.NewLondonSigner(chainId), n.validator.PrivateKey)
 	if err != nil {
-		return fmt.Errorf("failed to sign transaction: %w", err)
+		return nil, fmt.Errorf("failed to sign transaction: %w", err)
 	}
-	_, err = n.Run(transaction)
-	return err
+	return n.Run(transaction)
 }
 
 // Run sends the given transaction to the network and waits for it to be processed.

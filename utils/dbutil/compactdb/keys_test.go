@@ -1,7 +1,6 @@
 package compactdb
 
 import (
-	"io/ioutil"
 	"path"
 	"testing"
 
@@ -13,17 +12,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-func tmpDir(name string) string {
-	dir, err := ioutil.TempDir("", name)
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
-
 func TestLastKey(t *testing.T) {
 	testLastKey(t, memorydb.New())
-	dir := tmpDir("test-last-key")
+	dir := t.TempDir()
 	ldb, err := leveldb.New(path.Join(dir, "ldb"), 16*opt.MiB, 64, nil, nil)
 	require.NoError(t, err)
 	defer ldb.Close()
@@ -72,7 +63,6 @@ func TestTrimAfterDiff(t *testing.T) {
 	a, b := trimAfterDiff([]byte{}, []byte{}, 1)
 	require.Equal(t, []byte{}, a)
 	require.Equal(t, []byte{}, b)
-
 
 	a, b = trimAfterDiff([]byte{1, 2}, []byte{1, 3}, 1)
 	require.Equal(t, []byte{1, 2}, a)
