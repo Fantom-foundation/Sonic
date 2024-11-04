@@ -3,10 +3,8 @@ package gossip
 import (
 	"bytes"
 	"cmp"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"math/big"
 	"slices"
 )
@@ -37,15 +35,15 @@ func FilterAndOrderTransactions(entries []ScramblerEntry) types.Transactions {
 }
 
 // newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
-func newScramblerTransaction(signer types.Signer, tx *types.Transaction) ScramblerEntry {
+func newScramblerTransaction(signer types.Signer, tx *types.Transaction) (ScramblerEntry, error) {
 	sender, err := types.Sender(signer, tx)
 	if err != nil {
-		log.Crit(fmt.Sprintf("cannot derive sender for tx %s", tx.Hash()), "err", err)
+		return nil, err
 	}
 	return &scramblerTransaction{
 		Transaction: tx,
 		sender:      sender,
-	}
+	}, nil
 }
 
 type scramblerTransaction struct {
