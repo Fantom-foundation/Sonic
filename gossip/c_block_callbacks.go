@@ -177,13 +177,34 @@ func consensusCallbackBeginBlockFn(
 						verWatcher.OnNewLog(l)
 					}
 				}
-				// new block
+
+				// --------------------------------------------------------------- //
+				// ------------------------- Prepare the block ------------------- //
+				// --------------------------------------------------------------- //
+				// 1) Pop both pre-internal and internal transactions
+				// 2) Add them to the block - they must be placed at the beginning
+				// 3) Sort events by lamport time
+				// 4) Exclude first events which exceed MaxBlockGas
+				// 5) Append event transactions
+				// --------------------------------------------------------------- //
+
+				// Internal transactions needs to be placed at the beginning of the block
+				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
+				internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
+
+				// sort events by Lamport time
+				sort.Sort(confirmedEvents)
+
 				var block = &inter.Block{
 					Time:    blockCtx.Time,
 					Atropos: cBlock.Atropos,
 					Events:  hash.Events(confirmedEvents),
 				}
 
+				// Add pre-internal and internal transactions to the block
+				for _, tx := range append(preInternalTxs, internalTxs...) {
+					block.Txs = append(block.Txs, tx.Hash())
+				}
 				// Exclude first events which exceed MaxBlockGas
 				block, blockEvents := spillBlockEvents(store, block, es.Rules)
 				txs := make(types.Transactions, 0, blockEvents.Len()*10)
@@ -202,8 +223,6 @@ func consensusCallbackBeginBlockFn(
 				)
 				executionStart := time.Now()
 
-				// Execute pre-internal transactions
-				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 				// Pre-internal transactions needs to be executed BEFORE sealing is requested
 				preInternalReceipts := evmProcessor.Execute(preInternalTxs)
 				bs = txListener.Finalize()
@@ -232,23 +251,14 @@ func consensusCallbackBeginBlockFn(
 
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				blockFn := func() {
-					// Execute post-internal transactions
-					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-					// Post-internal transactions needs to be executed AFTER sealing is requested
+					// Internal transactions needs to be executed AFTER sealing is requested
 					internalReceipts := evmProcessor.Execute(internalTxs)
 					for _, r := range internalReceipts {
 						if r.Status == 0 {
 							log.Warn("Internal transaction reverted", "txid", r.TxHash.String())
 						}
 					}
-
-					// sort events by Lamport time
-					sort.Sort(confirmedEvents)
-
-					for _, tx := range append(preInternalTxs, internalTxs...) {
-						block.Txs = append(block.Txs, tx.Hash())
-					}
-
+					// Execute transactions from event
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
