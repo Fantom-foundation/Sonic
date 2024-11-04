@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-const interval = 1000
+const interval = 10000
+const withDelay = false
 const withNoise = false
 
 func TestSimulateSync(t *testing.T) {
@@ -37,11 +38,13 @@ func runSync(N, T int, t *testing.T) {
 	delay := make([][]int, N)
 	for i := range delay {
 		delay[i] = make([]int, N)
-		for j := range delay[i] {
-			if i == j {
-				delay[i][j] = 0
-			} else {
-				delay[i][j] = rand.Intn(interval/10) + 1 // 1 to 100 ms delay
+		if withDelay {
+			for j := range delay[i] {
+				if i == j {
+					delay[i][j] = 0
+				} else {
+					delay[i][j] = rand.Intn(interval/10) + 1 // 1 to 100 ms delay
+				}
 			}
 		}
 	}
@@ -174,8 +177,10 @@ func (n *Node) GetNextEmitTime() int {
 	//fmt.Printf("N:%d, min:%d, max:%d, spread: %d, mean:%d\n", n.id, min, max, max-min, mean)
 
 	//spread := (max-min)/4 + interval/4 // 50:50 mix of actual spread and intended interval
-	spread := interval / 2
-	target := mean - spread + should
+
+	// The spread between the first and last message should be (N-1)/N of the interval.
+	spread := interval * (n.N - 1) / n.N
+	target := mean - spread/2 + should
 
 	delta := (target - n.lastEmitTime) / 2
 
