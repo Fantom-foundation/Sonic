@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"math/big"
 	"sort"
 	"sync"
@@ -236,16 +237,20 @@ func consensusCallbackBeginBlockFn(
 					}
 
 					block, blockEvents := spillBlockEvents(store, block, es.Rules)
-					toBeSorted := make([]ScramblerEntry, 0, blockEvents.Len()*10)
+					unorderedTxs := make([]ScramblerEntry, 0, blockEvents.Len()*10)
 
-					signer := types.MakeSigner(chainCfg, blockNumber, uint64(blockCtx.Time))
+					signer := gsignercache.Wrap(types.MakeSigner(chainCfg, blockNumber, uint64(blockCtx.Time)))
 					for _, e := range blockEvents {
 						for _, tx := range e.Txs() {
-							toBeSorted = append(toBeSorted, newScramblerTransaction(signer, tx))
+							entry, err := newScramblerTransaction(signer, tx)
+							if err != nil {
+								log.Crit(fmt.Sprintf("cannot derive sender for tx %s", tx.Hash()), "err", err)
+							}
+							unorderedTxs = append(unorderedTxs, entry)
 						}
 					}
 
-					txs := FilterAndOrderTransactions(toBeSorted)
+					txs := FilterAndOrderTransactions(unorderedTxs)
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
