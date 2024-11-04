@@ -34,9 +34,10 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	})
 
 	// -- using CREATE2 instruction
-	// create2 has extra costs for hashing.
-	var gasForCreate2 uint64 = gasForCreate + 44
+	// create2 has extra costs for hashing, this is explained in
+	// https://eips.ethereum.org/EIPS/eip-3860 and reflected in evm.codes calculator.
 	const wordCostCreate2 uint64 = wordCostCreate + 6
+	var gasForCreate2 uint64 = gasForCreate + 44
 	t.Run("create2", func(t *testing.T) {
 		testForVariant(t, require, net, contract, receipt, contract.Create2ContractWith, gasForCreate2, wordCostCreate2)
 	})
@@ -47,18 +48,18 @@ func testForVariant(t *testing.T, require *require.Assertions, net *IntegrationT
 	contract *initcode.Initcode, receipt *types.Receipt, variant variant,
 	gasForContract, wordCost uint64) {
 
-	var gasDifferenceFor2Words uint64 = wordCost * 2
+	var gasCostFor2Words uint64 = wordCost * 2
 	// we use enough gas for all tests to afford cost of 3 words as well.
-	var gasForAllTests = gasForContract + gasDifferenceFor2Words
+	var gasFor3Words = gasForContract + gasCostFor2Words
 	t.Run("create transaction with enough gas for init code", func(t *testing.T) {
 		// we need to provide same gas to all transactions so that we can compare the cost.
-		cost1Word, _ := createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, 30, gasForAllTests)
-		cost2Words, _ := createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, 42, gasForAllTests)
-		cost3Words, _ := createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, 90, gasForAllTests)
+		cost1Word, _ := createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, 30, gasFor3Words)
+		cost2Words, _ := createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, 42, gasFor3Words)
+		cost3Words, _ := createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, 90, gasFor3Words)
 		require.Equal(cost2Words-cost1Word, wordCost,
 			"cost difference between 1 and 2 words should be %v, instead got %d", wordCost, cost2Words-cost1Word)
-		require.Equal(cost3Words-cost1Word, gasDifferenceFor2Words,
-			"cost difference between 1 and 3 words should be %v, instead got %d", gasDifferenceFor2Words, cost3Words-cost1Word)
+		require.Equal(cost3Words-cost1Word, gasCostFor2Words,
+			"cost difference between 1 and 3 words should be %v, instead got %d", gasCostFor2Words, cost3Words-cost1Word)
 	})
 
 	t.Run("create transaction without enough gas for init code", func(t *testing.T) {
@@ -68,16 +69,18 @@ func testForVariant(t *testing.T, require *require.Assertions, net *IntegrationT
 	})
 
 	// these two constants come from  https://eips.ethereum.org/EIPS/eip-3860#parameters
-	const MAX_INITCODE_SIZE uint64 = 49152
-	var MAX_INITCODE_COST uint64 = (MAX_INITCODE_SIZE / 32) * wordCost
-
-	var someCost = gasForContract + MAX_INITCODE_COST + 9_199
+	const MAX_INIT_CODE_SIZE uint64 = 49152
+	var MAX_INIT_CODE_COST uint64 = (MAX_INIT_CODE_SIZE / 32) * wordCost // 3,072
+	// according to evm.codes a call to create with init code size 49152 is 44288.
+	// that means 12,288 more than the base 32000.
+	// But the calculations provided by eip-3860 result in 3,072, max init code cost *4
+	var sufficientGas = gasForContract + MAX_INIT_CODE_COST*4
 	t.Run("create transaction with max init code size", func(t *testing.T) {
-		_, _ = createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, MAX_INITCODE_SIZE, someCost)
+		_, _ = createAndCheckContractWithCodeLenAndGas(require, net, contract, variant, MAX_INIT_CODE_SIZE, sufficientGas)
 	})
 
 	t.Run("create transaction with MAX_INITCODE_SIZE+1", func(t *testing.T) {
-		receipt = createContractWithCodeLenAndGas(require, net, variant, MAX_INITCODE_SIZE+1, someCost+2)
+		receipt = createContractWithCodeLenAndGas(require, net, variant, MAX_INIT_CODE_SIZE+1, sufficientGas+wordCost)
 		require.Equal(types.ReceiptStatusFailed, receipt.Status,
 			"unexpectedly succeeded to create contract with init code length greater than MAX_INITCODE_SIZE")
 	})
