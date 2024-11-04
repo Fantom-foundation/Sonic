@@ -31,8 +31,8 @@ var (
 
 // InitcodeMetaData contains all meta data concerning the Initcode contract.
 var InitcodeMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"}],\"name\":\"LogCost\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"codeSize\",\"type\":\"uint256\"}],\"name\":\"createContractWith\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
-	Bin: "0x6080604052348015600e575f5ffd5b506101b88061001c5f395ff3fe608060405234801561000f575f5ffd5b5060043610610029575f3560e01c806390568cb81461002d575b5f5ffd5b610047600480360381019061004291906100cf565b610049565b005b5f5a9050815f5ff0507fc3263769c8cc487b9d31817141d5ff9ce159867184d644cc2b238d6c54619fdf5a8261007f9190610127565b60405161008c9190610169565b60405180910390a15050565b5f5ffd5b5f819050919050565b6100ae8161009c565b81146100b8575f5ffd5b50565b5f813590506100c9816100a5565b92915050565b5f602082840312156100e4576100e3610098565b5b5f6100f1848285016100bb565b91505092915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f6101318261009c565b915061013c8361009c565b9250828203905081811115610154576101536100fa565b5b92915050565b6101638161009c565b82525050565b5f60208201905061017c5f83018461015a565b9291505056fea2646970667358221220bc969398d74f265f3c37061d37428cc7f9302e102c67447cbb338a2046d6b7af64736f6c634300081c0033",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"}],\"name\":\"LogCost\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"codeSize\",\"type\":\"uint256\"}],\"name\":\"create2ContractWith\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"codeSize\",\"type\":\"uint256\"}],\"name\":\"createContractWith\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"codeSize\",\"type\":\"uint256\"}],\"name\":\"measureGasAndAssign\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x6080604052348015600e575f5ffd5b506102ae8061001c5f395ff3fe608060405234801561000f575f5ffd5b506004361061003f575f3560e01c806325769e5f1461004357806390568cb81461005f578063b050bae81461007b575b5f5ffd5b61005d600480360381019061005891906101c5565b610097565b005b610079600480360381019061007491906101c5565b6100e9565b005b610095600480360381019061009091906101c5565b610138565b005b5f5a90505f5f90508290507fc3263769c8cc487b9d31817141d5ff9ce159867184d644cc2b238d6c54619fdf5a836100cf919061021d565b6040516100dc919061025f565b60405180910390a1505050565b5f5a9050815f5ff0507fc3263769c8cc487b9d31817141d5ff9ce159867184d644cc2b238d6c54619fdf5a8261011f919061021d565b60405161012c919061025f565b60405180910390a15050565b5f5a90505f5f90505f835f5ff590507fc3263769c8cc487b9d31817141d5ff9ce159867184d644cc2b238d6c54619fdf5a83610174919061021d565b604051610181919061025f565b60405180910390a1505050565b5f5ffd5b5f819050919050565b6101a481610192565b81146101ae575f5ffd5b50565b5f813590506101bf8161019b565b92915050565b5f602082840312156101da576101d961018e565b5b5f6101e7848285016101b1565b91505092915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61022782610192565b915061023283610192565b925082820390508181111561024a576102496101f0565b5b92915050565b61025981610192565b82525050565b5f6020820190506102725f830184610250565b9291505056fea26469706673582212204f8b7d0a81dc52b6988f511b7f67b45df2cd9c817112c65628dce142a8a843cd64736f6c634300081c0033",
 }
 
 // InitcodeABI is the input ABI used to generate the binding from.
@@ -202,6 +202,27 @@ func (_Initcode *InitcodeTransactorRaw) Transact(opts *bind.TransactOpts, method
 	return _Initcode.Contract.contract.Transact(opts, method, params...)
 }
 
+// Create2ContractWith is a paid mutator transaction binding the contract method 0xb050bae8.
+//
+// Solidity: function create2ContractWith(uint256 codeSize) returns()
+func (_Initcode *InitcodeTransactor) Create2ContractWith(opts *bind.TransactOpts, codeSize *big.Int) (*types.Transaction, error) {
+	return _Initcode.contract.Transact(opts, "create2ContractWith", codeSize)
+}
+
+// Create2ContractWith is a paid mutator transaction binding the contract method 0xb050bae8.
+//
+// Solidity: function create2ContractWith(uint256 codeSize) returns()
+func (_Initcode *InitcodeSession) Create2ContractWith(codeSize *big.Int) (*types.Transaction, error) {
+	return _Initcode.Contract.Create2ContractWith(&_Initcode.TransactOpts, codeSize)
+}
+
+// Create2ContractWith is a paid mutator transaction binding the contract method 0xb050bae8.
+//
+// Solidity: function create2ContractWith(uint256 codeSize) returns()
+func (_Initcode *InitcodeTransactorSession) Create2ContractWith(codeSize *big.Int) (*types.Transaction, error) {
+	return _Initcode.Contract.Create2ContractWith(&_Initcode.TransactOpts, codeSize)
+}
+
 // CreateContractWith is a paid mutator transaction binding the contract method 0x90568cb8.
 //
 // Solidity: function createContractWith(uint256 codeSize) returns()
@@ -221,6 +242,27 @@ func (_Initcode *InitcodeSession) CreateContractWith(codeSize *big.Int) (*types.
 // Solidity: function createContractWith(uint256 codeSize) returns()
 func (_Initcode *InitcodeTransactorSession) CreateContractWith(codeSize *big.Int) (*types.Transaction, error) {
 	return _Initcode.Contract.CreateContractWith(&_Initcode.TransactOpts, codeSize)
+}
+
+// MeasureGasAndAssign is a paid mutator transaction binding the contract method 0x25769e5f.
+//
+// Solidity: function measureGasAndAssign(uint256 codeSize) returns()
+func (_Initcode *InitcodeTransactor) MeasureGasAndAssign(opts *bind.TransactOpts, codeSize *big.Int) (*types.Transaction, error) {
+	return _Initcode.contract.Transact(opts, "measureGasAndAssign", codeSize)
+}
+
+// MeasureGasAndAssign is a paid mutator transaction binding the contract method 0x25769e5f.
+//
+// Solidity: function measureGasAndAssign(uint256 codeSize) returns()
+func (_Initcode *InitcodeSession) MeasureGasAndAssign(codeSize *big.Int) (*types.Transaction, error) {
+	return _Initcode.Contract.MeasureGasAndAssign(&_Initcode.TransactOpts, codeSize)
+}
+
+// MeasureGasAndAssign is a paid mutator transaction binding the contract method 0x25769e5f.
+//
+// Solidity: function measureGasAndAssign(uint256 codeSize) returns()
+func (_Initcode *InitcodeTransactorSession) MeasureGasAndAssign(codeSize *big.Int) (*types.Transaction, error) {
+	return _Initcode.Contract.MeasureGasAndAssign(&_Initcode.TransactOpts, codeSize)
 }
 
 // InitcodeLogCostIterator is returned from FilterLogCost and is used to iterate over the raw logs and unpacked data for LogCost events raised by the Initcode contract.
