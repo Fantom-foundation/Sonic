@@ -1,8 +1,9 @@
 package emitter
 
 import (
-	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/utils/txtime"
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -92,6 +93,19 @@ func (em *Emitter) OnEventConnected(e inter.EventPayloadI) {
 	if !em.isValidator() {
 		return
 	}
+
+	// Track times of incoming events of other validators.
+	now := time.Now()
+	em.timeMutex.Lock()
+	if e.Creator() != em.config.Validator.ID {
+		em.deltaAfterValid = false
+	} else if !em.deltaAfterValid {
+		em.deltaAfter = now.Sub(em.timeOfLastEmittedEvent)
+		em.deltaAfterValid = true
+	}
+	em.timeOfLastReceivedEvent = now
+	em.timeMutex.Unlock()
+
 	if em.fcIndexer != nil {
 		em.fcIndexer.ProcessEvent(e)
 	} else if em.quorumIndexer != nil {

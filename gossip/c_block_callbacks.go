@@ -35,9 +35,9 @@ var (
 	headHeaderGauge    = metrics.GetOrRegisterGauge("chain/head/header", nil)
 	headFastBlockGauge = metrics.GetOrRegisterGauge("chain/head/receipt", nil)
 
-	blockExecutionTimer = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
+	blockExecutionTimer             = metrics.GetOrRegisterResettingTimer("chain/execution", nil)
 	blockExecutionNonResettingTimer = metrics.GetOrRegisterTimer("chain/execution/nonresetting", nil)
-	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
+	blockAgeGauge                   = metrics.GetOrRegisterGauge("chain/block/age", nil)
 
 	processedTxsMeter    = metrics.GetOrRegisterMeter("chain/txs/processed", nil)
 	skippedTxsMeter      = metrics.GetOrRegisterMeter("chain/txs/skipped", nil)
@@ -156,7 +156,7 @@ func consensusCallbackBeginBlockFn(
 				// If Atropos ID wasn't used as a block ID, it wouldn't be required.
 				skipBlock := atroposDegenerate
 				// Check if empty block should be pruned
-				emptyBlock := confirmedEvents.Len() == 0 && cBlock.Cheaters.Len() == 0
+				emptyBlock := false // confirmedEvents.Len() == 0 && cBlock.Cheaters.Len() == 0
 				skipBlock = skipBlock || (emptyBlock && blockCtx.Time < bs.LastBlock.Time+es.Rules.Blocks.MaxEmptyBlockSkipPeriod)
 				// Finalize the progress of eventProcessor
 				bs = eventProcessor.Finalize(blockCtx, skipBlock) // TODO: refactor to not mutate the bs, it is unclear

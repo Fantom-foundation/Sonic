@@ -46,6 +46,26 @@ func (em *Emitter) isAllowedToEmit(e inter.EventI, eTxs bool, metric ancestor.Me
 	if passedTime < 0 {
 		passedTime = 0
 	}
+
+	limit := 800 * time.Millisecond
+	maxDiff := limit / 100
+	em.timeMutex.Lock()
+	if em.deltaAfterValid {
+		diff := em.deltaAfter - em.deltaBefore
+		diff = diff * 3 / 4
+		if diff > maxDiff {
+			diff = maxDiff
+		}
+		if diff < -maxDiff {
+			diff = -maxDiff
+		}
+		limit += diff
+		//fmt.Printf("limit: %v, diff: %v, deltaAfter: %v, deltaBefore: %v\n", limit, diff, em.deltaAfter, em.deltaBefore)
+	}
+	em.timeMutex.Unlock()
+
+	return passedTime >= limit
+
 	passedTimeIdle := e.CreationTime().Time().Sub(em.prevIdleTime)
 	if passedTimeIdle < 0 {
 		passedTimeIdle = 0

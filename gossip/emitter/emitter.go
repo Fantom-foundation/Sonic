@@ -103,6 +103,14 @@ type Emitter struct {
 	busyRate         *rate.Gauge
 
 	logger.Periodic
+
+	// Fields for event emitter timing.
+	timeMutex               sync.Mutex
+	timeOfLastReceivedEvent time.Time
+	timeOfLastEmittedEvent  time.Time
+	deltaBefore             time.Duration
+	deltaAfter              time.Duration
+	deltaAfterValid         bool
 }
 
 // NewEmitter creation.
@@ -293,7 +301,15 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	// write event ID to avoid doublesigning in future after a crash
 	em.writeLastEmittedEventID(e.ID())
 	// broadcast the event
+	now := time.Now()
 	em.world.Broadcast(e)
+	fmt.Printf("Emitted new event with %d transactions at %s\n", e.Txs().Len(), now.Format("15:04:05.000"))
+
+	em.timeMutex.Lock()
+	em.timeOfLastEmittedEvent = now
+	em.deltaBefore = now.Sub(em.timeOfLastReceivedEvent)
+	em.deltaAfterValid = false
+	em.timeMutex.Unlock()
 
 	// metrics
 	emittedEventsTxsCounter.Inc(int64(e.Txs().Len()))
