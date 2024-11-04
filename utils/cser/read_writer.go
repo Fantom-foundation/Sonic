@@ -48,7 +48,6 @@ func writeUint64Compact(bytesW *fast.Writer, v uint64) {
 			break
 		}
 	}
-	return
 }
 
 func readUint64Compact(bytesR *fast.Reader) uint64 {

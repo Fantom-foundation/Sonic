@@ -10,7 +10,7 @@ import (
 
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	"github.com/Fantom-foundation/Carmen/go/common/amount"
-	io2 "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
+	mptio "github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/kvdb2ethdb"
@@ -35,7 +35,7 @@ func (s *Store) ImportLiveWorldState(liveReader io.Reader) error {
 	if err := os.MkdirAll(liveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen dir during FWS import; %v", err)
 	}
-	if err := io2.ImportLiveDb(io2.NewLog(), liveDir, liveReader); err != nil {
+	if err := mptio.ImportLiveDb(mptio.NewLog(), liveDir, liveReader); err != nil {
 		return fmt.Errorf("failed to import LiveDB; %v", err)
 	}
 	return nil
@@ -52,7 +52,7 @@ func (s *Store) ImportArchiveWorldState(archiveReader io.Reader) error {
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
-		if err := io2.ImportArchive(io2.NewLog(), archiveDir, archiveReader); err != nil {
+		if err := mptio.ImportArchive(mptio.NewLog(), archiveDir, archiveReader); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
 		return nil
@@ -71,7 +71,7 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 		if err := os.MkdirAll(archiveDir, 0700); err != nil {
 			return fmt.Errorf("failed to create carmen archive dir during FWS import; %v", err)
 		}
-		if err := io2.InitializeArchive(io2.NewLog(), archiveDir, liveReader, blockNum); err != nil {
+		if err := mptio.InitializeArchive(mptio.NewLog(), archiveDir, liveReader, blockNum); err != nil {
 			return fmt.Errorf("failed to initialize Archive; %v", err)
 		}
 		return nil
@@ -83,7 +83,7 @@ func (s *Store) InitializeArchiveWorldState(liveReader io.Reader, blockNum uint6
 // The Store must be closed during the call.
 func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 	liveDir := filepath.Join(s.parameters.Directory, "live")
-	if err := io2.Export(ctx, io2.NewLog(), liveDir, out); err != nil {
+	if err := mptio.Export(ctx, mptio.NewLog(), liveDir, out); err != nil {
 		return fmt.Errorf("failed to export Live StateDB; %v", err)
 	}
 	return nil
@@ -93,7 +93,7 @@ func (s *Store) ExportLiveWorldState(ctx context.Context, out io.Writer) error {
 // The Store must be closed during the call.
 func (s *Store) ExportArchiveWorldState(ctx context.Context, out io.Writer) error {
 	archiveDir := filepath.Join(s.parameters.Directory, "archive")
-	if err := io2.ExportArchive(ctx, io2.NewLog(), archiveDir, out); err != nil {
+	if err := mptio.ExportArchive(ctx, mptio.NewLog(), archiveDir, out); err != nil {
 		return fmt.Errorf("failed to export Archive StateDB; %v", err)
 	}
 	return nil
@@ -118,10 +118,7 @@ func (s *Store) ImportLegacyEvmData(evmItems genesis.EvmItems, blockNum uint64, 
 	}
 	evmItems.ForEach(func(key, value []byte) bool {
 		err := db.Put(key, value)
-		if err != nil {
-			return false
-		}
-		return true
+		return err == nil
 	})
 
 	s.Log.Info("Importing legacy EVM data into Carmen", "index", blockNum, "root", root)

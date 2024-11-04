@@ -3,15 +3,16 @@ package app
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
-	"io"
-	"os"
-	"strconv"
-	"strings"
 )
 
 func exportEvents(ctx *cli.Context) error {
@@ -59,7 +60,7 @@ func exportEvents(ctx *cli.Context) error {
 	log.Info("Exporting events to file", "file", fn)
 	err = chain.ExportEvents(writer, dataDir, from, to)
 	if err != nil {
-		return fmt.Errorf("export error: %w\n", err)
+		return fmt.Errorf("export error: %w", err)
 	}
 
 	return nil

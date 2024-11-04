@@ -249,7 +249,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 		}
 		var selfParent inter.EventI
 		if e.SelfParent() != nil {
-			selfParent = parents[0].(inter.EventI)
+			selfParent = parents[0]
 		}
 		if err := checkers.Parentscheck.Validate(e, parents); err != nil {
 			return err

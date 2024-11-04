@@ -42,7 +42,6 @@ func (db *Adapter) NewBatch() kvdb.Batch {
 
 func (db *Adapter) GetSnapshot() (kvdb.Snapshot, error) {
 	panic("called GetSnapshot on ethdb")
-	return nil, nil
 }
 
 // NewIterator creates a binary-alphabetical iterator over a subset

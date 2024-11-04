@@ -58,5 +58,4 @@ func (rec *logrec) fetch(
 	r.Data = buf[offset:]
 
 	rec.result = r
-	return
 }
