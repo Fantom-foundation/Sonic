@@ -97,6 +97,6 @@ func RunSim(numNodes, duration int) {
 }
 
 func TestSync_RunExample(t *testing.T) {
-	RunSim(4, iterations*interval)
+	RunSim(10, iterations*interval)
 	t.Fail()
 }

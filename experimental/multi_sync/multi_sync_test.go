@@ -8,10 +8,10 @@ import (
 )
 
 const interval = 1000
-const withNoise = true
+const withNoise = false
 
 func TestSimulateSync(t *testing.T) {
-	const N = 50
+	const N = 10
 	const T = 20
 	runSync(N, T, t)
 }
@@ -82,7 +82,30 @@ func runSync(N, T int, t *testing.T) {
 			fmt.Printf("\n")
 		}
 
+		// Print the delay estimate errors.
+		if false {
+			for i := range N {
+				for j := range N {
+					is := delay[i][j]
+					est := nodes[j].delayEstimate[i]
+					diff := is - est
+					//fmt.Printf("%d,%d,%d,", is, est, diff)
+					fmt.Printf("%d,", diff)
+					//fmt.Printf("N%d->N%d: is %d, est %d\n", i, j, delay[i][j], nodes[j].delayEstimate[i])
+				}
+			}
+			fmt.Printf("\n")
+		}
 	}
+
+	/*
+		for i := range N {
+			for j := range N {
+				fmt.Printf("N%d->N%d: is %d, est %d\n", i, j, delay[i][j], nodes[j].delayEstimate[i])
+			}
+		}
+	*/
+
 	t.Fail()
 }
 
@@ -111,32 +134,39 @@ func (n *Node) GetNextEmitTime() int {
 	// compute the offset this node should emit its message
 	should := interval * n.id / n.N
 
-	// TODO: factor in the delay estimate
+	// estimated local offset to global time
+	offset := n.lastEmitTime - should
+
 	// refresh the delay estimate
-	/*
-		shift := n.lastEmitTime - should
-		for i := range n.delayEstimate {
-			expectedSend := interval*i/n.N + shift
-			lastReceived := n.lastReceiveTimes[i] + shift
+	{
+		for i := range n.N {
+			expectedSend := interval*i/n.N + offset
+			lastReceived := n.lastReceiveTimes[i]
 			lastDelay := lastReceived - expectedSend
 
-			fmt.Printf("N%d: source %d, expected %d, received %d, delay %d\n", n.id, i, expectedSend, lastReceived, lastDelay)
-
-			n.delayEstimate[i] = lastDelay*1/3 + n.delayEstimate[i]*2/3
+			//fmt.Printf("N%d: source %d, expected %d, received %d, delay %d\n", n.id, i, expectedSend, lastReceived, lastDelay)
+			if lastDelay >= 0 {
+				n.delayEstimate[i] = lastDelay*1/3 + n.delayEstimate[i]*2/3
+			}
 		}
-	*/
+	}
+
+	// TODO: factor in the delay estimate
 
 	// compute the mean time of all received messages
 	sum := 0
 	min := math.MaxInt
 	max := math.MinInt
 	for i := range n.lastReceiveTimes {
-		sum += n.lastReceiveTimes[i]
+		cur := n.lastReceiveTimes[i]
+		//cur = cur - n.delayEstimate[i]
+
+		sum += cur
 		if n.lastReceiveTimes[i] < min {
-			min = n.lastReceiveTimes[i]
+			min = cur
 		}
 		if n.lastReceiveTimes[i] > max {
-			max = n.lastReceiveTimes[i]
+			max = cur
 		}
 	}
 	mean := sum / len(n.lastReceiveTimes)
