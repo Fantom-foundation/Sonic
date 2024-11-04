@@ -287,7 +287,7 @@ func (env *testEnv) EmitUntil(stop func() bool) error {
 
 func (env *testEnv) Transfer(from, to idx.ValidatorID, amount *big.Int) *types.Transaction {
 	sender := env.Address(from)
-	nonce, _ := env.PendingNonceAt(nil, sender)
+	nonce, _ := env.PendingNonceAt(context.TODO(), sender)
 	env.incNonce(sender)
 	key := env.privateKey(from)
 	receiver := env.Address(to)
@@ -303,7 +303,7 @@ func (env *testEnv) Transfer(from, to idx.ValidatorID, amount *big.Int) *types.T
 
 func (env *testEnv) Contract(from idx.ValidatorID, amount *big.Int, hex string) *types.Transaction {
 	sender := env.Address(from)
-	nonce, _ := env.PendingNonceAt(nil, sender)
+	nonce, _ := env.PendingNonceAt(context.TODO(), sender)
 	env.incNonce(sender)
 	key := env.privateKey(from)
 	gp := new(big.Int).SetUint64(1e12)
@@ -331,7 +331,7 @@ func (env *testEnv) Address(n idx.ValidatorID) common.Address {
 func (env *testEnv) Payer(n idx.ValidatorID, amounts ...*big.Int) *bind.TransactOpts {
 	key := env.privateKey(n)
 	t, _ := bind.NewKeyedTransactorWithChainID(key, new(big.Int).SetUint64(env.store.GetRules().NetworkID))
-	nonce, _ := env.PendingNonceAt(nil, env.Address(n))
+	nonce, _ := env.PendingNonceAt(context.TODO(), env.Address(n))
 	t.Nonce = big.NewInt(int64(nonce))
 	t.Value = big.NewInt(0)
 	for _, amount := range amounts {
