@@ -252,9 +252,9 @@ func consensusCallbackBeginBlockFn(
 
 					orderedTxs := filterAndOrderTransactions(unorderedTxs)
 					txs := make([]*types.Transaction, len(orderedTxs))
-					for _, orderedTx := range orderedTxs {
+					for idx, orderedTx := range orderedTxs {
 						// Cast back the transactions to pass it to the processor
-						txs = append(txs, orderedTx.(*scramblerTransaction).Transaction)
+						txs[idx] = orderedTx.(*scramblerTransaction).Transaction
 					}
 					_ = evmProcessor.Execute(txs)
 
