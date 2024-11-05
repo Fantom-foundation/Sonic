@@ -62,12 +62,12 @@ func TestPrevRandao(t *testing.T) {
 		t.Errorf("prevrandao mismatch; from log %v, from archive %v", fromLog, fromArchive)
 	}
 
-	fromBlockThree, err := contract.GetPrevRandao(&bind.CallOpts{BlockNumber: big.NewInt(3)})
+	fromSecondLastBlock, err := contract.GetPrevRandao(&bind.CallOpts{BlockNumber: big.NewInt(receipt.BlockNumber.Int64() - 1)})
 	if err != nil {
 		t.Fatalf("failed to get prevrandao from archive; %v", err)
 	}
 
-	if fromBlockThree.Cmp(fromLatestBlock) == 0 {
-		t.Errorf("prevrandao must be different for each block, found same: %s, %s", fromBlockThree, fromLatestBlock)
+	if fromSecondLastBlock.Cmp(fromLatestBlock) == 0 {
+		t.Errorf("prevrandao must be different for each block, found same: %s, %s", fromSecondLastBlock, fromLatestBlock)
 	}
 }
