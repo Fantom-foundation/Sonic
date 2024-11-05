@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"fmt"
+
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 
