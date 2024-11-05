@@ -36,19 +36,15 @@ func (b *Writer) Write(v []byte) {
 
 // Read n bytes.
 func (b *Reader) Read(n int) []byte {
-	var res []byte
-	res = b.buf[b.offset : b.offset+n]
+	res := b.buf[b.offset : b.offset+n]
 	b.offset += n
-
 	return res
 }
 
 // ReadByte reads 1 byte.
 func (b *Reader) ReadByte() byte {
-	var res byte
-	res = b.buf[b.offset]
+	res := b.buf[b.offset]
 	b.offset++
-
 	return res
 }
 

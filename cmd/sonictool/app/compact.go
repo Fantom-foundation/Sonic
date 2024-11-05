@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil"
@@ -11,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
-	"path/filepath"
 )
 
 func compactDbs(ctx *cli.Context) error {
@@ -39,11 +40,11 @@ func compactDbs(ctx *cli.Context) error {
 
 func compactDB(name string, producer kvdb.DBProducer) error {
 	db, err := producer.OpenDB(name)
-	defer db.Close()
 	if err != nil {
 		log.Error("Cannot open db or db does not exists", "db", name)
 		return err
 	}
+	defer db.Close()
 
 	log.Info("Stats before compaction", "db", name)
 	showDbStats(db)

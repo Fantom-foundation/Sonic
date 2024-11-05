@@ -350,9 +350,7 @@ func consensusCallbackBeginBlockFn(
 						feed.newBlock.Send(evmcore.ChainHeadNotify{Block: evmBlock})
 						var logs []*types.Log
 						for _, r := range allReceipts {
-							for _, l := range r.Logs {
-								logs = append(logs, l)
-							}
+							logs = append(logs, r.Logs...)
 						}
 						feed.newLogs.Send(logs)
 					}
@@ -429,9 +427,7 @@ func mergeCheaters(a, b lachesis.Cheaters) lachesis.Cheaters {
 	}
 	aSet := a.Set()
 	merged := make(lachesis.Cheaters, 0, len(b)+len(a))
-	for _, v := range a {
-		merged = append(merged, v)
-	}
+	merged = append(merged, a...)
 	for _, v := range b {
 		if _, ok := aSet[v]; !ok {
 			merged = append(merged, v)

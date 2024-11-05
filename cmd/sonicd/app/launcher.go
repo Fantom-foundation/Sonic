@@ -16,7 +16,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/version"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/console/prompt"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -26,7 +25,6 @@ import (
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/go-opera/debug"
-	_ "github.com/Fantom-foundation/go-opera/version"
 
 	// Force-load the tracer engines to trigger registration
 	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
@@ -327,7 +325,7 @@ func startNode(ctx *cli.Context, stack *node.Node) error {
 }
 
 func startFreeDiskSpaceMonitor(ctx *cli.Context, stopNodeSig chan os.Signal, path string) {
-	minFreeDiskSpace := ethconfig.Defaults.TrieDirtyCache
+	var minFreeDiskSpace int
 	if ctx.GlobalIsSet(flags.MinFreeDiskSpaceFlag.Name) {
 		minFreeDiskSpace = ctx.GlobalInt(flags.MinFreeDiskSpaceFlag.Name)
 	} else {

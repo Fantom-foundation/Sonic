@@ -31,6 +31,7 @@ package gossip
 //go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NodeDriverAuth.bin-runtime; echo '\"') >> contract/driverauth100/contract.go"
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -79,7 +80,7 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			exp := sfc.GetContractBin()
-			got, err := env.CodeAt(nil, sfc.ContractAddress, nil)
+			got, err := env.CodeAt(context.TODO(), sfc.ContractAddress, nil)
 			require.NoError(err)
 			require.Equal(exp, got, "genesis SFC contract")
 			require.Equal(exp, hexutil.MustDecode(sfc100.ContractBinRuntime), "genesis SFC contract version")
@@ -88,7 +89,7 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			exp := driver.GetContractBin()
-			got, err := env.CodeAt(nil, driver.ContractAddress, nil)
+			got, err := env.CodeAt(context.TODO(), driver.ContractAddress, nil)
 			require.NoError(err)
 			require.Equal(exp, got, "genesis Driver contract")
 			require.Equal(exp, hexutil.MustDecode(driver100.ContractBinRuntime), "genesis Driver contract version")
@@ -97,7 +98,7 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			exp := driverauth.GetContractBin()
-			got, err := env.CodeAt(nil, driverauth.ContractAddress, nil)
+			got, err := env.CodeAt(context.TODO(), driverauth.ContractAddress, nil)
 			require.NoError(err)
 			require.Equal(exp, got, "genesis DriverAuth contract")
 			require.Equal(exp, hexutil.MustDecode(driverauth100.ContractBinRuntime), "genesis DriverAuth contract version")
@@ -106,7 +107,7 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			exp := netinit.GetContractBin()
-			got, err := env.CodeAt(nil, netinit.ContractAddress, nil)
+			got, err := env.CodeAt(context.TODO(), netinit.ContractAddress, nil)
 			require.NoError(err)
 			require.NotEmpty(exp, "genesis NetworkInitializer contract")
 			require.Equal(exp, got, "genesis NetworkInitializer contract") // not destructed after EIP-6780
@@ -116,7 +117,7 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			exp := []byte{0}
-			got, err := env.CodeAt(nil, evmwriter.ContractAddress, nil)
+			got, err := env.CodeAt(context.TODO(), evmwriter.ContractAddress, nil)
 			require.NoError(err)
 			require.Equal(exp, got, "builtin EvmWriter contract")
 		}) &&
@@ -145,7 +146,7 @@ func TestSFC(t *testing.T) {
 			require.Equal(types.ReceiptStatusSuccessful, rr[0].Status)
 			newImpl := rr[0].ContractAddress
 			require.NotEqual(sfc.ContractAddress, newImpl)
-			newSfcContractBinRuntime, err := env.CodeAt(nil, newImpl, nil)
+			newSfcContractBinRuntime, err := env.CodeAt(context.TODO(), newImpl, nil)
 			require.NoError(err)
 			require.Equal(hexutil.MustDecode(sfc100.ContractBinRuntime), newSfcContractBinRuntime)
 
@@ -155,7 +156,7 @@ func TestSFC(t *testing.T) {
 			require.NoError(err)
 			require.Equal(1, rr.Len())
 			require.Equal(types.ReceiptStatusSuccessful, rr[0].Status)
-			got, err := env.CodeAt(nil, sfc.ContractAddress, nil)
+			got, err := env.CodeAt(context.TODO(), sfc.ContractAddress, nil)
 			require.NoError(err)
 			require.Equal(newSfcContractBinRuntime, got, "new SFC contract")
 
