@@ -19,19 +19,6 @@ type ScramblerEntry interface {
 	Nonce() uint64
 	// GasPrice returns the transaction gas price
 	GasPrice() *big.Int
-	// Unwrap returns the wrapped transaction.
-	Unwrap() *types.Transaction
-}
-
-// FilterAndOrderTransactions filters out duplicate transactions and sorts them.
-func FilterAndOrderTransactions(entries []ScramblerEntry) types.Transactions {
-	sorted := filterAndOrderTransactions(entries)
-	txs := make(types.Transactions, len(sorted))
-	for idx, e := range sorted {
-		txs[idx] = e.Unwrap()
-	}
-
-	return txs
 }
 
 // newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
@@ -49,10 +36,6 @@ func newScramblerTransaction(signer types.Signer, tx *types.Transaction) (Scramb
 type scramblerTransaction struct {
 	*types.Transaction
 	sender common.Address
-}
-
-func (tx *scramblerTransaction) Unwrap() *types.Transaction {
-	return tx.Transaction
 }
 
 func (tx *scramblerTransaction) Sender() common.Address {

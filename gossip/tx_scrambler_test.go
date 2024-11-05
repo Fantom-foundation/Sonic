@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"golang.org/x/exp/rand"
 	"math/big"
 	"slices"
@@ -658,11 +657,6 @@ type dummyScramblerEntry struct {
 	sender   common.Address // sender of the transaction
 	nonce    uint64         // transaction nonce
 	gasPrice *big.Int       // transaction gasPrice
-}
-
-func (s *dummyScramblerEntry) Unwrap() *types.Transaction {
-	// unused
-	return nil
 }
 
 func (s *dummyScramblerEntry) Hash() common.Hash {

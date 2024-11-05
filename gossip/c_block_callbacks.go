@@ -244,13 +244,18 @@ func consensusCallbackBeginBlockFn(
 						for _, tx := range e.Txs() {
 							entry, err := newScramblerTransaction(signer, tx)
 							if err != nil {
-								log.Crit(fmt.Sprintf("cannot derive sender for tx %s", tx.Hash()), "err", err)
+								log.Crit(fmt.Sprintf("cannot create scrambler tx %s", tx.Hash()), "err", err)
 							}
 							unorderedTxs = append(unorderedTxs, entry)
 						}
 					}
 
-					txs := FilterAndOrderTransactions(unorderedTxs)
+					orderedTxs := filterAndOrderTransactions(unorderedTxs)
+					txs := make([]*types.Transaction, len(orderedTxs))
+					for _, orderedTx := range orderedTxs {
+						// Cast back the transactions to pass it to the processor
+						txs = append(txs, orderedTx.(*scramblerTransaction).Transaction)
+					}
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
