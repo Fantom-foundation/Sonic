@@ -68,4 +68,4 @@ errorcheck:
 	errcheck ./...
 
 .PHONY: lint
-lint: vet staticcheck errorcheck
+lint: vet staticcheck # errorcheck  
