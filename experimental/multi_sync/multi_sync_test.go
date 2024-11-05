@@ -10,8 +10,8 @@ import (
 
 const interval = 10000
 const withDelay = true
-const withSymetricDelay = true
-const withNoise = false
+const withSymmetricDelay = false
+const withNoise = true
 
 func TestSimulateSync(t *testing.T) {
 	const N = 10
@@ -59,7 +59,7 @@ func runSync(N, T int, t *testing.T) {
 		}
 	}
 
-	if withSymetricDelay {
+	if withSymmetricDelay {
 		for i := range N {
 			for j := range N {
 				delay[i][j] = delay[j][i]
