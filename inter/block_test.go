@@ -10,12 +10,7 @@ import (
 )
 
 func TestBlock_ComputePrevRandao_ComputationIsDeterministic(t *testing.T) {
-	events := []hash.Event{
-		{byte(rand.Int())},
-		{byte(rand.Int())},
-		{byte(rand.Int())},
-		{byte(rand.Int())},
-	}
+	events := hash.FakeEvents(5)
 	blk := Block{Events: events}
 	randao1 := blk.GetPrevRandao()
 	rand.Shuffle(len(blk.Events), func(i, j int) {
@@ -37,18 +32,12 @@ func TestBlock_ComputePrevRandao_ComputationWorks(t *testing.T) {
 			events: []hash.Event{},
 		},
 		{
-			name: "one_events",
-			events: []hash.Event{
-				{byte(rand.Int())},
-			},
+			name:   "one_events",
+			events: hash.FakeEvents(1),
 		},
 		{
-			name: "multiple_events",
-			events: []hash.Event{
-				{byte(rand.Int())},
-				{byte(rand.Int())},
-				{byte(rand.Int())},
-			},
+			name:   "multiple_events",
+			events: hash.FakeEvents(3),
 		},
 	}
 	for _, test := range tests {

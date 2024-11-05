@@ -179,13 +179,13 @@ func consensusCallbackBeginBlockFn(
 				}
 
 				// --------------------------------------------------------------- //
-				// ------------------------- Prepare the block ------------------- //
+				// ---------------------- Prepare the block ---------------------- //
 				// --------------------------------------------------------------- //
 				// 1) Pop both pre-internal and internal transactions
 				// 2) Add them to the block - they must be placed at the beginning
 				// 3) Sort events by lamport time
-				// 4) Exclude first events which exceed MaxBlockGas
-				// 5) Append event transactions
+				// 4) Restrict the list of events to not exceed MaxBlockGas.
+				// 5) Assemble list of transactions in execution order
 				// --------------------------------------------------------------- //
 
 				// Internal transactions needs to be placed at the beginning of the block
