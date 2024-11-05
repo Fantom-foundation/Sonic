@@ -127,21 +127,20 @@ func createContractWithCodeLenAndGas(require *require.Assertions, net *Integrati
 
 type variant func(opts *bind.TransactOpts, codeSize *big.Int) (*types.Transaction, error)
 
-func runTransactionWithCodeSizeAndGas(r *require.Assertions, net *IntegrationTestNet, codeSize, gas uint64) (*types.Receipt, error) {
+func runTransactionWithCodeSizeAndGas(require *require.Assertions, net *IntegrationTestNet, codeSize, gas uint64) (*types.Receipt, error) {
 	// these values are needed for the transaction but are irrelevant for the test
 	client, err := net.GetClient()
-	r.NoError(err, "failed to connect to the network:")
+	require.NoError(err, "failed to connect to the network:")
+	defer client.Close()
 
-	// defer client.Close()
 	chainId, err := client.ChainID(context.Background())
-	r.NoError(err, "failed to get chain ID::")
+	require.NoError(err, "failed to get chain ID::")
 
 	nonce, err := client.NonceAt(context.Background(), net.validator.Address(), nil)
-	r.NoError(err, "failed to get nonce:")
+	require.NoError(err, "failed to get nonce:")
 
 	price, err := client.SuggestGasPrice(context.Background())
-	r.NoError(err, "failed to get gas price:")
-	client.Close()
+	require.NoError(err, "failed to get gas price:")
 	// ---------
 
 	transaction, err := types.SignTx(types.NewTx(&types.AccessListTx{
@@ -152,6 +151,6 @@ func runTransactionWithCodeSizeAndGas(r *require.Assertions, net *IntegrationTes
 		Nonce:    nonce,
 		Data:     make([]byte, codeSize),
 	}), types.NewLondonSigner(chainId), net.validator.PrivateKey)
-	r.NoError(err, "failed to sign transaction:")
+	require.NoError(err, "failed to sign transaction:")
 	return net.Run(transaction)
 }
