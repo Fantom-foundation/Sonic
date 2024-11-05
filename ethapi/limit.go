@@ -68,7 +68,7 @@ func (b *JsonResultBuffer) AddObject(obj interface{}) error {
 			return err
 		}
 	}
-	if err = b.writeString(string(res)); err != nil {
+	if err = b.writeBytes(res); err != nil {
 		return err
 	}
 
@@ -82,6 +82,33 @@ func (b *JsonResultBuffer) writeString(s string) (err error) {
 			err = ErrResponseTooLarge
 		}
 	}()
-	b.WriteString(s)
+
+	if b.Len()+len(s) > b.maxResultSize {
+		return ErrResponseTooLarge
+	}
+
+	if _, err = b.WriteString(s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// writeBytes appends the contents of arr to the buffer and handle possible panic
+func (b *JsonResultBuffer) writeBytes(arr []byte) (err error) {
+	defer func() {
+		if recover() != nil {
+			err = ErrResponseTooLarge
+		}
+	}()
+
+	if b.Len()+len(arr) > b.maxResultSize {
+		return ErrResponseTooLarge
+	}
+
+	if _, err = b.Write(arr); err != nil {
+		return err
+	}
+
 	return nil
 }
