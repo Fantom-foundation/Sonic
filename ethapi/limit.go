@@ -17,8 +17,6 @@ var (
 	ErrMaxResponseSize = errors.New("response size exceeded")
 	// ErrResponseTooLarge is returned when the result buffer cannot be expanded
 	ErrResponseTooLarge = errors.New("response too large")
-	// ErrCannotInitBuffer is returned when initialization of the buffer failed
-	ErrCannotInitBuffer = errors.New("cannot initialize write buffer")
 )
 
 // JsonResultBuffer is a bytes buffer for jsonRawMessage result
@@ -28,15 +26,12 @@ type JsonResultBuffer struct {
 }
 
 // NewJsonResultBuffer creates new bytes buffer
-func NewJsonResultBuffer(maxResultSize int) (b *JsonResultBuffer, err error) {
-	defer func() {
-		if recover() != nil {
-			err = ErrCannotInitBuffer
-		}
-	}()
-	b = &JsonResultBuffer{
+func NewJsonResultBuffer(maxResultSize int) (*JsonResultBuffer, error) {
+
+	b := &JsonResultBuffer{
 		maxResultSize: maxResultSize,
 	}
+
 	// grow buffer to default start size
 	b.Grow(bufferStartSize)
 	if err := b.writeString("["); err != nil {
@@ -60,9 +55,7 @@ func (b *JsonResultBuffer) AddObject(obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	if b.maxResultSize > 0 && b.Len()+len(res) > b.maxResultSize {
-		return ErrMaxResponseSize
-	}
+
 	if b.Len() > 1 {
 		if err := b.writeString(","); err != nil {
 			return err
@@ -76,18 +69,13 @@ func (b *JsonResultBuffer) AddObject(obj interface{}) error {
 }
 
 // writeString appends the contents of s to the buffer and handle possible panic
-func (b *JsonResultBuffer) writeString(s string) (err error) {
-	defer func() {
-		if recover() != nil {
-			err = ErrResponseTooLarge
-		}
-	}()
+func (b *JsonResultBuffer) writeString(s string) error {
 
 	if b.Len()+len(s) > b.maxResultSize {
 		return ErrResponseTooLarge
 	}
 
-	if _, err = b.WriteString(s); err != nil {
+	if _, err := b.WriteString(s); err != nil {
 		return err
 	}
 
@@ -95,18 +83,13 @@ func (b *JsonResultBuffer) writeString(s string) (err error) {
 }
 
 // writeBytes appends the contents of arr to the buffer and handle possible panic
-func (b *JsonResultBuffer) writeBytes(arr []byte) (err error) {
-	defer func() {
-		if recover() != nil {
-			err = ErrResponseTooLarge
-		}
-	}()
+func (b *JsonResultBuffer) writeBytes(arr []byte) error {
 
 	if b.Len()+len(arr) > b.maxResultSize {
 		return ErrResponseTooLarge
 	}
 
-	if _, err = b.Write(arr); err != nil {
+	if _, err := b.Write(arr); err != nil {
 		return err
 	}
 

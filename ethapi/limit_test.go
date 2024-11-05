@@ -89,8 +89,8 @@ func TestAddObjectOverLimit(t *testing.T) {
 	obj := testStruct{Str: "test string"}
 
 	err = b.AddObject(obj)
-	if err != ErrMaxResponseSize {
-		t.Errorf("expected ErrMaxResponseSize, got %v", err)
+	if err != ErrResponseTooLarge {
+		t.Errorf("expected ErrResponseTooLarge, got %v", err)
 	}
 }
 
