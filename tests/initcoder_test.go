@@ -34,7 +34,7 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	const wordCostCreate uint64 = 2
 	var gasForCreate uint64 = 32000 + gasUsed + assignCost
 	t.Run("create", func(t *testing.T) {
-		testForVariant(t, require, net, contract, receipt, contract.CreateContractWith, gasForCreate, wordCostCreate)
+		testForVariant(t, net, contract, receipt, contract.CreateContractWith, gasForCreate, wordCostCreate)
 	})
 
 	// -- using CREATE2 instruction
@@ -43,7 +43,7 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	const wordCostCreate2 uint64 = wordCostCreate + 6
 	var gasForCreate2 uint64 = gasForCreate + 44
 	t.Run("create2", func(t *testing.T) {
-		testForVariant(t, require, net, contract, receipt, contract.Create2ContractWith, gasForCreate2, wordCostCreate2)
+		testForVariant(t, net, contract, receipt, contract.Create2ContractWith, gasForCreate2, wordCostCreate2)
 	})
 
 	t.Run("make a transaction that charges for the init code size", func(t *testing.T) {
@@ -72,9 +72,10 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	})
 }
 
-func testForVariant(t *testing.T, require *require.Assertions, net *IntegrationTestNet,
+func testForVariant(t *testing.T, net *IntegrationTestNet,
 	contract *initcode.Initcode, receipt *types.Receipt, variant variant,
 	gasForContract, wordCost uint64) {
+	require := require.New(t)
 
 	var gasCostFor2Words uint64 = wordCost * 2
 	// we use enough gas for all tests to afford cost of 3 words as well.

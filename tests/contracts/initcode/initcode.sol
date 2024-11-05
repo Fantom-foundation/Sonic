@@ -22,7 +22,7 @@ contract InitCode {
         uint256 result = 0;
         assembly  {
             // top level expresssions are not supposed to return a value, but create does.
-            // so we need to call pop to catch this value.
+            // so we need to assign its return value to catch it.
             result := create2(0, 0, codeSize, 0)
         }
         // report how much gas was used during create call
