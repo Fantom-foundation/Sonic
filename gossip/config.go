@@ -86,7 +86,7 @@ type (
 		// allows only for EIP155 transactions.
 		AllowUnprotectedTxs bool
 
-		// MaxResponseSize is a limit for maximum response size in some RPC calls
+		// MaxResponseSize is a limit for maximum response size in some RPC calls in bytes
 		MaxResponseSize int
 
 		RPCBlockExt bool
