@@ -20,7 +20,7 @@ import (
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	"github.com/Fantom-foundation/Carmen/go/state/gostate"
-	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/tests"
 	"os"
 	"path/filepath"
@@ -30,6 +30,14 @@ import (
 var (
 	baseDir      = filepath.Join(".", "testdata")
 	stateTestDir = filepath.Join(baseDir, "GeneralStateTests")
+
+	unsupportedForks = map[string]struct{}{
+		"ConstantinopleFix": {},
+		"Constantinople":    {},
+		"Byzantium":         {},
+		"Frontier":          {},
+		"Homestead":         {},
+	}
 )
 
 func initMatcher(st *tests.TestMatcher) {
@@ -57,8 +65,19 @@ func execStateTest(t *testing.T, st *tests.TestMatcher, test *tests.StateTest) {
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
 		t.Run(key, func(t *testing.T) {
+			if _, ok := unsupportedForks[subtest.Fork]; ok {
+				t.Skipf("unsupported fork %s", subtest.Fork)
+			}
+
 			factory := createCarmenFactory(t)
-			err := test.RunWith(subtest, vm.Config{}, factory, func(err error, state *tests.StateTestState) {})
+
+			config := opera.DefaultVMConfig
+			config.ChargeExcessGas = false
+			config.IgnoreGasFeeCap = false
+			config.InsufficientBalanceIsNotAnError = false
+			config.SkipTipPaymentToCoinbase = false
+
+			err := test.RunWith(subtest, config, factory, func(err error, state *tests.StateTestState) {})
 			if err := st.CheckFailure(t, err); err != nil {
 				t.Fatal(err)
 			}
