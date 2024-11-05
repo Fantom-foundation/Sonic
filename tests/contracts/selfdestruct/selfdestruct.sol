@@ -28,8 +28,7 @@ contract SelfDestruct {
         if (selfBeneficiary) recipient = payable(address(this));
         selfdestruct(recipient);
 
-        // This code will not be executed. Test will expect this log
-        // never to be emited
+        // The test checks that this log is never emitted.
         emit LogAfterDestruct(address(this).balance);
     }
 }

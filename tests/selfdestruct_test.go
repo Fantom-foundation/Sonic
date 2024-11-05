@@ -1,20 +1,17 @@
 package tests
 
 import (
+	"context"
+	"crypto/rand"
 	"math/big"
 	"testing"
 
-	"github.com/Fantom-foundation/go-opera/tests/contracts/query_account"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/selfdestruct"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
-)
-
-var (
-	// addressCount is used to generate unique addresses, avoiding clashes of beneficiary addresses
-	addressCount = 1234
 )
 
 func TestSelfDestruct(t *testing.T) {
@@ -24,23 +21,17 @@ func TestSelfDestruct(t *testing.T) {
 	require.NoError(err, "failed to start test network")
 	defer net.Stop()
 
-	// Utility contract to query a second account state
-	queryAccount, receipt, err := DeployContract(net, query_account.DeployQueryAccount)
-	require.NoError(err)
-	require.Equal(receipt.Status, types.ReceiptStatusSuccessful, "failed to deploy contract")
-
 	t.Run("constructor", func(t *testing.T) {
-		testSelfDestruct_Constructor(t, net, queryAccount)
+		testSelfDestruct_Constructor(t, net)
 	})
 
 	t.Run("nested call", func(t *testing.T) {
-		testSelfDestruct_NestedCall(t, big.NewInt(1234), net, queryAccount)
+		testSelfDestruct_NestedCall(t, net)
 	})
 }
 
-func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet, queryAccount *query_account.QueryAccount) {
-	require := require.New(t)
-	someBalance := big.NewInt(1234)
+func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
+	contractInitialBalance := int64(1234)
 
 	tests := map[string]struct {
 		deployTx  deployTxFunction[selfdestruct.SelfDestruct]
@@ -49,99 +40,103 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet, queryAc
 	}{
 		// This test checks the testing infrastructure itself
 		"sanity check/no selfdestruct": {
-			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, otherAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
-				opts.Value = someBalance
+			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, _ common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
+				opts.Value = big.NewInt(contractInitialBalance)
 				return selfdestruct.DeploySelfDestruct(opts, backend,
-					false, // do not selfdestruct in constructor
-					false, // beneficiary is not self
-					otherAddress)
+					false,            // do not selfdestruct in constructor
+					false,            // beneficiary is not self
+					common.Address{}) // ignored, no selfdestruct
 			},
 			effects: map[string]effectFunction{
-				"contract keeps balance":       contractBalanceIs(someBalance),
-				"beneficiary gains no balance": beneficiaryBalanceIs(big.NewInt(0)),
-				"storage is not deleted":       contractStorageIs(big.NewInt(123)),
-				"code is not deleted":          contractCodeSizeIsNot(big.NewInt(0)),
+				"contract keeps balance": contractBalanceIs(contractInitialBalance),
+				"storage is not deleted": contractStorageIs(123),
+				"code is not deleted":    contractCodeSizeIsNot(0),
 			},
 		},
 		"different tx/beneficiary is other account": {
-			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, otherAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
-				opts.Value = someBalance
+			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, _ common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
+				opts.Value = big.NewInt(contractInitialBalance)
 				return selfdestruct.DeploySelfDestruct(opts, backend,
-					false, // do not selfdestruct in constructor
-					false, // beneficiary is not self
-					otherAddress)
+					false,            // do not selfdestruct in constructor
+					false,            // beneficiary is not self
+					common.Address{}) // ignored, no selfdestruct
 			},
-			executeTx: func(contract *selfdestruct.SelfDestruct, opts *bind.TransactOpts, otherAddress common.Address) (*types.Transaction, error) {
+			executeTx: func(contract *selfdestruct.SelfDestruct, opts *bind.TransactOpts, beneficiaryAddress common.Address) (*types.Transaction, error) {
 				return contract.DestroyContract(opts,
 					false, // beneficiary is not self
-					otherAddress)
+					beneficiaryAddress)
 			},
 			effects: map[string]effectFunction{
 				"the current execution frame halts": executionHalted(),
-				"contract looses balance":           contractBalanceIs(big.NewInt(0)),
-				"beneficiary gains balance":         beneficiaryBalanceIs(someBalance),
-				"storage is not deleted":            contractStorageIs(big.NewInt(123)),
-				"code is not deleted":               contractCodeSizeIsNot(big.NewInt(0)),
+				"contract looses balance":           contractBalanceIs(0),
+				"beneficiary gains balance":         beneficiaryBalanceIs(contractInitialBalance),
+				"storage is not deleted":            contractStorageIs(123),
+				"code is not deleted":               contractCodeSizeIsNot(0),
 			},
 		},
 		"different tx/beneficiary is same account": {
-			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, otherAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
-				opts.Value = someBalance
+			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, _ common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
+				opts.Value = big.NewInt(contractInitialBalance)
 				return selfdestruct.DeploySelfDestruct(opts, backend,
-					false, // do not selfdestruct in constructor
-					true,  // beneficiary is self
-					otherAddress)
+					false,            // do not selfdestruct in constructor
+					true,             // beneficiary is self
+					common.Address{}) // ignored, no selfdestruct
 			},
-			executeTx: func(contract *selfdestruct.SelfDestruct, opts *bind.TransactOpts, otherAddress common.Address) (*types.Transaction, error) {
-				return contract.DestroyContract(opts, true, otherAddress)
+			executeTx: func(contract *selfdestruct.SelfDestruct, opts *bind.TransactOpts, beneficiaryAddress common.Address) (*types.Transaction, error) {
+				return contract.DestroyContract(opts, true, beneficiaryAddress)
 			},
 			effects: map[string]effectFunction{
 				"the current execution frame halts": executionHalted(),
-				"storage is not deleted":            contractStorageIs(big.NewInt(123)),
-				"code is not deleted":               contractCodeSizeIsNot(big.NewInt(0)),
-				"balance is not burned":             contractBalanceIs(someBalance),
+				"storage is not deleted":            contractStorageIs(123),
+				"code is not deleted":               contractCodeSizeIsNot(0),
+				"balance is not burned":             contractBalanceIs(contractInitialBalance),
 			},
 		},
 		"same tx/beneficiary is other account": {
-			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, otherAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
-				opts.Value = someBalance
+			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, beneficiaryAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
+				opts.Value = big.NewInt(contractInitialBalance)
 				return selfdestruct.DeploySelfDestruct(opts, backend,
 					true,  // selfdestruct in constructor
 					false, // beneficiary is not self
-					otherAddress)
+					beneficiaryAddress)
 			},
 			effects: map[string]effectFunction{
 				"the current execution frame halts": executionHalted(),
-				"code is deleted":                   contractCodeSizeIs(big.NewInt(0)),
-				"contract looses balance":           contractBalanceIs(big.NewInt(0)),
-				"beneficiary gains balance":         beneficiaryBalanceIs(someBalance),
+				"code is deleted":                   contractCodeSizeIs(0),
+				"storage is deleted":                contractStorageIs(0),
+				"contract looses balance":           contractBalanceIs(0),
+				"beneficiary gains balance":         beneficiaryBalanceIs(contractInitialBalance),
 			},
 		},
 		"same tx/beneficiary is same account": {
-			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, otherAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
-				opts.Value = someBalance
+			deployTx: func(opts *bind.TransactOpts, backend bind.ContractBackend, beneficiaryAddress common.Address) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
+				opts.Value = big.NewInt(contractInitialBalance)
 				return selfdestruct.DeploySelfDestruct(opts, backend,
-					true, // selfdestruct in constructor
-					true, // beneficiary is  self
-					otherAddress)
+					true,             // selfdestruct in constructor
+					true,             // beneficiary is self
+					common.Address{}) // ignored
 			},
 			effects: map[string]effectFunction{
 				"the current execution frame halts": executionHalted(),
-				"code is deleted":                   contractCodeSizeIs(big.NewInt(0)),
-				"contract looses balance":           contractBalanceIs(big.NewInt(0)),
+				"code is deleted":                   contractCodeSizeIs(0),
+				"storage is deleted":                contractStorageIs(0),
+				"balance is burned":                 contractBalanceIs(0),
 			},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			otherAddress := common.BigToAddress(big.NewInt(int64(addressCount)))
-			addressCount++
+			require := require.New(t)
+
+			// New beneficiary address for each test
+			beneficiaryAddress := common.Address{}
+			rand.Read(beneficiaryAddress[:])
 
 			// First transaction deploys contract
 			contract, deployReceipt, err := DeployContract(net,
 				func(to *bind.TransactOpts, cb bind.ContractBackend) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
-					return test.deployTx(to, cb, otherAddress)
+					return test.deployTx(to, cb, beneficiaryAddress)
 				})
 			require.NoError(err)
 			require.Equal(deployReceipt.Status,
@@ -154,7 +149,7 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet, queryAc
 			// Second transaction executes some contract function (if any)
 			if test.executeTx != nil {
 				executionReceipt, err = net.Apply(func(opts *bind.TransactOpts) (*types.Transaction, error) {
-					return test.executeTx(contract, opts, otherAddress)
+					return test.executeTx(contract, opts, beneficiaryAddress)
 				})
 				require.NoError(err)
 				require.Equal(executionReceipt.Status,
@@ -164,14 +159,19 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet, queryAc
 				allLogs = append(allLogs, deployReceipt.Logs...)
 			}
 
+			// create client to query the network about address properties
+			client, err := net.GetClient()
+			require.NoError(err)
+			defer client.Close()
+
 			// check effects
 			effectContext := effectContext{
-				queryAccount:       queryAccount,
+				client:             client,
 				contract:           contract,
 				executionReceipt:   executionReceipt,
 				allLogs:            allLogs,
 				contractAddress:    deployReceipt.ContractAddress,
-				beneficiaryAddress: otherAddress,
+				beneficiaryAddress: beneficiaryAddress,
 			}
 			for name, effect := range test.effects {
 				t.Run(name, func(t *testing.T) {
@@ -182,8 +182,8 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet, queryAc
 	}
 }
 
-func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *IntegrationTestNet, queryAccount *query_account.QueryAccount) {
-	require := require.New(t)
+func testSelfDestruct_NestedCall(t *testing.T, net *IntegrationTestNet) {
+	contractInitialBalance := int64(1234)
 
 	tests := map[string]struct {
 		transactions []executeTxFunction[selfdestruct.SelfDestructFactory]
@@ -192,40 +192,40 @@ func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *Integr
 		// This test checks the testing infrastructure itself
 		"sanity check/no selfdestruct": {
 			transactions: []executeTxFunction[selfdestruct.SelfDestructFactory]{
-				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, otherAddress common.Address) (*types.Transaction, error) {
-					opts.Value = someBalance
+				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, _ common.Address) (*types.Transaction, error) {
+					opts.Value = big.NewInt(contractInitialBalance)
 					return factory.Create(opts)
 				},
 			},
 			effects: map[string]effectFunction{
-				"contract has storage":         contractStorageIs(big.NewInt(123)),
-				"contract has code":            contractCodeSizeIsNot(big.NewInt(0)),
-				"contract keeps balance":       contractBalanceIs(someBalance),
-				"beneficiary gains no balance": beneficiaryBalanceIs(big.NewInt(0)),
+				"contract has storage":         contractStorageIs(123),
+				"contract has code":            contractCodeSizeIsNot(0),
+				"contract keeps balance":       contractBalanceIs(contractInitialBalance),
+				"beneficiary gains no balance": beneficiaryBalanceIs(0),
 			},
 		},
 		"different tx/beneficiary is other account": {
 			transactions: []executeTxFunction[selfdestruct.SelfDestructFactory]{
 				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, _ common.Address) (*types.Transaction, error) {
-					opts.Value = someBalance
+					opts.Value = big.NewInt(contractInitialBalance)
 					return factory.Create(opts)
 				},
-				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, otherAddress common.Address) (*types.Transaction, error) {
-					return factory.Destroy(opts, otherAddress)
+				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, beneficiaryAddress common.Address) (*types.Transaction, error) {
+					return factory.Destroy(opts, beneficiaryAddress)
 				},
 			},
 			effects: map[string]effectFunction{
-				"storage is not deleted":       contractStorageIs(big.NewInt(123)),
-				"code is not deleted":          contractCodeSizeIsNot(big.NewInt(0)),
-				"contract looses balance":      contractBalanceIs(big.NewInt(0)),
-				"beneficiary gains balance":    beneficiaryBalanceIs(someBalance),
+				"storage is not deleted":       contractStorageIs(123),
+				"code is not deleted":          contractCodeSizeIsNot(0),
+				"contract looses balance":      contractBalanceIs(0),
+				"beneficiary gains balance":    beneficiaryBalanceIs(contractInitialBalance),
 				"nested execution frame halts": executionHalted(),
 			},
 		},
 		"different tx/beneficiary is same account": {
 			transactions: []executeTxFunction[selfdestruct.SelfDestructFactory]{
 				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, _ common.Address) (*types.Transaction, error) {
-					opts.Value = someBalance
+					opts.Value = big.NewInt(contractInitialBalance)
 					return factory.Create(opts)
 				},
 				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, _ common.Address) (*types.Transaction, error) {
@@ -233,49 +233,52 @@ func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *Integr
 				},
 			},
 			effects: map[string]effectFunction{
-				"storage is not deleted":       contractStorageIs(big.NewInt(123)),
-				"code is not deleted":          contractCodeSizeIsNot(big.NewInt(0)),
-				"balance is not burned":        contractBalanceIs(someBalance),
+				"storage is not deleted":       contractStorageIs(123),
+				"code is not deleted":          contractCodeSizeIsNot(0),
+				"balance is not burned":        contractBalanceIs(contractInitialBalance),
 				"nested execution frame halts": executionHalted(),
 			},
 		},
 		"same tx/beneficiary is other account": {
 			transactions: []executeTxFunction[selfdestruct.SelfDestructFactory]{
-				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, otherAddress common.Address) (*types.Transaction, error) {
-					opts.Value = someBalance
-					return factory.CreateAndDestroy(opts, otherAddress)
+				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, beneficiaryAddress common.Address) (*types.Transaction, error) {
+					opts.Value = big.NewInt(contractInitialBalance)
+					return factory.CreateAndDestroy(opts, beneficiaryAddress)
 				},
 			},
 			effects: map[string]effectFunction{
-				"code is deleted":                contractCodeSizeIs(big.NewInt(0)),
-				"contract looses balance":        contractBalanceIs(big.NewInt(0)),
-				"beneficiary gains balance":      beneficiaryBalanceIs(someBalance),
-				"storage exists until end of tx": nestedContractValueAfterSelfDestructIs(big.NewInt(123)),
 				"nested execution frame halts":   executionHalted(),
+				"code is deleted":                contractCodeSizeIs(0),
+				"storage is deleted":             contractStorageIs(0),
+				"contract looses balance":        contractBalanceIs(0),
+				"beneficiary gains balance":      beneficiaryBalanceIs(contractInitialBalance),
+				"storage exists until end of tx": nestedContractValueAfterSelfDestructIs(123),
 			},
 		},
 		"same tx/beneficiary is same account": {
 			transactions: []executeTxFunction[selfdestruct.SelfDestructFactory]{
 				func(factory *selfdestruct.SelfDestructFactory, opts *bind.TransactOpts, _ common.Address) (*types.Transaction, error) {
-					opts.Value = someBalance
+					opts.Value = big.NewInt(contractInitialBalance)
 					return factory.CreateAndDestroyWithoutBeneficiary(opts)
 				},
 			},
 			effects: map[string]effectFunction{
-				"code is deleted":                contractCodeSizeIs(big.NewInt(0)),
-				"contract looses balance":        contractBalanceIs(big.NewInt(0)),
-				"storage exists until end of tx": nestedContractValueAfterSelfDestructIs(big.NewInt(123)),
 				"nested execution frame halts":   executionHalted(),
+				"code is deleted":                contractCodeSizeIs(0),
+				"storage is deleted":             contractStorageIs(0),
+				"contract looses balance":        contractBalanceIs(0),
+				"storage exists until end of tx": nestedContractValueAfterSelfDestructIs(123),
 			},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
 
 			// generate a new beneficiary address for each test
-			otherAddress := common.BigToAddress(big.NewInt(int64(addressCount)))
-			addressCount++
+			beneficiaryAddress := common.Address{}
+			rand.Read(beneficiaryAddress[:])
 
 			// deploy factory contract
 			factory, receipt, err := DeployContract(net, selfdestruct.DeploySelfDestructFactory)
@@ -290,7 +293,7 @@ func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *Integr
 			// execute all described transactions
 			for _, tx := range test.transactions {
 				receipt, err := net.Apply(func(opts *bind.TransactOpts) (*types.Transaction, error) {
-					return tx(factory, opts, otherAddress)
+					return tx(factory, opts, beneficiaryAddress)
 				})
 				require.NoError(err)
 				allLogs = append(allLogs, receipt.Logs...)
@@ -308,7 +311,7 @@ func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *Integr
 				"factory failed to construct a contract",
 			)
 
-			// get contract bindings (to enable contract interaction)
+			// create client to query the network about address properties
 			client, err := net.GetClient()
 			require.NoError(err)
 			defer client.Close()
@@ -317,12 +320,12 @@ func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *Integr
 
 			// check effects
 			effectContext := effectContext{
-				queryAccount:       queryAccount,
+				client:             client,
 				factory:            factory,
 				contract:           newContract,
 				allLogs:            allLogs,
 				contractAddress:    contractAddress,
-				beneficiaryAddress: otherAddress,
+				beneficiaryAddress: beneficiaryAddress,
 			}
 			for name, effect := range test.effects {
 				t.Run(name, func(t *testing.T) {
@@ -339,7 +342,7 @@ func testSelfDestruct_NestedCall(t *testing.T, someBalance *big.Int, net *Integr
 // avoid clashes between tests. This struct will be filled with the results of
 // the each test setup.
 type effectContext struct {
-	queryAccount       *query_account.QueryAccount       //< utility contract to query account state
+	client             *ethclient.Client                 //< client to interact with the network
 	contract           *selfdestruct.SelfDestruct        //< contract to test (may have selfdestructed)
 	factory            *selfdestruct.SelfDestructFactory //< factory contract to deploy new contracts
 	executionReceipt   *types.Receipt                    //< receipt of the execution transaction for constructor tests
@@ -349,8 +352,8 @@ type effectContext struct {
 }
 
 type effectFunction func(require *require.Assertions, ctx *effectContext)
-type deployTxFunction[T any] func(opts *bind.TransactOpts, backend bind.ContractBackend, otherAddress common.Address) (common.Address, *types.Transaction, *T, error)
-type executeTxFunction[T any] func(contract *T, opts *bind.TransactOpts, otherAddress common.Address) (*types.Transaction, error)
+type deployTxFunction[T any] func(opts *bind.TransactOpts, backend bind.ContractBackend, beneficiaryAddress common.Address) (common.Address, *types.Transaction, *T, error)
+type executeTxFunction[T any] func(contract *T, opts *bind.TransactOpts, beneficiaryAddress common.Address) (*types.Transaction, error)
 
 // executionHalted checks that the execution stopped after selfdestruct
 // This is done by looking for logs
@@ -371,18 +374,17 @@ func executionHalted() effectFunction {
 // use this matcher when the contract is being destroyed by a nested call, but
 // the internal value of the contract storage will be emitted before the
 // transaction is  completed.
-func nestedContractValueAfterSelfDestructIs(value *big.Int) effectFunction {
+func nestedContractValueAfterSelfDestructIs(value int64) effectFunction {
 	return func(require *require.Assertions, ctx *effectContext) {
 		for _, log := range ctx.allLogs {
 			storage, err := ctx.factory.ParseLogContractStorage(*log)
 			if err != nil {
 				continue
 			}
-			require.Conditionf(
-				Equal(storage.Value, value),
-				"storage value differs, got %v: want %v",
-				storage,
+			require.Equal(
+				storage.Value.Int64(),
 				value,
+				"storage value differs",
 			)
 			return
 		}
@@ -391,87 +393,59 @@ func nestedContractValueAfterSelfDestructIs(value *big.Int) effectFunction {
 }
 
 // contractBalanceIs reads the contract balance and compare it to the expected value
-func contractBalanceIs(expected *big.Int) effectFunction {
+func contractBalanceIs(expected int64) effectFunction {
 	return func(require *require.Assertions, ctx *effectContext) {
-		gas, err := ctx.queryAccount.GetBalance(nil, ctx.contractAddress)
+		balance, err := ctx.client.BalanceAt(context.Background(), ctx.contractAddress, nil)
 		require.NoError(err)
-		require.Conditionf(
-			Equal(gas, expected),
-			"balance not expected, got %v: want %v",
-			gas,
-			expected,
+		require.Equal(
+			balance.Int64(), expected,
+			"balance not expected",
 		)
 	}
 }
 
 // contractStorageIs reads the contract storage and compare it to the expected value
-func contractStorageIs(expected *big.Int) effectFunction {
+func contractStorageIs(expected int64) effectFunction {
 	return func(require *require.Assertions, ctx *effectContext) {
-		storage, err := ctx.contract.SomeData(nil)
+		data, err := ctx.client.StorageAt(context.Background(), ctx.contractAddress, common.Hash{}, nil)
 		require.NoError(err)
-		require.Conditionf(
-			Equal(storage, expected),
-			"storage value differs, got %v: want %v",
-			storage,
-			expected,
+		storage := new(big.Int).SetBytes(data)
+		require.Equal(
+			storage.Int64(), expected,
+			"storage value differs",
 		)
 	}
 }
 
-func beneficiaryBalanceIs(expected *big.Int) effectFunction {
+func beneficiaryBalanceIs(expected int64) effectFunction {
 	return func(require *require.Assertions, ctx *effectContext) {
-		gas, err := ctx.queryAccount.GetBalance(nil, ctx.beneficiaryAddress)
+		balance, err := ctx.client.BalanceAt(context.Background(), ctx.beneficiaryAddress, nil)
 		require.NoError(err)
-		require.Conditionf(
-			Equal(gas, expected),
-			"balance not expected, got %v: want %v",
-			gas,
-			expected,
+		require.Equal(
+			balance.Int64(), expected,
+			"balance not expected",
 		)
 	}
 }
 
-func contractCodeSizeIs(expected *big.Int) effectFunction {
+func contractCodeSizeIs(expected int) effectFunction {
 	return func(require *require.Assertions, ctx *effectContext) {
-		codeSize, err := ctx.queryAccount.GetCodeSize(nil, ctx.contractAddress)
+		code, err := ctx.client.CodeAt(context.Background(), ctx.contractAddress, nil)
 		require.NoError(err)
-		require.Conditionf(
-			Equal(codeSize, expected),
-			"code size not expected, got %v: want %v",
-			codeSize,
-			expected,
+		require.Equal(
+			len(code), expected,
+			"code size not expected",
 		)
 	}
 }
 
-func contractCodeSizeIsNot(notExpected *big.Int) effectFunction {
+func contractCodeSizeIsNot(notExpected int) effectFunction {
 	return func(require *require.Assertions, ctx *effectContext) {
-		codeSize, err := ctx.queryAccount.GetCodeSize(nil, ctx.contractAddress)
+		code, err := ctx.client.CodeAt(context.Background(), ctx.contractAddress, nil)
 		require.NoError(err)
-		require.Conditionf(
-			Not(Equal(codeSize, notExpected)),
-			"code size not expected, got %v: wanted distinct from %v",
-			codeSize,
-			notExpected,
+		require.NotEqual(
+			len(code), notExpected,
+			"code size not expected",
 		)
-	}
-}
-
-// ImplementsCmp is an interface for types that can be compared to facilitate testing
-type ImplementsCmp[v any] interface {
-	Cmp(v) int
-}
-
-// Equal returns a function that compares two values of types that implement ImplementsCmp
-// this is used to compare big.Int values using require.Condition
-func Equal[T ImplementsCmp[T]](a, b T) func() bool {
-	return func() bool {
-		return a.Cmp(b) == 0
-	}
-}
-
-func Not(f func() bool) func() bool {
-	return func() bool {
-		return !f()
 	}
 }
