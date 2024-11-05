@@ -27,12 +27,16 @@ import (
 // PublicTxTraceAPI provides an API to access transaction tracing
 // It offers only methods that operate on public data that is freely available to anyone
 type PublicTxTraceAPI struct {
-	b Backend
+	b               Backend
+	maxResponseSize int // in bytes
 }
 
 // NewPublicTxTraceAPI creates a new transaction trace API
-func NewPublicTxTraceAPI(b Backend) *PublicTxTraceAPI {
-	return &PublicTxTraceAPI{b}
+func NewPublicTxTraceAPI(b Backend, maxResponseSize int) *PublicTxTraceAPI {
+	return &PublicTxTraceAPI{
+		b:               b,
+		maxResponseSize: maxResponseSize,
+	}
 }
 
 // Transaction - trace_transaction function returns transaction inner traces
@@ -334,7 +338,7 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (js
 	var traceAdded, traceCount uint
 
 	// resultBuffer is buffer for collecting result traces
-	resultBuffer, err := NewJsonResultBuffer()
+	resultBuffer, err := NewJsonResultBuffer(s.maxResponseSize)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +381,7 @@ func filterBlocks(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (js
 func filterBlocksInParallel(ctx context.Context, s *PublicTxTraceAPI, args FilterArgs) (json.RawMessage, error) {
 
 	// resultBuffer is buffer for collecting result traces
-	resultBuffer, err := NewJsonResultBuffer()
+	resultBuffer, err := NewJsonResultBuffer(s.maxResponseSize)
 	if err != nil {
 		return nil, err
 	}

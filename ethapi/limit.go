@@ -12,8 +12,6 @@ const (
 )
 
 var (
-	// responseSizeLimit limits maximum size of RPC response
-	responseSizeLimit int
 	// ErrMaxResponseSize is returned if size of the RPC call
 	// response is over defined limit
 	ErrMaxResponseSize = errors.New("response size exceeded")
@@ -23,24 +21,22 @@ var (
 	ErrCannotInitBuffer = errors.New("cannot initialize write buffer")
 )
 
-// SetResponseSizeLimit sets maximum size of RPC response in bytes
-func SetResponseSizeLimit(limit int) {
-	responseSizeLimit = limit
-}
-
 // JsonResultBuffer is a bytes buffer for jsonRawMessage result
 type JsonResultBuffer struct {
 	bytes.Buffer
+	maxResultSize int // limits maximum size of RPC response in bytes
 }
 
 // NewJsonResultBuffer creates new bytes buffer
-func NewJsonResultBuffer() (b *JsonResultBuffer, err error) {
+func NewJsonResultBuffer(maxResultSize int) (b *JsonResultBuffer, err error) {
 	defer func() {
 		if recover() != nil {
 			err = ErrCannotInitBuffer
 		}
 	}()
-	b = &JsonResultBuffer{}
+	b = &JsonResultBuffer{
+		maxResultSize: maxResultSize,
+	}
 	// grow buffer to default start size
 	b.Grow(bufferStartSize)
 	if err := b.writeString("["); err != nil {
@@ -64,7 +60,7 @@ func (b *JsonResultBuffer) AddObject(obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	if responseSizeLimit > 0 && b.Len()+len(res) > responseSizeLimit {
+	if b.maxResultSize > 0 && b.Len()+len(res) > b.maxResultSize {
 		return ErrMaxResponseSize
 	}
 	if b.Len() > 1 {

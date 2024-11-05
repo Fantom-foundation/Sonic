@@ -6,15 +6,10 @@ import (
 	"testing"
 )
 
-func TestSetResponseSizeLimit(t *testing.T) {
-	SetResponseSizeLimit(1024)
-	if responseSizeLimit != 1024 {
-		t.Errorf("expected responseSizeLimit to be 1024, got %d", responseSizeLimit)
-	}
-}
+const maxResultSize = 25 * 1024 * 1024
 
 func TestNewJsonResultBuffer(t *testing.T) {
-	b, err := NewJsonResultBuffer()
+	b, err := NewJsonResultBuffer(maxResultSize)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -25,7 +20,7 @@ func TestNewJsonResultBuffer(t *testing.T) {
 }
 
 func TestAddOneObject(t *testing.T) {
-	b, err := NewJsonResultBuffer()
+	b, err := NewJsonResultBuffer(maxResultSize)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -54,7 +49,7 @@ func TestAddOneObject(t *testing.T) {
 }
 
 func TestAddMoreObjects(t *testing.T) {
-	buffer, err := NewJsonResultBuffer()
+	buffer, err := NewJsonResultBuffer(maxResultSize)
 	if err != nil {
 		t.Fatalf("failed to create JsonResultBuffer: %v", err)
 	}
@@ -86,8 +81,7 @@ func TestAddMoreObjects(t *testing.T) {
 }
 
 func TestAddObjectOverLimit(t *testing.T) {
-	SetResponseSizeLimit(10)
-	b, err := NewJsonResultBuffer()
+	b, err := NewJsonResultBuffer(10)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}

@@ -258,7 +258,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	}
 
 	rpc.SetExecutionTimeLimit(config.RPCTimeout)
-	ethapi.SetResponseSizeLimit(config.MaxResponseSize)
 
 	// create API backend
 	svc.EthAPI = &EthAPIBackend{false, svc, stateReader, txSigner, config.AllowUnprotectedTxs}
@@ -401,6 +400,16 @@ func (s *Service) APIs() []rpc.API {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
+			Public:    true,
+		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicDebugAPI(s.EthAPI, s.config.MaxResponseSize),
+			Public:    true,
+		}, {
+			Namespace: "trace",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicTxTraceAPI(s.EthAPI, s.config.MaxResponseSize),
 			Public:    true,
 		},
 	}...)

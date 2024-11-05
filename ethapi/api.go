@@ -1901,13 +1901,14 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs Transact
 // PublicDebugAPI is the collection of Ethereum APIs exposed over the public
 // debugging endpoint.
 type PublicDebugAPI struct {
-	b Backend
+	b               Backend
+	maxResponseSize int // in bytes
 }
 
 // NewPublicDebugAPI creates a new API definition for the public debug methods
 // of the Ethereum service.
-func NewPublicDebugAPI(b Backend) *PublicDebugAPI {
-	return &PublicDebugAPI{b: b}
+func NewPublicDebugAPI(b Backend, maxResponseSize int) *PublicDebugAPI {
+	return &PublicDebugAPI{b: b, maxResponseSize: maxResponseSize}
 }
 
 // GetBlockRlp retrieves the RLP encoded for of a single block.
@@ -2071,7 +2072,7 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, m
 		return nil, err
 	}
 
-	if responseSizeLimit > 0 && len(result) > responseSizeLimit {
+	if api.maxResponseSize > 0 && len(result) > api.maxResponseSize {
 		return nil, ErrMaxResponseSize
 	}
 
@@ -2145,7 +2146,7 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 
 		// limit the response size.
 		resultsLength += len(res)
-		if responseSizeLimit > 0 && resultsLength > responseSizeLimit {
+		if api.maxResponseSize > 0 && resultsLength > api.maxResponseSize {
 			return nil, ErrMaxResponseSize
 		}
 
