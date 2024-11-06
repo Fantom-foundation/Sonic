@@ -86,6 +86,9 @@ type (
 		// allows only for EIP155 transactions.
 		AllowUnprotectedTxs bool
 
+		// MaxResponseSize is a limit for maximum response size in some RPC calls in bytes
+		MaxResponseSize int
+
 		RPCBlockExt bool
 	}
 
@@ -192,6 +195,8 @@ func DefaultConfig(scale cachescale.Func) Config {
 		RPCGasCap:   50000000,
 		RPCTxFeeCap: 100, // 100 FTM
 		RPCTimeout:  5 * time.Second,
+
+		MaxResponseSize: 25 * 1024 * 1024,
 	}
 	sessionCfg := cfg.Protocol.DagStreamLeecher.Session
 	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.Event(sessionCfg.ParallelChunksDownload)*

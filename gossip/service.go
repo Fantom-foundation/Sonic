@@ -401,6 +401,16 @@ func (s *Service) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   s.netRPCService,
 			Public:    true,
+		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicDebugAPI(s.EthAPI, s.config.MaxResponseSize),
+			Public:    true,
+		}, {
+			Namespace: "trace",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicTxTraceAPI(s.EthAPI, s.config.MaxResponseSize),
+			Public:    true,
 		},
 	}...)
 
