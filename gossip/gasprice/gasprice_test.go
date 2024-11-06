@@ -70,7 +70,7 @@ func TestOracle_EffectiveMinGasPrice(t *testing.T) {
 		pendingRules:      opera.FakeNetRules(),
 	}
 
-	gpo := NewOracle(Config{})
+	gpo := NewOracle(Config{}, nil)
 	gpo.cfg.MaxGasPrice = math.MaxBig256
 	gpo.cfg.MinGasPrice = new(big.Int)
 
@@ -130,8 +130,7 @@ func TestOracle_constructiveGasPrice(t *testing.T) {
 		pendingRules:      opera.FakeNetRules(),
 	}
 
-	gpo := NewOracle(Config{})
-	gpo.backend = backend
+	gpo := NewOracle(Config{}, backend)
 	gpo.cfg.MaxGasPrice = math.MaxBig256
 	gpo.cfg.MinGasPrice = new(big.Int)
 
@@ -172,8 +171,7 @@ func TestOracle_reactiveGasPrice(t *testing.T) {
 		pendingRules:      opera.FakeNetRules(),
 	}
 
-	gpo := NewOracle(Config{})
-	gpo.backend = backend
+	gpo := NewOracle(Config{}, backend)
 	gpo.cfg.MaxGasPrice = math.MaxBig256
 	gpo.cfg.MinGasPrice = new(big.Int)
 
