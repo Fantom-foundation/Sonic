@@ -106,20 +106,20 @@ func sanitizeBigInt(val, min, max, _default *big.Int, name string) *big.Int {
 
 // NewOracle returns a new gasprice oracle which can recommend suitable
 // gasprice for newly created transaction.
-func NewOracle(params Config) *Oracle {
+func NewOracle(params Config, backend Reader) *Oracle {
 	params.MaxGasPrice = sanitizeBigInt(params.MaxGasPrice, nil, nil, DefaultMaxGasPrice, "MaxGasPrice")
 	params.MinGasPrice = sanitizeBigInt(params.MinGasPrice, nil, nil, new(big.Int), "MinGasPrice")
 	params.DefaultCertainty = sanitizeBigInt(new(big.Int).SetUint64(params.DefaultCertainty), big.NewInt(0), DecimalUnitBn, big.NewInt(DecimalUnit/2), "DefaultCertainty").Uint64()
 	tCache, _ := lru.New(100)
 	return &Oracle{
-		cfg:    params,
-		tCache: tCache,
-		quit:   make(chan struct{}),
+		cfg:     params,
+		tCache:  tCache,
+		quit:    make(chan struct{}),
+		backend: backend,
 	}
 }
 
-func (gpo *Oracle) Start(backend Reader) {
-	gpo.backend = backend
+func (gpo *Oracle) Start() {
 	gpo.wg.Add(1)
 	go func() {
 		defer gpo.wg.Done()

@@ -23,14 +23,6 @@ type EvmStateReader struct {
 	gpo   *gasprice.Oracle
 }
 
-func (s *Service) GetEvmStateReader() *EvmStateReader {
-	return &EvmStateReader{
-		ServiceFeed: &s.feed,
-		store:       s.store,
-		gpo:         s.gpo,
-	}
-}
-
 // MinGasPrice returns current hard lower bound for gas price
 func (r *EvmStateReader) MinGasPrice() *big.Int {
 	return r.store.GetRules().Economy.MinGasPrice

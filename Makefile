@@ -51,6 +51,10 @@ clean:
 
 # Linting
 
+.PHONY: vet
+vet: 
+	go vet ./...
+
 STATICCHECK_VERSION = 2024.1.1
 .PHONY: staticcheck
 staticcheck: 
@@ -64,4 +68,4 @@ errorcheck:
 	errcheck ./...
 
 .PHONY: lint
-lint: staticcheck errorcheck
+lint: vet staticcheck errorcheck
