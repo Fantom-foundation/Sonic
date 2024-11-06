@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 
 contract BlobBaseFee {
     event CurrentBlobBaseFee(uint256 fee);
-    event LogBlobGasUsed(uint256 gasUsed);
 
     function logCurrentBlobBaseFee() public {
         emit CurrentBlobBaseFee(block.blobbasefee);
