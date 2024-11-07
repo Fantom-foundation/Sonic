@@ -244,6 +244,7 @@ func consensusCallbackBeginBlockFn(
 					block.SkippedTxs = skippedTxs
 					block.Root = hash.Hash(evmBlock.Root)
 					block.GasUsed = evmBlock.GasUsed
+					block.BaseFee = evmBlock.BaseFee
 
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)
@@ -337,7 +338,7 @@ func consensusCallbackBeginBlockFn(
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())
 					log.Info("New block", "index", blockCtx.Idx, "id", block.Atropos, "gas_used",
-						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
+						evmBlock.GasUsed, "base_fee", evmBlock.BaseFee.String(), "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
 						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 

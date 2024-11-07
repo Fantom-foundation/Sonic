@@ -78,6 +78,8 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 	baseFee := rules.Economy.MinGasPrice
 	if !rules.Upgrades.London {
 		baseFee = nil
+	} else if rules.Upgrades.Sonic {
+		baseFee = block.BaseFee
 	}
 
 	prevRandao := common.Hash{}

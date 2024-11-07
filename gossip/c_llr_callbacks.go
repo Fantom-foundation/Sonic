@@ -51,6 +51,7 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br
 		InternalTxs: []common.Hash{},
 		SkippedTxs:  []uint32{},
 		GasUsed:     br.GasUsed,
+		BaseFee:     baseFee,
 		Root:        br.Root,
 	})
 	s.SetBlockIndex(br.Atropos, br.Idx)

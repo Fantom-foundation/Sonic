@@ -26,8 +26,15 @@ func New() *EVMModule {
 
 func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, reader evmcore.DummyChain, onNewLog func(*types.Log), net opera.Rules, evmCfg *params.ChainConfig) blockproc.EVMProcessor {
 	var prevBlockHash common.Hash
-	if block.Idx != 0 {
-		prevBlockHash = reader.GetHeader(common.Hash{}, uint64(block.Idx-1)).Hash
+	var baseFee *big.Int
+	if block.Idx <= 1 {  // < the genesis block is block 1
+		baseFee = big.NewInt(1e9) // < TODO: make configurable
+	} else {
+		header := reader.GetHeader(common.Hash{}, uint64(block.Idx-1))
+		prevBlockHash = header.Hash
+
+		// TODO: compute base-fee for the next block
+		baseFee = new(big.Int).Add(header.BaseFee, big.NewInt(1e8)) // < TODO: implement actual gas-price calculation
 	}
 
 	// Start block
@@ -42,6 +49,7 @@ func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, read
 		evmCfg:        evmCfg,
 		blockIdx:      utils.U64toBig(uint64(block.Idx)),
 		prevBlockHash: prevBlockHash,
+		gasBaseFee:    baseFee,
 	}
 }
 
@@ -55,6 +63,7 @@ type OperaEVMProcessor struct {
 
 	blockIdx      *big.Int
 	prevBlockHash common.Hash
+	gasBaseFee    *big.Int
 
 	gasUsed uint64
 
@@ -67,6 +76,8 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 	baseFee := p.net.Economy.MinGasPrice
 	if !p.net.Upgrades.London {
 		baseFee = nil
+	} else if p.net.Upgrades.Sonic {
+		baseFee = p.gasBaseFee
 	}
 
 	prevRandao := common.Hash{}

@@ -125,6 +125,13 @@ type EconomyRules struct {
 
 	Gas GasRules
 
+	// The minimum gas price used as the base-fee gas price on
+	// the Fantom network. This value is gradually adjusted after
+	// each epoch through a rule update initiated by the node
+	// driver and SFC on the Fantom network. On the Sonic network,
+	// this field is only used for the genesis block and ignored
+	// afterwards as gas prices are adjusted dynamically analogous
+	// to EIP-1559 (https://eips.ethereum.org/EIPS/eip-1559).
 	MinGasPrice *big.Int
 
 	ShortGasPower GasPowerRules
@@ -163,10 +170,10 @@ var BaseChainConfig = ethparams.ChainConfig{
 	PetersburgBlock:               big.NewInt(0),
 	IstanbulBlock:                 big.NewInt(0),
 	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay - relevant for ethereum only
-	BerlinBlock:                   nil, // to be overwritten in EvmChainConfig
-	LondonBlock:                   nil, // to be overwritten in EvmChainConfig
-	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
-	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
+	BerlinBlock:                   nil,           // to be overwritten in EvmChainConfig
+	LondonBlock:                   nil,           // to be overwritten in EvmChainConfig
+	ArrowGlacierBlock:             nil,           // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
+	GrayGlacierBlock:              nil,           // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
 	MergeNetsplitBlock:            nil,
 	ShanghaiTime:                  nil, // to be overwritten in EvmChainConfig
 	CancunTime:                    nil, // to be overwritten in EvmChainConfig

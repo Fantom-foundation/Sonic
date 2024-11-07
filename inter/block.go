@@ -1,6 +1,8 @@
 package inter
 
 import (
+	"math/big"
+
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -14,6 +16,7 @@ type Block struct {
 	InternalTxs []common.Hash // DEPRECATED in favor of using only Txs fields and method internal.IsInternal
 	SkippedTxs  []uint32      // indexes of skipped txs, starting from first tx of first event, ending with last tx of last event
 	GasUsed     uint64
+	BaseFee     *big.Int
 	Root        hash.Hash
 }
 
