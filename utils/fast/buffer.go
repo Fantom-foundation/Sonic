@@ -25,7 +25,7 @@ func NewWriter(bb []byte) *Writer {
 }
 
 // WriteByte to the buffer.
-func (b *Writer) WriteByte(v byte) {
+func (b *Writer) MustWriteByte(v byte) {
 	b.buf = append(b.buf, v)
 }
 
@@ -36,19 +36,15 @@ func (b *Writer) Write(v []byte) {
 
 // Read n bytes.
 func (b *Reader) Read(n int) []byte {
-	var res []byte
-	res = b.buf[b.offset : b.offset+n]
+	res := b.buf[b.offset : b.offset+n]
 	b.offset += n
-
 	return res
 }
 
 // ReadByte reads 1 byte.
-func (b *Reader) ReadByte() byte {
-	var res byte
-	res = b.buf[b.offset]
+func (b *Reader) MustReadByte() byte {
+	res := b.buf[b.offset]
 	b.offset++
-
 	return res
 }
 

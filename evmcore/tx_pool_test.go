@@ -98,17 +98,6 @@ func (bc *testBlockChain) changeStateDB(statedb *testTxPoolStateDb) {
 	bc.statedb = statedb
 }
 
-func (bc *testBlockChain) changeGasLimit(newLimit uint64) {
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
-	bc.gasLimit = newLimit
-}
-func (bc *testBlockChain) changeChainHeadFeed(newFeed *event.Feed) {
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
-	bc.chainHeadFeed = newFeed
-}
-
 func (bc *testBlockChain) CurrentBlock() *EvmBlock {
 	bc.mu.Lock()
 	defer bc.mu.Unlock()

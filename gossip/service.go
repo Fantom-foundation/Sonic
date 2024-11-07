@@ -209,9 +209,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	netVerStore.GetNetworkVersion()
 	netVerStore.GetMissedVersion()
 
-	// create GPO
-	svc.gpo = gasprice.NewOracle(svc.config.GPO)
-
 	// create checkers
 	net := store.GetRules()
 	txSigner := gsignercache.Wrap(types.LatestSignerForChainID(new(big.Int).SetUint64(net.NetworkID)))
@@ -221,8 +218,15 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	svc.checkers = makeCheckers(config.HeavyCheck, txSigner, &svc.heavyCheckReader, &svc.gasPowerCheckReader, svc.store)
 
 	// create tx pool
-	stateReader := svc.GetEvmStateReader()
+	stateReader := &EvmStateReader{
+		ServiceFeed: &svc.feed,
+		store:       svc.store,
+	}
 	svc.txpool = newTxPool(stateReader)
+
+	// create GPO
+	svc.gpo = gasprice.NewOracle(svc.config.GPO, &GPOBackend{svc.store, svc.txpool})
+	stateReader.gpo = svc.gpo
 
 	// init dialCandidates
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
@@ -397,6 +401,16 @@ func (s *Service) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   s.netRPCService,
 			Public:    true,
+		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicDebugAPI(s.EthAPI, s.config.MaxResponseSize),
+			Public:    true,
+		}, {
+			Namespace: "trace",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicTxTraceAPI(s.EthAPI, s.config.MaxResponseSize),
+			Public:    true,
 		},
 	}...)
 
@@ -417,7 +431,7 @@ func (s *Service) APIs() []rpc.API {
 
 // Start method invoked when the node is ready to start the service.
 func (s *Service) Start() error {
-	s.gpo.Start(&GPOBackend{s.store, s.txpool})
+	s.gpo.Start()
 	// start tflusher before starting snapshots generation
 	s.tflusher.Start()
 	blockState := s.store.GetBlockState()

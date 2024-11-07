@@ -135,11 +135,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPublicDebugAPI(apiBackend),
-			Public:    true,
-		}, {
-			Namespace: "debug",
-			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(apiBackend),
 		}, {
 			Namespace: "eth",
@@ -155,12 +150,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Namespace: "abft",
 			Version:   "1.0",
 			Service:   NewPublicAbftAPI(apiBackend),
-			Public:    true,
-		},
-		{
-			Namespace: "trace",
-			Version:   "1.0",
-			Service:   NewPublicTxTraceAPI(apiBackend),
 			Public:    true,
 		},
 	}

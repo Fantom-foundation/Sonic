@@ -43,19 +43,18 @@ func writeUint64Compact(bytesW *fast.Writer, v uint64) {
 			// stop flag
 			chunk |= 0b10000000
 		}
-		bytesW.WriteByte(byte(chunk))
+		bytesW.MustWriteByte(byte(chunk))
 		if v == 0 {
 			break
 		}
 	}
-	return
 }
 
 func readUint64Compact(bytesR *fast.Reader) uint64 {
 	v := uint64(0)
 	stop := false
 	for i := 0; !stop; i++ {
-		chunk := uint64(bytesR.ReadByte())
+		chunk := uint64(bytesR.MustReadByte())
 		stop = (chunk & 0b10000000) != 0
 		word := chunk & 0b01111111
 		v |= word << (i * 7)
@@ -70,7 +69,7 @@ func readUint64Compact(bytesR *fast.Reader) uint64 {
 
 func writeUint64BitCompact(bytesW *fast.Writer, v uint64, minSize int) (size int) {
 	for size < minSize || v != 0 {
-		bytesW.WriteByte(byte(v))
+		bytesW.MustWriteByte(byte(v))
 		size++
 		v = v >> 8
 	}
@@ -96,11 +95,11 @@ func readUint64BitCompact(bytesR *fast.Reader, size int) uint64 {
 }
 
 func (r *Reader) U8() uint8 {
-	return r.BytesR.ReadByte()
+	return r.BytesR.MustReadByte()
 }
 
 func (w *Writer) U8(v uint8) {
-	w.BytesW.WriteByte(v)
+	w.BytesW.MustWriteByte(v)
 }
 
 func (r *Reader) readU64_bits(minSize int, bitsForSize int) uint64 {

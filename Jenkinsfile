@@ -21,6 +21,12 @@ pipeline {
             }
         }
 
+        stage('Static analysis') {
+            steps {
+                sh 'make lint'
+            }
+        }
+
         stage('Build') {
             steps {
                 sh 'make'

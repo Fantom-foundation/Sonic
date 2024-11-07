@@ -22,7 +22,7 @@ func TestBuffer(t *testing.T) {
 
 		w = NewWriter(make([]byte, 0, N/2))
 		for i := byte(0); i < N; i++ {
-			w.WriteByte(i)
+			w.MustWriteByte(i)
 		}
 		require.Equal(N, len(w.Bytes()))
 		w.Write(bb)
@@ -36,7 +36,7 @@ func TestBuffer(t *testing.T) {
 		require.Equal(N+len(bb), len(r.Bytes()))
 		require.False(r.Empty())
 		for exp := byte(0); exp < N; exp++ {
-			got := r.ReadByte()
+			got := r.MustReadByte()
 			require.Equal(exp, got)
 		}
 		require.Equal(N, r.Position())
@@ -58,7 +58,7 @@ func Benchmark(b *testing.B) {
 		b.Run("Fast", func(b *testing.B) {
 			w := NewWriter(make([]byte, 0, b.N))
 			for i := 0; i < b.N; i++ {
-				w.WriteByte(byte(i))
+				w.MustWriteByte(byte(i))
 			}
 			require.Equal(b, b.N, len(w.Bytes()))
 		})
@@ -80,7 +80,7 @@ func Benchmark(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				r := NewReader(src)
 				for j := 0; j < len(src); j++ {
-					_ = r.ReadByte()
+					_ = r.MustReadByte()
 				}
 			}
 		})

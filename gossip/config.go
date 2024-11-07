@@ -86,6 +86,9 @@ type (
 		// allows only for EIP155 transactions.
 		AllowUnprotectedTxs bool
 
+		// MaxResponseSize is a limit for maximum response size in some RPC calls in bytes
+		MaxResponseSize int
+
 		RPCBlockExt bool
 	}
 
@@ -109,8 +112,8 @@ type (
 	StoreConfig struct {
 		Cache StoreCacheConfig
 		// EVM is EVM store config
-		EVM               evmstore.StoreConfig
-		MaxNonFlushedSize int
+		EVM                 evmstore.StoreConfig
+		MaxNonFlushedSize   int
 		MaxNonFlushedPeriod time.Duration
 	}
 )
@@ -192,6 +195,8 @@ func DefaultConfig(scale cachescale.Func) Config {
 		RPCGasCap:   50000000,
 		RPCTxFeeCap: 100, // 100 FTM
 		RPCTimeout:  5 * time.Second,
+
+		MaxResponseSize: 25 * 1024 * 1024,
 	}
 	sessionCfg := cfg.Protocol.DagStreamLeecher.Session
 	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.Event(sessionCfg.ParallelChunksDownload)*
@@ -207,7 +212,10 @@ func DefaultConfig(scale cachescale.Func) Config {
 
 func (c *Config) Validate() error {
 	p := c.Protocol
-	defaultChunkSize := dag.Metric{idx.Event(p.DagStreamLeecher.Session.DefaultChunkItemsNum), p.DagStreamLeecher.Session.DefaultChunkItemsSize}
+	defaultChunkSize := dag.Metric{
+		Num:  idx.Event(p.DagStreamLeecher.Session.DefaultChunkItemsNum),
+		Size: p.DagStreamLeecher.Session.DefaultChunkItemsSize,
+	}
 	if defaultChunkSize.Num > hardLimitItems-1 {
 		return fmt.Errorf("DefaultChunkSize.Num has to be at not greater than %d", hardLimitItems-1)
 	}
@@ -258,7 +266,7 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 func MemTestStoreConfig(tmpDir string) StoreConfig {
 	cfg := DefaultStoreConfig(cachescale.Ratio{Base: 10, Target: 1})
 	cfg.EVM.StateDb.Directory = filepath.Join(tmpDir, "carmen")
-	cfg.EVM.StateDb.LiveCache = 100 // bytes, to be overridden by the minimal value
+	cfg.EVM.StateDb.LiveCache = 100    // bytes, to be overridden by the minimal value
 	cfg.EVM.StateDb.ArchiveCache = 100 // bytes, to be overridden by the minimal value
 	return cfg
 }

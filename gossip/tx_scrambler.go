@@ -7,6 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"slices"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // ScramblerEntry stores meta information about transaction for sorting and filtering them.
@@ -92,7 +94,6 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 		entries[idx] = senderNonceOrder[senderIndex[sender]]
 		senderIndex[sender]++
 	}
-	return
 }
 
 // scrambleTransactions scrambles transactions by comparing its XORed hashes with salt

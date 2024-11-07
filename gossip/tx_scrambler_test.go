@@ -63,19 +63,40 @@ func TestTxScrambler_AnalyseEntryList_ReportsDuplicateAddresses(t *testing.T) {
 		{
 			name: "has duplicate address",
 			input: []ScramblerEntry{
-				&dummyScramblerEntry{sender: common.Address{1}},
-				&dummyScramblerEntry{sender: common.Address{3}},
-				&dummyScramblerEntry{sender: common.Address{2}},
-				&dummyScramblerEntry{sender: common.Address{3}},
+				&dummyScramblerEntry{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+				},
+				&dummyScramblerEntry{
+					hash:   common.Hash{2},
+					sender: common.Address{3},
+				},
+				&dummyScramblerEntry{
+					hash:   common.Hash{3},
+					sender: common.Address{2},
+				},
+				&dummyScramblerEntry{
+					hash:   common.Hash{4},
+					sender: common.Address{3},
+				},
 			},
 			hasDuplicate: true,
 		},
 		{
 			name: "has no duplicate address",
 			input: []ScramblerEntry{
-				&dummyScramblerEntry{sender: common.Address{1}},
-				&dummyScramblerEntry{sender: common.Address{2}},
-				&dummyScramblerEntry{sender: common.Address{3}},
+				&dummyScramblerEntry{
+					hash:   common.Hash{1},
+					sender: common.Address{1},
+				},
+				&dummyScramblerEntry{
+					hash:   common.Hash{2},
+					sender: common.Address{2},
+				},
+				&dummyScramblerEntry{
+					hash:   common.Hash{3},
+					sender: common.Address{3},
+				},
 			},
 			hasDuplicate: false,
 		},
@@ -83,7 +104,7 @@ func TestTxScrambler_AnalyseEntryList_ReportsDuplicateAddresses(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			_, _, hasDuplicateAddresses := analyseEntryList(test.input)
-			if hasDuplicateAddresses != hasDuplicateAddresses {
+			if hasDuplicateAddresses != test.hasDuplicate {
 				t.Error("wrongly reported duplicate address")
 			}
 		})

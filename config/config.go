@@ -4,16 +4,17 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/go-opera/config/flags"
-	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
-	"github.com/Fantom-foundation/go-opera/version"
-	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/config/flags"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/version"
+	"github.com/ethereum/go-ethereum/common/fdlimit"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
@@ -93,9 +94,10 @@ func loadAllConfigs(file string, cfg *Config) error {
 		err = errors.New(file + ", " + err.Error())
 	}
 	if err != nil {
-		return errors.New(fmt.Sprintf("TOML config file error: %v.\n"+
+
+		return fmt.Errorf("TOML config file error: %v.\n"+
 			"Use 'dumpconfig' command to get an example config file.\n"+
-			"If node was recently upgraded and a previous network config file is used, then check updates for the config file.", err))
+			"If node was recently upgraded and a previous network config file is used, then check updates for the config file.", err)
 	}
 	return err
 }
@@ -178,7 +180,7 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	return cfg
 }
 
-func setEvmStore(ctx *cli.Context, datadir string, src  evmstore.StoreConfig) (evmstore.StoreConfig, error) {
+func setEvmStore(ctx *cli.Context, datadir string, src evmstore.StoreConfig) (evmstore.StoreConfig, error) {
 	cfg := src
 	cfg.StateDb.Directory = filepath.Join(datadir, "carmen")
 
@@ -231,13 +233,13 @@ const (
 	// DefaultCacheSize is calculated as memory consumption in a worst case scenario with default configuration
 	// Average memory consumption might be 3-5 times lower than the maximum
 	DefaultCacheSize  = 6 * 1024 // MB
-	ConstantCacheSize = 400 // MB
+	ConstantCacheSize = 400      // MB
 )
 
 func cacheScaler(ctx *cli.Context) cachescale.Func {
 	baseSize := DefaultCacheSize
 	totalMemory := int(memory.TotalMemory() / opt.MiB)
-	maxCache := totalMemory * 3 / 5  // max 60% of available memory
+	maxCache := totalMemory * 3 / 5 // max 60% of available memory
 	if maxCache < baseSize {
 		maxCache = baseSize
 	}
