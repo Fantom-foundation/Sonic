@@ -143,28 +143,29 @@ func (h *EvmHeader) EthHeader() *types.Header {
 
 // EvmHeaderJson is simplified version of types.Header, but allowing setting custom hash
 type EvmHeaderJson struct {
-	ParentHash    common.Hash      `json:"parentHash"       gencodec:"required"`
-	UncleHash     common.Hash      `json:"sha3Uncles"       gencodec:"required"`
-	Miner         common.Address   `json:"miner"`
-	Root          common.Hash      `json:"stateRoot"        gencodec:"required"`
-	TxHash        common.Hash      `json:"transactionsRoot" gencodec:"required"`
-	ReceiptHash   common.Hash      `json:"receiptsRoot"     gencodec:"required"`
-	Bloom         types.Bloom      `json:"logsBloom"        gencodec:"required"`
-	Difficulty    *hexutil.Big     `json:"difficulty"       gencodec:"required"`
-	Number        *hexutil.Big     `json:"number"           gencodec:"required"`
-	GasLimit      hexutil.Uint64   `json:"gasLimit"         gencodec:"required"`
-	GasUsed       hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
-	Time          hexutil.Uint64   `json:"timestamp"        gencodec:"required"`
-	TimeNano      hexutil.Uint64   `json:"timestampNano"`
-	Extra         hexutil.Bytes    `json:"extraData"        gencodec:"required"`
-	PrevRandao    common.Hash      `json:"mixHash"`
-	Nonce         types.BlockNonce `json:"nonce"`
-	BaseFee       *hexutil.Big     `json:"baseFeePerGas"`
-	Hash          *common.Hash     `json:"hash"`
-	Epoch         hexutil.Uint64   `json:"epoch"`
-	TotalDiff     *hexutil.Big     `json:"totalDifficulty"`
-	BlobGasUsed   *hexutil.Uint64  `json:"blobGasUsed"`
-	ExcessBlobGas *hexutil.Uint64  `json:"excessBlobGas"`
+	ParentHash      common.Hash      `json:"parentHash"       gencodec:"required"`
+	UncleHash       common.Hash      `json:"sha3Uncles"       gencodec:"required"`
+	Miner           common.Address   `json:"miner"`
+	Root            common.Hash      `json:"stateRoot"        gencodec:"required"`
+	TxHash          common.Hash      `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash     common.Hash      `json:"receiptsRoot"     gencodec:"required"`
+	Bloom           types.Bloom      `json:"logsBloom"        gencodec:"required"`
+	Difficulty      *hexutil.Big     `json:"difficulty"       gencodec:"required"`
+	Number          *hexutil.Big     `json:"number"           gencodec:"required"`
+	GasLimit        hexutil.Uint64   `json:"gasLimit"         gencodec:"required"`
+	GasUsed         hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
+	Time            hexutil.Uint64   `json:"timestamp"        gencodec:"required"`
+	TimeNano        hexutil.Uint64   `json:"timestampNano"`
+	Extra           hexutil.Bytes    `json:"extraData"        gencodec:"required"`
+	PrevRandao      common.Hash      `json:"mixHash"`
+	Nonce           types.BlockNonce `json:"nonce"`
+	BaseFee         *hexutil.Big     `json:"baseFeePerGas"`
+	Hash            *common.Hash     `json:"hash"`
+	Epoch           hexutil.Uint64   `json:"epoch"`
+	TotalDiff       *hexutil.Big     `json:"totalDifficulty"`
+	WithdrawalsHash *common.Hash     `json:"withdrawalsRoot"`
+	BlobGasUsed     *hexutil.Uint64  `json:"blobGasUsed"`
+	ExcessBlobGas   *hexutil.Uint64  `json:"excessBlobGas"`
 }
 
 type EvmBlockJson struct {
@@ -176,24 +177,25 @@ type EvmBlockJson struct {
 
 func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 	enc := &EvmHeaderJson{
-		Number:        (*hexutil.Big)(h.Number),
-		Miner:         h.Coinbase,
-		GasLimit:      0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
-		GasUsed:       hexutil.Uint64(h.GasUsed),
-		Root:          h.Root,
-		TxHash:        h.TxHash,
-		ParentHash:    h.ParentHash,
-		UncleHash:     types.EmptyUncleHash,
-		Time:          hexutil.Uint64(h.Time.Unix()),
-		TimeNano:      hexutil.Uint64(h.Time),
-		BaseFee:       (*hexutil.Big)(h.BaseFee),
-		Difficulty:    new(hexutil.Big),
-		PrevRandao:    h.PrevRandao,
-		TotalDiff:     new(hexutil.Big),
-		Hash:          &h.Hash,
-		Epoch:         hexutil.Uint64(hash.Event(h.Hash).Epoch()),
-		BlobGasUsed:   (*hexutil.Uint64)(new(uint64)),
-		ExcessBlobGas: (*hexutil.Uint64)(new(uint64)),
+		Number:          (*hexutil.Big)(h.Number),
+		Miner:           h.Coinbase,
+		GasLimit:        0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
+		GasUsed:         hexutil.Uint64(h.GasUsed),
+		Root:            h.Root,
+		TxHash:          h.TxHash,
+		ParentHash:      h.ParentHash,
+		UncleHash:       types.EmptyUncleHash,
+		Time:            hexutil.Uint64(h.Time.Unix()),
+		TimeNano:        hexutil.Uint64(h.Time),
+		BaseFee:         (*hexutil.Big)(h.BaseFee),
+		Difficulty:      new(hexutil.Big),
+		PrevRandao:      h.PrevRandao,
+		TotalDiff:       new(hexutil.Big),
+		Hash:            &h.Hash,
+		Epoch:           hexutil.Uint64(hash.Event(h.Hash).Epoch()),
+		WithdrawalsHash: (*common.Hash)(new(common.Hash)), // < TODO: fix value
+		BlobGasUsed:     (*hexutil.Uint64)(new(uint64)),
+		ExcessBlobGas:   (*hexutil.Uint64)(new(uint64)),
 	}
 	if receipts != nil { // if receipts resolution fails, don't set ReceiptsHash at all
 		if receipts.Len() != 0 {
