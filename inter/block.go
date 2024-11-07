@@ -16,14 +16,22 @@ type Block struct {
 	SkippedTxs  []uint32      // indexes of skipped txs, starting from first tx of first event, ending with last tx of last event
 	GasUsed     uint64
 	Root        hash.Hash
-	PrevRandao  common.Hash
+	prevRandao  common.Hash
 }
 
 func (b *Block) EstimateSize() int {
 	return (len(b.Events)+len(b.InternalTxs)+len(b.Txs)+1+1)*32 + len(b.SkippedTxs)*4 + 8 + 8
 }
 
-// ComputePrevRandao computes the PrevRandao from event hashes.
+func (b *Block) SetPrevRandao(prevrandao common.Hash) {
+	b.prevRandao = prevrandao
+}
+
+func (b *Block) GetPrevRandao() common.Hash {
+	return b.prevRandao
+}
+
+// ComputePrevRandao computes the prevRandao from event hashes.
 func ComputePrevRandao(events []hash.Event) common.Hash {
 	prevRandao := common.Hash{}
 	for _, event := range events {
