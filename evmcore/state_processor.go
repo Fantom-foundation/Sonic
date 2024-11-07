@@ -177,6 +177,15 @@ func applyTransaction(
 	// Skip checking of base fee limits for internal transactions.
 	evm.Config.NoBaseFee = msg.SkipAccountChecks
 
+	// For now, Sonic only supports Blob transactions without blob data.
+	if msg.BlobHashes != nil {
+		if len(msg.BlobHashes) > 0 {
+			return nil, 0, true, fmt.Errorf("blob data is not supported")
+		}
+		// PreCheck requires non-nil blobHashes not to be empty
+		msg.BlobHashes = nil
+	}
+
 	// Apply the transaction to the current state (included in the env).
 	result, err := core.ApplyMessage(evm, msg, gp)
 	if err != nil {
