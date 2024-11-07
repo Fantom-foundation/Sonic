@@ -3,7 +3,6 @@ package gossip
 import (
 	"bytes"
 	"cmp"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"slices"
