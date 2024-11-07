@@ -16,32 +16,23 @@ type Block struct {
 	SkippedTxs  []uint32      // indexes of skipped txs, starting from first tx of first event, ending with last tx of last event
 	GasUsed     uint64
 	Root        hash.Hash
-	prevRandao  common.Hash
+	PrevRandao  common.Hash
 }
 
 func (b *Block) EstimateSize() int {
 	return (len(b.Events)+len(b.InternalTxs)+len(b.Txs)+1+1)*32 + len(b.SkippedTxs)*4 + 8 + 8
 }
 
-// GetPrevRandao returns the PrevRandao for current block.
-func (b *Block) GetPrevRandao() common.Hash {
-	if b.prevRandao == (common.Hash{}) {
-		b.computePrevRandao()
-	}
-	return b.prevRandao
-}
-
-// computePrevRandao computes the PrevRandao from event hashes.
-func (b *Block) computePrevRandao() {
-	// reset the value
-	b.prevRandao = common.Hash{}
-	for _, event := range b.Events {
+// ComputePrevRandao computes the PrevRandao from event hashes.
+func ComputePrevRandao(events []hash.Event) common.Hash {
+	prevRandao := common.Hash{}
+	for _, event := range events {
 		for i := 0; i < 24; i++ {
 			// first 8 bytes should be ignored as they are not pseudo-random.
-			b.prevRandao[i+8] = b.prevRandao[i+8] ^ event[i+8]
+			prevRandao[i+8] = prevRandao[i+8] ^ event[i+8]
 		}
 	}
-	b.prevRandao = sha256.Sum256(b.prevRandao.Bytes())
+	return sha256.Sum256(prevRandao.Bytes())
 }
 
 func FilterSkippedTxs(txs types.Transactions, skippedTxs []uint32) types.Transactions {

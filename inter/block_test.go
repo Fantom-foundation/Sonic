@@ -9,20 +9,19 @@ import (
 	"testing"
 )
 
-func TestBlock_ComputePrevRandao_ComputationIsDeterministic(t *testing.T) {
+func TestComputePrevRandao_ComputationIsDeterministic(t *testing.T) {
 	events := hash.FakeEvents(5)
-	blk := Block{Events: events}
-	randao1 := blk.GetPrevRandao()
-	rand.Shuffle(len(blk.Events), func(i, j int) {
-		blk.Events[i], blk.Events[j] = blk.Events[j], blk.Events[i]
+	randao1 := ComputePrevRandao(events)
+	rand.Shuffle(len(events), func(i, j int) {
+		events[i], events[j] = events[j], events[i]
 	})
-	randao2 := blk.GetPrevRandao()
+	randao2 := ComputePrevRandao(events)
 	if randao1 != randao2 {
 		t.Error("computation is not deterministic")
 	}
 }
 
-func TestBlock_ComputePrevRandao_ComputationWorks(t *testing.T) {
+func TestComputePrevRandao_ComputationWorks(t *testing.T) {
 	tests := []struct {
 		name   string
 		events hash.Events
@@ -48,8 +47,7 @@ func TestBlock_ComputePrevRandao_ComputationWorks(t *testing.T) {
 					prevRandao[i+8] = prevRandao[i+8] ^ event[i+8]
 				}
 			}
-			blk := Block{Events: test.events}
-			if want, got := sha256.Sum256(prevRandao.Bytes()), blk.GetPrevRandao(); !bytes.Equal(want[:], got[:]) {
+			if want, got := sha256.Sum256(prevRandao.Bytes()), ComputePrevRandao(test.events); !bytes.Equal(want[:], got[:]) {
 				t.Errorf("unexpected has;, got: %s, want: %s", got, want)
 			}
 		})

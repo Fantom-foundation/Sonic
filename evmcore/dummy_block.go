@@ -82,7 +82,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 
 	prevRandao := common.Hash{}
 	if rules.Upgrades.Sonic {
-		prevRandao = block.GetPrevRandao()
+		prevRandao = block.PrevRandao
 	}
 
 	return &EvmHeader{
