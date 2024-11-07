@@ -39,6 +39,7 @@ func TestWithdrawalsCanBeRLPEncodedAndDecoded(t *testing.T) {
 	})
 
 	t.Run("encode and decode works properly", func(t *testing.T) {
+		// encode block
 		buffer := bytes.NewBuffer(make([]byte, 0))
 		err = block.EncodeRLP(buffer)
 		require.NoError(err, "failed to encode block ", err)
@@ -49,7 +50,7 @@ func TestWithdrawalsCanBeRLPEncodedAndDecoded(t *testing.T) {
 		require.NoError(err, "failed to decode block header; ", err)
 
 		// check that the block has an empty list of withdrawals
-		require.Equal(types.Withdrawals{}, block.Withdrawals())
+		require.Empty(block.Withdrawals())
 		require.Equal(types.EmptyWithdrawalsHash, *block.Header().WithdrawalsHash)
 	})
 }
