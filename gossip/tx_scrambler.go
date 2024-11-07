@@ -3,6 +3,8 @@ package gossip
 import (
 	"bytes"
 	"cmp"
+	"github.com/ethereum/go-ethereum/core/types"
+	"math/big"
 	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,8 +18,29 @@ type ScramblerEntry interface {
 	Sender() common.Address
 	// Nonce returns the transaction nonce
 	Nonce() uint64
-	// GasPrice returns the transaction gasPrice price
-	GasPrice() uint64
+	// GasPrice returns the transaction gas price
+	GasPrice() *big.Int
+}
+
+// newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
+func newScramblerTransaction(signer types.Signer, tx *types.Transaction) (ScramblerEntry, error) {
+	sender, err := types.Sender(signer, tx)
+	if err != nil {
+		return nil, err
+	}
+	return &scramblerTransaction{
+		Transaction: tx,
+		sender:      sender,
+	}, nil
+}
+
+type scramblerTransaction struct {
+	*types.Transaction
+	sender common.Address
+}
+
+func (tx *scramblerTransaction) Sender() common.Address {
+	return tx.sender
 }
 
 // filterAndOrderTransactions first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
@@ -49,7 +72,7 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 			return res
 		}
 		// if nonce is same, sort by gas price
-		res = cmp.Compare(b.GasPrice(), a.GasPrice())
+		res = b.GasPrice().Cmp(a.GasPrice())
 		if res != 0 {
 			return res
 		}

@@ -2,6 +2,8 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
+	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -178,6 +180,7 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
+				chainCfg := es.Rules.EvmChainConfig(store.GetUpgradeHeights())
 				prevRandao := inter.ComputePrevRandao(confirmedEvents)
 
 				evmProcessor := blockProc.EVMModule.Start(
@@ -186,7 +189,7 @@ func consensusCallbackBeginBlockFn(
 					evmStateReader,
 					onNewLogAll,
 					es.Rules,
-					es.Rules.EvmChainConfig(store.GetUpgradeHeights()),
+					chainCfg,
 					prevRandao,
 				)
 				executionStart := time.Now()
@@ -218,6 +221,7 @@ func consensusCallbackBeginBlockFn(
 					txListener.Update(bs, es)
 				}
 
+				blockNumber := big.NewInt(0).SetUint64(uint64(blockCtx.Idx))
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				blockFn := func() {
 					// Execute post-internal transactions
@@ -244,11 +248,25 @@ func consensusCallbackBeginBlockFn(
 					}
 
 					block, blockEvents := spillBlockEvents(store, block, es.Rules)
-					txs := make(types.Transactions, 0, blockEvents.Len()*10)
+					unorderedTxs := make([]ScramblerEntry, 0, blockEvents.Len()*10)
+
+					signer := gsignercache.Wrap(types.MakeSigner(chainCfg, blockNumber, uint64(blockCtx.Time)))
 					for _, e := range blockEvents {
-						txs = append(txs, e.Txs()...)
+						for _, tx := range e.Txs() {
+							entry, err := newScramblerTransaction(signer, tx)
+							if err != nil {
+								log.Crit(fmt.Sprintf("cannot create scrambler tx %s", tx.Hash()), "err", err)
+							}
+							unorderedTxs = append(unorderedTxs, entry)
+						}
 					}
 
+					orderedTxs := filterAndOrderTransactions(unorderedTxs)
+					txs := make([]*types.Transaction, len(orderedTxs))
+					for idx, orderedTx := range orderedTxs {
+						// Cast back the transactions to pass it to the processor
+						txs[idx] = orderedTx.(*scramblerTransaction).Transaction
+					}
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
