@@ -234,9 +234,10 @@ func consensusCallbackBeginBlockFn(
 
 					// new block
 					var block = &inter.Block{
-						Time:    blockCtx.Time,
-						Atropos: cBlock.Atropos,
-						Events:  hash.Events(confirmedEvents),
+						Time:       blockCtx.Time,
+						Atropos:    cBlock.Atropos,
+						Events:     hash.Events(confirmedEvents),
+						PrevRandao: prevRandao,
 					}
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.Txs = append(block.Txs, tx.Hash())
