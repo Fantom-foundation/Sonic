@@ -139,8 +139,9 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
 					return test.deployTx(to, cb, beneficiaryAddress)
 				})
 			require.NoError(err)
-			require.Equal(deployReceipt.Status,
+			require.Equal(
 				types.ReceiptStatusSuccessful,
+				deployReceipt.Status,
 				"failed to deploy contract",
 			)
 			allLogs := deployReceipt.Logs
@@ -152,8 +153,9 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
 					return test.executeTx(contract, opts, beneficiaryAddress)
 				})
 				require.NoError(err)
-				require.Equal(executionReceipt.Status,
+				require.Equal(
 					types.ReceiptStatusSuccessful,
+					executionReceipt.Status,
 					"failed to execute contract",
 				)
 				allLogs = append(allLogs, deployReceipt.Logs...)
@@ -283,8 +285,9 @@ func testSelfDestruct_NestedCall(t *testing.T, net *IntegrationTestNet) {
 			// deploy factory contract
 			factory, receipt, err := DeployContract(net, selfdestruct.DeploySelfDestructFactory)
 			require.NoError(err)
-			require.Equal(receipt.Status,
+			require.Equal(
 				types.ReceiptStatusSuccessful,
+				receipt.Status,
 				"failed to deploy contract",
 			)
 
@@ -382,8 +385,8 @@ func nestedContractValueAfterSelfDestructIs(value int64) effectFunction {
 				continue
 			}
 			require.Equal(
-				storage.Value.Int64(),
 				value,
+				storage.Value.Int64(),
 				"storage value differs",
 			)
 			return
@@ -398,7 +401,8 @@ func contractBalanceIs(expected int64) effectFunction {
 		balance, err := ctx.client.BalanceAt(context.Background(), ctx.contractAddress, nil)
 		require.NoError(err)
 		require.Equal(
-			balance.Int64(), expected,
+			expected,
+			balance.Int64(),
 			"balance not expected",
 		)
 	}
@@ -411,7 +415,8 @@ func contractStorageIs(expected int64) effectFunction {
 		require.NoError(err)
 		storage := new(big.Int).SetBytes(data)
 		require.Equal(
-			storage.Int64(), expected,
+			expected,
+			storage.Int64(),
 			"storage value differs",
 		)
 	}
@@ -422,7 +427,8 @@ func beneficiaryBalanceIs(expected int64) effectFunction {
 		balance, err := ctx.client.BalanceAt(context.Background(), ctx.beneficiaryAddress, nil)
 		require.NoError(err)
 		require.Equal(
-			balance.Int64(), expected,
+			expected,
+			balance.Int64(),
 			"balance not expected",
 		)
 	}
@@ -433,7 +439,8 @@ func contractCodeSizeIs(expected int) effectFunction {
 		code, err := ctx.client.CodeAt(context.Background(), ctx.contractAddress, nil)
 		require.NoError(err)
 		require.Equal(
-			len(code), expected,
+			expected,
+			len(code),
 			"code size not expected",
 		)
 	}
@@ -444,7 +451,8 @@ func contractCodeSizeIsNot(notExpected int) effectFunction {
 		code, err := ctx.client.CodeAt(context.Background(), ctx.contractAddress, nil)
 		require.NoError(err)
 		require.NotEqual(
-			len(code), notExpected,
+			notExpected,
+			len(code),
 			"code size not expected",
 		)
 	}
