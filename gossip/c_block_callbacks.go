@@ -178,39 +178,7 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				// --------------------------------------------------------------- //
-				// ---------------------- Prepare the block ---------------------- //
-				// --------------------------------------------------------------- //
-				// 1) Pop both pre-internal and internal transactions
-				// 2) Add them to the block - they must be placed at the beginning
-				// 3) Sort events by lamport time
-				// 4) Restrict the list of events to not exceed MaxBlockGas.
-				// 5) Assemble list of transactions in execution order
-				// --------------------------------------------------------------- //
-
-				// Internal transactions needs to be placed at the beginning of the block
-				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-				internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
-
-				// sort events by Lamport time
-				sort.Sort(confirmedEvents)
-
-				var block = &inter.Block{
-					Time:    blockCtx.Time,
-					Atropos: cBlock.Atropos,
-					Events:  hash.Events(confirmedEvents),
-				}
-
-				// Add pre-internal and internal transactions to the block
-				for _, tx := range append(preInternalTxs, internalTxs...) {
-					block.Txs = append(block.Txs, tx.Hash())
-				}
-				// Exclude first events which exceed MaxBlockGas
-				block, blockEvents := spillBlockEvents(store, block, es.Rules)
-				txs := make(types.Transactions, 0, blockEvents.Len()*10)
-				for _, e := range blockEvents {
-					txs = append(txs, e.Txs()...)
-				}
+				prevRandao := inter.ComputePrevRandao(confirmedEvents)
 
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
@@ -219,11 +187,12 @@ func consensusCallbackBeginBlockFn(
 					onNewLogAll,
 					es.Rules,
 					es.Rules.EvmChainConfig(store.GetUpgradeHeights()),
-					block.GetPrevRandao(),
+					prevRandao,
 				)
 				executionStart := time.Now()
 
-				// Pre-internal transactions needs to be executed BEFORE sealing is requested
+				// Execute pre-internal transactions
+				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 				preInternalReceipts := evmProcessor.Execute(preInternalTxs)
 				bs = txListener.Finalize()
 				for _, r := range preInternalReceipts {
@@ -251,14 +220,34 @@ func consensusCallbackBeginBlockFn(
 
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				blockFn := func() {
-					// Internal transactions needs to be executed AFTER sealing is requested
+					// Execute post-internal transactions
+					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 					internalReceipts := evmProcessor.Execute(internalTxs)
 					for _, r := range internalReceipts {
 						if r.Status == 0 {
 							log.Warn("Internal transaction reverted", "txid", r.TxHash.String())
 						}
 					}
-					// Execute transactions from event
+
+					// sort events by Lamport time
+					sort.Sort(confirmedEvents)
+
+					// new block
+					var block = &inter.Block{
+						Time:    blockCtx.Time,
+						Atropos: cBlock.Atropos,
+						Events:  hash.Events(confirmedEvents),
+					}
+					for _, tx := range append(preInternalTxs, internalTxs...) {
+						block.Txs = append(block.Txs, tx.Hash())
+					}
+
+					block, blockEvents := spillBlockEvents(store, block, es.Rules)
+					txs := make(types.Transactions, 0, blockEvents.Len()*10)
+					for _, e := range blockEvents {
+						txs = append(txs, e.Txs()...)
+					}
+
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
