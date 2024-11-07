@@ -1,7 +1,7 @@
 package randat
 
 import (
-	"math/rand"
+	"math/rand/v2"
 )
 
 type cached struct {
@@ -10,7 +10,7 @@ type cached struct {
 }
 
 var (
-	gSeed = rand.Int63()
+	gSeed = rand.Uint64()
 	cache = cached{}
 )
 
@@ -21,6 +21,6 @@ func RandAt(seed uint64) uint64 {
 		return cache.r
 	}
 	cache.seed = seed
-	cache.r = rand.New(rand.NewSource(gSeed ^ int64(seed))).Uint64()
+	cache.r = rand.New(rand.NewPCG(gSeed, seed)).Uint64()
 	return cache.r
 }

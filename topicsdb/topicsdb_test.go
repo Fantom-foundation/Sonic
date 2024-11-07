@@ -2,8 +2,8 @@ package topicsdb
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"os"
 	"runtime/debug"
 	"testing"

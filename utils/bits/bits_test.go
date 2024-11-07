@@ -2,7 +2,7 @@ package bits
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,36 +37,36 @@ func TestBitArrayV01010101010101010(t *testing.T) {
 }
 
 func TestBitArrayRand1(t *testing.T) {
-	r := rand.New(rand.NewSource(0))
+	rand := rand.New(rand.NewPCG(0, 0))
 	for i := 0; i < 50; i++ {
-		testBitArray(t, genTestWords(r, 24, 1), fmt.Sprintf("1 bit, case#%d", i))
+		testBitArray(t, genTestWords(rand, 24, 1), fmt.Sprintf("1 bit, case#%d", i))
 	}
 }
 
 func TestBitArrayRand8(t *testing.T) {
-	r := rand.New(rand.NewSource(0))
+	rand := rand.New(rand.NewPCG(0, 0))
 	for i := 0; i < 50; i++ {
-		testBitArray(t, genTestWords(r, 100, 8), fmt.Sprintf("8 bits, case#%d", i))
+		testBitArray(t, genTestWords(rand, 100, 8), fmt.Sprintf("8 bits, case#%d", i))
 	}
 }
 
 func TestBitArrayRand17(t *testing.T) {
-	r := rand.New(rand.NewSource(0))
+	rand := rand.New(rand.NewPCG(0, 0))
 	for i := 0; i < 50; i++ {
-		testBitArray(t, genTestWords(r, 50, 17), fmt.Sprintf("17 bits, case#%d", i))
+		testBitArray(t, genTestWords(rand, 50, 17), fmt.Sprintf("17 bits, case#%d", i))
 	}
 }
 
-func genTestWords(r *rand.Rand, maxCount int, maxBits int) []testWord {
-	count := r.Intn(maxCount)
+func genTestWords(rand *rand.Rand, maxCount int, maxBits int) []testWord {
+	count := rand.IntN(maxCount)
 	words := make([]testWord, count)
 	for i := range words {
 		if maxBits == 1 {
 			words[i].bits = 1
 		} else {
-			words[i].bits = 1 + r.Intn(maxBits-1)
+			words[i].bits = 1 + rand.IntN(maxBits-1)
 		}
-		words[i].v = uint(r.Intn(1 << words[i].bits))
+		words[i].v = uint(rand.IntN(1 << words[i].bits))
 	}
 	return words
 }

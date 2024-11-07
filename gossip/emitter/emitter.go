@@ -3,7 +3,7 @@ package emitter
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"strings"
 	"sync"
@@ -112,8 +112,8 @@ func NewEmitter(
 ) *Emitter {
 	// Randomize event time to decrease chance of 2 parallel instances emitting event at the same time
 	// It increases the chance of detecting parallel instances
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	config.EmitIntervals = config.EmitIntervals.RandomizeEmitTime(r)
+	rand := rand.New(rand.NewPCG(uint64(os.Getpid()), uint64(time.Now().UnixNano())))
+	config.EmitIntervals = config.EmitIntervals.RandomizeEmitTime(rand)
 
 	return &Emitter{
 		config:                   config,

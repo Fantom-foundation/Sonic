@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"sync"
 	"testing"
@@ -158,7 +158,9 @@ func pricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key *ec
 
 func pricedDataTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key *ecdsa.PrivateKey, bytes uint64) *types.Transaction {
 	data := make([]byte, bytes)
-	rand.Read(data)
+	for i := range data {
+		data[i] = byte(rand.IntN(256))
+	}
 
 	tx, _ := types.SignTx(types.NewTransaction(nonce, common.Address{}, big.NewInt(0), gaslimit, gasprice, data), types.HomesteadSigner{}, key)
 	return tx
@@ -1054,7 +1056,7 @@ func testTransactionQueueGlobalLimiting(t *testing.T, nolocals bool) {
 
 	txs := make(types.Transactions, 0, 3*config.GlobalQueue)
 	for len(txs) < cap(txs) {
-		key := keys[rand.Intn(len(keys)-1)] // skip adding transactions with the local account
+		key := keys[rand.IntN(len(keys)-1)] // skip adding transactions with the local account
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 
 		txs = append(txs, transaction(nonces[addr]+1, 100000, key))
@@ -1440,7 +1442,7 @@ func TestTransactionAllowedTxSize(t *testing.T) {
 		t.Fatalf("failed to add transaction of size %d, close to maximal: %v", int(tx.Size()), err)
 	}
 	// Try adding a transaction with random allowed size
-	if err := pool.addRemoteSync(pricedDataTransaction(1, pool.currentMaxGas, big.NewInt(1), key, uint64(rand.Intn(int(dataSize))))); err != nil {
+	if err := pool.addRemoteSync(pricedDataTransaction(1, pool.currentMaxGas, big.NewInt(1), key, uint64(rand.IntN(int(dataSize))))); err != nil {
 		t.Fatalf("failed to add transaction of random allowed size: %v", err)
 	}
 	// Try adding a transaction of minimal not allowed size
@@ -1448,7 +1450,7 @@ func TestTransactionAllowedTxSize(t *testing.T) {
 		t.Fatalf("expected rejection on slightly oversize transaction")
 	}
 	// Try adding a transaction of random not allowed size
-	if err := pool.addRemoteSync(pricedDataTransaction(2, pool.currentMaxGas, big.NewInt(1), key, dataSize+1+uint64(rand.Intn(10*txMaxSize)))); err == nil {
+	if err := pool.addRemoteSync(pricedDataTransaction(2, pool.currentMaxGas, big.NewInt(1), key, dataSize+1+uint64(rand.IntN(10*txMaxSize)))); err == nil {
 		t.Fatalf("expected rejection on oversize transaction")
 	}
 	// Run some sanity checks on the pool internals

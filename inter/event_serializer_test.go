@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"math"
 	"math/big"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -72,10 +72,10 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max.SetTxs(txs)
 
 	ee := map[string]EventPayload{
-		"empty0": emptyEvent(0),
-		"empty1": emptyEvent(1),
-		"empty2": emptyEvent(2),
-		"max":    *max.Build(),
+		"empty0":  emptyEvent(0),
+		"empty1":  emptyEvent(1),
+		"empty2":  emptyEvent(2),
+		"max":     *max.Build(),
 		"random1": *FakeEvent(1, 12, 1, 1, true),
 		"random2": *FakeEvent(2, 12, 0, 0, false),
 	}
@@ -110,7 +110,7 @@ func TestEventPayloadSerialization(t *testing.T) {
 			bin, err := header0.MarshalBinary()
 			require.NoError(err, name)
 
-			n := rand.Intn(len(bin) - len(header0.Extra()) - 1)
+			n := rand.IntN(len(bin) - len(header0.Extra()) - 1)
 			bin = bin[0:n]
 
 			buf, err := rlp.EncodeToBytes(bin)
@@ -222,43 +222,51 @@ func BenchmarkEventPayload_DecodeRLP(b *testing.B) {
 	}
 }
 
-func randBig(r *rand.Rand) *big.Int {
-	b := make([]byte, r.Intn(8))
-	_, _ = r.Read(b)
+func randBig(rand *rand.Rand) *big.Int {
+	b := make([]byte, rand.IntN(8))
+	for i := range b {
+		b[i] = byte(rand.IntN(256))
+	}
 	if len(b) == 0 {
 		b = []byte{0}
 	}
 	return new(big.Int).SetBytes(b)
 }
 
-func randAddr(r *rand.Rand) common.Address {
+func randAddr(rand *rand.Rand) common.Address {
 	addr := common.Address{}
-	r.Read(addr[:])
+	for i := 0; i < len(addr); i++ {
+		addr[i] = byte(rand.IntN(256))
+	}
 	return addr
 }
 
-func randBytes(r *rand.Rand, size int) []byte {
+func randBytes(rand *rand.Rand, size int) []byte {
 	b := make([]byte, size)
-	r.Read(b)
+	for i := 0; i < size; i++ {
+		b[i] = byte(rand.IntN(256))
+	}
 	return b
 }
 
-func randHash(r *rand.Rand) hash.Hash {
-	return hash.BytesToHash(randBytes(r, 32))
+func randHash(rand *rand.Rand) hash.Hash {
+	return hash.BytesToHash(randBytes(rand, 32))
 }
 
-func randAddrPtr(r *rand.Rand) *common.Address {
-	addr := randAddr(r)
+func randAddrPtr(rand *rand.Rand) *common.Address {
+	addr := randAddr(rand)
 	return &addr
 }
 
-func randAccessList(r *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
-	accessList := make(types.AccessList, r.Intn(maxAddrs))
+func randAccessList(rand *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
+	accessList := make(types.AccessList, rand.IntN(maxAddrs))
 	for i := range accessList {
-		accessList[i].Address = randAddr(r)
-		accessList[i].StorageKeys = make([]common.Hash, r.Intn(maxKeys))
+		accessList[i].Address = randAddr(rand)
+		accessList[i].StorageKeys = make([]common.Hash, rand.IntN(maxKeys))
 		for j := range accessList[i].StorageKeys {
-			r.Read(accessList[i].StorageKeys[j][:])
+			for k := 0; k < len(accessList[i].StorageKeys[j]); k++ {
+				accessList[i].StorageKeys[j][k] = byte(rand.IntN(256))
+			}
 		}
 	}
 	return accessList
@@ -266,7 +274,7 @@ func randAccessList(r *rand.Rand, maxAddrs, maxKeys int) types.AccessList {
 
 // FakeEvent generates random event for testing purpose.
 func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPayload {
-	r := rand.New(rand.NewSource(int64(0)))
+	r := rand.New(rand.NewPCG(0, 0))
 	random := &MutableEventPayload{}
 	random.SetVersion(version)
 	random.SetNetForkID(uint16(r.Uint32() >> 16))
@@ -283,7 +291,9 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 	txs := types.Transactions{}
 	for i := 0; i < txsNum; i++ {
 		h := hash.Hash{}
-		r.Read(h[:])
+		for i := 0; i < len(h); i++ {
+			h[i] = byte(r.Uint32())
+		}
 		if i%3 == 0 {
 			tx := types.NewTx(&types.LegacyTx{
 				Nonce:    r.Uint64(),
@@ -291,8 +301,8 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 				Gas:      257 + r.Uint64(),
 				To:       nil,
 				Value:    randBig(r),
-				Data:     randBytes(r, r.Intn(300)),
-				V:        big.NewInt(int64(r.Intn(0xffffffff))),
+				Data:     randBytes(r, rand.IntN(300)),
+				V:        big.NewInt(int64(rand.IntN(0xffffffff))),
 				R:        h.Big(),
 				S:        h.Big(),
 			})
@@ -305,9 +315,9 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 				Gas:        r.Uint64(),
 				To:         randAddrPtr(r),
 				Value:      randBig(r),
-				Data:       randBytes(r, r.Intn(300)),
+				Data:       randBytes(r, rand.IntN(300)),
 				AccessList: randAccessList(r, 300, 300),
-				V:          big.NewInt(int64(r.Intn(0xffffffff))),
+				V:          big.NewInt(int64(rand.IntN(0xffffffff))),
 				R:          h.Big(),
 				S:          h.Big(),
 			})
@@ -321,9 +331,9 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 				Gas:        r.Uint64(),
 				To:         randAddrPtr(r),
 				Value:      randBig(r),
-				Data:       randBytes(r, r.Intn(300)),
+				Data:       randBytes(r, rand.IntN(300)),
 				AccessList: randAccessList(r, 300, 300),
-				V:          big.NewInt(int64(r.Intn(0xffffffff))),
+				V:          big.NewInt(int64(rand.IntN(0xffffffff))),
 				R:          h.Big(),
 				S:          h.Big(),
 			})
@@ -350,8 +360,8 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 
 		bvs := LlrBlockVotes{}
 		if bvsNum > 0 {
-			bvs.Start = 1 + idx.Block(rand.Intn(1000))
-			bvs.Epoch = 1 + idx.Epoch(rand.Intn(1000))
+			bvs.Start = 1 + idx.Block(rand.IntN(1000))
+			bvs.Epoch = 1 + idx.Epoch(rand.IntN(1000))
 		}
 		for i := 0; i < bvsNum; i++ {
 			bvs.Votes = append(bvs.Votes, randHash(r))
@@ -360,7 +370,7 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 
 		ers := LlrEpochVote{}
 		if ersNum {
-			ers.Epoch = 1 + idx.Epoch(rand.Intn(1000))
+			ers.Epoch = 1 + idx.Epoch(rand.IntN(1000))
 			ers.Vote = randHash(r)
 		}
 		random.SetEpochVote(ers)

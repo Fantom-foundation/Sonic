@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"testing"
 

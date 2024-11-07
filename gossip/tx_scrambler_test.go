@@ -3,10 +3,11 @@ package gossip
 import (
 	"cmp"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"golang.org/x/exp/rand"
+	"math/rand/v2"
 	"slices"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 func TestTxScrambler_AnalyseEntryList_RemovesDuplicateTransactions(t *testing.T) {
@@ -123,7 +124,7 @@ func TestTxScrambler_ScrambleTransactions_ScrambleIsDeterministic(t *testing.T) 
 	res2 := slices.Clone(res1)
 
 	for i := 0; i < 10; i++ {
-		salt := createRandomSalt(t)
+		salt := createRandomSalt()
 		scrambleTransactions(res1, salt)
 		for j := 0; j < 10; j++ {
 			shuffleEntries(res2)
@@ -633,7 +634,7 @@ func createRandomScramblerTestInput(size int64) []ScramblerEntry {
 	var entries []ScramblerEntry
 	for i := int64(0); i < size; i++ {
 		// same hashes must have same data
-		r := rand.Intn(100 - 1)
+		r := rand.IntN(100 - 1)
 		entries = append(entries, &dummyScramblerEntry{
 			hash:     common.Hash{byte(r)},
 			sender:   common.Address{byte(r)},
@@ -663,10 +664,10 @@ func checkDuplicateHashes(t *testing.T, entries []ScramblerEntry) {
 	}
 }
 
-func createRandomSalt(t *testing.T) [32]byte {
+func createRandomSalt() [32]byte {
 	var salt = [32]byte{}
-	if _, err := rand.Read(salt[:]); err != nil {
-		t.Fatalf("cannot create random salt: %v", err)
+	for i := 0; i < 32; i++ {
+		salt[i] = byte(rand.IntN(256))
 	}
 	return salt
 }
