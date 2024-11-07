@@ -54,3 +54,37 @@ func TestWithdrawalsCanBeRLPEncodedAndDecoded(t *testing.T) {
 		require.Equal(types.EmptyWithdrawalsHash, *block.Header().WithdrawalsHash)
 	})
 }
+
+func TestFetchingBlockByNumberAndHashReturnsSameBlock(t *testing.T) {
+	require := require.New(t)
+
+	// start network.
+	net, err := StartIntegrationTestNet(t.TempDir())
+	require.NoErrorf(err, "Failed to start the fake network: ", err)
+	defer net.Stop()
+
+	// run endowment to ensure at least one block exists
+	receipt, err := net.EndowAccount(common.Address{42}, 1)
+	require.NoError(err)
+	require.Equal(receipt.Status, types.ReceiptStatusSuccessful, "failed to endow account")
+
+	// get client and block
+	client, err := net.GetClient()
+	require.NoError(err, "Failed to get the client: ", err)
+	defer client.Close()
+	blockFromNumber, err := client.BlockByNumber(context.Background(), big.NewInt(1))
+	require.NoError(err, "Failed to get the block: ", err)
+
+	// get block's hash
+	blockHash := blockFromNumber.Hash()
+
+	// get block by hash
+	blockFromHash, err := client.BlockByHash(context.Background(), blockHash)
+	require.NoError(err, "Failed to get the block by hash: ", err)
+
+	// check that the block fetched by number and hash are the same
+	require.Equal(blockFromNumber.Hash(), blockFromHash.Hash())
+	require.Equal(blockFromNumber.Header(), blockFromHash.Header())
+	require.Equal(blockFromNumber.Transactions(), blockFromHash.Transactions())
+	require.Equal(blockFromNumber.UncleHash(), blockFromHash.UncleHash())
+}
