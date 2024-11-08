@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -49,12 +51,26 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.SetBlockEpochState(topEr.BlockState, topEr.EpochState)
 	s.FlushBlockEpochState()
 
+	s.SetGenesisID(g.GenesisID)
+	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
+
 	// write blocks
+	rules := s.GetRules()
+	gasLimit := rules.Blocks.MaxBlockGas
 	baseFee := prevEs.Rules.Economy.MinGasPrice
 	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
-		s.WriteFullBlockRecord(baseFee, blobGasPrice, br)
+		if rules.Upgrades.Sonic {
+			block := s.GetBlock(br.Idx - 1)
+			header := &evmcore.EvmHeader{
+				GasUsed:  block.GasUsed,
+				GasLimit: block.GasLimit,
+				BaseFee:  block.BaseFee,
+			}
+			baseFee = gasprice.GetBaseFeeForNextBlock(header)
+		}
+		s.WriteFullBlockRecord(gasLimit, baseFee, blobGasPrice, br)
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}
@@ -109,9 +125,6 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	} else {
 		s.Log.Info("StateDB imported successfully, stateRoot matches", "index", lastBlock.Idx, "root", lastBlock.Root)
 	}
-
-	s.SetGenesisID(g.GenesisID)
-	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 
 	return nil
 }

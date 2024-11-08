@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
@@ -49,6 +51,7 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 // SetBlock stores chain block.
 func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
+	fmt.Printf("SetBlock: %d - basefee %v\n", n, b.BaseFee)
 
 	// Add to LRU cache.
 	s.cache.Blocks.Add(n, b, uint(b.EstimateSize()))
@@ -58,10 +61,16 @@ func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
 func (s *Store) GetBlock(n idx.Block) *inter.Block {
 	if n == 0 {
 		// fake genesis block for compatibility with web3
-		return &inter.Block{
+		res := &inter.Block{
 			Time:    evmcore.FakeGenesisTime - 1,
 			Atropos: s.fakeGenesisHash(),
 		}
+		rules := s.GetRules()
+		if rules.Upgrades.Sonic {
+			res.GasLimit = rules.Blocks.MaxBlockGas
+			res.BaseFee = gasprice.GetInitialBaseFee()
+		}
+		return res
 	}
 	// Get block from LRU cache first.
 	if c, ok := s.cache.Blocks.Get(n); ok {
@@ -69,6 +78,7 @@ func (s *Store) GetBlock(n idx.Block) *inter.Block {
 	}
 
 	block, _ := s.rlp.Get(s.table.Blocks, n.Bytes(), &inter.Block{}).(*inter.Block)
+	fmt.Printf("GetBlock: %d - basefee %v\n", n, block.BaseFee)
 
 	// Add to LRU cache.
 	if block != nil {

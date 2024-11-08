@@ -93,7 +93,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		Root:       common.Hash(block.Root),
 		Number:     big.NewInt(int64(index)),
 		Time:       block.Time,
-		GasLimit:   math.MaxUint64,
+		GasLimit:   block.GasLimit,
 		GasUsed:    block.GasUsed,
 		BaseFee:    baseFee,
 		PrevRandao: prevRandao,
@@ -180,7 +180,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 	enc := &EvmHeaderJson{
 		Number:        (*hexutil.Big)(h.Number),
 		Miner:         h.Coinbase,
-		GasLimit:      0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
+		GasLimit:      hexutil.Uint64(h.GasLimit),
 		GasUsed:       hexutil.Uint64(h.GasUsed),
 		Root:          h.Root,
 		TxHash:        h.TxHash,

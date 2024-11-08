@@ -117,6 +117,12 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 	if es != nil {
 		rules = es.Rules
 	}
+	// There is no epoch state for epoch 0 comprising block 0.
+	// For this epoch, London and Sonic upgrades are enabled.
+	if epoch == 0 {
+		rules.Upgrades.London = true
+		rules.Upgrades.Sonic = true
+	}
 	var prev hash.Event
 	if n != 0 {
 		block := r.store.GetBlock(n - 1)
@@ -124,6 +130,7 @@ func (r *EvmStateReader) getBlock(h hash.Event, n idx.Block, readTxs bool) *evmc
 			prev = block.Atropos
 		}
 	}
+
 	evmHeader := evmcore.ToEvmHeader(block, n, prev, rules)
 
 	var evmBlock *evmcore.EvmBlock

@@ -15,6 +15,7 @@ type Block struct {
 	Txs         []common.Hash // non event txs (received via genesis or LLR)
 	InternalTxs []common.Hash // DEPRECATED in favor of using only Txs fields and method internal.IsInternal
 	SkippedTxs  []uint32      // indexes of skipped txs, starting from first tx of first event, ending with last tx of last event
+	GasLimit    uint64
 	GasUsed     uint64
 	BaseFee     *big.Int
 	Root        hash.Hash

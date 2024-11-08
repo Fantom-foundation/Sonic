@@ -129,9 +129,8 @@ type EconomyRules struct {
 	// the Fantom network. This value is gradually adjusted after
 	// each epoch through a rule update initiated by the node
 	// driver and SFC on the Fantom network. On the Sonic network,
-	// this field is only used for the genesis block and ignored
-	// afterwards as gas prices are adjusted dynamically analogous
-	// to EIP-1559 (https://eips.ethereum.org/EIPS/eip-1559).
+	// this field is ignored as gas prices are adjusted dynamically
+	// analogous to EIP-1559 (https://eips.ethereum.org/EIPS/eip-1559).
 	MinGasPrice *big.Int
 
 	ShortGasPower GasPowerRules

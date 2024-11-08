@@ -1,7 +1,6 @@
 package evmmodule
 
 import (
-	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/state"
@@ -27,14 +27,12 @@ func New() *EVMModule {
 func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, reader evmcore.DummyChain, onNewLog func(*types.Log), net opera.Rules, evmCfg *params.ChainConfig) blockproc.EVMProcessor {
 	var prevBlockHash common.Hash
 	var baseFee *big.Int
-	if block.Idx <= 1 {  // < the genesis block is block 1
-		baseFee = big.NewInt(1e9) // < TODO: make configurable
+	if block.Idx == 0 {
+		baseFee = gasprice.GetInitialBaseFee()
 	} else {
 		header := reader.GetHeader(common.Hash{}, uint64(block.Idx-1))
 		prevBlockHash = header.Hash
-
-		// TODO: compute base-fee for the next block
-		baseFee = new(big.Int).Add(header.BaseFee, big.NewInt(1e8)) // < TODO: implement actual gas-price calculation
+		baseFee = gasprice.GetBaseFeeForNextBlock(header)
 	}
 
 	// Start block
@@ -91,7 +89,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		Root:       common.Hash{},
 		Time:       p.block.Time,
 		Coinbase:   common.Address{},
-		GasLimit:   math.MaxUint64,
+		GasLimit:   p.net.Blocks.MaxBlockGas,
 		GasUsed:    p.gasUsed,
 		BaseFee:    baseFee,
 		PrevRandao: prevRandao,

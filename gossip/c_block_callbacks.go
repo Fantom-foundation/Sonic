@@ -243,6 +243,7 @@ func consensusCallbackBeginBlockFn(
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
 					block.SkippedTxs = skippedTxs
 					block.Root = hash.Hash(evmBlock.Root)
+					block.GasLimit = es.Rules.Blocks.MaxBlockGas
 					block.GasUsed = evmBlock.GasUsed
 					block.BaseFee = evmBlock.BaseFee
 
