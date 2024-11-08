@@ -178,7 +178,7 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				prevRandao := inter.ComputePrevRandao(confirmedEvents)
+				prevRandao := computePrevRandao(confirmedEvents)
 
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,

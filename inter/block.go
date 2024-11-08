@@ -1,7 +1,6 @@
 package inter
 
 import (
-	"crypto/sha256"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -29,18 +28,6 @@ func (b *Block) SetPrevRandao(prevrandao common.Hash) {
 
 func (b *Block) GetPrevRandao() common.Hash {
 	return b.prevRandao
-}
-
-// ComputePrevRandao computes the prevRandao from event hashes.
-func ComputePrevRandao(events []hash.Event) common.Hash {
-	prevRandao := common.Hash{}
-	for _, event := range events {
-		for i := 0; i < 24; i++ {
-			// first 8 bytes should be ignored as they are not pseudo-random.
-			prevRandao[i+8] = prevRandao[i+8] ^ event[i+8]
-		}
-	}
-	return sha256.Sum256(prevRandao.Bytes())
 }
 
 func FilterSkippedTxs(txs types.Transactions, skippedTxs []uint32) types.Transactions {
