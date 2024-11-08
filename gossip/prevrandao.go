@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -16,6 +15,5 @@ func computePrevRandao(events []hash.Event) common.Hash {
 			bts[i] = bts[i] ^ event[i+8]
 		}
 	}
-	fmt.Println(common.BytesToHash(bts[:]).String())
 	return sha256.Sum256(bts[:])
 }
