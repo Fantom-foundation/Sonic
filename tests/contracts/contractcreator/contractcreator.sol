@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.8;
 
-contract InitCode {
+contract ContractCreator {
     event LogCost(uint256 cost);
     
-    function CreateContractWith(uint codeSize) public {
+    function CreatetWith(uint codeSize) public {
         // save gas before attempting to create
         uint256 before = gasleft();
         uint256 result = 0;
         assembly {
-            // top level expresssions are not supposed to return a value, but create does.
-            // so we need to call pop to catch this value.
+            // in these assembly blocks, results from function calls cannot be ignored
+            // so we assign it to result even if it is not used after. 
             result := create(0, 0, codeSize)
         }
         // report how much gas was used during create call
         emit LogCost(before - gasleft());
     }
 
-    function Create2ContractWith(uint codeSize) public {
+    function Create2With(uint codeSize) public {
         // save gas before attempting to create
         uint256 before = gasleft();
         uint256 result = 0;
         assembly {
-            // top level expresssions are not supposed to return a value, but create does.
-            // so we need to assign its return value to catch it.
+            // in these assembly blocks, results from function calls cannot be ignored
+            // so we assign it to result even if it is not used after. 
             result := create2(0, 0, codeSize, 0)
         }
         // report how much gas was used during create call
         emit LogCost(before - gasleft());
     }
 
-    // this function is only used to measure the cost of calling a function but not creating a contract
-    function MeasureAssignGasCost(uint codeSize) public {
+    // GetOverheadCost is only used to measure the cost of creating a variable and assign to it.
+    function GetOverheadCost(uint someValue) public {
         uint256 before = gasleft();
         uint256 result = 0;
         assembly {
-            result := codeSize
+            result := someValue
         }
         emit LogCost(before - gasleft());
     }

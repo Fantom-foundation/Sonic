@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/Fantom-foundation/go-opera/tests/contracts/initcode"
+	"github.com/Fantom-foundation/go-opera/tests/contracts/contractcreator"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -13,44 +13,45 @@ import (
 
 // this constant comes from  https://eips.ethereum.org/EIPS/eip-3860#parameters
 const MAX_INIT_CODE_SIZE uint64 = 49152
+
 const sufficientGas = uint64(100_000)
 
 func TestInitCodeSizeLimitAndMetered(t *testing.T) {
-	require := require.New(t)
+	requireBase := require.New(t)
 
 	net, err := StartIntegrationTestNet(t.TempDir())
-	require.NoError(err)
+	requireBase.NoError(err)
 	defer net.Stop()
 
-	// Deploy the invalid start contract.
-	contract, receipt, err := DeployContract(net, initcode.DeployInitcode)
-	require.NoError(err)
-	require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to deploy contract")
+	contract, receipt, err := DeployContract(net, contractcreator.DeployContractcreator)
+	requireBase.NoError(err)
+	requireBase.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to deploy contract")
 
 	// deploy measureGasAndAssign to get cost of deploying a contract without create.
-	_, gasUsed := createAndCheckContractWithCodeLenAndGas(t, net, contract, contract.MeasureAssignGasCost, 0, 0)
+	receipt = createContractSuccessfully(t, net, contract.GetOverheadCost, 0, 0)
 
 	// -- using CREATE instruction
 	const wordCostCreate uint64 = 2
-	var gasForCreate uint64 = 32000 + gasUsed
+	var gasForCreate uint64 = 32035 + receipt.GasUsed //+ assignCost
 	t.Run("create", func(t *testing.T) {
-		testForVariant(t, net, contract, contract.CreateContractWith, gasForCreate, wordCostCreate)
+		testForVariant(t, net, contract, contract.CreatetWith, gasForCreate, wordCostCreate)
 	})
 
 	// -- using CREATE2 instruction
 	// create2 has extra costs for hashing, this is explained in
 	// https://eips.ethereum.org/EIPS/eip-3860 and reflected in evm.codes calculator.
 	const wordCostCreate2 uint64 = wordCostCreate + 6
-	var gasForCreate2 uint64 = gasForCreate + 44
+	var gasForCreate2 uint64 = gasForCreate
 	t.Run("create2", func(t *testing.T) {
-		testForVariant(t, net, contract, contract.Create2ContractWith, gasForCreate2, wordCostCreate2)
+		testForVariant(t, net, contract, contract.Create2With, gasForCreate2, wordCostCreate2)
 	})
 
 	t.Run("create transaction", func(t *testing.T) {
 		t.Run("charges depending on the init code size", func(t *testing.T) {
+			require := require.New(t)
 			// transactions charge 4 gas for each zero byte in data.
 			const zeroByteCost uint64 = 4
-			// create a transaction with 1 word of code.
+			// create a transaction with 1 byte of code.
 			receipt1, err := runTransactionWithCodeSizeAndGas(t, net, 1, sufficientGas)
 			require.NoError(err)
 			require.Equal(types.ReceiptStatusSuccessful, receipt1.Status,
@@ -68,35 +69,43 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 		})
 
 		t.Run("aborts with init code size larger than MAX_INITCODE_SIZE", func(t *testing.T) {
+			require := require.New(t)
 			// as specified in https://eips.ethereum.org/EIPS/eip-3860#rules,
 			// this is similar to transactions considered invalid for not meeting the intrinsic gas cost requirement.
 			_, err := runTransactionWithCodeSizeAndGas(t, net, MAX_INIT_CODE_SIZE+1, sufficientGas)
-			require.ErrorContains(err,
-				"intrinsic gas too low", "unexpectedly succeeded to create contract with init code length greater than MAX_INITCODE_SIZE")
+			require.ErrorContains(
+				err,
+				"intrinsic gas too low",
+				"unexpectedly succeeded to create contract with init code larger than MAX_INITCODE_SIZE",
+			)
 		})
 	})
 }
 
 func testForVariant(t *testing.T, net *IntegrationTestNet,
-	contract *initcode.Initcode, variant variant,
+	contract *contractcreator.Contractcreator, variant variant,
 	gasForContract, wordCost uint64) {
 
-	var gasCostFor2Words uint64 = wordCost * 3
-	// we use enough gas for all tests to afford cost of 3 words as well.
-	var gasFor3Words = gasForContract + gasCostFor2Words
 	t.Run("charges depending on the init code size", func(t *testing.T) {
-		// we need to provide same gas to all transactions so that we can compare the cost.
-		cost1Word, _ := createAndCheckContractWithCodeLenAndGas(t, net, contract, variant, 30, gasFor3Words)
-		cost2Words, _ := createAndCheckContractWithCodeLenAndGas(t, net, contract, variant, 42, gasFor3Words)
-		cost3Words, _ := createAndCheckContractWithCodeLenAndGas(t, net, contract, variant, 90, gasFor3Words)
 		require := require.New(t)
+
+		createAndGetCost := func(codeLen uint64) uint64 {
+			receipt := createContractWithCodeLenAndGas(t, net, variant, codeLen, sufficientGas)
+			require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to create contract with code length ", codeLen)
+			return getCreateCost(t, contract, receipt)
+		}
+
+		cost1Word := createAndGetCost(30)
+		cost2Words := createAndGetCost(42)
+		cost3Words := createAndGetCost(90)
+
 		require.Equal(wordCost, cost2Words-cost1Word, "cost difference between 1 and 2")
 		require.Equal(wordCost*2, cost3Words-cost1Word, "cost difference between 1 and 3")
 	})
 
 	t.Run("fails without enough gas", func(t *testing.T) {
 		// 4 for a zero byte, 1 to make it fail.
-		receipt := createContractWithCodeLenAndGas(t, net, variant, 1, gasForContract-4-1)
+		receipt := createContractWithCodeLenAndGas(t, net, variant, 1, gasForContract-wordCost-1)
 		require := require.New(t)
 		require.Equal(types.ReceiptStatusFailed, receipt.Status,
 			"unexpectedly succeeded to create contract without enough gas")
@@ -117,15 +126,11 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 	})
 }
 
-func createAndCheckContractWithCodeLenAndGas(t *testing.T, net *IntegrationTestNet,
-	contract *initcode.Initcode, variant variant, codeLen, gasLimit uint64) (uint64, uint64) {
+func createContractSuccessfully(t *testing.T, net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) *types.Receipt {
 	receipt := createContractWithCodeLenAndGas(t, net, variant, codeLen, gasLimit)
 	require := require.New(t)
-	require.Equal(types.ReceiptStatusSuccessful, receipt.Status,
-		"failed to create contract with code length ", codeLen)
-	log, err := contract.ParseLogCost(*receipt.Logs[0])
-	require.NoError(err)
-	return log.Cost.Uint64(), receipt.GasUsed
+	require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to create contract with code length ", codeLen)
+	return receipt
 }
 
 func createContractWithCodeLenAndGas(t *testing.T, net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) *types.Receipt {
@@ -133,9 +138,18 @@ func createContractWithCodeLenAndGas(t *testing.T, net *IntegrationTestNet, vari
 		opts.GasLimit = gasLimit
 		return variant(opts, big.NewInt(int64(codeLen)))
 	})
-	require := require.New(t)
-	require.NoError(err)
+	if err != nil {
+		t.Errorf("failed to create contract: %v", err)
+	}
 	return receipt
+}
+
+func getCreateCost(t *testing.T, contract *contractcreator.Contractcreator, receipt *types.Receipt) uint64 {
+	log, err := contract.ParseLogCost(*receipt.Logs[0])
+	if err != nil {
+		t.Errorf("failed to parse log: %v", err)
+	}
+	return log.Cost.Uint64()
 }
 
 type variant func(opts *bind.TransactOpts, codeSize *big.Int) (*types.Transaction, error)
