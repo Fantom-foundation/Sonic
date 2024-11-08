@@ -45,6 +45,8 @@ type (
 		GasLimit uint64
 		GasUsed  uint64
 
+		WithdrawalsHash *common.Hash
+
 		BaseFee *big.Int
 
 		PrevRandao common.Hash
@@ -85,16 +87,22 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
 	}
 
+	withdrawalsHash := common.Hash{}
+	if rules.Upgrades.Sonic {
+		withdrawalsHash = types.EmptyWithdrawalsHash
+	}
+
 	return &EvmHeader{
-		Hash:       common.Hash(block.Atropos),
-		ParentHash: common.Hash(prevHash),
-		Root:       common.Hash(block.Root),
-		Number:     big.NewInt(int64(index)),
-		Time:       block.Time,
-		GasLimit:   math.MaxUint64,
-		GasUsed:    block.GasUsed,
-		BaseFee:    baseFee,
-		PrevRandao: prevRandao,
+		Hash:            common.Hash(block.Atropos),
+		ParentHash:      common.Hash(prevHash),
+		Root:            common.Hash(block.Root),
+		Number:          big.NewInt(int64(index)),
+		Time:            block.Time,
+		GasLimit:        math.MaxUint64,
+		GasUsed:         block.GasUsed,
+		BaseFee:         baseFee,
+		PrevRandao:      prevRandao,
+		WithdrawalsHash: &withdrawalsHash,
 	}
 }
 
@@ -102,17 +110,18 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 func ConvertFromEthHeader(h *types.Header) *EvmHeader {
 	// NOTE: incomplete conversion
 	return &EvmHeader{
-		Number:     h.Number,
-		Coinbase:   h.Coinbase,
-		GasLimit:   math.MaxUint64,
-		GasUsed:    h.GasUsed,
-		Root:       h.Root,
-		TxHash:     h.TxHash,
-		ParentHash: h.ParentHash,
-		Time:       inter.FromUnix(int64(h.Time)),
-		Hash:       common.BytesToHash(h.Extra),
-		BaseFee:    h.BaseFee,
-		PrevRandao: h.MixDigest,
+		Number:          h.Number,
+		Coinbase:        h.Coinbase,
+		GasLimit:        math.MaxUint64,
+		GasUsed:         h.GasUsed,
+		Root:            h.Root,
+		TxHash:          h.TxHash,
+		ParentHash:      h.ParentHash,
+		Time:            inter.FromUnix(int64(h.Time)),
+		Hash:            common.BytesToHash(h.Extra),
+		BaseFee:         h.BaseFee,
+		PrevRandao:      h.MixDigest,
+		WithdrawalsHash: h.WithdrawalsHash,
 	}
 }
 
@@ -136,6 +145,8 @@ func (h *EvmHeader) EthHeader() *types.Header {
 
 		Difficulty: new(big.Int),
 		MixDigest:  h.PrevRandao,
+
+		WithdrawalsHash: h.WithdrawalsHash,
 	}
 	// ethHeader.SetExternalHash(h.Hash) < this seems to be an optimization in go-ethereum-substate; skipped for now, needs investigation
 	return ethHeader
@@ -193,7 +204,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		TotalDiff:       new(hexutil.Big),
 		Hash:            &h.Hash,
 		Epoch:           hexutil.Uint64(hash.Event(h.Hash).Epoch()),
-		WithdrawalsHash: &types.EmptyWithdrawalsHash,
+		WithdrawalsHash: h.WithdrawalsHash,
 		BlobGasUsed:     (*hexutil.Uint64)(new(uint64)),
 		ExcessBlobGas:   (*hexutil.Uint64)(new(uint64)),
 	}
