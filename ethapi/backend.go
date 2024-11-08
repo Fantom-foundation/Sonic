@@ -51,6 +51,8 @@ type PeerProgress struct {
 
 // Backend interface provides the common API services (that are provided by
 // both full and light clients) with access to necessary functions.
+//
+//go:generate mockgen -source=backend.go -destination=mock_backend.go -package=ethapi
 type Backend interface {
 	// General Ethereum API
 	Progress() PeerProgress
