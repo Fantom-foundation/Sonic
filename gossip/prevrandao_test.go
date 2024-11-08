@@ -27,7 +27,7 @@ func TestComputePrevRandao_ComputationProducesCorrectValue(t *testing.T) {
 	}{
 		{
 			name:   "empty_events",
-			events: []hash.Event{},
+			events: hash.Events{},
 			want:   "0x9d908ecfb6b256def8b49a7c504e6c889c4b0e41fe6ce3e01863dd7b61a20aa0",
 		},
 		{
