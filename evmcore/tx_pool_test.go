@@ -2647,7 +2647,7 @@ func TestTransactionSlotCount(t *testing.T) {
 	}
 }
 
-func TestSampleHashes(t *testing.T) {
+func TestSampleHashes_AllExpectedTransactionsAreReturned(t *testing.T) {
 	statedb := newTestTxPoolStateDb()
 	blockchain := NewTestBlockChain(statedb)
 
@@ -2687,7 +2687,8 @@ func TestSampleHashes(t *testing.T) {
 		t.Fatalf("failed to fill the pool, incorrect amount of pending/queued: %d/%d", pending, queued)
 	}
 
-	for i := 0; i < 10; i++ {
+	samplingTimes := 100
+	for i := 0; i < samplingTimes; i++ {
 		samplePending, sampleQueued := 0, 0
 		for _, txHash := range pool.SampleHashes(100) {
 			tx := pool.Get(txHash)
@@ -2711,7 +2712,7 @@ func TestSampleHashes(t *testing.T) {
 
 	for txHash, occurrences := range expectedPendingTxs {
 		tx := pool.Get(txHash)
-		if occurrences != 10 {
+		if occurrences != samplingTimes {
 			t.Errorf("expected pending tx %x (nonce %d) present %d times in samples, expected 10", txHash, tx.Nonce(), occurrences)
 		}
 	}
@@ -2720,7 +2721,7 @@ func TestSampleHashes(t *testing.T) {
 		if occurrences == 0 {
 			t.Errorf("expected tx %x (nonce %d) missing in samples", txHash, tx.Nonce())
 		}
-		if occurrences > 10 {
+		if occurrences > samplingTimes {
 			t.Errorf("expected tx %x (nonce %d) present in samples in more occurences than expected", txHash, tx.Nonce())
 		}
 	}
@@ -2755,7 +2756,8 @@ func TestSampleHashesManySenders(t *testing.T) {
 		t.Fatalf("failed to fill the pool, incorrect amount of pending/queued: %d/%d", pending, queued)
 	}
 
-	for i := 0; i < 20; i++ {
+	samplingTimes := 100
+	for i := 0; i < samplingTimes; i++ {
 		samples := pool.SampleHashes(5)
 		if len(samples) != 4 { // should get 4 pending + 1 queued (but we have no queued)
 			t.Errorf("unexpected amount of returned txs - returned %d, expected 4", len(samples))
@@ -2774,8 +2776,8 @@ func TestSampleHashesManySenders(t *testing.T) {
 		if occurrences == 0 {
 			t.Errorf("expected tx %x (nonce %d) missing in samples", txHash, tx.Nonce())
 		}
-		if occurrences > 20 {
-			t.Errorf("expected tx %x (nonce %d) present in samples in more occurences than expected", txHash, tx.Nonce())
+		if occurrences > samplingTimes {
+			t.Errorf("expected tx %x (nonce %d) present in samples in more occurrences than expected", txHash, tx.Nonce())
 		}
 	}
 }
