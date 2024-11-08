@@ -31,7 +31,7 @@ func TestComputePrevRandao_ComputationProducesCorrectValue(t *testing.T) {
 			want:   "0x9d908ecfb6b256def8b49a7c504e6c889c4b0e41fe6ce3e01863dd7b61a20aa0",
 		},
 		{
-			name: "one_events",
+			name: "one_event",
 			events: hash.Events{
 				hash.HexToEventHash("0x1234"),
 			},
