@@ -41,6 +41,18 @@ func (tx *scramblerTransaction) Sender() common.Address {
 	return tx.sender
 }
 
+// getExecutionOrder returns correct order of the transactions.
+// If Sonic is enabled, the tx scrambler is used, otherwise the order stays unchanged.
+func getExecutionOrder(entries []ScramblerEntry, isSonic bool) []ScramblerEntry {
+	// We can scramble transactions only if Sonic is used, scrambling transactions
+	// disables the ability to sync with opera mainnet
+	if isSonic {
+		return filterAndOrderTransactions(entries)
+	}
+
+	return entries
+}
+
 // filterAndOrderTransactions first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
 // Furthermore, if there are entries with same sender, these entries are sorted by their nonce (lower comes first).
 // If nonce from same sender is equal, entries are sorted by gas prices (higher comes first).
