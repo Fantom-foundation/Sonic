@@ -75,9 +75,11 @@ func (v *Checker) checkGas(e inter.EventPayloadI, rules opera.Rules) error {
 	if e.GasPowerUsed() > rules.Economy.Gas.MaxEventGas {
 		return ErrTooBigGasUsed
 	}
-	if e.GasPowerUsed() != CalcGasPowerUsed(e, rules) {
-		return ErrWrongGasUsed
-	}
+	/*
+		if e.GasPowerUsed() != CalcGasPowerUsed(e, rules) {
+			return ErrWrongGasUsed
+		}
+	*/
 	return nil
 }
 

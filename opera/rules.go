@@ -20,7 +20,7 @@ const (
 	MainNetworkID   uint64 = 0xfa
 	TestNetworkID   uint64 = 0xfa2
 	FakeNetworkID   uint64 = 0xfa3
-	DefaultEventGas uint64 = 28000
+	DefaultEventGas uint64 = 280000 //28000
 	berlinBit              = 1 << 0
 	londonBit              = 1 << 1
 	llrBit                 = 1 << 2
@@ -316,10 +316,10 @@ func FakeNetEpochsRules() EpochsRules {
 // DefaulLongGasPowerRules is long-window config
 func DefaulLongGasPowerRules() GasPowerRules {
 	return GasPowerRules{
-		AllocPerSec:        100 * DefaultEventGas,
-		MaxAllocPeriod:     inter.Timestamp(60 * time.Minute),
+		AllocPerSec:        1e6,                          //100 * DefaultEventGas,
+		MaxAllocPeriod:     inter.Timestamp(time.Second), //inter.Timestamp(60 * time.Minute),
 		StartupAllocPeriod: inter.Timestamp(5 * time.Second),
-		MinStartupGas:      DefaultEventGas * 20,
+		MinStartupGas:      1e6, //DefaultEventGas * 20,
 	}
 }
 
@@ -336,14 +336,14 @@ func DefaultShortGasPowerRules() GasPowerRules {
 // FakeLongGasPowerRules is fake long-window config
 func FakeLongGasPowerRules() GasPowerRules {
 	config := DefaulLongGasPowerRules()
-	config.AllocPerSec *= 1000
+	//config.AllocPerSec *= 1000
 	return config
 }
 
 // FakeShortGasPowerRules is fake short-window config
 func FakeShortGasPowerRules() GasPowerRules {
 	config := DefaultShortGasPowerRules()
-	config.AllocPerSec *= 1000
+	//config.AllocPerSec *= 1000
 	return config
 }
 

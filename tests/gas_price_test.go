@@ -2,12 +2,14 @@ package tests
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -49,7 +51,7 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 			t.Fatalf("failed to get block header; %v", err)
 		}
 		headers = append(headers, header)
-		fmt.Printf("Block %d: limit %v, used %v, fee %v\n", i, header.GasLimit, header.GasUsed, header.BaseFee)
+		fmt.Printf("Block %d: time %v, limit %v, used %v, fee %v, extra %x %x\n", i, header.Time, header.GasLimit, header.GasUsed, header.BaseFee, header.Extra[:8], header.Extra[8:])
 	}
 
 	if got, want := headers[0].BaseFee, gasprice.GetInitialBaseFee(); got.Cmp(want) != 0 {
@@ -57,10 +59,19 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 	}
 
 	for i := 1; i < len(headers); i++ {
+		lastTime := binary.BigEndian.Uint64(headers[i-1].Extra[:8])
+		currentTime := binary.BigEndian.Uint64(headers[i].Extra[:8])
+		wantedDuration := currentTime - lastTime
+		gotDuration := binary.BigEndian.Uint64(headers[i].Extra[8:])
+		if wantedDuration != gotDuration {
+			t.Errorf("duration of block %d is incorrect; got %d, want %d", i, gotDuration, wantedDuration)
+		}
+
 		last := &evmcore.EvmHeader{
 			BaseFee:  headers[i-1].BaseFee,
 			GasLimit: headers[i-1].GasLimit,
 			GasUsed:  headers[i-1].GasUsed,
+			Duration: inter.Duration(gotDuration),
 		}
 		want := gasprice.GetBaseFeeForNextBlock(last)
 		t.Logf("%d: %d vs %d\n", i, headers[i].BaseFee, want)

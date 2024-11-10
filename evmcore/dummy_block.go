@@ -17,7 +17,7 @@
 package evmcore
 
 import (
-	"math"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -40,6 +40,7 @@ type (
 		Root       common.Hash
 		TxHash     common.Hash
 		Time       inter.Timestamp
+		Duration   inter.Duration // time since the last block
 		Coinbase   common.Address
 
 		GasLimit uint64
@@ -93,6 +94,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		Root:       common.Hash(block.Root),
 		Number:     big.NewInt(int64(index)),
 		Time:       block.Time,
+		Duration:   block.Duration,
 		GasLimit:   block.GasLimit,
 		GasUsed:    block.GasUsed,
 		BaseFee:    baseFee,
@@ -102,16 +104,24 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 
 // ConvertFromEthHeader converts ETH-formatted header to Lachesis EVM header
 func ConvertFromEthHeader(h *types.Header) *EvmHeader {
+	var time inter.Timestamp
+	var duration inter.Duration
+	if len(h.Extra) == 16 {
+		time = inter.Timestamp(binary.BigEndian.Uint64(h.Extra[:8]))
+		duration = inter.Duration(binary.BigEndian.Uint64(h.Extra[8:]))
+	}
+	// TODO: return an error otherwise!
 	// NOTE: incomplete conversion
 	return &EvmHeader{
 		Number:     h.Number,
 		Coinbase:   h.Coinbase,
-		GasLimit:   math.MaxUint64,
+		GasLimit:   h.GasLimit,
 		GasUsed:    h.GasUsed,
 		Root:       h.Root,
 		TxHash:     h.TxHash,
 		ParentHash: h.ParentHash,
-		Time:       inter.FromUnix(int64(h.Time)),
+		Time:       time,
+		Duration:   duration,
 		Hash:       common.BytesToHash(h.Extra),
 		BaseFee:    h.BaseFee,
 		PrevRandao: h.MixDigest,
@@ -123,17 +133,20 @@ func (h *EvmHeader) EthHeader() *types.Header {
 	if h == nil {
 		return nil
 	}
+	extra := make([]byte, 16)
+	binary.BigEndian.PutUint64(extra[:8], uint64(h.Time))
+	binary.BigEndian.PutUint64(extra[8:], uint64(h.Duration))
 	// NOTE: incomplete conversion
 	ethHeader := &types.Header{
 		Number:     h.Number,
 		Coinbase:   h.Coinbase,
-		GasLimit:   0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
+		GasLimit:   h.GasLimit,
 		GasUsed:    h.GasUsed,
 		Root:       h.Root,
 		TxHash:     h.TxHash,
 		ParentHash: h.ParentHash,
 		Time:       uint64(h.Time.Unix()),
-		Extra:      h.Hash.Bytes(),
+		Extra:      extra,
 		BaseFee:    h.BaseFee,
 
 		Difficulty: new(big.Int),
@@ -177,6 +190,7 @@ type EvmBlockJson struct {
 }
 
 func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
+	ethHeader := h.EthHeader()
 	enc := &EvmHeaderJson{
 		Number:        (*hexutil.Big)(h.Number),
 		Miner:         h.Coinbase,
@@ -188,6 +202,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		UncleHash:     types.EmptyUncleHash,
 		Time:          hexutil.Uint64(h.Time.Unix()),
 		TimeNano:      hexutil.Uint64(h.Time),
+		Extra:         ethHeader.Extra,
 		BaseFee:       (*hexutil.Big)(h.BaseFee),
 		Difficulty:    new(hexutil.Big),
 		PrevRandao:    h.PrevRandao,

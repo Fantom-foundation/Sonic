@@ -10,6 +10,7 @@ import (
 
 type Block struct {
 	Time        Timestamp
+	Duration    Duration
 	Atropos     hash.Event
 	Events      hash.Events
 	Txs         []common.Hash // non event txs (received via genesis or LLR)

@@ -51,7 +51,7 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 // SetBlock stores chain block.
 func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
-	fmt.Printf("SetBlock: %d - basefee %v\n", n, b.BaseFee)
+	fmt.Printf("SetBlock: %d - basefee %v - duration: %v\n", n, b.BaseFee, b.Duration)
 
 	// Add to LRU cache.
 	s.cache.Blocks.Add(n, b, uint(b.EstimateSize()))
@@ -78,7 +78,7 @@ func (s *Store) GetBlock(n idx.Block) *inter.Block {
 	}
 
 	block, _ := s.rlp.Get(s.table.Blocks, n.Bytes(), &inter.Block{}).(*inter.Block)
-	fmt.Printf("GetBlock: %d - basefee %v\n", n, block.BaseFee)
+	fmt.Printf("GetBlock: %d - basefee %v - duration: %v\n", n, block.BaseFee, block.Duration)
 
 	// Add to LRU cache.
 	if block != nil {
