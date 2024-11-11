@@ -17,6 +17,7 @@ func TestBaseFee_ExamplePriceAdjustments(t *testing.T) {
 	approxExp := func(f, n, d int64) uint64 {
 		return uint64(float64(f) * math.Exp(float64(n)/float64(d)))
 	}
+	const targetRate = 1e6
 
 	tests := map[string]struct {
 		parentBaseFee  uint64
@@ -27,37 +28,65 @@ func TestBaseFee_ExamplePriceAdjustments(t *testing.T) {
 	}{
 		"base fee remains the same": {
 			parentBaseFee:  1e8,
-			parentGasUsed:  1e6,
+			parentGasUsed:  targetRate,
 			parentDuration: 1 * time.Second,
-			targetRate:     1e6,
+			targetRate:     targetRate,
 			wantBaseFee:    approxExp(1e8, 0, 128), // max change rate per second ~1/128
 		},
 		"base fee increases": {
 			parentBaseFee:  1e8,
-			parentGasUsed:  2e6,
+			parentGasUsed:  2 * targetRate,
 			parentDuration: 1 * time.Second,
-			targetRate:     1e6,
+			targetRate:     targetRate,
 			wantBaseFee:    approxExp(1e8, 1, 128),
 		},
 		"base fee decreases": {
 			parentBaseFee:  1e8,
 			parentGasUsed:  0,
 			parentDuration: 1 * time.Second,
-			targetRate:     1e6,
+			targetRate:     targetRate,
 			wantBaseFee:    approxExp(1e8, -1, 128),
+		},
+		"base fee increase is limited": {
+			parentBaseFee:  1e8,
+			parentGasUsed:  3 * targetRate,
+			parentDuration: 1 * time.Second,
+			targetRate:     targetRate,
+			wantBaseFee:    approxExp(1e8, 1, 128), // same as for 2x target rate
+		},
+		"short time bursts have capped impact on base fee price": {
+			parentBaseFee:  1e8,
+			parentGasUsed:  targetRate,
+			parentDuration: 1 * time.Millisecond,
+			targetRate:     targetRate,
+			wantBaseFee:    approxExp(1e8, 1, 128*1000), // the max increase in 1 millisecond
 		},
 		"long durations are ignored": {
 			parentBaseFee:  123456789,
 			parentGasUsed:  0, // < no gas used, should reduce the price
 			parentDuration: 61 * time.Second,
-			targetRate:     1e6, // < since the duration is too long, the price should not change
-			wantBaseFee:    123456789,
+			targetRate:     targetRate,
+			wantBaseFee:    123456789, // < since the duration is too long, the price should not change
 		},
 		"target rate is zero": {
 			parentBaseFee:  123456789,
 			parentGasUsed:  0, // < no gas used, should reduce the price
 			parentDuration: time.Second,
 			targetRate:     0, // < since the target rate is zero, the price should not change
+			wantBaseFee:    123456789,
+		},
+		"zero duration has no effect": {
+			parentBaseFee:  123456789,
+			parentGasUsed:  targetRate,
+			parentDuration: 0,
+			targetRate:     targetRate,
+			wantBaseFee:    123456789,
+		},
+		"negative duration has no effect": {
+			parentBaseFee:  123456789,
+			parentGasUsed:  targetRate,
+			parentDuration: -time.Second,
+			targetRate:     targetRate,
 			wantBaseFee:    123456789,
 		},
 	}
