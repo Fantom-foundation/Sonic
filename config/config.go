@@ -333,7 +333,7 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 	}
 
 	if ctx.IsSet(flags.SuppressFramePanicFlag.Name) {
-		cfg.Lachesis.SuppressFramePanic = true
+		// cfg.Lachesis.SuppressFramePanic = true
 	}
 
 	return &cfg, nil
