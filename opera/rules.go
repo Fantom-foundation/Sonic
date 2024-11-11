@@ -125,6 +125,23 @@ type EconomyRules struct {
 
 	Gas GasRules
 
+	// MinGasPrice defines a lower boundary for the gas price
+	// on the network. However, its interpretation is different
+	// in the context of the Fantom and Sonic networks.
+	//
+	// On the Fantom network: MinGasPrice is the minimum gas price
+	// defining the base fee of a block. The MinGasPrice is set by
+	// the node driver and SFC on the Fantom network and adjusted
+	// based on load observed during an epoch. Base fees charged
+	// on the network correspond exactly to the MinGasPrice.
+	//
+	// On the Sonic network: MinGasPrice is the lower boundary for
+	// the gas price automatically adjusted by the network based
+	// on the consumed gas on a block basis. The actual base fees in
+	// blocks are at least equal to the MinGasPrice or higher.
+	// Adjustments are made dynamically analogous to EIP-1559.
+	// See https://eips.ethereum.org/EIPS/eip-1559 and https://t.ly/BKrcr
+	// for additional information.
 	MinGasPrice *big.Int
 
 	ShortGasPower GasPowerRules
@@ -163,10 +180,10 @@ var BaseChainConfig = ethparams.ChainConfig{
 	PetersburgBlock:               big.NewInt(0),
 	IstanbulBlock:                 big.NewInt(0),
 	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay - relevant for ethereum only
-	BerlinBlock:                   nil, // to be overwritten in EvmChainConfig
-	LondonBlock:                   nil, // to be overwritten in EvmChainConfig
-	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
-	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
+	BerlinBlock:                   nil,           // to be overwritten in EvmChainConfig
+	LondonBlock:                   nil,           // to be overwritten in EvmChainConfig
+	ArrowGlacierBlock:             nil,           // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
+	GrayGlacierBlock:              nil,           // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
 	MergeNetsplitBlock:            nil,
 	ShanghaiTime:                  nil, // to be overwritten in EvmChainConfig
 	CancunTime:                    nil, // to be overwritten in EvmChainConfig

@@ -53,6 +53,8 @@ func TestAddressAccess(t *testing.T) {
 			"origin":   contract.TouchOrigin,
 			"access list": func(ops *bind.TransactOpts) (*types.Transaction, error) {
 				ops.GasPrice = nil // < transactions with gas price cannot have access list
+				ops.GasFeeCap = big.NewInt(1e12)
+				ops.GasTipCap = big.NewInt(1000)
 				ops.AccessList = types.AccessList{
 					{Address: someAccountAddress},
 				}

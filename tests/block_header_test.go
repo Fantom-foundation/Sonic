@@ -2,9 +2,14 @@ package tests
 
 import (
 	"context"
+	"encoding/binary"
 	"math/big"
 	"testing"
+	"time"
 
+	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -51,6 +56,14 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		testHeaders_GasUsedIsBelowGasLimit(t, headers)
 	})
 
+	t.Run("EncodesDurationAndNanoTimeInExtraData", func(t *testing.T) {
+		testHeaders_EncodesDurationAndNanoTimeInExtraData(t, headers)
+	})
+
+	t.Run("BaseFeeEvolutionFollowsPricingRules", func(t *testing.T) {
+		testHeaders_BaseFeeEvolutionFollowsPricingRules(t, headers)
+	})
+
 	// TODO: Add more tests.
 	// - check that the transaction root matches the transactions in the block
 	// - check that the receipt root matches the receipts in the block
@@ -91,5 +104,46 @@ func testHeaders_GasUsedIsBelowGasLimit(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
 	for i, header := range headers {
 		require.LessOrEqual(header.GasUsed, header.GasLimit, "block %d", i)
+	}
+}
+
+func testHeaders_EncodesDurationAndNanoTimeInExtraData(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+	// Check the nano-time and duration encoded in the extra data field.
+	for i := 1; i < len(headers); i++ {
+		require.Equal(len(headers[i].Extra), 16, "extra data length of block %d", i)
+		lastTime := binary.BigEndian.Uint64(headers[i-1].Extra[:8])
+		currentTime := binary.BigEndian.Uint64(headers[i].Extra[:8])
+		wantedDuration := currentTime - lastTime
+		gotDuration := binary.BigEndian.Uint64(headers[i].Extra[8:])
+		require.Equal(wantedDuration, gotDuration, "duration of block %d", i)
+	}
+}
+
+func testHeaders_BaseFeeEvolutionFollowsPricingRules(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	// The genesis block must use the initial base fee.
+	rules := opera.FakeEconomyRules()
+	require.Equal(
+		gasprice.GetInitialBaseFee(rules),
+		headers[0].BaseFee,
+	)
+
+	// All other blocks compute the base-fee based on the previous block.
+	for i := 1; i < len(headers); i++ {
+		last := &evmcore.EvmHeader{
+			BaseFee:  headers[i-1].BaseFee,
+			GasLimit: headers[i-1].GasLimit,
+			GasUsed:  headers[i-1].GasUsed,
+			Duration: time.Duration(
+				binary.BigEndian.Uint64(headers[i-1].Extra[8:]),
+			),
+		}
+		require.Equal(
+			gasprice.GetBaseFeeForNextBlock(last, rules),
+			headers[i].BaseFee,
+			"base fee of block %d", i,
+		)
 	}
 }
