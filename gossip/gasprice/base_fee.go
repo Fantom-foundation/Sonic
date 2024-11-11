@@ -73,8 +73,21 @@ func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules)
 }
 
 // approximateExponential approximates f * e ** (n/d) using
-// Taylor expansion at a=0:
-// f * e^(n/d) = f + af/b + a^2f/b^2/2! + a^3f/b^3/3! + ...
+// Taylor expansion at n=0.
+//
+// f * e^(n/d)
+// = f + nf/d + n^2f/d^2/2! + n^3f/d^3/3! + ...
+// = (fd + nf + n^2f/d^1/2! + n^3f/d^2/3! + ...)/d
+// = (a_1 + a_2 + a_3 + ...)/d
+//
+// where
+//
+//	a_1   = fd
+//	a_i+1 = a_i * n/d/i
+//
+// which converges as i eventually exceeds abs(n/d). This function
+// is derived from the fake_exponential function presented in
+// https://eips.ethereum.org/EIPS/eip-4844
 func approximateExponential(factor, numerator, denominator *big.Int) *big.Int {
 	var (
 		res = new(big.Int)
