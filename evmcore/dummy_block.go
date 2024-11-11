@@ -40,6 +40,7 @@ type (
 		Root       common.Hash
 		TxHash     common.Hash
 		Time       inter.Timestamp
+		Duration   inter.Duration // time since the last block
 		Coinbase   common.Address
 
 		GasLimit uint64
