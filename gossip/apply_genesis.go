@@ -65,6 +65,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		var duration inter.Duration
 		if rules.Upgrades.Sonic {
 			block := s.GetBlock(br.Idx - 1)
+			if block == nil {
+				block = &inter.Block{
+					BaseFee: big.NewInt(0),
+				}
+			}
 			header := &evmcore.EvmHeader{
 				GasUsed:  block.GasUsed,
 				GasLimit: block.GasLimit,

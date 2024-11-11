@@ -50,6 +50,9 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 		nil,
 		nil,
 		opera.Rules{
+			Blocks: opera.BlocksRules{
+				MaxBlockGas: 1e10,
+			},
 			Economy: opera.EconomyRules{
 				MinGasPrice: big.NewInt(12), // > than 0 offered by the internal transactions
 			},
