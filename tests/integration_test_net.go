@@ -130,16 +130,19 @@ func (n *IntegrationTestNet) start() error {
 			"sonicd",
 			"--datadir", n.directory,
 			"--datadir.minfreedisk", "0",
-
 			"--fakenet", "1/1",
 
+			// client options
 			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(clientPort),
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
 
+			// net options
 			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(netPort),
 			"--ws.api", "admin,eth,ftm",
 
-			"--port", fmt.Sprint(discoveryPort),
+			// discovery options
+			"--nat", "none", "--nodiscover",
+			"--port", fmt.Sprint(discoveryPort), //although we don't use discovery, a port will be opened
 		}
 
 		err := sonicd.Run()
