@@ -60,10 +60,10 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 		require := require.New(t)
 
 		createAndGetCost := func(codeLen uint64) uint64 {
-			receipt, err := createContractWithCodeLenAndGas(t, net, variant, codeLen, sufficientGas)
+			receipt, err := createContractWithCodeLenAndGas(net, variant, codeLen, sufficientGas)
 			require.NoError(err)
 			require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to create contract with code length ", codeLen)
-			cost, err := getCreateCost(t, contract, receipt)
+			cost, err := getCreateCost(contract, receipt)
 			require.NoError(err)
 			return cost
 		}
@@ -80,7 +80,7 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 
 	t.Run("fails without enough gas", func(t *testing.T) {
 		// 4 for a zero byte, 1 to make it fail.
-		receipt, err := createContractWithCodeLenAndGas(t, net, variant, 1, gasForContract-wordCost-1)
+		receipt, err := createContractWithCodeLenAndGas(net, variant, 1, gasForContract-wordCost-1)
 		require := require.New(t)
 		require.NoError(err)
 		require.Equal(types.ReceiptStatusFailed, receipt.Status,
@@ -88,7 +88,7 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 	})
 
 	t.Run("with max init code size", func(t *testing.T) {
-		receipt, err := createContractWithCodeLenAndGas(t, net, variant, MAX_INIT_CODE_SIZE, sufficientGas)
+		receipt, err := createContractWithCodeLenAndGas(net, variant, MAX_INIT_CODE_SIZE, sufficientGas)
 		require := require.New(t)
 		require.NoError(err)
 		require.Equal(types.ReceiptStatusSuccessful, receipt.Status,
@@ -96,7 +96,7 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 	})
 
 	t.Run("aborts with init code size larger than MAX_INITCODE_SIZE", func(t *testing.T) {
-		receipt, err := createContractWithCodeLenAndGas(t, net, variant, MAX_INIT_CODE_SIZE+1, sufficientGas)
+		receipt, err := createContractWithCodeLenAndGas(net, variant, MAX_INIT_CODE_SIZE+1, sufficientGas)
 		require := require.New(t)
 		require.NoError(err)
 		require.Equal(types.ReceiptStatusFailed, receipt.Status,
@@ -140,25 +140,22 @@ func testForTransaction(t *testing.T, net *IntegrationTestNet) {
 }
 
 func createContractSuccessfully(t *testing.T, net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) *types.Receipt {
-	receipt, err := createContractWithCodeLenAndGas(t, net, variant, codeLen, gasLimit)
+	receipt, err := createContractWithCodeLenAndGas(net, variant, codeLen, gasLimit)
 	require := require.New(t)
 	require.NoError(err)
 	require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to create contract with code length ", codeLen)
 	return receipt
 }
 
-func createContractWithCodeLenAndGas(t *testing.T, net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) (*types.Receipt, error) {
+func createContractWithCodeLenAndGas(net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) (*types.Receipt, error) {
 	return net.Apply(func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		opts.GasLimit = gasLimit
 		return variant(opts, big.NewInt(int64(codeLen)))
 	})
 }
 
-func getCreateCost(t *testing.T, contract *contractcreator.Contractcreator, receipt *types.Receipt) (uint64, error) {
+func getCreateCost(contract *contractcreator.Contractcreator, receipt *types.Receipt) (uint64, error) {
 	log, err := contract.ParseLogCost(*receipt.Logs[0])
-	if err != nil {
-		t.Errorf("failed to parse log: %v", err)
-	}
 	return log.Cost.Uint64(), err
 }
 
