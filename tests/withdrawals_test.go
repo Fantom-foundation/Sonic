@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	"context"
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -24,22 +25,35 @@ func TestWithdrawalFieldsInBlocks(t *testing.T) {
 	requireBase.NoError(err)
 	requireBase.Equal(receipt.Status, types.ReceiptStatusSuccessful, "failed to endow account")
 
-	// get client and block
+	// get client
 	client, err := net.GetClient()
 	requireBase.NoError(err, "Failed to get the client: ", err)
 	defer client.Close()
-	block, err := client.BlockByNumber(context.Background(), receipt.BlockNumber)
-	requireBase.NoError(err, "Failed to get the block: ", err)
 
 	t.Run("verify default values of block's Withdrawals list and hash", func(t *testing.T) {
 		require := require.New(t)
-		// check that if no withdrawals are made, then the block withdrawals hash is the empty hash
-		require.Equal(types.EmptyWithdrawalsHash, *block.Header().WithdrawalsHash)
-		require.Empty(block.Withdrawals())
+
+		latest, err := client.BlockNumber(context.Background())
+		require.NoError(err, "Failed to get the latest block number: ", err)
+
+		// we check from block 1 onwards because node zero does not consider Sonic Upgrade.
+		for i := int64(1); i <= int64(latest); i++ {
+			block, err := client.BlockByNumber(context.Background(), big.NewInt(i))
+			require.NoError(err, "Failed to get the block: ", err)
+
+			// check that the block has an empty list of withdrawals
+			require.Empty(block.Withdrawals())
+			require.Equal(types.EmptyWithdrawalsHash, *block.Header().WithdrawalsHash, "block %d", i)
+		}
 	})
 
-	t.Run("encode and decode works properly", func(t *testing.T) {
+	t.Run("blocks are healthy to be RLP encoded and decoded", func(t *testing.T) {
 		require := require.New(t)
+
+		// get block
+		block, err := client.BlockByNumber(context.Background(), nil)
+		requireBase.NoError(err, "Failed to get the block: ", err)
+
 		// encode block
 		buffer := bytes.NewBuffer(make([]byte, 0))
 		err = block.EncodeRLP(buffer)
