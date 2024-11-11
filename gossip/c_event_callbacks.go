@@ -2,9 +2,10 @@ package gossip
 
 import (
 	"errors"
-	"github.com/ethereum/go-ethereum/metrics"
 	"math/big"
 	"sync/atomic"
+
+	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -14,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck"
-	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -56,7 +56,7 @@ func (s *Service) buildEvent(e *inter.MutableEventPayload, onIndexed func()) err
 	e.SetMedianTime(s.dagIndexer.MedianTime(e.ID(), s.store.GetEpochState().EpochStart))
 
 	// calc initial GasPower
-	e.SetGasPowerUsed(epochcheck.CalcGasPowerUsed(e, s.store.GetRules()))
+	//e.SetGasPowerUsed(epochcheck.CalcGasPowerUsed(e, s.store.GetRules()))
 	var selfParent *inter.Event
 	if e.SelfParent() != nil {
 		selfParent = s.store.GetEvent(*e.SelfParent())

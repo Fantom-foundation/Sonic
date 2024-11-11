@@ -17,14 +17,17 @@ import (
 )
 
 const (
-	MainNetworkID   uint64 = 0xfa
-	TestNetworkID   uint64 = 0xfa2
-	FakeNetworkID   uint64 = 0xfa3
-	DefaultEventGas uint64 = 28000
-	berlinBit              = 1 << 0
-	londonBit              = 1 << 1
-	llrBit                 = 1 << 2
-	sonicBit               = 1 << 3
+	MainNetworkID uint64 = 0xfa
+	TestNetworkID uint64 = 0xfa2
+	FakeNetworkID uint64 = 0xfa3
+
+	DefaultEventGas           uint64 = 28_000     // < the default base costs for creating an event (for some reason, this costs gas)
+	DefaultGasPerSecondTarget uint64 = 10_000_000 // < the default target gas rate per second
+
+	berlinBit = 1 << 0
+	londonBit = 1 << 1
+	llrBit    = 1 << 2
+	sonicBit  = 1 << 3
 )
 
 var DefaultVMConfig = func() vm.Config {
@@ -169,10 +172,10 @@ var BaseChainConfig = ethparams.ChainConfig{
 	PetersburgBlock:               big.NewInt(0),
 	IstanbulBlock:                 big.NewInt(0),
 	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay - relevant for ethereum only
-	BerlinBlock:                   nil, // to be overwritten in EvmChainConfig
-	LondonBlock:                   nil, // to be overwritten in EvmChainConfig
-	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
-	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
+	BerlinBlock:                   nil,           // to be overwritten in EvmChainConfig
+	LondonBlock:                   nil,           // to be overwritten in EvmChainConfig
+	ArrowGlacierBlock:             nil,           // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
+	GrayGlacierBlock:              nil,           // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
 	MergeNetsplitBlock:            nil,
 	ShanghaiTime:                  nil, // to be overwritten in EvmChainConfig
 	CancunTime:                    nil, // to be overwritten in EvmChainConfig
@@ -265,7 +268,7 @@ func DefaultEconomyRules() EconomyRules {
 		Gas:              DefaultGasRules(),
 		MinGasPrice:      big.NewInt(1e9),
 		ShortGasPower:    DefaultShortGasPowerRules(),
-		LongGasPower:     DefaulLongGasPowerRules(),
+		LongGasPower:     DefaultLongGasPowerRules(),
 	}
 	return rules
 }
@@ -295,7 +298,7 @@ func DefaultEpochsRules() EpochsRules {
 
 func DefaultGasRules() GasRules {
 	return GasRules{
-		MaxEventGas:          10000000 + DefaultEventGas,
+		MaxEventGas:          5*DefaultGasPerSecondTarget + DefaultEventGas, // < gas for a event covering a 5 second long block
 		EventGas:             DefaultEventGas,
 		ParentGas:            2400,
 		ExtraDataGas:         25,
@@ -313,37 +316,40 @@ func FakeNetEpochsRules() EpochsRules {
 	return cfg
 }
 
-// DefaulLongGasPowerRules is long-window config
-func DefaulLongGasPowerRules() GasPowerRules {
+// DefaultLongGasPowerRules is long-window config
+func DefaultLongGasPowerRules() GasPowerRules {
 	return GasPowerRules{
-		AllocPerSec:        100 * DefaultEventGas,
-		MaxAllocPeriod:     inter.Timestamp(60 * time.Minute),
-		StartupAllocPeriod: inter.Timestamp(5 * time.Second),
-		MinStartupGas:      DefaultEventGas * 20,
+		AllocPerSec:        DefaultGasPerSecondTarget,
+		MaxAllocPeriod:     inter.Timestamp(time.Second), //inter.Timestamp(60 * time.Minute),
+		StartupAllocPeriod: inter.Timestamp(time.Second),
+		MinStartupGas:      1e6, //DefaultEventGas * 20,
 	}
 }
 
 // DefaultShortGasPowerRules is short-window config
 func DefaultShortGasPowerRules() GasPowerRules {
-	// 2x faster allocation rate, 6x lower max accumulated gas power
-	cfg := DefaulLongGasPowerRules()
-	cfg.AllocPerSec *= 2
-	cfg.StartupAllocPeriod /= 2
-	cfg.MaxAllocPeriod /= 2 * 6
-	return cfg
+	return DefaultLongGasPowerRules()
+	/*
+		// 2x faster allocation rate, 6x lower max accumulated gas power
+		cfg := DefaulLongGasPowerRules()
+		cfg.AllocPerSec *= 2
+		cfg.StartupAllocPeriod /= 2
+		cfg.MaxAllocPeriod /= 2 * 6
+		return cfg
+	*/
 }
 
 // FakeLongGasPowerRules is fake long-window config
 func FakeLongGasPowerRules() GasPowerRules {
-	config := DefaulLongGasPowerRules()
-	config.AllocPerSec *= 1000
+	config := DefaultLongGasPowerRules()
+	//config.AllocPerSec *= 1000
 	return config
 }
 
 // FakeShortGasPowerRules is fake short-window config
 func FakeShortGasPowerRules() GasPowerRules {
 	config := DefaultShortGasPowerRules()
-	config.AllocPerSec *= 1000
+	//config.AllocPerSec *= 1000
 	return config
 }
 

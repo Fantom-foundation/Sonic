@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
@@ -12,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
-	"github.com/Fantom-foundation/go-opera/eventcheck/gaspowercheck"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
@@ -37,69 +37,79 @@ func (em *Emitter) maxGasPowerToUse(e *inter.MutableEventPayload) uint64 {
 	if maxGasToUse > e.GasPowerLeft().Min() {
 		maxGasToUse = e.GasPowerLeft().Min()
 	}
-	// Smooth TPS if power isn't big
-	if em.config.LimitedTpsThreshold > em.config.NoTxsThreshold {
-		upperThreshold := em.config.LimitedTpsThreshold
-		downThreshold := em.config.NoTxsThreshold
+	//fmt.Printf("\t\tMax Event Gas: %d, gasPowerLeft: %d, Max Gas: %d\n", rules.Economy.Gas.MaxEventGas, e.GasPowerLeft().Min(), maxGasToUse)
+	/*
+		// Smooth TPS if power isn't big
+		if em.config.LimitedTpsThreshold > em.config.NoTxsThreshold {
+			upperThreshold := em.config.LimitedTpsThreshold
+			downThreshold := em.config.NoTxsThreshold
 
-		estimatedAlloc := gaspowercheck.CalcValidatorGasPower(e, e.CreationTime(), e.MedianTime(), 0, em.validators, gaspowercheck.Config{
-			Idx:                inter.LongTermGas,
-			AllocPerSec:        rules.Economy.LongGasPower.AllocPerSec * 4 / 5,
-			MaxAllocPeriod:     inter.Timestamp(time.Minute),
-			MinEnsuredAlloc:    0,
-			StartupAllocPeriod: 0,
-			MinStartupGas:      0,
-		})
+			estimatedAlloc := gaspowercheck.CalcValidatorGasPower(e, e.CreationTime(), e.MedianTime(), 0, em.validators, gaspowercheck.Config{
+				Idx:                inter.LongTermGas,
+				AllocPerSec:        rules.Economy.LongGasPower.AllocPerSec * 4 / 5,
+				MaxAllocPeriod:     inter.Timestamp(time.Minute),
+				MinEnsuredAlloc:    0,
+				StartupAllocPeriod: 0,
+				MinStartupGas:      0,
+			})
 
-		gasPowerLeft := e.GasPowerLeft().Min() + estimatedAlloc
-		if gasPowerLeft < downThreshold {
-			return 0
-		}
-		newGasPowerLeft := uint64(0)
-		if gasPowerLeft > maxGasToUse {
-			newGasPowerLeft = gasPowerLeft - maxGasToUse
-		}
+			gasPowerLeft := e.GasPowerLeft().Min() + estimatedAlloc
+			if gasPowerLeft < downThreshold {
+				return 0
+			}
+			newGasPowerLeft := uint64(0)
+			if gasPowerLeft > maxGasToUse {
+				newGasPowerLeft = gasPowerLeft - maxGasToUse
+			}
 
-		var x1, x2 = newGasPowerLeft, gasPowerLeft
-		if x1 < downThreshold {
-			x1 = downThreshold
-		}
-		if x2 > upperThreshold {
-			x2 = upperThreshold
-		}
-		trespassingPart := uint64(0)
-		if x2 > x1 {
-			trespassingPart = x2 - x1
-		}
-		healthyPart := uint64(0)
-		if gasPowerLeft > x2 {
-			healthyPart = gasPowerLeft - x2
-		}
+			var x1, x2 = newGasPowerLeft, gasPowerLeft
+			if x1 < downThreshold {
+				x1 = downThreshold
+			}
+			if x2 > upperThreshold {
+				x2 = upperThreshold
+			}
+			trespassingPart := uint64(0)
+			if x2 > x1 {
+				trespassingPart = x2 - x1
+			}
+			healthyPart := uint64(0)
+			if gasPowerLeft > x2 {
+				healthyPart = gasPowerLeft - x2
+			}
 
-		smoothGasToUse := healthyPart + trespassingPart/2
-		if maxGasToUse > smoothGasToUse {
-			maxGasToUse = smoothGasToUse
+			smoothGasToUse := healthyPart + trespassingPart/2
+			if maxGasToUse > smoothGasToUse {
+				fmt.Printf("\t\tSmooth TPS: %d -> %d\n", maxGasToUse, smoothGasToUse)
+				maxGasToUse = smoothGasToUse
+			}
 		}
-	}
+	*/
 	// pendingGas should be below MaxBlockGas
-	{
-		maxPendingGas := max64(max64(rules.Blocks.MaxBlockGas/3, rules.Economy.Gas.MaxEventGas), 15000000)
-		if maxPendingGas <= em.pendingGas {
-			return 0
+	/*
+		{
+			maxPendingGas := max64(max64(rules.Blocks.MaxBlockGas/3, rules.Economy.Gas.MaxEventGas), 15000000)
+			if maxPendingGas <= em.pendingGas {
+				return 0
+			}
+			if maxPendingGas < em.pendingGas+maxGasToUse {
+				maxGasToUse = maxPendingGas - em.pendingGas
+				fmt.Printf("\t\tMax Gas reduced by pendingGas: %d - %d = %d\n", maxPendingGas, em.pendingGas, maxGasToUse)
+			}
 		}
-		if maxPendingGas < em.pendingGas+maxGasToUse {
-			maxGasToUse = maxPendingGas - em.pendingGas
-		}
-	}
+	*/
 	// No txs if power is low
-	{
-		threshold := em.config.NoTxsThreshold
-		if e.GasPowerLeft().Min() <= threshold {
-			return 0
-		} else if e.GasPowerLeft().Min() < threshold+maxGasToUse {
-			maxGasToUse = e.GasPowerLeft().Min() - threshold
+	/*
+		{
+			threshold := em.config.NoTxsThreshold
+			if e.GasPowerLeft().Min() <= threshold {
+				return 0
+			} else if e.GasPowerLeft().Min() < threshold+maxGasToUse {
+				maxGasToUse = e.GasPowerLeft().Min() - threshold
+				fmt.Printf("\t\tMax Gas reduced by threshold: %d - %d = %d\n", e.GasPowerLeft().Min(), threshold, maxGasToUse)
+			}
 		}
-	}
+	*/
 	return maxGasToUse
 }
 
@@ -143,6 +153,8 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 }
 
 func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPriceAndNonce) {
+	const debug = false
+
 	maxGasUsed := em.maxGasPowerToUse(e)
 	if maxGasUsed <= e.GasPowerUsed() {
 		return
@@ -150,11 +162,17 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPr
 
 	// sort transactions by price and nonce
 	rules := em.world.GetRules()
+	if debug {
+		fmt.Printf("Adding transactions to event - available gas power %d - maxGasUsed %d\n", e.GasPowerLeft().Min(), maxGasUsed)
+	}
 	for tx, _ := sorted.Peek(); tx != nil; tx, _ = sorted.Peek() {
 		resolvedTx := tx.Resolve()
 		sender, _ := types.Sender(em.world.TxSigner, resolvedTx)
 		// check transaction epoch rules (tx type, gas price)
 		if epochcheck.CheckTxs(types.Transactions{resolvedTx}, rules) != nil {
+			if debug {
+				fmt.Printf("\tskipped by epoch rules\n")
+			}
 			txsSkippedEpochRules.Inc(1)
 			sorted.Pop()
 			continue
@@ -164,33 +182,56 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPr
 			txsSkippedNoValidatorGas.Inc(1)
 			if params.TxGas >= e.GasPowerLeft().Min() || e.GasPowerUsed()+params.TxGas >= maxGasUsed {
 				// stop if cannot originate even an empty transaction
+				if debug {
+					fmt.Printf("\taborting addition of transactions - out of gas\n")
+				}
 				break
+			}
+			if debug {
+				fmt.Printf("\tskipping transaction - not enough gas - %d >= %d || %d+%d >= %d\n",
+					tx.Gas, e.GasPowerLeft().Min(), e.GasPowerUsed(), tx.Gas, maxGasUsed,
+				)
 			}
 			sorted.Pop()
 			continue
 		}
 		// check not conflicted with already originated txs (in any connected event)
 		if em.originatedTxs.TotalOf(sender) != 0 {
+			if debug {
+				fmt.Printf("\tskipped due to sender conflict\n")
+			}
 			txsSkippedConflictingSender.Inc(1)
 			sorted.Pop()
 			continue
 		}
 		// my turn, i.e. try to not include the same tx simultaneously by different validators
 		if !em.isMyTxTurn(tx.Hash, sender, resolvedTx.Nonce(), time.Now(), em.validators, e.Creator(), em.epoch) {
+			if debug {
+				fmt.Printf("\tskipped due to turn conflict\n")
+			}
 			txsSkippedNotMyTurn.Inc(1)
 			sorted.Pop()
 			continue
 		}
 		// check transaction is not outdated
 		if !em.world.TxPool.Has(tx.Hash) {
+			if debug {
+				fmt.Printf("\tskipped due to out-dated transaction\n")
+			}
 			txsSkippedOutdated.Inc(1)
 			sorted.Pop()
 			continue
 		}
 		// add
+		if debug {
+			fmt.Printf("\ttransaction passed all tests => included\n")
+		}
 		e.SetGasPowerUsed(e.GasPowerUsed() + tx.Gas)
 		e.SetGasPowerLeft(e.GasPowerLeft().Sub(tx.Gas))
 		e.SetTxs(append(e.Txs(), resolvedTx))
 		sorted.Shift()
+	}
+	if debug {
+		fmt.Printf("add transactions completed, total number of transactions: %d, gas power left: %d\n", len(e.Txs()), e.GasPowerLeft().Min())
 	}
 }
