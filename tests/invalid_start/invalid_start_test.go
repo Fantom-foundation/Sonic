@@ -1,9 +1,10 @@
-package tests
+package invalid_start
 
 import (
 	"context"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/invalidstart"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -15,12 +16,12 @@ func TestInvalidStart_IdentifiesInvalidStartContract(t *testing.T) {
 	invalidCode := []byte{0x60, 0xef, 0x60, 0x00, 0x53, 0x60, 0x01, 0x60, 0x00, 0xf3}
 	validCode := []byte{0x60, 0xfe, 0x60, 0x00, 0x53, 0x60, 0x01, 0x60, 0x00, 0xf3}
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	r.NoError(err)
 	defer net.Stop()
 
 	// Deploy the invalid start contract.
-	contract, _, err := DeployContract(net, invalidstart.DeployInvalidstart)
+	contract, _, err := tests.DeployContract(net, invalidstart.DeployInvalidstart)
 	r.NoError(err)
 
 	// -- invalid codes
@@ -62,7 +63,7 @@ func TestInvalidStart_IdentifiesInvalidStartContract(t *testing.T) {
 	r.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed on transfer to empty receiver with valid code")
 }
 
-func getTransactionWithCodeAndNoReceiver(r *require.Assertions, code []byte, net *IntegrationTestNet) (*types.Transaction, error) {
+func getTransactionWithCodeAndNoReceiver(r *require.Assertions, code []byte, net *tests.IntegrationTestNet) (*types.Transaction, error) {
 	// these values are needed for the transaction but are irrelevant for the test
 	client, err := net.GetClient()
 	r.NoError(err, "failed to connect to the network:")
@@ -71,7 +72,7 @@ func getTransactionWithCodeAndNoReceiver(r *require.Assertions, code []byte, net
 	chainId, err := client.ChainID(context.Background())
 	r.NoError(err, "failed to get chain ID::")
 
-	nonce, err := client.NonceAt(context.Background(), net.validator.Address(), nil)
+	nonce, err := client.NonceAt(context.Background(), net.Validator.Address(), nil)
 	r.NoError(err, "failed to get nonce:")
 
 	price, err := client.SuggestGasPrice(context.Background())
@@ -85,7 +86,7 @@ func getTransactionWithCodeAndNoReceiver(r *require.Assertions, code []byte, net
 		To:       nil,
 		Nonce:    nonce,
 		Data:     code,
-	}), types.NewLondonSigner(chainId), net.validator.PrivateKey)
+	}), types.NewLondonSigner(chainId), net.Validator.PrivateKey)
 	r.NoError(err, "failed to sign transaction:")
 
 	return transaction, nil

@@ -1,10 +1,11 @@
-package tests
+package initcode_test
 
 import (
 	"context"
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/contractcreator"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,11 +21,11 @@ const sufficientGas = uint64(100_000)
 func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	requireBase := require.New(t)
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	requireBase.NoError(err)
 	defer net.Stop()
 
-	contract, receipt, err := DeployContract(net, contractcreator.DeployContractcreator)
+	contract, receipt, err := tests.DeployContract(net, contractcreator.DeployContractcreator)
 	requireBase.NoError(err)
 	requireBase.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to deploy contract")
 
@@ -52,7 +53,7 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	})
 }
 
-func testForVariant(t *testing.T, net *IntegrationTestNet,
+func testForVariant(t *testing.T, net *tests.IntegrationTestNet,
 	contract *contractcreator.Contractcreator, variant variant,
 	gasForContract, wordCost uint64) {
 
@@ -104,7 +105,7 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 	})
 }
 
-func testForTransaction(t *testing.T, net *IntegrationTestNet) {
+func testForTransaction(t *testing.T, net *tests.IntegrationTestNet) {
 	t.Run("charges depending on the init code size", func(t *testing.T) {
 		require := require.New(t)
 		// transactions charge 4 gas for each zero byte in data.
@@ -139,7 +140,7 @@ func testForTransaction(t *testing.T, net *IntegrationTestNet) {
 	})
 }
 
-func createContractSuccessfully(t *testing.T, net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) *types.Receipt {
+func createContractSuccessfully(t *testing.T, net *tests.IntegrationTestNet, variant variant, codeLen, gasLimit uint64) *types.Receipt {
 	receipt, err := createContractWithCodeLenAndGas(net, variant, codeLen, gasLimit)
 	require := require.New(t)
 	require.NoError(err)
@@ -147,7 +148,7 @@ func createContractSuccessfully(t *testing.T, net *IntegrationTestNet, variant v
 	return receipt
 }
 
-func createContractWithCodeLenAndGas(net *IntegrationTestNet, variant variant, codeLen, gasLimit uint64) (*types.Receipt, error) {
+func createContractWithCodeLenAndGas(net *tests.IntegrationTestNet, variant variant, codeLen, gasLimit uint64) (*types.Receipt, error) {
 	return net.Apply(func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		opts.GasLimit = gasLimit
 		return variant(opts, big.NewInt(int64(codeLen)))
@@ -156,7 +157,7 @@ func createContractWithCodeLenAndGas(net *IntegrationTestNet, variant variant, c
 
 type variant func(opts *bind.TransactOpts, codeSize *big.Int) (*types.Transaction, error)
 
-func runTransactionWithCodeSizeAndGas(t *testing.T, net *IntegrationTestNet, codeSize, gas uint64) (*types.Receipt, error) {
+func runTransactionWithCodeSizeAndGas(t *testing.T, net *tests.IntegrationTestNet, codeSize, gas uint64) (*types.Receipt, error) {
 	require := require.New(t)
 	// these values are needed for the transaction but are irrelevant for the test
 	client, err := net.GetClient()
@@ -166,7 +167,7 @@ func runTransactionWithCodeSizeAndGas(t *testing.T, net *IntegrationTestNet, cod
 	chainId, err := client.ChainID(context.Background())
 	require.NoError(err, "failed to get chain ID::")
 
-	nonce, err := client.NonceAt(context.Background(), net.validator.Address(), nil)
+	nonce, err := client.NonceAt(context.Background(), net.Validator.Address(), nil)
 	require.NoError(err, "failed to get nonce:")
 
 	price, err := client.SuggestGasPrice(context.Background())
@@ -180,7 +181,7 @@ func runTransactionWithCodeSizeAndGas(t *testing.T, net *IntegrationTestNet, cod
 		To:       nil,
 		Nonce:    nonce,
 		Data:     make([]byte, codeSize),
-	}), types.NewLondonSigner(chainId), net.validator.PrivateKey)
+	}), types.NewLondonSigner(chainId), net.Validator.PrivateKey)
 	require.NoError(err, "failed to sign transaction:")
 	return net.Run(transaction)
 }
