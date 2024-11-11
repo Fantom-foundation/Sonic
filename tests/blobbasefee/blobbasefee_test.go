@@ -1,10 +1,11 @@
-package tests
+package blobbasefeee_test
 
 import (
 	"bytes"
 	"context"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/blobbasefee"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -16,12 +17,12 @@ import (
 
 func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) {
 	require := require.New(t)
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(err, "Failed to start the fake network: ", err)
 	defer net.Stop()
 
 	// Deploy the blob base fee contract.
-	contract, _, err := DeployContract(net, blobbasefee.DeployBlobbasefee)
+	contract, _, err := tests.DeployContract(net, blobbasefee.DeployBlobbasefee)
 	require.NoError(err, "failed to deploy contract; ", err)
 
 	// Collect the current blob base fee from the head state.
@@ -69,7 +70,7 @@ func getBlobBaseFeeFrom(header *types.Header) uint64 {
 
 func TestBlobBaseFee_CanReadBlobGasUsed(t *testing.T) {
 	require := require.New(t)
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(err, "Failed to start the fake network: ", err)
 	defer net.Stop()
 

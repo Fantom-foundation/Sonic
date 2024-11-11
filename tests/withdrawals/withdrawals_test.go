@@ -1,4 +1,4 @@
-package tests
+package withdrawals_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -16,7 +17,7 @@ func TestWithdrawalFieldsInBlocks(t *testing.T) {
 	requireBase := require.New(t)
 
 	// start network.
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	requireBase.NoErrorf(err, "Failed to start the fake network: ", err)
 	defer net.Stop()
 

@@ -1,21 +1,23 @@
-package tests
+package prevrandao_test
 
 import (
 	"context"
-	"github.com/Fantom-foundation/go-opera/tests/contracts/prevrandao"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"math/big"
 	"testing"
+
+	"github.com/Fantom-foundation/go-opera/tests"
+	"github.com/Fantom-foundation/go-opera/tests/contracts/prevrandao"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
 func TestPrevRandao(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 	// Deploy the contract.
-	contract, _, err := DeployContract(net, prevrandao.DeployPrevrandao)
+	contract, _, err := tests.DeployContract(net, prevrandao.DeployPrevrandao)
 	if err != nil {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}

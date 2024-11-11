@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
+	"math/rand/v2"
+	"net"
 	"os"
 	"syscall"
 	"time"
@@ -44,9 +47,31 @@ import (
 // integration test networks can also be used for automated integration and
 // regression tests for client code.
 type IntegrationTestNet struct {
-	directory string
-	done      <-chan struct{}
-	validator Account
+	directory  string
+	done       <-chan struct{}
+	Validator  Account
+	clientPort int
+}
+
+func isPortFree(host string, port int) bool {
+	address := fmt.Sprintf("%s:%d", host, port)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return false
+	}
+	listener.Close()
+	return true
+}
+
+func getFreePort() (int, error) {
+	var port int
+	for i := 0; i < 10; i++ {
+		port = 1023 + (rand.Int()%math.MaxUint16 - 1023)
+		if isPortFree("localhost", port) {
+			return port, nil
+		}
+	}
+	return 0, fmt.Errorf("failed to find a free port (last %d)", port)
 }
 
 // StartIntegrationTestNet starts a single-node test network for integration tests.
@@ -65,7 +90,7 @@ func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 	// start the fakenet sonic node
 	result := &IntegrationTestNet{
 		directory: directory,
-		validator: Account{evmcore.FakeKey(1)},
+		Validator: Account{evmcore.FakeKey(1)},
 	}
 
 	if err := result.start(); err != nil {
@@ -78,22 +103,49 @@ func (n *IntegrationTestNet) start() error {
 	if n.done != nil {
 		return errors.New("network already started")
 	}
+
+	// find free ports for the client and network interfaces
+	clientPort, err := getFreePort()
+	if err != nil {
+		return err
+	}
+	netPort, err := getFreePort()
+	if err != nil {
+		return err
+	}
+	discoveryPort, err := getFreePort()
+	if err != nil {
+		return err
+	}
+
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
+		originalArgs := os.Args
+		defer func() { os.Args = originalArgs }()
 
 		// start the fakenet sonic node
 		// equivalent to running `sonicd ...` but in this local process
 		os.Args = []string{
 			"sonicd",
 			"--datadir", n.directory,
-			"--fakenet", "1/1",
-			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
-			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
-			"--ws", "--ws.addr", "0.0.0.0", "--ws.port", "18546", "--ws.api", "admin,eth,ftm",
 			"--datadir.minfreedisk", "0",
+
+			"--fakenet", "1/1",
+
+			"--http", "--http.addr", "0.0.0.0", "--http.port", fmt.Sprint(clientPort),
+			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
+
+			"--ws", "--ws.addr", "0.0.0.0", "--ws.port", fmt.Sprint(netPort),
+			"--ws.api", "admin,eth,ftm",
+
+			"--port", fmt.Sprint(discoveryPort),
 		}
-		sonicd.Run()
+
+		err := sonicd.Run()
+		if err != nil {
+			panic(fmt.Sprint("Failed to start the fake network:", err))
+		}
 	}()
 
 	n.done = done
@@ -158,7 +210,7 @@ func (n *IntegrationTestNet) EndowAccount(
 	}
 
 	// The requested funds are moved from the validator account to the target account.
-	nonce, err := client.NonceAt(context.Background(), n.validator.Address(), nil)
+	nonce, err := client.NonceAt(context.Background(), n.Validator.Address(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
@@ -175,7 +227,7 @@ func (n *IntegrationTestNet) EndowAccount(
 		To:       &address,
 		Value:    big.NewInt(value),
 		Nonce:    nonce,
-	}), types.NewLondonSigner(chainId), n.validator.PrivateKey)
+	}), types.NewLondonSigner(chainId), n.Validator.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign transaction: %w", err)
 	}
@@ -207,7 +259,7 @@ func (n *IntegrationTestNet) GetReceipt(txHash common.Hash) (*types.Receipt, err
 	defer client.Close()
 
 	// Wait for the response with some exponential backoff.
-	const maxDelay = 100 * time.Millisecond
+	const maxDelay = 10 * time.Millisecond
 	now := time.Now()
 	delay := time.Millisecond
 	for time.Since(now) < 100*time.Second {
@@ -233,7 +285,7 @@ func (n *IntegrationTestNet) GetReceipt(txHash common.Hash) (*types.Receipt, err
 func (n *IntegrationTestNet) Apply(
 	issue func(*bind.TransactOpts) (*types.Transaction, error),
 ) (*types.Receipt, error) {
-	txOpts, err := n.GetTransactOptions(&n.validator)
+	txOpts, err := n.GetTransactOptions(&n.Validator)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction options: %w", err)
 	}
@@ -285,7 +337,7 @@ func (n *IntegrationTestNet) GetTransactOptions(account *Account) (*bind.Transac
 // GetClient provides raw access to a fresh connection to the network.
 // The resulting client must be closed after use.
 func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
-	return ethclient.Dial("http://localhost:18545")
+	return ethclient.Dial(fmt.Sprintf("http://localhost:%d", n.clientPort))
 }
 
 // DeployContract is a utility function handling the deployment of a contract on the network.
@@ -298,7 +350,7 @@ func DeployContract[T any](n *IntegrationTestNet, deploy contractDeployer[T]) (*
 	}
 	defer client.Close()
 
-	transactOptions, err := n.GetTransactOptions(&n.validator)
+	transactOptions, err := n.GetTransactOptions(&n.Validator)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get transaction options: %w", err)
 	}
