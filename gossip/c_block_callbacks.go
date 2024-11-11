@@ -378,11 +378,22 @@ func consensusCallbackBeginBlockFn(
 						feed.newLogs.Send(logs)
 					}
 
+					lastBlockTime := evmStateReader.GetHeader(common.Hash{}, uint64(blockCtx.Idx-1)).Time.Time()
+					thisBlockTime := block.Time.Time()
+					blockTime := thisBlockTime.Sub(lastBlockTime)
+
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())
-					log.Info("New block", "index", blockCtx.Idx, "id", block.Hash(), "gas_used",
-						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
-						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
+					log.Info("New block",
+						"index", blockCtx.Idx,
+						"id", block.Hash(),
+						"gas_used", evmBlock.GasUsed,
+						"gas_rate", float64(evmBlock.GasUsed)/blockTime.Seconds(),
+						"base_fee", evmBlock.BaseFee.String(),
+						"txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
+						"age", utils.PrettyDuration(blockAge),
+						"t", utils.PrettyDuration(now.Sub(start)),
+					)
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 
 					processedTxsMeter.Mark(int64(len(evmBlock.Transactions)))

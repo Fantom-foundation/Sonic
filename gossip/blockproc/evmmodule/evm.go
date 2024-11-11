@@ -10,6 +10,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
@@ -32,8 +33,13 @@ func (p *EVMModule) Start(
 	prevrandao common.Hash,
 ) blockproc.EVMProcessor {
 	var prevBlockHash common.Hash
-	if block.Idx != 0 {
-		prevBlockHash = reader.GetHeader(common.Hash{}, uint64(block.Idx-1)).Hash
+	var baseFee *big.Int
+	if block.Idx == 0 {
+		baseFee = gasprice.GetInitialBaseFee(net.Economy)
+	} else {
+		header := reader.GetHeader(common.Hash{}, uint64(block.Idx-1))
+		prevBlockHash = header.Hash
+		baseFee = gasprice.GetBaseFeeForNextBlock(header, net.Economy)
 	}
 
 	// Start block
@@ -49,6 +55,7 @@ func (p *EVMModule) Start(
 		blockIdx:      utils.U64toBig(uint64(block.Idx)),
 		prevBlockHash: prevBlockHash,
 		prevRandao:    prevrandao,
+		gasBaseFee:    baseFee,
 	}
 }
 
@@ -62,6 +69,7 @@ type OperaEVMProcessor struct {
 
 	blockIdx      *big.Int
 	prevBlockHash common.Hash
+	gasBaseFee    *big.Int
 
 	gasUsed uint64
 
@@ -75,6 +83,8 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 	baseFee := p.net.Economy.MinGasPrice
 	if !p.net.Upgrades.London {
 		baseFee = nil
+	} else if p.net.Upgrades.Sonic {
+		baseFee = p.gasBaseFee
 	}
 
 	prevRandao := common.Hash{}
