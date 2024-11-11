@@ -3,6 +3,7 @@ package emitter
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"math/rand/v2"
 	"os"
 	"strings"
@@ -103,12 +104,19 @@ type Emitter struct {
 	busyRate         *rate.Gauge
 
 	logger.Periodic
+
+	baseFeeSource BaseFeeSource
+}
+
+type BaseFeeSource interface {
+	GetCurrentBaseFee() *big.Int
 }
 
 // NewEmitter creation.
 func NewEmitter(
 	config Config,
 	world World,
+	baseFeeSource BaseFeeSource,
 ) *Emitter {
 	// Randomize event time to decrease chance of 2 parallel instances emitting event at the same time
 	// It increases the chance of detecting parallel instances
@@ -122,6 +130,7 @@ func NewEmitter(
 		intervals:                config.EmitIntervals,
 		globalConfirmingInterval: config.EmitIntervals.Confirming,
 		Periodic:                 logger.Periodic{Instance: logger.New()},
+		baseFeeSource:            baseFeeSource,
 	}
 }
 
@@ -218,7 +227,7 @@ func (em *Emitter) tick() {
 	}
 }
 
-func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
+func (em *Emitter) getSortedTxs(baseFee *big.Int) *transactionsByPriceAndNonce {
 	// Short circuit if pool wasn't updated since the cache was built
 	poolCount := em.world.TxPool.Count()
 	if em.cache.sortedTxs != nil &&
@@ -257,7 +266,7 @@ func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
 		txs[from] = lazyTxs
 	}
 
-	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, em.world.GetRules().Economy.MinGasPrice)
+	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, baseFee)
 	em.cache.sortedTxs = sortedTxs
 	em.cache.poolCount = poolCount
 	em.cache.poolBlock = em.world.GetLatestBlockIndex()
@@ -270,7 +279,9 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 		// short circuit if not a validator
 		return nil, nil
 	}
-	sortedTxs := em.getSortedTxs()
+
+	baseFee := em.baseFeeSource.GetCurrentBaseFee()
+	sortedTxs := em.getSortedTxs(baseFee)
 
 	if em.world.IsBusy() {
 		return nil, nil
@@ -279,7 +290,7 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	em.world.Lock()
 	defer em.world.Unlock()
 
-	e, err := em.createEvent(sortedTxs)
+	e, err := em.createEvent(sortedTxs, baseFee)
 	if e == nil || err != nil {
 		return nil, err
 	}
@@ -327,7 +338,10 @@ func (em *Emitter) loadPrevEmitTime() time.Time {
 }
 
 // createEvent is not safe for concurrent use.
-func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.EventPayload, error) {
+func (em *Emitter) createEvent(
+	sortedTxs *transactionsByPriceAndNonce,
+	baseFee *big.Int,
+) (*inter.EventPayload, error) {
 	if !em.isValidator() {
 		return nil, nil
 	}
@@ -443,7 +457,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 	}
 
 	// Add txs
-	em.addTxs(mutEvent, sortedTxs)
+	em.addTxs(mutEvent, sortedTxs, baseFee)
 
 	// Check if event should be emitted
 	// Check only if no txs were added, since check in a case with added txs was performed above

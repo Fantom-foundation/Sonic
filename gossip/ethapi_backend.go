@@ -25,6 +25,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/ethapi"
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/state"
@@ -481,7 +482,8 @@ func (b *EthAPIBackend) CurrentEpoch(ctx context.Context) idx.Epoch {
 }
 
 func (b *EthAPIBackend) MinGasPrice() *big.Int {
-	return b.state.MinGasPrice()
+	current := b.state.GetCurrentBaseFee()
+	return gaspricelimits.GetSuggestedGasPriceForNewTransactions(current)
 }
 func (b *EthAPIBackend) MaxGasLimit() uint64 {
 	return b.state.MaxGasLimit()

@@ -35,6 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
 
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
@@ -156,8 +157,7 @@ type StateReader interface {
 	CurrentBlock() *EvmBlock
 	GetBlock(hash common.Hash, number uint64) *EvmBlock
 	GetTxPoolStateDB() (TxPoolStateDB, error)
-	MinGasPrice() *big.Int
-	EffectiveMinTip() *big.Int
+	GetCurrentBaseFee() *big.Int
 	MaxGasLimit() uint64
 	SubscribeNewBlock(ch chan<- ChainHeadNotify) notify.Subscription
 	Config() *params.ChainConfig
@@ -698,6 +698,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
+
 	// Drop non-local transactions under our own minimal accepted gas price or tip
 	local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
 	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
@@ -705,16 +706,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrUnderpriced
 	}
 	// Ensure Opera-specific hard bounds
-	if recommendedGasTip, minPrice := pool.chain.EffectiveMinTip(), pool.chain.MinGasPrice(); recommendedGasTip != nil && minPrice != nil {
-		if tx.GasTipCap().Sign() < 0 {
-			log.Trace("Rejecting underpriced tx: negative tip", "GasTipCap", tx.GasTipCap())
-			return ErrUnderpriced
-		}
-		if tx.GasFeeCapIntCmp(new(big.Int).Add(recommendedGasTip, minPrice)) < 0 {
-			log.Trace("Rejecting underpriced tx: recommendedGasTip+minPrice", "recommendedGasTip", recommendedGasTip, "minPrice", minPrice, "tx.GasFeeCap", tx.GasFeeCap())
+	if baseFee := pool.chain.GetCurrentBaseFee(); baseFee != nil {
+		limit := gaspricelimits.GetMinimumFeeCapForTransactionPool(baseFee)
+		if tx.GasFeeCapIntCmp(limit) < 0 {
+			log.Trace("Rejecting underpriced tx: minimumBaseFee", "minimumBaseFee", baseFee, "limit", limit, "tx.GasFeeCap", tx.GasFeeCap())
 			return ErrUnderpriced
 		}
 	}
+
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow
@@ -1281,9 +1280,9 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	// because of another transaction (e.g. higher gas price).
 	if reset != nil {
 		pool.demoteUnexecutables()
-		if pool.chain.MinGasPrice() != nil {
+		if baseFee := pool.chain.GetCurrentBaseFee(); baseFee != nil {
 			// Opera-specific base fee
-			pool.priced.SetBaseFee(pool.chain.MinGasPrice())
+			pool.priced.SetBaseFee(baseFee)
 		} else {
 			// for tests only
 			if reset.newHead != nil && pool.chainconfig.IsLondon(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {

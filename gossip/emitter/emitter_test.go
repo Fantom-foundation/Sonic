@@ -61,7 +61,7 @@ func TestEmitter(t *testing.T) {
 		TxPool:   txPool,
 		Signer:   signer,
 		TxSigner: txSigner,
-	})
+	}, fixedPriceBaseFeeSource{})
 
 	t.Run("init", func(t *testing.T) {
 		external.EXPECT().GetRules().
@@ -115,4 +115,10 @@ func TestEmitter(t *testing.T) {
 	t.Run("tick", func(t *testing.T) {
 		em.tick()
 	})
+}
+
+type fixedPriceBaseFeeSource struct{}
+
+func (fixedPriceBaseFeeSource) GetCurrentBaseFee() *big.Int {
+	return big.NewInt(1e6)
 }

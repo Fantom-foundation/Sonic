@@ -2,14 +2,15 @@ package config
 
 import (
 	"fmt"
+	"path"
+	"strconv"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/external"
 	"github.com/ethereum/go-ethereum/accounts/scwallet"
 	"github.com/ethereum/go-ethereum/accounts/usbwallet"
 	"github.com/ethereum/go-ethereum/metrics"
-	"path"
-	"strconv"
-	"time"
 
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -149,7 +150,11 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 	}
 
 	if cfg.Emitter.Validator.ID != 0 {
-		svc.RegisterEmitter(emitter.NewEmitter(cfg.Emitter, svc.EmitterWorld(signer)))
+		svc.RegisterEmitter(emitter.NewEmitter(
+			cfg.Emitter,
+			svc.EmitterWorld(signer),
+			gdb.AsBaseFeeSource(),
+		))
 	}
 
 	stack.RegisterAPIs(svc.APIs())
@@ -172,7 +177,6 @@ func MakeNetworkStack(ctx *cli.Context, cfg *node.Config) (*node.Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
-
 
 	keystoreDir, err := cfg.KeyDirConfig()
 	if err != nil {
