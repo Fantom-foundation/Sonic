@@ -178,7 +178,11 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				prevRandao := computePrevRandao(confirmedEvents)
+				var prevRandao common.Hash
+				// only compute for sonic
+				if es.Rules.Upgrades.Sonic {
+					prevRandao = computePrevRandao(confirmedEvents)
+				}
 
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
