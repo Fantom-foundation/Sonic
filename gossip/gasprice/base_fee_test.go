@@ -8,52 +8,10 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/opera"
 )
 
 func TestBaseFee_PriceAdjustments(t *testing.T) {
-
-	tests := map[string]struct {
-		parentBaseFee  uint64
-		parentGasUsed  uint64
-		parentGasLimit uint64
-		wantBaseFee    uint64
-	}{
-		"base fee remains the same": {
-			parentBaseFee:  1e9,
-			parentGasUsed:  1e6,
-			parentGasLimit: 2e6,
-			wantBaseFee:    1e9,
-		},
-		"base fee increases": {
-			parentBaseFee:  1e9,
-			parentGasUsed:  2e6,
-			parentGasLimit: 2e6,
-			wantBaseFee:    1e9 + 1e9/8, // +12.5%
-		},
-		"base fee decreases": {
-			parentBaseFee:  1e9,
-			parentGasUsed:  0,
-			parentGasLimit: 2e6,
-			wantBaseFee:    1e9 - 1e9/8, // -12.5%
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-
-			header := &evmcore.EvmHeader{
-				BaseFee:  big.NewInt(int64(test.parentBaseFee)),
-				GasUsed:  test.parentGasUsed,
-				GasLimit: test.parentGasLimit,
-			}
-
-			gotBaseFee := GetBaseFeeForNextBlock(header)
-			wantBaseFee := big.NewInt(int64(test.wantBaseFee))
-			if gotBaseFee.Cmp(wantBaseFee) != 0 {
-				t.Fatalf("base fee is incorrect; got %v, want %v", gotBaseFee, wantBaseFee)
-			}
-		})
-	}
 
 	// Test the base fee price adjustments.
 	// The base fee is adjusted based on the gas used in the previous block.
@@ -251,10 +209,14 @@ func BenchmarkBaseFeeComputation(b *testing.B) {
 	header := &evmcore.EvmHeader{
 		BaseFee:  big.NewInt(1e9),
 		GasUsed:  1e6,
-		GasLimit: 2e6,
 		Duration: inter.Duration(1e9),
 	}
+	rules := opera.EconomyRules{
+		ShortGasPower: opera.GasPowerRules{
+			AllocPerSec: 1e6,
+		},
+	}
 	for range b.N {
-		GetBaseFeeForNextBlock(header)
+		GetBaseFeeForNextBlock(header, rules)
 	}
 }

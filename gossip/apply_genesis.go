@@ -68,7 +68,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 				GasLimit: block.GasLimit,
 				BaseFee:  block.BaseFee,
 			}
-			baseFee = gasprice.GetBaseFeeForNextBlock(header)
+			baseFee = gasprice.GetBaseFeeForNextBlock(header, rules.Economy)
 		}
 		s.WriteFullBlockRecord(gasLimit, baseFee, blobGasPrice, br)
 		if br.Idx > lastBlock.Idx {

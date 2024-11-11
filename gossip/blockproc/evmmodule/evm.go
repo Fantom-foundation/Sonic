@@ -32,7 +32,7 @@ func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, read
 	} else {
 		header := reader.GetHeader(common.Hash{}, uint64(block.Idx-1))
 		prevBlockHash = header.Hash
-		baseFee = gasprice.GetBaseFeeForNextBlock(header)
+		baseFee = gasprice.GetBaseFeeForNextBlock(header, net.Economy)
 	}
 
 	// Start block

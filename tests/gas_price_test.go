@@ -10,6 +10,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -58,6 +59,8 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 		t.Fatalf("initial base fee is incorrect; got %v, want %v", got, want)
 	}
 
+	rules := opera.FakeEconomyRules()
+
 	for i := 1; i < len(headers); i++ {
 		lastTime := binary.BigEndian.Uint64(headers[i-1].Extra[:8])
 		currentTime := binary.BigEndian.Uint64(headers[i].Extra[:8])
@@ -73,7 +76,7 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 			GasUsed:  headers[i-1].GasUsed,
 			Duration: inter.Duration(gotDuration),
 		}
-		want := gasprice.GetBaseFeeForNextBlock(last)
+		want := gasprice.GetBaseFeeForNextBlock(last, rules)
 		t.Logf("%d: %d vs %d\n", i, headers[i].BaseFee, want)
 		if got := headers[i].BaseFee; got.Cmp(want) != 0 {
 			t.Errorf("base fee of block %d is incorrect; got %v, want %v", i, got, want)
