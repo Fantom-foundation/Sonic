@@ -9,6 +9,8 @@ import (
 type (
 	// Timestamp is a UNIX nanoseconds timestamp
 	Timestamp uint64
+	// Duration is a UNIX nanoseconds duration
+	Duration uint64
 )
 
 // Bytes gets the byte representation of the index.
@@ -42,4 +44,8 @@ func MaxTimestamp(x, y Timestamp) Timestamp {
 		return x
 	}
 	return y
+}
+
+func (d Duration) Duration() time.Duration {
+	return time.Duration(d)
 }
