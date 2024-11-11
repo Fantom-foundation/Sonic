@@ -12,7 +12,8 @@ import (
 )
 
 // this constant comes from  https://eips.ethereum.org/EIPS/eip-3860#parameters
-const MAX_INIT_CODE_SIZE uint64 = 49152
+const MAX_CODE_SIZE uint64 = 24576
+const MAX_INIT_CODE_SIZE uint64 = 2 * MAX_CODE_SIZE
 
 const sufficientGas = uint64(100_000)
 
@@ -27,11 +28,12 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	requireBase.NoError(err)
 	requireBase.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to deploy contract")
 
-	// deploy measureGasAndAssign to get cost of deploying a contract without create.
+	// run measureGasAndAssign to get cost of deploying a contract without create.
 	receipt = createContractSuccessfully(t, net, contract.GetOverheadCost, 0, 0)
 
 	// -- using CREATE instruction
 	const wordCostCreate uint64 = 2
+	// 32035 is the cost of creating a contract with code according to evm.codes calculator.
 	var gasForCreate uint64 = 32035 + receipt.GasUsed
 	t.Run("create", func(t *testing.T) {
 		testForVariant(t, net, contract, contract.CreatetWith, gasForCreate, wordCostCreate)
@@ -41,9 +43,8 @@ func TestInitCodeSizeLimitAndMetered(t *testing.T) {
 	// create2 has extra costs for hashing, this is explained in
 	// https://eips.ethereum.org/EIPS/eip-3860 and reflected in evm.codes calculator.
 	const wordCostCreate2 uint64 = wordCostCreate + 6
-	var gasForCreate2 uint64 = gasForCreate
 	t.Run("create2", func(t *testing.T) {
-		testForVariant(t, net, contract, contract.Create2With, gasForCreate2, wordCostCreate2)
+		testForVariant(t, net, contract, contract.Create2With, gasForCreate, wordCostCreate2)
 	})
 
 	t.Run("create transaction", func(t *testing.T) {
@@ -67,6 +68,8 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 			return cost
 		}
 
+		// since memory is expanded in words of 32 bytes, we want to check that the cost is proportional to the number of words.
+		// hence 30 bytes fit in 1 word, 42 in 2 words and 90 in 3 words.
 		cost1Word := createAndGetCost(30)
 		cost2Words := createAndGetCost(42)
 		cost3Words := createAndGetCost(90)
