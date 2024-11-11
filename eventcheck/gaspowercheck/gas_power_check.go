@@ -2,7 +2,6 @@ package gaspowercheck
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -82,7 +81,7 @@ func (v *Checker) CalcGasPower(e inter.EventI, selfParent inter.EventI) (inter.G
 		res.Gas[i] = calcGasPower(e, selfParent, ctx, ctx.Configs[i])
 	}
 
-	fmt.Printf("Remaining gas power - short: %d, long: %d\n", res.Gas[inter.ShortTermGas], res.Gas[inter.LongTermGas])
+	//fmt.Printf("Remaining gas power - short: %d, long: %d\n", res.Gas[inter.ShortTermGas], res.Gas[inter.LongTermGas])
 
 	return res, nil
 }

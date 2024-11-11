@@ -25,7 +25,7 @@ func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, t
 	}
 }
 
-func (s *Store) WriteFullBlockRecord(gasLimit uint64, baseFee *big.Int, blobGasPrice *big.Int, br ibr.LlrIdxFullBlockRecord) {
+func (s *Store) WriteFullBlockRecord(gasLimit uint64, baseFee *big.Int, blobGasPrice *big.Int, duration inter.Duration, br ibr.LlrIdxFullBlockRecord) {
 	txHashes := make([]common.Hash, 0, len(br.Txs))
 	for _, tx := range br.Txs {
 		txHashes = append(txHashes, tx.Hash())
@@ -45,6 +45,7 @@ func (s *Store) WriteFullBlockRecord(gasLimit uint64, baseFee *big.Int, blobGasP
 	}
 	s.SetBlock(br.Idx, &inter.Block{
 		Time:        br.Time,
+		Duration:    duration,
 		Atropos:     br.Atropos,
 		Events:      hash.Events{},
 		Txs:         txHashes,

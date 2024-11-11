@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -52,7 +51,6 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 			t.Fatalf("failed to get block header; %v", err)
 		}
 		headers = append(headers, header)
-		fmt.Printf("Block %d: time %v, limit %v, used %v, fee %v, extra %x %x\n", i, header.Time, header.GasLimit, header.GasUsed, header.BaseFee, header.Extra[:8], header.Extra[8:])
 	}
 
 	if got, want := headers[0].BaseFee, gasprice.GetInitialBaseFee(); got.Cmp(want) != 0 {
@@ -61,6 +59,7 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 
 	rules := opera.FakeEconomyRules()
 
+	// Check data encoded in the extra field.
 	for i := 1; i < len(headers); i++ {
 		lastTime := binary.BigEndian.Uint64(headers[i-1].Extra[:8])
 		currentTime := binary.BigEndian.Uint64(headers[i].Extra[:8])
@@ -69,15 +68,17 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 		if wantedDuration != gotDuration {
 			t.Errorf("duration of block %d is incorrect; got %d, want %d", i, gotDuration, wantedDuration)
 		}
+	}
 
+	// Check the gas price evolution.
+	for i := 1; i < len(headers); i++ {
 		last := &evmcore.EvmHeader{
 			BaseFee:  headers[i-1].BaseFee,
 			GasLimit: headers[i-1].GasLimit,
 			GasUsed:  headers[i-1].GasUsed,
-			Duration: inter.Duration(gotDuration),
+			Duration: inter.Duration(binary.BigEndian.Uint64(headers[i-1].Extra[8:])),
 		}
 		want := gasprice.GetBaseFeeForNextBlock(last, rules)
-		t.Logf("%d: %d vs %d\n", i, headers[i].BaseFee, want)
 		if got := headers[i].BaseFee; got.Cmp(want) != 0 {
 			t.Errorf("base fee of block %d is incorrect; got %v, want %v", i, got, want)
 		}

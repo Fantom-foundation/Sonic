@@ -1,7 +1,6 @@
 package gasprice
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -20,8 +19,6 @@ func GetInitialBaseFee() *big.Int {
 }
 
 func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules) *big.Int {
-	//fmt.Printf("GetBaseFee for block after %d @ %d\n", parent.Number, parent.Time)
-	fmt.Printf("AllocPerSec: %d\n", rules.ShortGasPower.AllocPerSec)
 	target := big.NewInt(int64(rules.ShortGasPower.AllocPerSec / 2))
 	return GetBaseFeeForNextBlock_Sonic(parent, target)
 	//return GetBaseFeeForNextBlock_Eth(parent)
@@ -80,12 +77,9 @@ func GetBaseFeeForNextBlock_Sonic(parent *evmcore.EvmHeader, targetRate *big.Int
 
 	// newPrice := oldPrice * e^(((rate-targetRate/targetRate)*duration)/128)
 
-	fmt.Printf(
-		"gas rate: %f, target rate %f\n",
-		float64(parent.GasUsed)*1e9/float64(parent.Duration),
-		float64(targetRate.Int64()),
-	)
-
+	// If the time gap between the parent and this block is more than
+	// 60 seconds, something significantly disturbed the chain and we
+	// keep the BaseFee constant.
 	duration := parent.Duration
 	if duration == 0 || duration > 60*1e9 {
 		return parent.BaseFee

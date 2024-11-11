@@ -7,6 +7,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -61,6 +62,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
+		var duration inter.Duration
 		if rules.Upgrades.Sonic {
 			block := s.GetBlock(br.Idx - 1)
 			header := &evmcore.EvmHeader{
@@ -69,8 +71,9 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 				BaseFee:  block.BaseFee,
 			}
 			baseFee = gasprice.GetBaseFeeForNextBlock(header, rules.Economy)
+			duration = inter.Duration(br.Time - block.Time)
 		}
-		s.WriteFullBlockRecord(gasLimit, baseFee, blobGasPrice, br)
+		s.WriteFullBlockRecord(gasLimit, baseFee, blobGasPrice, duration, br)
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}

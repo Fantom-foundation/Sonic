@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"sync/atomic"
 
@@ -69,7 +68,6 @@ func (s *Service) buildEvent(e *inter.MutableEventPayload, onIndexed func()) err
 	if e.GasPowerUsed() > availableGasPower.Min() {
 		return emitter.ErrNotEnoughGasPower
 	}
-	fmt.Printf("Available gas: %d\n", availableGasPower.Min())
 	e.SetGasPowerLeft(availableGasPower.Sub(e.GasPowerUsed()))
 	return s.engine.Build(e)
 }
