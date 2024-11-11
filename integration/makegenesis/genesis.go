@@ -136,7 +136,9 @@ type dummyHeaderReturner struct {
 }
 
 func (d dummyHeaderReturner) GetHeader(common.Hash, uint64) *evmcore.EvmHeader {
-	return &evmcore.EvmHeader{}
+	return &evmcore.EvmHeader{
+		BaseFee: big.NewInt(0),
+	}
 }
 
 func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types.Transactions) error {

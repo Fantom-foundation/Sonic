@@ -224,9 +224,10 @@ func consensusCallbackBeginBlockFn(
 
 					// new block
 					var block = &inter.Block{
-						Time:    blockCtx.Time,
-						Atropos: cBlock.Atropos,
-						Events:  hash.Events(confirmedEvents),
+						Time:     blockCtx.Time,
+						Duration: inter.Duration(blockCtx.Time - bs.LastBlock.Time),
+						Atropos:  cBlock.Atropos,
+						Events:   hash.Events(confirmedEvents),
 					}
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.Txs = append(block.Txs, tx.Hash())
@@ -241,9 +242,12 @@ func consensusCallbackBeginBlockFn(
 					_ = evmProcessor.Execute(txs)
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
+					evmBlock.Duration = block.Duration
 					block.SkippedTxs = skippedTxs
 					block.Root = hash.Hash(evmBlock.Root)
+					block.GasLimit = es.Rules.Blocks.MaxBlockGas
 					block.GasUsed = evmBlock.GasUsed
+					block.BaseFee = evmBlock.BaseFee
 
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)
@@ -334,11 +338,16 @@ func consensusCallbackBeginBlockFn(
 						feed.newLogs.Send(logs)
 					}
 
+					lastBlockTime := evmStateReader.GetHeader(common.Hash{}, uint64(blockCtx.Idx-1)).Time.Time()
+					thisBlockTime := block.Time.Time()
+					blockTime := thisBlockTime.Sub(lastBlockTime)
+
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())
 					log.Info("New block", "index", blockCtx.Idx, "id", block.Atropos, "gas_used",
-						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
-						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
+						evmBlock.GasUsed, "base_fee", evmBlock.BaseFee.String(), "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
+						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)),
+						"gas_rate", float64(evmBlock.GasUsed)/blockTime.Seconds())
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 
 					processedTxsMeter.Mark(int64(len(evmBlock.Transactions)))
