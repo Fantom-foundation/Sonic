@@ -180,9 +180,9 @@ func consensusCallbackBeginBlockFn(
 
 				var prevRandao common.Hash
 				// only compute for sonic
-				if es.Rules.Upgrades.Sonic {
-					prevRandao = computePrevRandao(confirmedEvents)
-				}
+				//if es.Rules.Upgrades.Sonic {
+				prevRandao = computePrevRandao(confirmedEvents)
+				//}
 
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
@@ -242,7 +242,7 @@ func consensusCallbackBeginBlockFn(
 						Atropos: cBlock.Atropos,
 						Events:  hash.Events(confirmedEvents),
 					}
-					block.SetPrevRandao(prevRandao)
+					//block.SetPrevRandao(prevRandao)
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.Txs = append(block.Txs, tx.Hash())
 					}
