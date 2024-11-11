@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
@@ -58,10 +59,16 @@ func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
 func (s *Store) GetBlock(n idx.Block) *inter.Block {
 	if n == 0 {
 		// fake genesis block for compatibility with web3
-		return &inter.Block{
+		res := &inter.Block{
 			Time:    evmcore.FakeGenesisTime - 1,
 			Atropos: s.fakeGenesisHash(),
 		}
+		rules := s.GetRules()
+		if rules.Upgrades.Sonic {
+			res.GasLimit = rules.Blocks.MaxBlockGas
+			res.BaseFee = gasprice.GetInitialBaseFee()
+		}
+		return res
 	}
 	// Get block from LRU cache first.
 	if c, ok := s.cache.Blocks.Get(n); ok {

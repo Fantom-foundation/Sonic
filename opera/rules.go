@@ -125,6 +125,12 @@ type EconomyRules struct {
 
 	Gas GasRules
 
+	// The minimum gas price used as the base-fee gas price on
+	// the Fantom network. This value is gradually adjusted after
+	// each epoch through a rule update initiated by the node
+	// driver and SFC on the Fantom network. On the Sonic network,
+	// this field is ignored as gas prices are adjusted dynamically
+	// analogous to EIP-1559 (https://eips.ethereum.org/EIPS/eip-1559).
 	MinGasPrice *big.Int
 
 	ShortGasPower GasPowerRules
