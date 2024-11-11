@@ -67,7 +67,7 @@ func getFreePort() (int, error) {
 	var port int
 	for i := 0; i < 10; i++ {
 		port = 1023 + (rand.Int()%math.MaxUint16 - 1023)
-		if isPortFree("localhost", port) {
+		if isPortFree("127.0.0.1", port) {
 			return port, nil
 		}
 	}
@@ -133,10 +133,10 @@ func (n *IntegrationTestNet) start() error {
 
 			"--fakenet", "1/1",
 
-			"--http", "--http.addr", "0.0.0.0", "--http.port", fmt.Sprint(clientPort),
+			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(clientPort),
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
 
-			"--ws", "--ws.addr", "0.0.0.0", "--ws.port", fmt.Sprint(netPort),
+			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(netPort),
 			"--ws.api", "admin,eth,ftm",
 
 			"--port", fmt.Sprint(discoveryPort),
