@@ -59,7 +59,7 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 
 	rules := opera.FakeEconomyRules()
 
-	// Check data encoded in the extra field.
+	// Check the nano-time and duration encoded in the extra data field.
 	for i := 1; i < len(headers); i++ {
 		lastTime := binary.BigEndian.Uint64(headers[i-1].Extra[:8])
 		currentTime := binary.BigEndian.Uint64(headers[i].Extra[:8])
@@ -70,7 +70,7 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 		}
 	}
 
-	// Check the gas price evolution.
+	// Check that the gas price evolution follows the base fee pricing rules.
 	for i := 1; i < len(headers); i++ {
 		last := &evmcore.EvmHeader{
 			BaseFee:  headers[i-1].BaseFee,

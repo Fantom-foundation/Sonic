@@ -1,48 +1,19 @@
 package gasprice
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
-func TestBaseFee_PriceAdjustments(t *testing.T) {
-
-	// Test the base fee price adjustments.
-	// The base fee is adjusted based on the gas used in the previous block.
-	// If the gas used is equal to the target gas, the base fee remains the same.
-	// If the gas used is greater than the target gas, the base fee increases.
-	// If the gas used is less than the target gas, the base fee decreases.
-	// The base fee is adjusted by a fraction of the parent base fee.
-	// The adjustment is capped at 1/8 of the parent base fee.
-	// The base fee is adjusted by at least 1 wei.
-	// The base fee is capped at 2^64 - 1 wei.
-	// The base fee is initialized to 1e9 wei.
-	// The target gas is the parent gas limit divided by 2.
-	// The gas used is the parent gas used.
-	// The base fee is calculated using the formula:
-	// newBaseFee = parentBaseFee + parentBaseFee * adjustment
-	// where adjustment = gasUsedDelta / gasTarget / kBaseFeeMaxChangeDenominator
-	// gasUsedDelta = gasUsed - gasTarget
-	// gasTarget = parentGasLimit / kElasticMultiplier
-	// The base fee is calculated using big.Int to avoid overflow.
-	// The base fee is returned as a big.Int.
-	// The base fee is returned as a pointer to a big.Int.
-	// The base fee is returned as a new big.Int
-	// The base fee is returned as a copy of the parent base fee.
-	// The base fee is returned as a new big.Int with the parent base fee.
-
-}
-
-// TODO:
-//  - make sure gas price can grow again if it is zero
-
-func TestBaseFee_SonicPriceAdjustments(t *testing.T) {
+func TestBaseFee_ExamplePriceAdjustments(t *testing.T) {
 
 	approxExp := func(f, n, d int64) uint64 {
 		return uint64(float64(f) * math.Exp(float64(n)/float64(d)))
@@ -51,30 +22,44 @@ func TestBaseFee_SonicPriceAdjustments(t *testing.T) {
 	tests := map[string]struct {
 		parentBaseFee  uint64
 		parentGasUsed  uint64
-		parentDuration uint64
+		parentDuration time.Duration
 		targetRate     uint64
 		wantBaseFee    uint64
 	}{
 		"base fee remains the same": {
 			parentBaseFee:  1e8,
 			parentGasUsed:  1e6,
-			parentDuration: 1e9, // 1 second
+			parentDuration: 1 * time.Second,
 			targetRate:     1e6,
 			wantBaseFee:    approxExp(1e8, 0, 128), // max change rate per second ~1/128
 		},
 		"base fee increases": {
 			parentBaseFee:  1e8,
 			parentGasUsed:  2e6,
-			parentDuration: 1e9, // 1 second
+			parentDuration: 1 * time.Second,
 			targetRate:     1e6,
 			wantBaseFee:    approxExp(1e8, 1, 128),
 		},
 		"base fee decreases": {
 			parentBaseFee:  1e8,
 			parentGasUsed:  0,
-			parentDuration: 1e9, // 1 second
+			parentDuration: 1 * time.Second,
 			targetRate:     1e6,
 			wantBaseFee:    approxExp(1e8, -1, 128),
+		},
+		"long durations are ignored": {
+			parentBaseFee:  123456789,
+			parentGasUsed:  0, // < no gas used, should reduce the price
+			parentDuration: 61 * time.Second,
+			targetRate:     1e6, // < since the duration is too long, the price should not change
+			wantBaseFee:    123456789,
+		},
+		"target rate is zero": {
+			parentBaseFee:  123456789,
+			parentGasUsed:  0, // < no gas used, should reduce the price
+			parentDuration: time.Second,
+			targetRate:     0, // < since the target rate is zero, the price should not change
+			wantBaseFee:    123456789,
 		},
 	}
 
@@ -87,16 +72,26 @@ func TestBaseFee_SonicPriceAdjustments(t *testing.T) {
 				Duration: inter.Duration(test.parentDuration),
 			}
 
-			gotBaseFee := GetBaseFeeForNextBlock_Sonic(header, big.NewInt(int64(test.targetRate)))
+			rules := opera.EconomyRules{
+				ShortGasPower: opera.GasPowerRules{
+					AllocPerSec: 2 * test.targetRate,
+				},
+			}
+
+			gotBaseFee := GetBaseFeeForNextBlock(header, rules)
 			wantBaseFee := big.NewInt(int64(test.wantBaseFee))
 			if gotBaseFee.Cmp(wantBaseFee) != 0 {
 				t.Fatalf("base fee is incorrect; got %v, want %v, diff %d", gotBaseFee, wantBaseFee, sub(gotBaseFee, wantBaseFee))
+			}
+
+			if header.BaseFee == gotBaseFee {
+				t.Fatalf("new base fee is not a copy; got %p, want %p", header.BaseFee, gotBaseFee)
 			}
 		})
 	}
 }
 
-func TestBaseFee_SonicPriceCanRecoverFromPriceZero(t *testing.T) {
+func TestBaseFee_PriceCanRecoverFromPriceZero(t *testing.T) {
 
 	target := uint64(1e6)
 	header := &evmcore.EvmHeader{
@@ -105,9 +100,50 @@ func TestBaseFee_SonicPriceCanRecoverFromPriceZero(t *testing.T) {
 		Duration: inter.Duration(1e9), // 1 second
 	}
 
-	newPrice := GetBaseFeeForNextBlock_Sonic(header, big.NewInt(int64(target)))
+	rules := opera.EconomyRules{
+		ShortGasPower: opera.GasPowerRules{
+			AllocPerSec: 2 * target,
+		},
+	}
+
+	newPrice := GetBaseFeeForNextBlock(header, rules)
 	if newPrice.Cmp(big.NewInt(1)) < 0 {
 		t.Errorf("failed to increase price from zero, new price %v", newPrice)
+	}
+}
+
+func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T) {
+	rules := opera.EconomyRules{
+		ShortGasPower: opera.GasPowerRules{
+			AllocPerSec: 1e6,
+		},
+	}
+
+	// This property should be true for any block time.
+	blockTimes := []time.Duration{
+		100 * time.Millisecond,
+		500 * time.Millisecond,
+		1 * time.Second,
+		2 * time.Second,
+		5 * time.Second,
+	}
+	for _, blockTime := range blockTimes {
+		t.Run(fmt.Sprintf("blockTime=%s", blockTime.String()), func(t *testing.T) {
+			header := &evmcore.EvmHeader{
+				BaseFee:  GetInitialBaseFee(),
+				GasUsed:  0,
+				Duration: inter.Duration(blockTime),
+			}
+			decayDuration := time.Duration(0)
+			for header.BaseFee.Sign() > 0 {
+				header.BaseFee = GetBaseFeeForNextBlock(header, rules)
+				decayDuration += header.Duration.Duration()
+			}
+
+			if decayDuration < 30*time.Minute || decayDuration > 40*time.Minute {
+				t.Errorf("time to decay from initial to zero is incorrect; got %v", decayDuration)
+			}
+		})
 	}
 }
 

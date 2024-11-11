@@ -45,3 +45,7 @@ func MaxTimestamp(x, y Timestamp) Timestamp {
 	}
 	return y
 }
+
+func (d Duration) Duration() time.Duration {
+	return time.Duration(d)
+}
