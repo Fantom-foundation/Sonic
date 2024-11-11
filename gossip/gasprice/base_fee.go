@@ -39,22 +39,32 @@ func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules)
 
 	oldPrice := new(big.Int).Set(parent.BaseFee)
 
-	// If the time gap between the parent and this block is more than
-	// 60 seconds, something significantly disturbed the chain and we
+	// If the time gap between the parent and this block is zero or more
+	// than 60 seconds, something significantly disturbed the chain and we
 	// keep the BaseFee constant.
-	duration := parent.Duration
+	duration := uint64(parent.Duration)
 	if duration == 0 || duration > 60*1e9 {
 		return oldPrice
 	}
 
-	// If the target rate is zero, the new price is not defined.
+	// If the target rate is zero, the formula above is not defined. In this case,
+	// we keep the BaseFee constant.
 	targetRate := big.NewInt(int64(rules.ShortGasPower.AllocPerSec / 2))
 	if targetRate.Sign() == 0 {
 		return oldPrice
 	}
 
+	// The maximum gas usage rate considered for the computation of the new base fee
+	// is capped at twice the target rate. This is to prevent the base fee from
+	// increasing faster than the targeted 1/128th per second.
 	nanosPerSecond := big.NewInt(1e9)
+	maxRate := big.NewInt(int64(rules.ShortGasPower.AllocPerSec))
+	maxUsedGas := div(mul(maxRate, big.NewInt(int64(duration))), nanosPerSecond)
+
 	usedGas := big.NewInt(int64(parent.GasUsed))
+	if usedGas.Cmp(maxUsedGas) > 0 {
+		usedGas.Set(maxUsedGas)
+	}
 
 	durationInNanos := big.NewInt(int64(duration)) // 63-bit is enough for a duration of 292 years
 
@@ -108,4 +118,8 @@ func sub(a, b *big.Int) *big.Int {
 
 func mul(a, b *big.Int) *big.Int {
 	return new(big.Int).Mul(a, b)
+}
+
+func div(a, b *big.Int) *big.Int {
+	return new(big.Int).Div(a, b)
 }
