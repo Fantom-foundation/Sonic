@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -83,20 +82,19 @@ func TestBlobBaseFee_CanReadBlobGasUsed(t *testing.T) {
 	block, err := client.BlockByNumber(context.Background(), big.NewInt(0))
 	require.NoError(err, "failed to get block header; ", err)
 	require.Empty(*block.BlobGasUsed(), "unexpected value in blob gas used")
+	require.Empty(*block.Header().ExcessBlobGas, "unexpected excess blob gas value")
 
-	// check value for blob gas used is rlp endoded and decoded
-	// create a new block with an empty list of withdrawals
-	newBody := types.Body{Withdrawals: []*types.Withdrawal{}}
-	newBlock := types.NewBlock(block.Header(), &newBody, nil, trie.NewStackTrie(nil))
-
+	// check value for blob gas used is rlp encoded and decoded
 	buffer := bytes.NewBuffer(make([]byte, 0))
-	err = newBlock.EncodeRLP(buffer)
+	err = block.EncodeRLP(buffer)
 	require.NoError(err, "failed to encode block header; ", err)
+
+	// decode block
 	stream := rlp.NewStream(buffer, 0)
-	err = newBlock.DecodeRLP(stream)
+	err = block.DecodeRLP(stream)
 	require.NoError(err, "failed to decode block header; ", err)
 
 	// check blob gas used and excess blob gas are zero
 	require.Empty(*block.BlobGasUsed(), "unexpected blob gas used value")
-	require.Empty(newBlock.Header().ExcessBlobGas, "unexpected excess blob gas value")
+	require.Empty(*block.Header().ExcessBlobGas, "unexpected excess blob gas value")
 }
