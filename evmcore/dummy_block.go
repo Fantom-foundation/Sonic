@@ -104,13 +104,6 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 
 // ConvertFromEthHeader converts ETH-formatted header to Lachesis EVM header
 func ConvertFromEthHeader(h *types.Header) *EvmHeader {
-	var time inter.Timestamp
-	var duration inter.Duration
-	if len(h.Extra) == 16 {
-		time = inter.Timestamp(binary.BigEndian.Uint64(h.Extra[:8]))
-		duration = inter.Duration(binary.BigEndian.Uint64(h.Extra[8:]))
-	}
-	// TODO: return an error otherwise!
 	// NOTE: incomplete conversion
 	return &EvmHeader{
 		Number:     h.Number,
@@ -120,8 +113,7 @@ func ConvertFromEthHeader(h *types.Header) *EvmHeader {
 		Root:       h.Root,
 		TxHash:     h.TxHash,
 		ParentHash: h.ParentHash,
-		Time:       time,
-		Duration:   duration,
+		Time:       inter.Timestamp(h.Time),
 		Hash:       common.BytesToHash(h.Extra),
 		BaseFee:    h.BaseFee,
 		PrevRandao: h.MixDigest,

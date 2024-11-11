@@ -84,7 +84,3 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 		}
 	}
 }
-
-// TODO:
-//  - add a test checking the accuracy of the gas price suggestions
-//  - test that transactions are charged the base fee, not their maximum price
