@@ -1635,10 +1635,30 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 }
 
 // GetBlockReceipts returns a set of transaction receipts for the given block by the extended block number.
-func (s *PublicTransactionPoolAPI) GetBlockReceipts(ctx context.Context, number rpc.BlockNumber) ([]map[string]interface{}, error) {
-	header, err := s.b.HeaderByNumber(ctx, number)
-	if header == nil || err != nil {
-		return nil, err
+func (s *PublicTransactionPoolAPI) GetBlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
+
+	var (
+		err    error
+		number rpc.BlockNumber
+		header *evmcore.EvmHeader
+	)
+
+	if blockNr, ok := blockNrOrHash.Number(); ok {
+		number = blockNr
+		header, err = s.b.HeaderByNumber(ctx, number)
+		if err != nil {
+			return nil, err
+		}
+	} else if blockHash, ok := blockNrOrHash.Hash(); ok {
+		header, err = s.b.HeaderByHash(ctx, blockHash)
+		if err != nil {
+			return nil, err
+		}
+		number = rpc.BlockNumber(header.Number.Uint64())
+	}
+
+	if header == nil {
+		return nil, fmt.Errorf("block not found")
 	}
 
 	receipts, err := s.b.GetReceiptsByNumber(ctx, number)
