@@ -2045,7 +2045,9 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, m
 		if config.Config == nil {
 			config.Config = &logger.Config{Limit: api.structLogLimit}
 		} else {
-			if api.structLogLimit > 0 && config.Config.Limit > api.structLogLimit {
+			if api.structLogLimit > 0 &&
+				(config.Config.Limit == 0 || config.Config.Limit > api.structLogLimit) {
+
 				config.Config.Limit = api.structLogLimit
 			}
 		}
