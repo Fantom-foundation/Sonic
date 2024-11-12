@@ -2,6 +2,7 @@ package gasprice
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/opera"
@@ -21,7 +22,7 @@ func GetInitialBaseFee() *big.Int {
 func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules) *big.Int {
 	// In general, this function computes the new base fee based on the following formula:
 	//
-	//     newPrice := oldPrice * e^(((rate-targetRate/targetRate)*duration)/128)
+	//     newPrice := oldPrice * e^(((rate-targetRate)/targetRate)*duration/128)
 	//
 	// where:
 	//   - oldPrice is the base fee of the parent block
@@ -35,15 +36,15 @@ func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules)
 	//               newPrice := oldPrice * e^(numerator/denominator)
 	//
 	// where numerator and denominator are integers. The final value is then computed
-	// using an approximation of the this function based on a Taylor expansion around 0.
+	// using an approximation of this function based on a Taylor expansion around 0.
 
 	oldPrice := new(big.Int).Set(parent.BaseFee)
 
 	// If the time gap between the parent and this block is zero or more
 	// than 60 seconds, something significantly disturbed the chain and we
 	// keep the BaseFee constant.
-	duration := uint64(parent.Duration)
-	if duration == 0 || duration > 60*1e9 {
+	duration := parent.Duration
+	if duration <= 0 || duration > 60*time.Second {
 		return oldPrice
 	}
 
@@ -59,7 +60,7 @@ func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules)
 	// increasing faster than the targeted 1/128th per second.
 	nanosPerSecond := big.NewInt(1e9)
 	maxRate := big.NewInt(int64(rules.ShortGasPower.AllocPerSec))
-	maxUsedGas := div(mul(maxRate, big.NewInt(int64(duration))), nanosPerSecond)
+	maxUsedGas := div(mul(maxRate, big.NewInt(duration.Nanoseconds())), nanosPerSecond)
 
 	usedGas := big.NewInt(int64(parent.GasUsed))
 	if usedGas.Cmp(maxUsedGas) > 0 {

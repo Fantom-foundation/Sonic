@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
@@ -97,7 +96,7 @@ func TestBaseFee_ExamplePriceAdjustments(t *testing.T) {
 			header := &evmcore.EvmHeader{
 				BaseFee:  big.NewInt(int64(test.parentBaseFee)),
 				GasUsed:  test.parentGasUsed,
-				Duration: inter.Duration(test.parentDuration),
+				Duration: test.parentDuration,
 			}
 
 			rules := opera.EconomyRules{
@@ -128,7 +127,7 @@ func TestBaseFee_PriceCanRecoverFromPriceZero(t *testing.T) {
 	header := &evmcore.EvmHeader{
 		BaseFee:  big.NewInt(0),
 		GasUsed:  target + 1,
-		Duration: inter.Duration(1e9), // 1 second
+		Duration: time.Second,
 	}
 
 	rules := opera.EconomyRules{
@@ -167,7 +166,7 @@ func TestBaseFee_GrowsAtMostTwelveAndAHalfPercentPer15Seconds(t *testing.T) {
 			header := &evmcore.EvmHeader{
 				BaseFee:  big.NewInt(initialPrice),
 				GasUsed:  uint64((2 * targetRate * blockTime) / time.Second),
-				Duration: inter.Duration(blockTime),
+				Duration: blockTime,
 			}
 			duration := time.Duration(0)
 			for duration < 15*time.Second {
@@ -215,7 +214,7 @@ func TestBaseFee_ShrinksAtMostTwelveAndAHalfPercentPer15Seconds(t *testing.T) {
 			header := &evmcore.EvmHeader{
 				BaseFee:  big.NewInt(initialPrice),
 				GasUsed:  0,
-				Duration: inter.Duration(blockTime),
+				Duration: blockTime,
 			}
 			duration := time.Duration(0)
 			for duration < 15*time.Second {
@@ -259,7 +258,7 @@ func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T
 			header := &evmcore.EvmHeader{
 				BaseFee:  GetInitialBaseFee(),
 				GasUsed:  0,
-				Duration: inter.Duration(blockTime),
+				Duration: blockTime,
 			}
 			decayDuration := time.Duration(0)
 			for header.BaseFee.Sign() > 0 {
@@ -375,7 +374,7 @@ func BenchmarkBaseFeeComputation(b *testing.B) {
 	header := &evmcore.EvmHeader{
 		BaseFee:  big.NewInt(1e9),
 		GasUsed:  1e6,
-		Duration: inter.Duration(1e9),
+		Duration: time.Second,
 	}
 	rules := opera.EconomyRules{
 		ShortGasPower: opera.GasPowerRules{
