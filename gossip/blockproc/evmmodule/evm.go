@@ -82,7 +82,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 	prevRandao := common.Hash{}
 	// This condition must be kept, otherwise Opera will not be able to synchronize
 	if p.net.Upgrades.Sonic {
-		prevRandao = p.prevRandao
+		prevRandao.SetBytes([]byte{1})
 	}
 
 	h := &evmcore.EvmHeader{
