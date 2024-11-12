@@ -1,4 +1,4 @@
-package withdrawals_test
+package withdrawal_tests
 
 import (
 	"bytes"
