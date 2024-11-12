@@ -36,7 +36,7 @@ func TestWithdrawalFieldsInBlocks(t *testing.T) {
 		latest, err := client.BlockNumber(context.Background())
 		require.NoError(err, "Failed to get the latest block number: ", err)
 
-		// we check from block 1 onwards because node zero does not consider Sonic Upgrade.
+		// we check from block 1 onward because block 0 does not consider Sonic Upgrade.
 		for i := int64(1); i <= int64(latest); i++ {
 			block, err := client.BlockByNumber(context.Background(), big.NewInt(i))
 			require.NoError(err, "Failed to get the block: ", err)
