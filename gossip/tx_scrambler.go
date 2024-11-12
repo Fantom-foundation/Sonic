@@ -174,18 +174,3 @@ func xorBytes32(a, b [32]byte) (dst [32]byte) {
 	}
 	return
 }
-
-// getSkippedTxNumbersWithinEvents takes skipped tx numbers by EVM and returns its original tx number before scrambling.
-func getSkippedTxNumbersWithinEvents(skippedByEvm []uint32, originalOrder map[common.Hash]uint32, orderedTxs types.Transactions) []uint32 {
-	originalOrderSkippedTxs := make([]uint32, 0, len(orderedTxs))
-	// Block needs the tx number from event, not from scrambler
-	for _, txNumber := range skippedByEvm {
-		// Find transaction index from the scrambled list
-		txHash := orderedTxs[txNumber].Hash()
-		// Find the original transaction index
-		originalTxNumber := originalOrder[txHash]
-		originalOrderSkippedTxs = append(originalOrderSkippedTxs, originalTxNumber)
-	}
-
-	return originalOrderSkippedTxs
-}
