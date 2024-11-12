@@ -65,13 +65,14 @@ func isPortFree(host string, port int) bool {
 
 func getFreePort() (int, error) {
 	var port int
-	for i := 0; i < 10; i++ {
+	retries := 10
+	for i := 0; i < retries; i++ {
 		port = 1023 + (rand.Int()%math.MaxUint16 - 1023)
 		if isPortFree("127.0.0.1", port) {
 			return port, nil
 		}
 	}
-	return 0, fmt.Errorf("failed to find a free port (last %d)", port)
+	return 0, fmt.Errorf("failed to find a free port after %d retries (last %d)", retries, port)
 }
 
 // StartIntegrationTestNet starts a single-node test network for integration tests.
