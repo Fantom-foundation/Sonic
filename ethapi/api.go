@@ -1923,12 +1923,17 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs Transact
 type PublicDebugAPI struct {
 	b               Backend
 	maxResponseSize int // in bytes
+	structLogLimit  int
 }
 
 // NewPublicDebugAPI creates a new API definition for the public debug methods
 // of the Ethereum service.
-func NewPublicDebugAPI(b Backend, maxResponseSize int) *PublicDebugAPI {
-	return &PublicDebugAPI{b: b, maxResponseSize: maxResponseSize}
+func NewPublicDebugAPI(b Backend, maxResponseSize int, structLogLimit int) *PublicDebugAPI {
+	return &PublicDebugAPI{
+		b:               b,
+		maxResponseSize: maxResponseSize,
+		structLogLimit:  structLogLimit,
+	}
 }
 
 // GetBlockRlp retrieves the RLP encoded for of a single block.
@@ -2037,6 +2042,13 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, tx *types.Transaction, m
 	}
 	// Default tracer is the struct logger
 	if config.Tracer == nil {
+		if config.Config == nil {
+			config.Config = &logger.Config{Limit: api.structLogLimit}
+		} else {
+			if api.structLogLimit > 0 && config.Config.Limit > api.structLogLimit {
+				config.Config.Limit = api.structLogLimit
+			}
+		}
 		logger := logger.NewStructLogger(config.Config)
 		tracer = &tracers.Tracer{
 			Hooks:     logger.Hooks(),
