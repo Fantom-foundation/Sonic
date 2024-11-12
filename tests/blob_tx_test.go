@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -119,14 +118,10 @@ func createTestBlobTransaction(t *testing.T, ctxt *testContext, data ...[]byte) 
 		copy(blob[:], data)
 
 		blobCommitment, err := kzg4844.BlobToCommitment(&blob)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compute blob commitment: %s", err)
-		}
+		require.NoError(err, "failed to compute blob commitment")
 
 		blobProof, err := kzg4844.ComputeBlobProof(&blob, blobCommitment)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compute blob proof: %s", err)
-		}
+		require.NoError(err, "failed to compute blob proof")
 
 		sidecar.Blobs = append(sidecar.Blobs, blob)
 		sidecar.Commitments = append(sidecar.Commitments, blobCommitment)
