@@ -30,6 +30,7 @@ func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules)
 	//   - targetRate is the target gas rate per second at which prices are stable
 	//   - duration is the time in seconds between the parent and grand-parent blocks
 	//
+	// For more details on the origin of this formula, see https://t.ly/BKrcr
 	// All computations are carried out using integers to avoid floating point errors.
 	// To that end, terms are re-arranged to fit the following shape:
 	//
