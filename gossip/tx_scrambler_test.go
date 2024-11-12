@@ -584,40 +584,32 @@ func TestGetExecutionOrder_TransactionsFiltering(t *testing.T) {
 	tests := []struct {
 		name        string
 		isSonic     bool
-		entries     []ScramblerEntry
 		expectedLen int
 	}{
 		{
-			name:    "TxScramblerIsNotUsed",
-			isSonic: false,
-			entries: []ScramblerEntry{
-				&dummyScramblerEntry{
-					hash: common.Hash{1},
-				},
-				&dummyScramblerEntry{
-					hash: common.Hash{1},
-				},
-			},
+			name:        "TxScramblerIsNotUsed",
+			isSonic:     false,
 			expectedLen: 2,
 		},
 		{
-			name:    "TxScramblerIsNotUsed",
-			isSonic: true,
-			entries: []ScramblerEntry{
-				&dummyScramblerEntry{
-					hash: common.Hash{1},
-				},
-				&dummyScramblerEntry{
-					hash: common.Hash{1},
-				},
-			},
+			name:        "TxScramblerIsNotUsed",
+			isSonic:     true,
 			expectedLen: 1,
+		},
+	}
+
+	entries := []ScramblerEntry{
+		&dummyScramblerEntry{
+			hash: common.Hash{1},
+		},
+		&dummyScramblerEntry{
+			hash: common.Hash{1},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			sorted := getExecutionOrder(test.entries, test.isSonic)
+			sorted := getExecutionOrder(entries, test.isSonic)
 			if len(sorted) != test.expectedLen {
 				t.Errorf("incorrect output size, got: %d, want: %d", len(sorted), test.expectedLen)
 			}

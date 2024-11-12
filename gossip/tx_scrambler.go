@@ -3,6 +3,7 @@ package gossip
 import (
 	"bytes"
 	"cmp"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"slices"
@@ -41,6 +42,30 @@ func (tx *scramblerTransaction) Sender() common.Address {
 	return tx.sender
 }
 
+// orderTransactions orders given transactions.
+func orderTransactions(unorderedTxs types.Transactions, signer types.Signer, rules opera.Rules) (types.Transactions, []uint32) {
+	unorderedEntries := make([]ScramblerEntry, 0, len(unorderedTxs))
+	skippedTxs := make([]uint32, 0, len(unorderedTxs))
+	for idx, tx := range unorderedTxs {
+		// Skip any invalid transactions
+		entry, err := newScramblerTransaction(signer, tx)
+		if err != nil {
+			skippedTxs = append(skippedTxs, uint32(idx))
+			continue
+		}
+		unorderedEntries = append(unorderedEntries, entry)
+	}
+
+	orderedEntries := getExecutionOrder(unorderedEntries, rules.Upgrades.Sonic)
+	orderedTxs := make(types.Transactions, len(orderedEntries))
+	for i, tx := range orderedEntries {
+		// Cast back the transactions to pass it to the processor
+		orderedTxs[i] = tx.(*scramblerTransaction).Transaction
+	}
+
+	return orderedTxs, skippedTxs
+}
+
 // getExecutionOrder returns correct order of the transactions.
 // If Sonic is enabled, the tx scrambler is used, otherwise the order stays unchanged.
 func getExecutionOrder(entries []ScramblerEntry, isSonic bool) []ScramblerEntry {
@@ -49,7 +74,6 @@ func getExecutionOrder(entries []ScramblerEntry, isSonic bool) []ScramblerEntry 
 	if isSonic {
 		return filterAndOrderTransactions(entries)
 	}
-
 	return entries
 }
 
@@ -149,4 +173,19 @@ func xorBytes32(a, b [32]byte) (dst [32]byte) {
 		dst[i] = a[i] ^ b[i]
 	}
 	return
+}
+
+// getSkippedTxNumbersWithinEvents takes skipped tx numbers by EVM and returns its original tx number before scrambling.
+func getSkippedTxNumbersWithinEvents(skippedByEvm []uint32, originalOrder map[common.Hash]uint32, orderedTxs types.Transactions) []uint32 {
+	originalOrderSkippedTxs := make([]uint32, 0, len(orderedTxs))
+	// Block needs the tx number from event, not from scrambler
+	for _, txNumber := range skippedByEvm {
+		// Find transaction index from the scrambled list
+		txHash := orderedTxs[txNumber].Hash()
+		// Find the original transaction index
+		originalTxNumber := originalOrder[txHash]
+		originalOrderSkippedTxs = append(originalOrderSkippedTxs, originalTxNumber)
+	}
+
+	return originalOrderSkippedTxs
 }
