@@ -1,11 +1,12 @@
 package gossip
 
 import (
+	"math/rand/v2"
+	"sync/atomic"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p/enode"
-	"math/rand"
-	"sync/atomic"
 )
 
 var isMaybeSyncedGauge = metrics.GetOrRegisterGauge("chain/maybeSynced", nil)
@@ -97,7 +98,7 @@ func (h *handler) txsyncLoop() {
 		if len(pending) == 0 {
 			return nil
 		}
-		n := rand.Intn(len(pending)) + 1
+		n := rand.IntN(len(pending)) + 1
 		for _, s := range pending {
 			if n--; n == 0 {
 				return s

@@ -6,7 +6,7 @@ package gossip
 import (
 	"bytes"
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
@@ -123,7 +123,7 @@ func makeFuzzedHandler() (h *handler, err error) {
 
 func randomID() (id enode.ID) {
 	for i := range id {
-		id[i] = byte(rand.Intn(255))
+		id[i] = byte(rand.IntN(255))
 	}
 	return id
 }
