@@ -74,9 +74,9 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
 	}
 
-	withdrawalsHash := common.Hash{}
+	var withdrawalsHash *common.Hash = nil
 	if p.net.Upgrades.Sonic {
-		withdrawalsHash = types.EmptyWithdrawalsHash
+		withdrawalsHash = &types.EmptyWithdrawalsHash
 	}
 
 	h := &evmcore.EvmHeader{
@@ -90,7 +90,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		GasUsed:         p.gasUsed,
 		BaseFee:         baseFee,
 		PrevRandao:      prevRandao,
-		WithdrawalsHash: &withdrawalsHash,
+		WithdrawalsHash: withdrawalsHash,
 	}
 
 	return evmcore.NewEvmBlock(h, txs)

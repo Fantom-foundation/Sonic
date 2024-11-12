@@ -87,9 +87,9 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
 	}
 
-	withdrawalsHash := common.Hash{}
+	var withdrawalsHash *common.Hash = nil
 	if rules.Upgrades.Sonic {
-		withdrawalsHash = types.EmptyWithdrawalsHash
+		withdrawalsHash = &types.EmptyWithdrawalsHash
 	}
 
 	return &EvmHeader{
@@ -102,7 +102,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 		GasUsed:         block.GasUsed,
 		BaseFee:         baseFee,
 		PrevRandao:      prevRandao,
-		WithdrawalsHash: &withdrawalsHash,
+		WithdrawalsHash: withdrawalsHash,
 	}
 }
 
