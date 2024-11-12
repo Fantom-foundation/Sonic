@@ -63,9 +63,9 @@ func testForVariant(t *testing.T, net *IntegrationTestNet,
 			receipt, err := createContractWithCodeLenAndGas(net, variant, codeLen, sufficientGas)
 			require.NoError(err)
 			require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "failed to create contract with code length ", codeLen)
-			cost, err := getCreateCost(contract, receipt)
+			log, err := contract.ParseLogCost(*receipt.Logs[0])
 			require.NoError(err)
-			return cost
+			return log.Cost.Uint64()
 		}
 
 		// since memory is expanded in words of 32 bytes, we want to check that the cost is proportional to the number of words.
@@ -123,7 +123,7 @@ func testForTransaction(t *testing.T, net *IntegrationTestNet) {
 
 		difference := receipt2.GasUsed - receipt1.GasUsed
 		require.Equal(difference, zeroByteCost,
-			"gas difference between 1 and 2 words should be 4, instead got", difference)
+			"gas difference between 1 and 2 bytes should be 4, instead got", difference)
 	})
 
 	t.Run("aborts with init code size larger than MAX_INITCODE_SIZE", func(t *testing.T) {
@@ -152,11 +152,6 @@ func createContractWithCodeLenAndGas(net *IntegrationTestNet, variant variant, c
 		opts.GasLimit = gasLimit
 		return variant(opts, big.NewInt(int64(codeLen)))
 	})
-}
-
-func getCreateCost(contract *contractcreator.Contractcreator, receipt *types.Receipt) (uint64, error) {
-	log, err := contract.ParseLogCost(*receipt.Logs[0])
-	return log.Cost.Uint64(), err
 }
 
 type variant func(opts *bind.TransactOpts, codeSize *big.Int) (*types.Transaction, error)
