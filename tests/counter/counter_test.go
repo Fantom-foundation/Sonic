@@ -8,6 +8,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/counter"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 func TestCounter(t *testing.T) {
@@ -36,9 +37,12 @@ func TestCounter(t *testing.T) {
 				t.Fatalf("unexpected counter value; expected %d, got %v", i, counter)
 			}
 
-			_, err = net.Apply(contract.IncrementCounter)
+			receipt, err := net.Apply(contract.IncrementCounter)
 			if err != nil {
 				t.Fatalf("failed to increment counter; %v", err)
+			}
+			if receipt.Status != types.ReceiptStatusSuccessful {
+				t.Fatalf("increment counter failed; %v", receipt)
 			}
 		}
 	})
