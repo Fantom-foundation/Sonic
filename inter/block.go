@@ -27,6 +27,10 @@ func (b *Block) SetPrevRandao(prevrandao common.Hash) {
 }
 
 func (b *Block) GetPrevRandao() common.Hash {
+	// Dummy blocks never run through block processing
+	if b.prevRandao == (common.Hash{}) {
+		b.prevRandao = ComputePrevRandao(b.Events)
+	}
 	return b.prevRandao
 }
 
