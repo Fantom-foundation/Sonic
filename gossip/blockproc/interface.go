@@ -2,6 +2,7 @@ package blockproc
 
 import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 
@@ -52,5 +53,13 @@ type EVMProcessor interface {
 }
 
 type EVM interface {
-	Start(block iblockproc.BlockCtx, statedb state.StateDB, reader evmcore.DummyChain, onNewLog func(*types.Log), net opera.Rules, evmCfg *params.ChainConfig) EVMProcessor
+	Start(
+		block iblockproc.BlockCtx,
+		statedb state.StateDB,
+		reader evmcore.DummyChain,
+		onNewLog func(*types.Log),
+		net opera.Rules,
+		evmCfg *params.ChainConfig,
+		prevrandao common.Hash,
+	) EVMProcessor
 }

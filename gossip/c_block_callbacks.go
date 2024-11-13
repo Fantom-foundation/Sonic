@@ -178,7 +178,21 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				evmProcessor := blockProc.EVMModule.Start(blockCtx, statedb, evmStateReader, onNewLogAll, es.Rules, es.Rules.EvmChainConfig(store.GetUpgradeHeights()))
+				var block = &inter.Block{
+					Time:    blockCtx.Time,
+					Atropos: cBlock.Atropos,
+					Events:  hash.Events(confirmedEvents),
+				}
+
+				evmProcessor := blockProc.EVMModule.Start(
+					blockCtx,
+					statedb,
+					evmStateReader,
+					onNewLogAll,
+					es.Rules,
+					es.Rules.EvmChainConfig(store.GetUpgradeHeights()),
+					block.GetPrevRandao(),
+				)
 				executionStart := time.Now()
 
 				// Execute pre-internal transactions
@@ -221,13 +235,6 @@ func consensusCallbackBeginBlockFn(
 
 					// sort events by Lamport time
 					sort.Sort(confirmedEvents)
-
-					// new block
-					var block = &inter.Block{
-						Time:    blockCtx.Time,
-						Atropos: cBlock.Atropos,
-						Events:  hash.Events(confirmedEvents),
-					}
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.Txs = append(block.Txs, tx.Hash())
 					}

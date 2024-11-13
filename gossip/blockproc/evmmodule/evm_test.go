@@ -60,6 +60,7 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 		&params.ChainConfig{
 			LondonBlock: big.NewInt(0),
 		},
+		common.Hash{},
 	)
 
 	// This inner transaction has a gas price of 0, which is less than the MinGasPrice

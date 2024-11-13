@@ -21,6 +21,11 @@ func (b *Block) EstimateSize() int {
 	return (len(b.Events)+len(b.InternalTxs)+len(b.Txs)+1+1)*32 + len(b.SkippedTxs)*4 + 8 + 8
 }
 
+// GetPrevRandao computes prevrandao if not already computed and returns it.
+func (b *Block) GetPrevRandao() common.Hash {
+	return computePrevRandao(b.Events)
+}
+
 func FilterSkippedTxs(txs types.Transactions, skippedTxs []uint32) types.Transactions {
 	if len(skippedTxs) == 0 {
 		// short circuit if nothing to skip

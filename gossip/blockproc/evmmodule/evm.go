@@ -24,7 +24,15 @@ func New() *EVMModule {
 	return &EVMModule{}
 }
 
-func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, reader evmcore.DummyChain, onNewLog func(*types.Log), net opera.Rules, evmCfg *params.ChainConfig) blockproc.EVMProcessor {
+func (p *EVMModule) Start(
+	block iblockproc.BlockCtx,
+	statedb state.StateDB,
+	reader evmcore.DummyChain,
+	onNewLog func(*types.Log),
+	net opera.Rules,
+	evmCfg *params.ChainConfig,
+	prevrandao common.Hash,
+) blockproc.EVMProcessor {
 	var prevBlockHash common.Hash
 	if block.Idx != 0 {
 		prevBlockHash = reader.GetHeader(common.Hash{}, uint64(block.Idx-1)).Hash
@@ -42,6 +50,7 @@ func (p *EVMModule) Start(block iblockproc.BlockCtx, statedb state.StateDB, read
 		evmCfg:        evmCfg,
 		blockIdx:      utils.U64toBig(uint64(block.Idx)),
 		prevBlockHash: prevBlockHash,
+		prevRandao:    prevrandao,
 	}
 }
 
@@ -61,6 +70,7 @@ type OperaEVMProcessor struct {
 	incomingTxs types.Transactions
 	skippedTxs  []uint32
 	receipts    types.Receipts
+	prevRandao  common.Hash
 }
 
 func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlock {
@@ -70,8 +80,9 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 	}
 
 	prevRandao := common.Hash{}
+	// This condition must be kept, otherwise Opera will not be able to synchronize
 	if p.net.Upgrades.Sonic {
-		prevRandao.SetBytes([]byte{1}) // TODO provide pseudorandom data?
+		prevRandao = p.prevRandao
 	}
 
 	var withdrawalsHash *common.Hash = nil
