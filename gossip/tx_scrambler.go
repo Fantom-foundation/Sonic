@@ -3,7 +3,6 @@ package gossip
 import (
 	"bytes"
 	"cmp"
-	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"slices"
@@ -14,7 +13,7 @@ type ScramblerEntry interface {
 	// Hash returns the transaction hash
 	Hash() common.Hash
 	// Sender returns the sender of the transaction
-	Sender() common.Address
+	Sender() *common.Address
 	// Nonce returns the transaction nonce
 	Nonce() uint64
 	// GasPrice returns the transaction gas price
@@ -22,59 +21,50 @@ type ScramblerEntry interface {
 }
 
 // newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
-func newScramblerTransaction(signer types.Signer, tx *types.Transaction) (ScramblerEntry, error) {
+func newScramblerTransaction(signer types.Signer, tx *types.Transaction) ScramblerEntry {
+	// if address cannot be derived, it is excluded from address sorting
 	sender, err := types.Sender(signer, tx)
-	if err != nil {
-		return nil, err
+	var addr *common.Address
+	if err == nil {
+		addr = &sender
 	}
 	return &scramblerTransaction{
 		Transaction: tx,
-		sender:      sender,
-	}, nil
+		sender:      addr,
+	}
 }
 
 type scramblerTransaction struct {
 	*types.Transaction
-	sender common.Address
+	sender *common.Address
 }
 
-func (tx *scramblerTransaction) Sender() common.Address {
+func (tx *scramblerTransaction) Sender() *common.Address {
 	return tx.sender
 }
 
-// orderTransactions orders given transactions.
-func orderTransactions(unorderedTxs types.Transactions, signer types.Signer, rules opera.Rules) (types.Transactions, []uint32) {
+// getExecutionOrder returns correct order of the transactions.
+// If Sonic is enabled, the tx scrambler is used, otherwise the order stays unchanged.
+func getExecutionOrder(unorderedTxs types.Transactions, signer types.Signer, isSonic bool) types.Transactions {
+	// Don't use scrambler if Sonic is not enabled
+	if !isSonic {
+		return unorderedTxs
+	}
+
 	unorderedEntries := make([]ScramblerEntry, 0, len(unorderedTxs))
-	skippedTxs := make([]uint32, 0, len(unorderedTxs))
-	for idx, tx := range unorderedTxs {
-		// Skip any invalid transactions
-		entry, err := newScramblerTransaction(signer, tx)
-		if err != nil {
-			skippedTxs = append(skippedTxs, uint32(idx))
-			continue
-		}
+	for _, tx := range unorderedTxs {
+		entry := newScramblerTransaction(signer, tx)
 		unorderedEntries = append(unorderedEntries, entry)
 	}
 
-	orderedEntries := getExecutionOrder(unorderedEntries, rules.Upgrades.Sonic)
+	orderedEntries := filterAndOrderTransactions(unorderedEntries)
 	orderedTxs := make(types.Transactions, len(orderedEntries))
 	for i, tx := range orderedEntries {
 		// Cast back the transactions to pass it to the processor
 		orderedTxs[i] = tx.(*scramblerTransaction).Transaction
 	}
 
-	return orderedTxs, skippedTxs
-}
-
-// getExecutionOrder returns correct order of the transactions.
-// If Sonic is enabled, the tx scrambler is used, otherwise the order stays unchanged.
-func getExecutionOrder(entries []ScramblerEntry, isSonic bool) []ScramblerEntry {
-	// We can scramble transactions only if Sonic is used, scrambling transactions
-	// disables the ability to sync with opera mainnet
-	if isSonic {
-		return filterAndOrderTransactions(entries)
-	}
-	return entries
+	return orderedTxs
 }
 
 // filterAndOrderTransactions first removes any entries with duplicate hashes, then sorts the list by XORed hashes.
@@ -96,7 +86,11 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 	senderNonceOrder := slices.Clone(entries)
 	// sort copied slice so that it has all txs from same address together + sorted by nonce ascending
 	slices.SortFunc(senderNonceOrder, func(a, b ScramblerEntry) int {
-		res := a.Sender().Cmp(b.Sender())
+		// Txs with nil sender stays at same position
+		if a.Sender() == nil || b.Sender() == nil {
+			return 0
+		}
+		res := a.Sender().Cmp(*b.Sender())
 		if res != 0 {
 			return res
 		}
@@ -117,15 +111,23 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 	// find the first entry for each sender in the senderNonceOrder
 	senderIndex := make(map[common.Address]int)
 	for idx, entry := range senderNonceOrder {
-		if _, found := senderIndex[entry.Sender()]; !found {
-			senderIndex[entry.Sender()] = idx
+		sender := entry.Sender()
+		if sender == nil {
+			continue
+		}
+		if _, found := senderIndex[*sender]; !found {
+			senderIndex[*sender] = idx
 		}
 	}
 	// replace already scrambled entries so that they are sorted by nonce
 	for idx := range entries {
 		sender := entries[idx].Sender()
-		entries[idx] = senderNonceOrder[senderIndex[sender]]
-		senderIndex[sender]++
+		// Txs with nil sender stays at same position
+		if sender == nil {
+			continue
+		}
+		entries[idx] = senderNonceOrder[senderIndex[*sender]]
+		senderIndex[*sender]++
 	}
 	return
 }
@@ -156,13 +158,17 @@ func analyseEntryList(entries []ScramblerEntry) ([]ScramblerEntry, [32]byte, boo
 			continue
 		}
 		// mark whether we have duplicate addresses
-		if _, ok := seenAddresses[entry.Sender()]; ok {
-			hasDuplicateAddresses = true
+		sender := entry.Sender()
+		if sender != nil {
+			if _, ok := seenAddresses[*sender]; ok {
+				hasDuplicateAddresses = true
+			}
+			seenAddresses[*sender] = struct{}{}
 		}
 		salt = xorBytes32(salt, entry.Hash())
 		uniqueList = append(uniqueList, entry)
 		seenHashes[entry.Hash()] = struct{}{}
-		seenAddresses[entry.Sender()] = struct{}{}
+
 	}
 
 	return uniqueList, salt, hasDuplicateAddresses
