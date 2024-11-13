@@ -19,6 +19,7 @@ package evmcore
 import (
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
@@ -40,6 +41,7 @@ type (
 		Root       common.Hash
 		TxHash     common.Hash
 		Time       inter.Timestamp
+		Duration   time.Duration // time since the last block
 		Coinbase   common.Address
 
 		GasLimit uint64
