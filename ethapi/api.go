@@ -2231,6 +2231,15 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 	return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
 }
 
+// TraceCallConfig is the config for traceCall API. It holds one more
+// field to override the state for tracing.
+type TraceCallConfig struct {
+	tracers.TraceConfig
+	StateOverrides *StateOverride
+	TxIndex        *hexutil.Uint
+}
+
+
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
 // debugging endpoint.
 type PrivateDebugAPI struct {
