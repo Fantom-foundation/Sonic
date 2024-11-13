@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
@@ -57,12 +56,6 @@ func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
 
 // GetBlock returns stored block.
 func (s *Store) GetBlock(n idx.Block) *inter.Block {
-	if n == 0 {
-		// fake genesis block for compatibility with web3
-		return &inter.Block{
-			Time: evmcore.FakeGenesisTime - 1,
-		}
-	}
 	// Get block from LRU cache first.
 	if c, ok := s.cache.Blocks.Get(n); ok {
 		return c.(*inter.Block)

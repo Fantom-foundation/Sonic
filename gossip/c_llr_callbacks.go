@@ -25,10 +25,8 @@ func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, t
 	}
 }
 
-func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br ibr.LlrIdxFullBlockRecord) {
-	txHashes := make([]common.Hash, 0, len(br.Txs))
+func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, gasLimit uint64, br ibr.LlrIdxFullBlockRecord) {
 	for _, tx := range br.Txs {
-		txHashes = append(txHashes, tx.Hash())
 		s.EvmStore().SetTx(tx.Hash(), tx)
 	}
 
@@ -55,7 +53,9 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br
 		SetTime(br.Time).
 		SetParentHash(parentHash).
 		SetStateRoot(common.Hash(br.StateRoot)).
-		SetGasUsed(br.GasUsed)
+		SetGasLimit(gasLimit).
+		SetGasUsed(br.GasUsed).
+		SetBaseFee(baseFee)
 
 	for i := range br.Txs {
 		copy := types.Receipt(*br.Receipts[i])

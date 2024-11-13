@@ -155,7 +155,7 @@ func (b *BlockBuilder) SetGasUsed(gasUsed uint64) *BlockBuilder {
 }
 
 func (b *BlockBuilder) SetBaseFee(baseFee *big.Int) *BlockBuilder {
-	b.block.BaseFee = baseFee
+	b.block.BaseFee = new(big.Int).Set(baseFee)
 	return b
 }
 

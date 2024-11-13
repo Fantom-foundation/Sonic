@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBlockHeader_SatisfyInvariants(t *testing.T) {
+func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	const numBlocks = 5
 	require := require.New(t)
 
@@ -74,11 +74,11 @@ func testHeaders_ParentHashCoversParentContent(t *testing.T, headers []*types.He
 	require := require.New(t)
 
 	// All other blocks have a parent hash that matches the previous block's hash.
-	// TODO: fix support for genesis blocks 0 and 1 as well;
-	for i := 2; i < len(headers); i++ {
+	for i := 1; i < len(headers); i++ {
 		require.Equal(
 			headers[i].ParentHash,
 			headers[i-1].Hash(),
+			"invalid hash stored in block %d for block %d", i, i-1,
 		)
 	}
 }
@@ -86,9 +86,6 @@ func testHeaders_ParentHashCoversParentContent(t *testing.T, headers []*types.He
 func testHeaders_GasUsedIsBelowGasLimit(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
 	for i, header := range headers {
-		if i < 2 { // TODO: fix support for genesis blocks 0 and 1 as well;
-			continue
-		}
 		require.LessOrEqual(header.GasUsed, header.GasLimit, "block %d", i)
 	}
 }

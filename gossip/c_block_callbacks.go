@@ -424,7 +424,6 @@ func spillBlockEvents(store *Store, events hash.OrderedEvents, maxBlockGas uint6
 		if gasPowerUsedSum > maxBlockGas {
 			// spill
 			spilledEventsMeter.Mark(int64(len(fullEvents) - (i + 1)))
-			events = events[i+1:]
 			fullEvents = fullEvents[i+1:]
 			break
 		}

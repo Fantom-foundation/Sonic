@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -50,11 +52,23 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.FlushBlockEpochState()
 
 	// write blocks
+	rules := s.GetRules()
+	gasLimit := rules.Blocks.MaxBlockGas
+
+	s.SetBlock(0, inter.NewBlockBuilder().
+		SetNumber(0).
+		SetTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
+		SetGasLimit(gasLimit).
+		SetStateRoot(common.Hash{}). // TODO: get proper has from genesis data
+		SetBaseFee(big.NewInt(0)).
+		Build(),
+	)
+
 	baseFee := prevEs.Rules.Economy.MinGasPrice
 	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
-		s.WriteFullBlockRecord(baseFee, blobGasPrice, br)
+		s.WriteFullBlockRecord(baseFee, blobGasPrice, gasLimit, br)
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}
