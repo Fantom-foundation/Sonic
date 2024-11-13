@@ -2,7 +2,7 @@ package gossip
 
 import (
 	"math/big"
-	"math/rand"
+	"math/rand/v2"
 	"sort"
 	"sync"
 
@@ -134,7 +134,7 @@ func (p *dummyTxPool) SampleHashes(max int) []common.Hash {
 	res := make([]common.Hash, 0, max)
 	skip := 0
 	if len(p.pool) > max {
-		skip = rand.Intn(len(p.pool) - max)
+		skip = rand.IntN(len(p.pool) - max)
 	}
 	for _, tx := range p.pool {
 		if len(res) >= max {

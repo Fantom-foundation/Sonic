@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 	"sync"
 	"time"
@@ -1024,7 +1024,7 @@ func (h *handler) txBroadcastLoop() {
 			if len(peers) == 0 {
 				continue
 			}
-			randPeer := peers[rand.Intn(len(peers))]
+			randPeer := peers[rand.IntN(len(peers))]
 			h.syncTransactions(randPeer, h.txpool.SampleHashes(h.config.Protocol.MaxRandomTxHashesSend))
 		}
 	}

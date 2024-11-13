@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path"
 	"testing"
@@ -99,7 +99,7 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
 		reader := WrapReader(file, maxMemUsage, root)
-		readB := make([]byte, rand.Int63n(int64(len(content))))
+		readB := make([]byte, rand.Int64N(int64(len(content))))
 		err = ioread.ReadAll(reader, readB)
 		require.NoError(err)
 		require.Equal(content[:len(readB)], readB)
@@ -148,7 +148,7 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 		file, err = os.OpenFile(filePath, os.O_RDWR, 0600)
 		require.NoError(err)
 		s := []byte{0}
-		contentPos := rand.Int63n(int64(len(content)))
+		contentPos := rand.Int64N(int64(len(content)))
 		pos := int64(headerOffset) + contentPos
 		_, err = file.ReadAt(s, pos)
 		require.NoError(err)
@@ -180,7 +180,7 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 		// mutate content byte
 		file, err = os.OpenFile(filePath, os.O_RDWR, 0600)
 		require.NoError(err)
-		pos := rand.Int63n(int64(headerOffset))
+		pos := rand.Int64N(int64(headerOffset))
 		s := []byte{0}
 		_, err = file.ReadAt(s, pos)
 		require.NoError(err)

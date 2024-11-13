@@ -20,7 +20,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"math/rand"
+	"math/rand/v2"
 	"sort"
 	"sync"
 	"time"
@@ -594,7 +594,7 @@ func sampleTxHashes(txListsMap map[common.Address]*txList, max int) (out []commo
 	first := 0
 	last := len(txListsMap) - 1
 	if len(txListsMap) > max {
-		first = rand.Intn(len(txListsMap))
+		first = rand.IntN(len(txListsMap))
 		last = (first + max) % len(txListsMap)
 	}
 

@@ -1,9 +1,10 @@
 package emitter
 
 import (
-	"github.com/Fantom-foundation/go-opera/version"
-	"math/rand"
+	"math/rand/v2"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/version"
 
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/opera"
@@ -79,15 +80,15 @@ func DefaultConfig() Config {
 }
 
 // RandomizeEmitTime and return new config
-func (cfg EmitIntervals) RandomizeEmitTime(r *rand.Rand) EmitIntervals {
+func (cfg EmitIntervals) RandomizeEmitTime(rand *rand.Rand) EmitIntervals {
 	config := cfg
 	// value = value - 0.1 * value + 0.1 * random value
 	if config.Max > 10 {
-		config.Max = config.Max - config.Max/10 + time.Duration(r.Int63n(int64(config.Max/10)))
+		config.Max = config.Max - config.Max/10 + time.Duration(rand.Int64N(int64(config.Max/10)))
 	}
 	// value = value + 0.33 * random value
 	if config.DoublesignProtection > 3 {
-		config.DoublesignProtection = config.DoublesignProtection + time.Duration(r.Int63n(int64(config.DoublesignProtection/3)))
+		config.DoublesignProtection = config.DoublesignProtection + time.Duration(rand.Int64N(int64(config.DoublesignProtection/3)))
 	}
 	return config
 }

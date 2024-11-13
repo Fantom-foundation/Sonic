@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -9,78 +10,52 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBlobBaseFee_CanReadBlobBaseFeeFromHeadAndBlockAndHistory(t *testing.T) {
+	require := require.New(t)
 	net, err := StartIntegrationTestNet(t.TempDir())
-	if err != nil {
-		t.Fatalf("Failed to start the fake network: %v", err)
-	}
+	require.NoError(err, "Failed to start the fake network: ", err)
 	defer net.Stop()
 
 	// Deploy the blob base fee contract.
 	contract, _, err := DeployContract(net, blobbasefee.DeployBlobbasefee)
-	if err != nil {
-		t.Fatalf("failed to deploy contract; %v", err)
-	}
+	require.NoError(err, "failed to deploy contract; ", err)
 
 	// Collect the current blob base fee from the head state.
 	receipt, err := net.Apply(contract.LogCurrentBlobBaseFee)
-	if err != nil {
-		t.Fatalf("failed to log current blob base fee; %v", err)
-	}
-
-	if len(receipt.Logs) != 1 {
-		t.Fatalf("unexpected number of logs; expected 1, got %d", len(receipt.Logs))
-	}
+	require.NoError(err, "failed to log current blob base fee; ", err)
+	require.Equal(len(receipt.Logs), 1, "unexpected number of logs; expected 1, got ", len(receipt.Logs))
 
 	entry, err := contract.ParseCurrentBlobBaseFee(*receipt.Logs[0])
-	if err != nil {
-		t.Fatalf("failed to parse log; %v", err)
-	}
+	require.NoError(err, "failed to parse log; ", err)
 	fromLog := entry.Fee.Uint64()
 
 	// Collect the blob base fee from the block header.
 	client, err := net.GetClient()
-	if err != nil {
-		t.Fatalf("failed to get client; %v", err)
-	}
+	require.NoError(err, "failed to get client; ", err)
 	defer client.Close()
+
 	block, err := client.BlockByNumber(context.Background(), receipt.BlockNumber)
-	if err != nil {
-		t.Fatalf("failed to get block header; %v", err)
-	}
+	require.NoError(err, "failed to get block header; ", err)
 	fromBlock := getBlobBaseFeeFrom(block.Header())
 
 	// Collect the blob base fee from the archive.
 	fromArchive, err := contract.GetBlobBaseFee(&bind.CallOpts{BlockNumber: receipt.BlockNumber})
-	if err != nil {
-		t.Errorf("failed to get blob base fee from archive; %v", err)
-	}
+	require.NoError(err, "failed to get blob base fee from archive; ", err)
 
 	// call the blob base fee rpc method
 	fromRpc := new(hexutil.Uint64)
 	err = client.Client().Call(&fromRpc, "eth_blobBaseFee")
-	if err != nil {
-		t.Fatalf("failed to get blob base fee from rpc; %v", err)
-	}
+	require.NoError(err, "failed to get blob base fee from rpc; ", err)
 
 	// we check blob base fee is one because it is not implemented yet. TODO issue #147
-	if fromLog != 1 {
-		t.Errorf("invalid blob base fee from log; %v", fromLog)
-	}
-
-	if fromLog != fromArchive.Uint64() {
-		t.Errorf("blob base fee mismatch; from log %v, from archive %v", fromLog, fromArchive)
-	}
-
-	if fromLog != fromBlock {
-		t.Errorf("blob base fee mismatch; from log %v, from block %v", fromLog, fromBlock)
-	}
-
-	if fromLog != uint64(*fromRpc) {
-		t.Errorf("blob base fee mismatch; from log %v, from rpc %v", fromLog, fromRpc)
-	}
+	require.Equal(fromLog, uint64(1), "invalid blob base fee from log; ", fromLog)
+	require.Equal(fromLog, fromArchive.Uint64(), "blob base fee mismatch; from log %v, from archive %v", fromLog, fromArchive)
+	require.Equal(fromLog, fromBlock, "blob base fee mismatch; from log %v, from block %v", fromLog, fromBlock)
+	require.Equal(fromLog, uint64(*fromRpc), "blob base fee mismatch; from log %v, from rpc %v", fromLog, fromRpc)
 }
 
 // helper functions to calculate blob base fee based on https://eips.ethereum.org/EIPS/eip-4844#gas-accounting
@@ -90,4 +65,35 @@ func getBlobBaseFeeFrom(header *types.Header) uint64 {
 		excessBlobGas = uint64(*header.ExcessBlobGas)
 	}
 	return eip4844.CalcBlobFee(excessBlobGas).Uint64()
+}
+
+func TestBlobBaseFee_CanReadBlobGasUsed(t *testing.T) {
+	require := require.New(t)
+	net, err := StartIntegrationTestNet(t.TempDir())
+	require.NoError(err, "Failed to start the fake network: ", err)
+	defer net.Stop()
+
+	client, err := net.GetClient()
+	require.NoError(err, "failed to get client; ", err)
+	defer client.Close()
+
+	// Get blob gas used from the block header of the latest block.
+	block, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(err, "failed to get block header; ", err)
+	require.Empty(*block.BlobGasUsed(), "unexpected value in blob gas used")
+	require.Empty(*block.Header().ExcessBlobGas, "unexpected excess blob gas value")
+
+	// check value for blob gas used is rlp encoded and decoded
+	buffer := bytes.NewBuffer(make([]byte, 0))
+	err = block.EncodeRLP(buffer)
+	require.NoError(err, "failed to encode block header; ", err)
+
+	// decode block
+	stream := rlp.NewStream(buffer, 0)
+	err = block.DecodeRLP(stream)
+	require.NoError(err, "failed to decode block header; ", err)
+
+	// check blob gas used and excess blob gas are zero
+	require.Empty(*block.BlobGasUsed(), "unexpected blob gas used value")
+	require.Empty(*block.Header().ExcessBlobGas, "unexpected excess blob gas value")
 }

@@ -1,7 +1,7 @@
 package dagstreamleecher
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"slices"
 	"time"
 
@@ -140,8 +140,8 @@ func getSessionID(epoch idx.Epoch, try uint32) uint32 {
 }
 
 func (d *Leecher) startSession(candidates []string) {
-	peer := candidates[rand.Intn(len(candidates))]
-	if d.session.try == 0 && rand.Intn(50) != 0 {
+	peer := candidates[rand.IntN(len(candidates))]
+	if d.session.try == 0 && rand.IntN(50) != 0 {
 		// try previous successful peer first
 		if slices.Contains(candidates, d.session.peer) {
 			peer = d.session.peer
