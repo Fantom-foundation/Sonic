@@ -12,6 +12,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
@@ -83,4 +84,57 @@ func TestGasPrices_EvolutionFollowsGasPriceModel(t *testing.T) {
 			t.Errorf("base fee of block %d is incorrect; got %v, want %v", i, got, want)
 		}
 	}
+}
+
+func TestGasPrice_GasEvolvesAsExpectedCalculates(t *testing.T) {
+	require := require.New(t)
+
+	net, err := StartIntegrationTestNet(t.TempDir())
+	require.NoError(err)
+	defer net.Stop()
+
+	// Produce a few blocks on the network.
+	for range 10 {
+		_, err = net.EndowAccount(common.Address{42}, 100)
+		require.NoError(err)
+	}
+
+	client, err := net.GetClient()
+	require.NoError(err)
+	defer client.Close()
+
+	for i := 0; i < 100; i++ {
+
+		suggestedPrice, err := client.SuggestGasPrice(context.Background())
+		require.NoError(err)
+
+		SuggestGasTipCap, err := client.SuggestGasTipCap(context.Background())
+		require.NoError(err)
+		t.Logf("i: %v, suggested price (%v), suggested tip %v", i, suggestedPrice, SuggestGasTipCap)
+
+		// new block
+		receipt, err := net.EndowAccount(common.Address{42}, 100)
+		require.NoError(err)
+
+		lastBlock, err := client.BlockByNumber(context.Background(), receipt.BlockNumber)
+		require.NoError(err)
+
+		diff, ok := within10Percent(suggestedPrice, receipt.EffectiveGasPrice) //; !ok {
+		t.Logf("i: %v, effective gas price (%v) ok:%v, suggested price %v, diff: %v", i, receipt.EffectiveGasPrice, ok, suggestedPrice, diff)
+
+		diff, ok = within10Percent(suggestedPrice, lastBlock.BaseFee()) //; !ok {
+		t.Logf("i: %v, last block's base fee (%v) ok:%v, suggested price %v, diff: %v", i, lastBlock.BaseFee(), ok, suggestedPrice, diff)
+
+	}
+}
+
+func within10Percent(a, b *big.Int) (*big.Int, bool) {
+	// calculate the difference
+	diff := new(big.Int).Sub(a, b)
+	diff.Abs(diff)
+	// calculate 10% of a
+	tenPercent := new(big.Int).Mul(a, big.NewInt(10))
+	tenPercent.Div(tenPercent, big.NewInt(100))
+	// check if the difference is less than 10% of a
+	return diff.Div(diff, a), diff.Cmp(tenPercent) < 0
 }
