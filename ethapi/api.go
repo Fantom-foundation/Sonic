@@ -2239,6 +2239,74 @@ type TraceCallConfig struct {
 	TxIndex        *hexutil.Uint
 }
 
+// TraceCall is generating traces for non historical transactions.
+// It is simmilar to eth_call but with debug capabilities.
+func (api *PublicDebugAPI) TraceCall(ctx context.Context, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
+
+	var (
+		block   *evmcore.EvmBlock
+		err     error
+		statedb state.StateDB
+	)
+
+	// Get block
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		block, err = api.b.BlockByHash(ctx, hash)
+		if err != nil {
+			return nil, err
+		}
+	} else if number, ok := blockNrOrHash.Number(); ok {
+		if number == rpc.PendingBlockNumber {
+			// Tracing on top of pending is not supported
+			return nil, errors.New("tracing on top of pending is not supported")
+		}
+		block, err = api.b.BlockByNumber(ctx, number)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("invalid arguments; neither block number nor hash specified")
+	}
+
+	// Get state
+	if config != nil && config.TxIndex != nil {
+		_, statedb, err = api.stateAtTransaction(ctx, block, int(*config.TxIndex))
+	} else {
+		statedb, _, err = api.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer statedb.Release()
+
+	// Apply state overrides
+	if config != nil {
+		if err := config.StateOverrides.Apply(statedb); err != nil {
+			return nil, err
+		}
+	}
+
+	msg, err := args.ToMessage(api.b.RPCGasCap(), block.BaseFee)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := types.NewTx(&types.LegacyTx{
+		To:       msg.To,
+		Nonce:    msg.Nonce,
+		Gas:      msg.GasLimit,
+		GasPrice: msg.GasPrice,
+		Value:    msg.Value,
+		Data:     msg.Data,
+	})
+
+	var traceConfig *tracers.TraceConfig
+	if config != nil {
+		traceConfig = &config.TraceConfig
+	}
+
+	return api.traceTx(ctx, tx, msg, new(tracers.Context), &block.EvmHeader, statedb, traceConfig)
+}
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
 // debugging endpoint.
