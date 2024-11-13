@@ -145,9 +145,12 @@ func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *
 		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
 	}
 
-	// Set the receipt logs and create the bloom filter.
-	receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	// Tracing doesn't need logs and bloom.
+	if evm.Config.Tracer == nil {
+		// Set the receipt logs and create the bloom filter.
+		receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash) // don't store logs when tracing
+		receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	}
 	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
