@@ -44,10 +44,16 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br
 		})
 	}
 
+	parentHash := common.Hash{}
+	if parent := s.GetBlock(br.Idx - 1); parent != nil {
+		parentHash = parent.Hash()
+	}
+
 	// TODO: add bloom log and other fields
 	builder := inter.NewBlockBuilder().
 		SetNumber(uint64(br.Idx)).
 		SetTime(br.Time).
+		SetParentHash(parentHash).
 		SetStateRoot(common.Hash(br.StateRoot)).
 		SetGasUsed(br.GasUsed)
 

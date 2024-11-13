@@ -276,7 +276,8 @@ func consensusCallbackBeginBlockFn(
 					// Add results of the transaction processing to the block.
 					blockBuilder.
 						SetStateRoot(common.Hash(evmBlock.Root)).
-						SetGasUsed(evmBlock.GasUsed)
+						SetGasUsed(evmBlock.GasUsed).
+						SetBaseFee(evmBlock.BaseFee)
 
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)

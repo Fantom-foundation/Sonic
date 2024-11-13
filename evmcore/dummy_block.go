@@ -99,7 +99,7 @@ func ToEvmHeader(block *inter.Block, prevHash common.Hash, rules opera.Rules) *E
 		Root:            block.StateRoot,
 		Number:          big.NewInt(int64(block.Number)),
 		Time:            block.Time,
-		GasLimit:        math.MaxUint64,
+		GasLimit:        block.GasLimit,
 		GasUsed:         block.GasUsed,
 		BaseFee:         baseFee,
 		PrevRandao:      prevRandao,
@@ -191,7 +191,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 	enc := &EvmHeaderJson{
 		Number:          (*hexutil.Big)(h.Number),
 		Miner:           h.Coinbase,
-		GasLimit:        0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
+		GasLimit:        hexutil.Uint64(h.GasLimit),
 		GasUsed:         hexutil.Uint64(h.GasUsed),
 		Root:            h.Root,
 		TxHash:          h.TxHash,

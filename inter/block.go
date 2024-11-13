@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/holiman/uint256"
 )
 
 // Block represents the on-disk storage format of a block. It contains all
@@ -32,7 +31,7 @@ type Block struct {
 	Difficulty           uint64
 	GasLimit             uint64
 	GasUsed              uint64
-	BaseFee              uint256.Int
+	BaseFee              *big.Int
 	PrevRandao           common.Hash
 	TransactionsHashRoot common.Hash
 	ReceiptsHashRoot     common.Hash
@@ -80,7 +79,7 @@ func (b *Block) GetEthereumHeader() *types.Header {
 		Extra:       nil, // TODO: fill in extra data required for gas computation
 		MixDigest:   b.PrevRandao,
 		Nonce:       types.BlockNonce{}, // constant 0 in Ethereum
-		BaseFee:     b.BaseFee.ToBig(),
+		BaseFee:     b.BaseFee,
 
 		// Sonic does not have a beacon chain and no withdrawals.
 		WithdrawalsHash: &types.EmptyWithdrawalsHash,
@@ -155,7 +154,7 @@ func (b *BlockBuilder) SetGasUsed(gasUsed uint64) *BlockBuilder {
 	return b
 }
 
-func (b *BlockBuilder) SetBaseFee(baseFee uint256.Int) *BlockBuilder {
+func (b *BlockBuilder) SetBaseFee(baseFee *big.Int) *BlockBuilder {
 	b.block.BaseFee = baseFee
 	return b
 }

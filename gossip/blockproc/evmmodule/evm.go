@@ -1,7 +1,6 @@
 package evmmodule
 
 import (
-	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -96,7 +95,7 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 		Root:            common.Hash{},
 		Time:            p.block.Time,
 		Coinbase:        common.Address{},
-		GasLimit:        math.MaxUint64,
+		GasLimit:        p.net.Blocks.MaxBlockGas,
 		GasUsed:         p.gasUsed,
 		BaseFee:         baseFee,
 		PrevRandao:      prevRandao,
@@ -126,7 +125,7 @@ func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
 			skipped[i] = n + uint32(txsOffset)
 		}
 		for _, r := range receipts {
-			if receipts != nil {
+			if r != nil {
 				r.TransactionIndex += txsOffset
 			}
 		}

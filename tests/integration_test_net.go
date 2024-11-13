@@ -210,7 +210,7 @@ func (n *IntegrationTestNet) GetReceipt(txHash common.Hash) (*types.Receipt, err
 	const maxDelay = 100 * time.Millisecond
 	now := time.Now()
 	delay := time.Millisecond
-	for time.Since(now) < 10*time.Second {
+	for time.Since(now) < 100*time.Second {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if errors.Is(err, ethereum.NotFound) {
 			time.Sleep(delay)

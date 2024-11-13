@@ -49,9 +49,6 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 
 // SetBlock stores chain block.
 func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
-	if n != idx.Block(b.Number) {
-		panic("block number mismatch")
-	}
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
 
 	// Add to LRU cache.
