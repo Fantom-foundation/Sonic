@@ -34,7 +34,7 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br
 
 	if len(br.Receipts) != 0 {
 		// Note: it's possible for receipts to get indexed twice by BR and block processing
-		indexRawReceipts(s, br.Receipts, br.Txs, br.Idx, br.Atropos, s.GetEvmChainConfig(), uint64(br.Time.Unix()), baseFee, blobGasPrice)
+		indexRawReceipts(s, br.Receipts, br.Txs, br.Idx, hash.Event(br.BlockHash), s.GetEvmChainConfig(), uint64(br.Time.Unix()), baseFee, blobGasPrice)
 	}
 	for i, tx := range br.Txs {
 		s.EvmStore().SetTx(tx.Hash(), tx)
@@ -43,17 +43,22 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br
 			BlockOffset: uint32(i),
 		})
 	}
-	s.SetBlock(br.Idx, &inter.Block{
-		Time:        br.Time,
-		Atropos:     br.Atropos,
-		Events:      hash.Events{},
-		Txs:         txHashes,
-		InternalTxs: []common.Hash{},
-		SkippedTxs:  []uint32{},
-		GasUsed:     br.GasUsed,
-		Root:        br.Root,
-	})
-	s.SetBlockIndex(br.Atropos, br.Idx)
+
+	// TODO: add bloom log and other fields
+	builder := inter.NewBlockBuilder().
+		SetNumber(uint64(br.Idx)).
+		SetTime(br.Time).
+		SetStateRoot(common.Hash(br.StateRoot)).
+		SetGasUsed(br.GasUsed)
+
+	for i := range br.Txs {
+		copy := types.Receipt(*br.Receipts[i])
+		builder.AddTransaction(br.Txs[i], &copy)
+	}
+
+	block := builder.Build()
+	s.SetBlock(br.Idx, block)
+	s.SetBlockIndex(block.Hash(), br.Idx)
 }
 
 func (s *Store) WriteFullEpochRecord(er ier.LlrIdxFullEpochRecord) {

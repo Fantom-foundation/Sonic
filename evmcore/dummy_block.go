@@ -24,7 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
@@ -78,7 +77,7 @@ func NewEvmBlock(h *EvmHeader, txs types.Transactions) *EvmBlock {
 }
 
 // ToEvmHeader converts inter.Block to EvmHeader.
-func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules opera.Rules) *EvmHeader {
+func ToEvmHeader(block *inter.Block, prevHash common.Hash, rules opera.Rules) *EvmHeader {
 	baseFee := rules.Economy.MinGasPrice
 	if !rules.Upgrades.London {
 		baseFee = nil
@@ -86,7 +85,7 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 
 	prevRandao := common.Hash{}
 	if rules.Upgrades.Sonic {
-		prevRandao = block.GetPrevRandao()
+		prevRandao = block.PrevRandao
 	}
 
 	var withdrawalsHash *common.Hash = nil
@@ -95,10 +94,10 @@ func ToEvmHeader(block *inter.Block, index idx.Block, prevHash hash.Event, rules
 	}
 
 	return &EvmHeader{
-		Hash:            common.Hash(block.Atropos),
-		ParentHash:      common.Hash(prevHash),
-		Root:            common.Hash(block.Root),
-		Number:          big.NewInt(int64(index)),
+		Hash:            block.Hash(),
+		ParentHash:      prevHash,
+		Root:            block.StateRoot,
+		Number:          big.NewInt(int64(block.Number)),
 		Time:            block.Time,
 		GasLimit:        math.MaxUint64,
 		GasUsed:         block.GasUsed,
@@ -232,6 +231,8 @@ func (b *EvmBlock) Header() *EvmHeader {
 	h.Number = new(big.Int).Set(b.Number)
 	if b.BaseFee != nil {
 		h.BaseFee = new(big.Int).Set(b.BaseFee)
+	} else {
+		h.BaseFee = big.NewInt(0)
 	}
 
 	return &h

@@ -5,6 +5,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -48,6 +49,9 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 
 // SetBlock stores chain block.
 func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
+	if n != idx.Block(b.Number) {
+		panic("block number mismatch")
+	}
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
 
 	// Add to LRU cache.
@@ -59,8 +63,7 @@ func (s *Store) GetBlock(n idx.Block) *inter.Block {
 	if n == 0 {
 		// fake genesis block for compatibility with web3
 		return &inter.Block{
-			Time:    evmcore.FakeGenesisTime - 1,
-			Atropos: s.fakeGenesisHash(),
+			Time: evmcore.FakeGenesisTime - 1,
 		}
 	}
 	// Get block from LRU cache first.
@@ -97,7 +100,7 @@ func (s *Store) ForEachBlock(fn func(index idx.Block, block *inter.Block)) {
 }
 
 // SetBlockIndex stores chain block index.
-func (s *Store) SetBlockIndex(id hash.Event, n idx.Block) {
+func (s *Store) SetBlockIndex(id common.Hash, n idx.Block) {
 	if err := s.table.BlockHashes.Put(id.Bytes(), n.Bytes()); err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
 	}
@@ -174,16 +177,19 @@ func (s *Store) SetEpochBlock(b idx.Block, e idx.Epoch) {
 }
 
 func (s *Store) FindBlockEpoch(b idx.Block) idx.Epoch {
-	if c, ok := s.cache.Blocks.Get(b); ok {
-		return c.(*inter.Block).Atropos.Epoch()
-	}
+	panic("not implemented") // <check whether this function is actually needed
+	/*
+		if c, ok := s.cache.Blocks.Get(b); ok {
+			return c.(*inter.Block).Atropos.Epoch()
+		}
 
-	it := s.table.EpochBlocks.NewIterator(nil, (math.MaxUint64 - b).Bytes())
-	defer it.Release()
-	if !it.Next() {
-		return 0
-	}
-	return idx.BytesToEpoch(it.Value())
+		it := s.table.EpochBlocks.NewIterator(nil, (math.MaxUint64 - b).Bytes())
+		defer it.Release()
+		if !it.Next() {
+			return 0
+		}
+		return idx.BytesToEpoch(it.Value())
+	*/
 }
 
 func (s *Store) GetBlockTxs(n idx.Block, block *inter.Block) types.Transactions {
@@ -191,33 +197,15 @@ func (s *Store) GetBlockTxs(n idx.Block, block *inter.Block) types.Transactions 
 		return cached.Transactions
 	}
 
-	transactions := make(types.Transactions, 0, len(block.Txs)+len(block.InternalTxs)+len(block.Events)*10)
-	for _, txid := range block.InternalTxs {
-		tx := s.evm.GetTx(txid)
+	transactions := make(types.Transactions, 0, len(block.TransactionHashes))
+	for _, txHash := range block.TransactionHashes {
+		tx := s.evm.GetTx(txHash)
 		if tx == nil {
-			log.Crit("Internal tx not found", "tx", txid.String())
+			log.Crit("Internal tx not found", "tx", txHash.String())
 			continue
 		}
 		transactions = append(transactions, tx)
 	}
-	for _, txid := range block.Txs {
-		tx := s.evm.GetTx(txid)
-		if tx == nil {
-			log.Crit("Tx not found", "tx", txid.String())
-			continue
-		}
-		transactions = append(transactions, tx)
-	}
-	for _, id := range block.Events {
-		e := s.GetEventPayload(id)
-		if e == nil {
-			log.Crit("Block event not found", "event", id.String())
-			continue
-		}
-		transactions = append(transactions, e.Txs()...)
-	}
-
-	transactions = inter.FilterSkippedTxs(transactions, block.SkippedTxs)
 
 	return transactions
 }

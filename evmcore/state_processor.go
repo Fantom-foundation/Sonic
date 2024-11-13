@@ -85,6 +85,7 @@ func (p *StateProcessor) Process(
 		receipt, _, skip, err = applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv, onNewLog)
 		if skip {
 			skipped = append(skipped, uint32(i))
+			receipts = append(receipts, nil)
 			err = nil
 			continue
 		}

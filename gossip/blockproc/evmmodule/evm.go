@@ -11,7 +11,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
@@ -127,13 +126,19 @@ func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
 			skipped[i] = n + uint32(txsOffset)
 		}
 		for _, r := range receipts {
-			r.TransactionIndex += txsOffset
+			if receipts != nil {
+				r.TransactionIndex += txsOffset
+			}
 		}
 	}
 
 	p.incomingTxs = append(p.incomingTxs, txs...)
 	p.skippedTxs = append(p.skippedTxs, skipped...)
-	p.receipts = append(p.receipts, receipts...)
+	for _, receipt := range receipts {
+		if receipt != nil {
+			p.receipts = append(p.receipts, receipt)
+		}
+	}
 
 	return receipts
 }
@@ -141,7 +146,7 @@ func (p *OperaEVMProcessor) Execute(txs types.Transactions) types.Receipts {
 func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs []uint32, receipts types.Receipts) {
 	evmBlock = p.evmBlockWith(
 		// Filter skipped transactions. Receipts are filtered already
-		inter.FilterSkippedTxs(p.incomingTxs, p.skippedTxs),
+		filterSkippedTxs(p.incomingTxs, p.skippedTxs),
 	)
 	skippedTxs = p.skippedTxs
 	receipts = p.receipts
@@ -153,4 +158,22 @@ func (p *OperaEVMProcessor) Finalize() (evmBlock *evmcore.EvmBlock, skippedTxs [
 	evmBlock.Root = p.statedb.GetStateHash()
 
 	return
+}
+
+func filterSkippedTxs(txs types.Transactions, skippedTxs []uint32) types.Transactions {
+	if len(skippedTxs) == 0 {
+		// short circuit if nothing to skip
+		return txs
+	}
+	skipCount := 0
+	filteredTxs := make(types.Transactions, 0, len(txs))
+	for i, tx := range txs {
+		if skipCount < len(skippedTxs) && skippedTxs[skipCount] == uint32(i) {
+			skipCount++
+		} else {
+			filteredTxs = append(filteredTxs, tx)
+		}
+	}
+
+	return filteredTxs
 }

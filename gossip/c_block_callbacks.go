@@ -178,11 +178,20 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				var block = &inter.Block{
-					Time:    blockCtx.Time,
-					Atropos: cBlock.Atropos,
-					Events:  hash.Events(confirmedEvents),
-				}
+				prevRandao := computePrevRandao(confirmedEvents)
+
+				number := uint64(blockCtx.Idx)
+				lastBlockHeader := evmStateReader.GetHeaderByNumber(number - 1)
+
+				maxBlockGas := es.Rules.Blocks.MaxBlockGas
+
+				blockBuilder := inter.NewBlockBuilder().
+					SetEpoch(es.Epoch).
+					SetNumber(number).
+					SetParentHash(lastBlockHeader.Hash).
+					SetTime(blockCtx.Time).
+					SetPrevRandao(prevRandao).
+					SetGasLimit(maxBlockGas)
 
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
@@ -191,7 +200,7 @@ func consensusCallbackBeginBlockFn(
 					onNewLogAll,
 					es.Rules,
 					es.Rules.EvmChainConfig(store.GetUpgradeHeights()),
-					block.GetPrevRandao(),
+					prevRandao,
 				)
 				executionStart := time.Now()
 
@@ -203,6 +212,13 @@ func consensusCallbackBeginBlockFn(
 					if r.Status == 0 {
 						log.Warn("Pre-internal transaction reverted", "txid", r.TxHash.String())
 					}
+				}
+
+				for i := range preInternalTxs {
+					blockBuilder.AddTransaction(
+						preInternalTxs[i],
+						preInternalReceipts[i],
+					)
 				}
 
 				// Seal epoch if requested
@@ -233,24 +249,34 @@ func consensusCallbackBeginBlockFn(
 						}
 					}
 
-					// sort events by Lamport time
-					sort.Sort(confirmedEvents)
-					for _, tx := range append(preInternalTxs, internalTxs...) {
-						block.Txs = append(block.Txs, tx.Hash())
+					for i := range internalTxs {
+						blockBuilder.AddTransaction(
+							internalTxs[i],
+							internalReceipts[i],
+						)
 					}
 
-					block, blockEvents := spillBlockEvents(store, block, es.Rules)
+					// sort events by Lamport time
+					sort.Sort(confirmedEvents)
+
+					blockEvents := spillBlockEvents(store, confirmedEvents, maxBlockGas)
 					txs := make(types.Transactions, 0, blockEvents.Len()*10)
 					for _, e := range blockEvents {
 						txs = append(txs, e.Txs()...)
 					}
 
-					_ = evmProcessor.Execute(txs)
+					for i, receipt := range evmProcessor.Execute(txs) {
+						if receipt != nil { // < nil if skipped
+							blockBuilder.AddTransaction(txs[i], receipt)
+						}
+					}
 
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
-					block.SkippedTxs = skippedTxs
-					block.Root = hash.Hash(evmBlock.Root)
-					block.GasUsed = evmBlock.GasUsed
+
+					// Add results of the transaction processing to the block.
+					blockBuilder.
+						SetStateRoot(common.Hash(evmBlock.Root)).
+						SetGasUsed(evmBlock.GasUsed)
 
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)
@@ -287,7 +313,7 @@ func consensusCallbackBeginBlockFn(
 						txListener.OnNewReceipt(evmBlock.Transactions[i], r, creator)
 					}
 					bs = txListener.Finalize() // TODO: refactor to not mutate the bs
-					bs.FinalizedStateRoot = block.Root
+					bs.FinalizedStateRoot = hash.Hash(evmBlock.Root)
 					// At this point, block state is finalized
 
 					// Build index for not skipped txs
@@ -316,8 +342,12 @@ func consensusCallbackBeginBlockFn(
 						store.SetHistoryBlockEpochState(es.Epoch, bs, es)
 						store.SetEpochBlock(blockCtx.Idx+1, es.Epoch)
 					}
+
+					block := blockBuilder.Build()
+					evmBlock.Hash = block.Hash()
+
 					store.SetBlock(blockCtx.Idx, block)
-					store.SetBlockIndex(block.Atropos, blockCtx.Idx)
+					store.SetBlockIndex(block.Hash(), blockCtx.Idx)
 					store.SetBlockEpochState(bs, es)
 					store.EvmStore().SetCachedEvmBlock(blockCtx.Idx, evmBlock)
 
@@ -343,13 +373,13 @@ func consensusCallbackBeginBlockFn(
 
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())
-					log.Info("New block", "index", blockCtx.Idx, "id", block.Atropos, "gas_used",
-						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
+					log.Info("New block", "index", blockCtx.Idx, "id", block.Hash(), "gas_used",
+						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
 						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 
 					processedTxsMeter.Mark(int64(len(evmBlock.Transactions)))
-					skippedTxsMeter.Mark(int64(len(block.SkippedTxs)))
+					skippedTxsMeter.Mark(int64(len(skippedTxs)))
 				}
 				if confirmedEvents.Len() != 0 {
 					atomic.StoreUint32(blockBusyFlag, 1)
@@ -373,15 +403,15 @@ func consensusCallbackBeginBlockFn(
 }
 
 // spillBlockEvents excludes first events which exceed MaxBlockGas
-func spillBlockEvents(store *Store, block *inter.Block, network opera.Rules) (*inter.Block, inter.EventPayloads) {
-	fullEvents := make(inter.EventPayloads, len(block.Events))
-	if len(block.Events) == 0 {
-		return block, fullEvents
+func spillBlockEvents(store *Store, events hash.OrderedEvents, maxBlockGas uint64) inter.EventPayloads {
+	fullEvents := make(inter.EventPayloads, len(events))
+	if len(events) == 0 {
+		return fullEvents
 	}
 	gasPowerUsedSum := uint64(0)
 	// iterate in reversed order
-	for i := len(block.Events) - 1; ; i-- {
-		id := block.Events[i]
+	for i := len(events) - 1; ; i-- {
+		id := events[i]
 		e := store.GetEventPayload(id)
 		if e == nil {
 			log.Crit("Block event not found", "event", id.String())
@@ -390,10 +420,10 @@ func spillBlockEvents(store *Store, block *inter.Block, network opera.Rules) (*i
 		fullEvents[i] = e
 		gasPowerUsedSum += e.GasPowerUsed()
 		// stop if limit is exceeded, erase [:i] events
-		if gasPowerUsedSum > network.Blocks.MaxBlockGas {
+		if gasPowerUsedSum > maxBlockGas {
 			// spill
 			spilledEventsMeter.Mark(int64(len(fullEvents) - (i + 1)))
-			block.Events = block.Events[i+1:]
+			events = events[i+1:]
 			fullEvents = fullEvents[i+1:]
 			break
 		}
@@ -401,7 +431,7 @@ func spillBlockEvents(store *Store, block *inter.Block, network opera.Rules) (*i
 			break
 		}
 	}
-	return block, fullEvents
+	return fullEvents
 }
 
 func mergeCheaters(a, b lachesis.Cheaters) lachesis.Cheaters {

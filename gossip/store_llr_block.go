@@ -19,12 +19,12 @@ func (s *Store) GetFullBlockRecord(n idx.Block) *ibr.LlrFullBlockRecord {
 		receipts = []*types.ReceiptForStorage{}
 	}
 	return &ibr.LlrFullBlockRecord{
-		Atropos:  block.Atropos,
-		Root:     block.Root,
-		Txs:      txs,
-		Receipts: receipts,
-		Time:     block.Time,
-		GasUsed:  block.GasUsed,
+		BlockHash: hash.Hash(block.Hash()),
+		StateRoot: hash.Hash(block.StateRoot),
+		Txs:       txs,
+		Receipts:  receipts,
+		Time:      block.Time,
+		GasUsed:   block.GasUsed,
 	}
 }
 

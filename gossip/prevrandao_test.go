@@ -1,10 +1,11 @@
-package inter
+package gossip
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/Fantom-foundation/lachesis-base/hash"
 )
 
 func TestComputePrevRandao_ComputationIsDeterministic(t *testing.T) {

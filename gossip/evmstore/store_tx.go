@@ -26,8 +26,8 @@ func (s *Store) GetBlockTxs(n idx.Block, block inter.Block, getEventPayload func
 		return cached.Transactions
 	}
 
-	transactions := make(types.Transactions, 0, len(block.Txs)+len(block.InternalTxs)+len(block.Events)*10)
-	for _, txid := range block.InternalTxs {
+	transactions := make(types.Transactions, 0, len(block.TransactionHashes))
+	for _, txid := range block.TransactionHashes {
 		tx := s.GetTx(txid)
 		if tx == nil {
 			log.Crit("Internal tx not found", "tx", txid.String())
@@ -35,24 +35,6 @@ func (s *Store) GetBlockTxs(n idx.Block, block inter.Block, getEventPayload func
 		}
 		transactions = append(transactions, tx)
 	}
-	for _, txid := range block.Txs {
-		tx := s.GetTx(txid)
-		if tx == nil {
-			log.Crit("Tx not found", "tx", txid.String())
-			continue
-		}
-		transactions = append(transactions, tx)
-	}
-	for _, id := range block.Events {
-		e := getEventPayload(id)
-		if e == nil {
-			log.Crit("Block event not found", "event", id.String())
-			continue
-		}
-		transactions = append(transactions, e.Txs()...)
-	}
-
-	transactions = inter.FilterSkippedTxs(transactions, block.SkippedTxs)
 
 	return transactions
 }
