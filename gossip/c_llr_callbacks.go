@@ -47,7 +47,6 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, ga
 		parentHash = parent.Hash()
 	}
 
-	// TODO: add bloom log and other fields
 	builder := inter.NewBlockBuilder().
 		SetNumber(uint64(br.Idx)).
 		SetTime(br.Time).
@@ -55,7 +54,8 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, ga
 		SetStateRoot(common.Hash(br.StateRoot)).
 		SetGasLimit(gasLimit).
 		SetGasUsed(br.GasUsed).
-		SetBaseFee(baseFee)
+		SetBaseFee(baseFee).
+		SetPrevRandao(common.Hash{1})
 
 	for i := range br.Txs {
 		copy := types.Receipt(*br.Receipts[i])
