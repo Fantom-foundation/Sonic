@@ -82,15 +82,14 @@ func TestTransactionGasPrice(t *testing.T) {
 		})
 	})
 
-	t.Run("EIP-1559 transaction max gas price", func(t *testing.T) {
+	t.Run("EIP-1559 transaction no tip", func(t *testing.T) {
 
 		// This test:
 		// 1. Compute a valid maximum gas price
 		// 2. Sends an EIP-1559 transaction with specified gas price (max fee)
 		// 3. Checks:
-		//    - effective gas price is greater or equal than basefee
-		//    - subtracted balance equals gas price * gas used + value transferred
 		//    - effective gas price is equal to the basefee
+		//    - subtracted balance equals gas price * gas used + value transferred
 
 		balanceBefore := getBalance(t, client, account.Address())
 
@@ -110,7 +109,7 @@ func TestTransactionGasPrice(t *testing.T) {
 		basefeeAfter := getBaseFee(t, client)
 
 		// 3: checks
-		t.Run("Transaction gas price X;  BaseFee <= X <= maxGasPrice", func(t *testing.T) {
+		t.Run("BaseFee <= EffectiveGasPrice <= maxGasPrice", func(t *testing.T) {
 
 			require.LessOrEqual(t,
 				basefeeAfter, receipt.EffectiveGasPrice.Int64(),
@@ -173,7 +172,7 @@ func TestTransactionGasPrice(t *testing.T) {
 		basefeeAfter := getBaseFee(t, client)
 
 		// 3: checks
-		t.Run("Transaction gas price X;  BaseFee <= X <= maxGasPrice  ", func(t *testing.T) {
+		t.Run("BaseFee <= EffectiveGasPrice <= maxGasPrice  ", func(t *testing.T) {
 
 			require.LessOrEqual(t,
 				basefeeAfter, receipt.EffectiveGasPrice.Int64(),
@@ -233,7 +232,7 @@ func TestTransactionGasPrice(t *testing.T) {
 		basefeeAfter := getBaseFee(t, client)
 
 		// 3: checks
-		t.Run("Transaction gas price X;  BaseFee <= X <= maxGasPrice  ", func(t *testing.T) {
+		t.Run("BaseFee <= EffectiveGasPrice <= maxGasPrice  ", func(t *testing.T) {
 
 			require.LessOrEqual(t,
 				basefeeAfter, receipt.EffectiveGasPrice.Int64(),
