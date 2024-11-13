@@ -9,11 +9,11 @@ import (
 
 func TestComputePrevRandao_ComputationIsDeterministic(t *testing.T) {
 	events := hash.FakeEvents(5)
-	randao1 := ComputePrevRandao(events)
+	randao1 := computePrevRandao(events)
 	rand.Shuffle(len(events), func(i, j int) {
 		events[i], events[j] = events[j], events[i]
 	})
-	randao2 := ComputePrevRandao(events)
+	randao2 := computePrevRandao(events)
 	if randao1 != randao2 {
 		t.Error("computation is not deterministic")
 	}
@@ -49,7 +49,7 @@ func TestComputePrevRandao_ComputationProducesCorrectValue(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := ComputePrevRandao(test.events)
+			got := computePrevRandao(test.events)
 			if !strings.EqualFold(got.String(), test.want) {
 				t.Errorf("unexpected hash; got: %s, want: %s", got, test.want)
 			}

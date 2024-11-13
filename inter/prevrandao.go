@@ -6,8 +6,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// ComputePrevRandao computes the prevRandao from event hashes.
-func ComputePrevRandao(events []hash.Event) common.Hash {
+// computePrevRandao computes the prevRandao from event hashes.
+func computePrevRandao(events []hash.Event) common.Hash {
 	bts := [24]byte{}
 	for _, event := range events {
 		for i := 0; i < 24; i++ {

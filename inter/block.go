@@ -15,23 +15,15 @@ type Block struct {
 	SkippedTxs  []uint32      // indexes of skipped txs, starting from first tx of first event, ending with last tx of last event
 	GasUsed     uint64
 	Root        hash.Hash
-	prevRandao  common.Hash
 }
 
 func (b *Block) EstimateSize() int {
 	return (len(b.Events)+len(b.InternalTxs)+len(b.Txs)+1+1)*32 + len(b.SkippedTxs)*4 + 8 + 8
 }
 
-func (b *Block) SetPrevRandao(prevrandao common.Hash) {
-	b.prevRandao = prevrandao
-}
-
+// GetPrevRandao computes prevrandao if not already computed and returns it.
 func (b *Block) GetPrevRandao() common.Hash {
-	// Dummy blocks never run through block processing
-	if b.prevRandao == (common.Hash{}) {
-		b.prevRandao = ComputePrevRandao(b.Events)
-	}
-	return b.prevRandao
+	return computePrevRandao(b.Events)
 }
 
 func FilterSkippedTxs(txs types.Transactions, skippedTxs []uint32) types.Transactions {
