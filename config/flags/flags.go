@@ -309,7 +309,7 @@ var (
 	}
 	StructLogLimitFlag = cli.IntFlag{
 		Name:  "rpc.structloglimit",
-		Usage: "Limit maximum number of debug logs for structured EVM logs",
+		Usage: "Limit maximum number of debug logs for structured EVM logs, 0=unlimited, negative value means no log results",
 		Value: gossip.DefaultConfig(cachescale.Identity).StructLogLimit,
 	}
 	ModeFlag = cli.StringFlag{
