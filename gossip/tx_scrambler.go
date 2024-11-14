@@ -45,8 +45,8 @@ func (tx *scramblerTransaction) Sender() common.Address {
 
 // getExecutionOrder returns correct order of the transactions.
 // If Sonic is enabled, the tx scrambler is used, otherwise the
-// order stays unchanged. If signer is unable to create sender for
-// a transaction, this transaction is not added to the final list.
+// order stays unchanged. If signer is unable to derive sender for
+// a transaction, this transaction is not excluded from the final list.
 func getExecutionOrder(unorderedTxs types.Transactions, signer types.Signer, isSonic bool) types.Transactions {
 	// Don't use scrambler if Sonic is not enabled
 	if !isSonic {
