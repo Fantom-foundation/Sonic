@@ -110,11 +110,11 @@ func (n *IntegrationTestNet) start() error {
 	if err != nil {
 		return err
 	}
-	netPort, err := getFreePort()
+	wsPort, err := getFreePort()
 	if err != nil {
 		return err
 	}
-	discoveryPort, err := getFreePort()
+	netPort, err := getFreePort()
 	if err != nil {
 		return err
 	}
@@ -129,21 +129,26 @@ func (n *IntegrationTestNet) start() error {
 		// equivalent to running `sonicd ...` but in this local process
 		os.Args = []string{
 			"sonicd",
+
+			// data storage options
 			"--datadir", n.directory,
-			"--datadir.minfreedisk", "0",
+
+			// fake network options
 			"--fakenet", "1/1",
 
-			// client options
+			// client option
 			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(clientPort),
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
 
-			// net options
-			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(netPort),
+			// websocket options
+			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(wsPort),
 			"--ws.api", "admin,eth,ftm",
 
 			// discovery options
-			"--nat", "none", "--nodiscover",
-			"--port", fmt.Sprint(discoveryPort), //although we don't use discovery, a port will be opened
+			"--nodiscover",
+
+			//  net options
+			"--port", fmt.Sprint(netPort),
 		}
 
 		err := sonicd.Run()
