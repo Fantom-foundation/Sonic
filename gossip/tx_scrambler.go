@@ -22,7 +22,6 @@ type ScramblerEntry interface {
 }
 
 // newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
-// Note: if Signer returns error, nil is returned instead
 func newScramblerTransaction(signer types.Signer, tx *types.Transaction) (ScramblerEntry, error) {
 	// if address cannot be derived, it is excluded from address sorting
 	sender, err := types.Sender(signer, tx)
