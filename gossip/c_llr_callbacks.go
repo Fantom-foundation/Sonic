@@ -56,8 +56,8 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, ga
 		WithGasLimit(gasLimit).
 		WithGasUsed(br.GasUsed).
 		WithBaseFee(baseFee).
-		WithPrevRandao(common.Hash{1})
-		// TODO: add duration
+		WithPrevRandao(common.Hash{1}).
+		WithDuration(duration)
 
 	for i := range br.Txs {
 		copy := types.Receipt(*br.Receipts[i])

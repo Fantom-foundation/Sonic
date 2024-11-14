@@ -65,7 +65,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		WithTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
 		WithGasLimit(gasLimit).
 		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
-		WithBaseFee(big.NewInt(0)).   // TODO: set initial base fee according to the rules
+		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
 		Build(),
 	)
 

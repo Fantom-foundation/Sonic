@@ -135,14 +135,22 @@ type EconomyRules struct {
 	// based on load observed during an epoch. Base fees charged
 	// on the network correspond exactly to the MinGasPrice.
 	//
-	// On the Sonic network: MinGasPrice is the lower boundary for
-	// the gas price automatically adjusted by the network based
-	// on the consumed gas on a block basis. The actual base fees in
-	// blocks are at least equal to the MinGasPrice or higher.
+	// On the Sonic network: this parameter is ignored. Base fees
+	// are controlled by the MinBaseFee parameter.
+	MinGasPrice *big.Int
+
+	// MinBaseFee is a lower bound for the base fee on the network.
+	// This option is only supported by the Sonic network. On the
+	// Fantom network it is ignored.
+	//
+	// On the Sonic network, base fees are automatically adjusted
+	// after each block based on the observed gas consumption rate.
+	// The value set by this parameter is a lower bound for these
+	// adjustments. Base fees may never fall below this value.
 	// Adjustments are made dynamically analogous to EIP-1559.
 	// See https://eips.ethereum.org/EIPS/eip-1559 and https://t.ly/BKrcr
 	// for additional information.
-	MinGasPrice *big.Int
+	MinBaseFee *big.Int
 
 	ShortGasPower GasPowerRules
 	LongGasPower  GasPowerRules
@@ -275,6 +283,7 @@ func DefaultEconomyRules() EconomyRules {
 		BlockMissedSlack: 50,
 		Gas:              DefaultGasRules(),
 		MinGasPrice:      big.NewInt(1e9),
+		MinBaseFee:       big.NewInt(1e3),
 		ShortGasPower:    DefaultShortGasPowerRules(),
 		LongGasPower:     DefaulLongGasPowerRules(),
 	}

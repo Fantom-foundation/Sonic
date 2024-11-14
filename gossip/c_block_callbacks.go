@@ -225,13 +225,15 @@ func consensusCallbackBeginBlockFn(
 					number := uint64(blockCtx.Idx)
 					lastBlockHeader := evmStateReader.GetHeaderByNumber(number - 1)
 					maxBlockGas := es.Rules.Blocks.MaxBlockGas
+					blockDuration := time.Duration(blockCtx.Time - bs.LastBlock.Time)
 					blockBuilder := inter.NewBlockBuilder().
 						WithEpoch(es.Epoch).
 						WithNumber(number).
 						WithParentHash(lastBlockHeader.Hash).
 						WithTime(blockCtx.Time).
 						WithPrevRandao(prevRandao).
-						WithGasLimit(maxBlockGas)
+						WithGasLimit(maxBlockGas).
+						WithDuration(blockDuration)
 
 					for i := range preInternalTxs {
 						blockBuilder.AddTransaction(
@@ -343,6 +345,7 @@ func consensusCallbackBeginBlockFn(
 
 					block := blockBuilder.Build()
 					evmBlock.Hash = block.Hash()
+					evmBlock.Duration = blockDuration
 
 					for _, tx := range blockBuilder.GetTransactions() {
 						store.evm.SetTx(tx.Hash(), tx)

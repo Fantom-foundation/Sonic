@@ -102,6 +102,7 @@ func ToEvmHeader(block *inter.Block, prevHash common.Hash, rules opera.Rules) *E
 		Root:            block.StateRoot,
 		Number:          big.NewInt(int64(block.Number)),
 		Time:            block.Time,
+		Duration:        time.Duration(block.Duration) * time.Nanosecond,
 		GasLimit:        block.GasLimit,
 		GasUsed:         block.GasUsed,
 		BaseFee:         baseFee,
