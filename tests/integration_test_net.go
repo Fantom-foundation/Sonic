@@ -44,6 +44,7 @@ import (
 // integration test networks can also be used for automated integration and
 // regression tests for client code.
 type IntegrationTestNet struct {
+	directory string
 	done      <-chan struct{}
 	validator Account
 }
@@ -53,23 +54,39 @@ type IntegrationTestNet struct {
 // is intended to facilitate debugging of client code in the context of a running
 // node.
 func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
+
+	// initialize the data directory for the single node on the test network
+	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
+	originalArgs := os.Args
+	os.Args = []string{"sonictool", "--datadir", directory, "genesis", "fake", "1"}
+	sonictool.Run()
+	os.Args = originalArgs
+
+	// start the fakenet sonic node
+	result := &IntegrationTestNet{
+		directory: directory,
+		validator: Account{evmcore.FakeKey(1)},
+	}
+
+	if err := result.start(); err != nil {
+		return nil, fmt.Errorf("failed to start the test network: %w", err)
+	}
+	return result, nil
+}
+
+func (n *IntegrationTestNet) start() error {
+	if n.done != nil {
+		return errors.New("network already started")
+	}
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-
-		originalArgs := os.Args
-		defer func() { os.Args = originalArgs }()
-
-		// initialize the data directory for the single node on the test network
-		// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
-		os.Args = []string{"sonictool", "--datadir", directory, "genesis", "fake", "1"}
-		sonictool.Run()
 
 		// start the fakenet sonic node
 		// equivalent to running `sonicd ...` but in this local process
 		os.Args = []string{
 			"sonicd",
-			"--datadir", directory,
+			"--datadir", n.directory,
 			"--fakenet", "1/1",
 			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
@@ -79,19 +96,16 @@ func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 		sonicd.Run()
 	}()
 
-	result := &IntegrationTestNet{
-		done:      done,
-		validator: Account{evmcore.FakeKey(1)},
-	}
+	n.done = done
 
 	// connect to blockchain network
-	client, err := result.GetClient()
+	client, err := n.GetClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to the Ethereum client: %w", err)
+		return fmt.Errorf("failed to connect to the Ethereum client: %w", err)
 	}
 	defer client.Close()
 
-	const timeout = 30 * time.Second
+	const timeout = 300 * time.Second
 	start := time.Now()
 
 	// wait for the node to be ready to serve requests
@@ -107,16 +121,23 @@ func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 			}
 			continue
 		}
-		return result, nil
+		return nil
 	}
 
-	return nil, fmt.Errorf("failed to successfully start up a test network within %d", timeout)
+	return fmt.Errorf("failed to successfully start up a test network within %v", timeout)
 }
 
 // Stop shuts the underlying network down.
 func (n *IntegrationTestNet) Stop() {
 	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 	<-n.done
+	n.done = nil
+}
+
+// Stops and restarts the single node on the test network.
+func (n *IntegrationTestNet) Restart() error {
+	n.Stop()
+	return n.start()
 }
 
 // EndowAccount sends a requested amount of tokens to the given account. This is

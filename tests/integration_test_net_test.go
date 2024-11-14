@@ -10,11 +10,14 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func TestIntegrationTestNet_CanStartAndStopIntegrationTestNet(t *testing.T) {
+func TestIntegrationTestNet_CanStartRestartAndStopIntegrationTestNet(t *testing.T) {
 	dataDir := t.TempDir()
 	net, err := StartIntegrationTestNet(dataDir)
 	if err != nil {
-		t.Fatalf("Failed to start the fake network: %v", err)
+		t.Fatalf("Failed to start the test network: %v", err)
+	}
+	if err := net.Restart(); err != nil {
+		t.Fatalf("Failed to restart the test network: %v", err)
 	}
 	net.Stop()
 }

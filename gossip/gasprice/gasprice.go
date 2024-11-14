@@ -119,6 +119,10 @@ func NewOracle(params Config, backend Reader) *Oracle {
 	}
 }
 
+func (gpo *Oracle) SetReader(backend Reader) {
+	gpo.backend = backend
+}
+
 func (gpo *Oracle) Start() {
 	gpo.wg.Add(1)
 	go func() {
