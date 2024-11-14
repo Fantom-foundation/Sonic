@@ -123,6 +123,9 @@ func (r *EvmStateReader) getBlock(h common.Hash, n idx.Block, readTxs bool) *evm
 
 	// There is no epoch state for epoch 0 comprising block 0.
 	// For this epoch, London and Sonic upgrades are enabled.
+	// TODO: instead of hard-coding these values here, a corresponding
+	// epoch state should be included in the genesis procedure to be
+	// consistent. See issue #72.
 	if epoch == 0 {
 		rules.Upgrades.London = true
 		rules.Upgrades.Sonic = true
