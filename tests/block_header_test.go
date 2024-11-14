@@ -41,8 +41,8 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		headers = append(headers, header)
 	}
 
-	t.Run("NumberMatchesPosition", func(t *testing.T) {
-		testHeaders_NumberMatchesPosition(t, headers)
+	t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
+		testHeaders_BlockNumberEqualsPositionInChain(t, headers)
 	})
 
 	t.Run("ParentHashCoversParentContent", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	// - the random mixDigest field is different for each block
 }
 
-func testHeaders_NumberMatchesPosition(t *testing.T, headers []*types.Header) {
+func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
 	for i, header := range headers {
 		require.Equal(header.Number.Uint64(), uint64(i))
@@ -72,6 +72,12 @@ func testHeaders_NumberMatchesPosition(t *testing.T, headers []*types.Header) {
 
 func testHeaders_ParentHashCoversParentContent(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
+
+	// The parent hash of block 0 is expected to be zero.
+	require.Equal(
+		headers[0].ParentHash, common.Hash{},
+		"invalid parent hash for block 0",
+	)
 
 	// All other blocks have a parent hash that matches the previous block's hash.
 	for i := 1; i < len(headers); i++ {

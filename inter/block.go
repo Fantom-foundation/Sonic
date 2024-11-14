@@ -13,7 +13,7 @@ import (
 
 // Block represents the on-disk storage format of a block. It contains all
 // fields required to reconstruct the block header, as well as a list of
-// hashes of the transactions been executed as part of the represented block.
+// hashes of the transactions being executed as part of the represented block.
 //
 // This struct should be considered immutable. No fields should be modified,
 // directly or indirectly. Ideally, all fields should be private, but that

@@ -59,8 +59,8 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		SetNumber(0).
 		SetTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
 		SetGasLimit(gasLimit).
-		SetStateRoot(common.Hash{}). // TODO: get proper has from genesis data
-		SetBaseFee(big.NewInt(0)).
+		SetStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
+		SetBaseFee(big.NewInt(0)).   // TODO: set initial base fee according to the rules
 		Build(),
 	)
 
