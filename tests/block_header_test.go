@@ -21,9 +21,7 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	// Produce a few blocks on the network.
 	for range numBlocks {
 		_, err := net.EndowAccount(common.Address{42}, 100)
-		if err != nil {
-			t.Fatalf("failed to endow account; %v", err)
-		}
+		require.NoError(err, "failed to endow account")
 	}
 
 	client, err := net.GetClient()
