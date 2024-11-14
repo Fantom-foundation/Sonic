@@ -1,8 +1,10 @@
 package inter
 
 import (
+	"encoding/binary"
 	"math/big"
 	"slices"
+	"time"
 	"unsafe"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -43,6 +45,10 @@ type Block struct {
 	// Fields required for linking the block internally to a lachesis epoch.
 	Epoch idx.Epoch
 
+	// The duration of this block, being the difference between the predecessor
+	// block's timestamp and this block's timestamp, in nanoseconds.
+	Duration uint64
+
 	// The hash of this block, cached on first access.
 	hash common.Hash
 }
@@ -57,6 +63,10 @@ func (b *Block) Hash() common.Hash {
 
 // GetEthereumHeader returns the Ethereum header corresponding to this block.
 func (b *Block) GetEthereumHeader() *types.Header {
+	// TODO: consider condensing the extra data into a single 8-byte field.
+	extra := make([]byte, 16)
+	binary.BigEndian.PutUint64(extra[:8], uint64(b.Time))     // < only nano-second part needed
+	binary.BigEndian.PutUint64(extra[8:], uint64(b.Duration)) // < could be measured in microseconds instead of nanoseconds
 	return &types.Header{
 		ParentHash:  b.ParentHash,
 		UncleHash:   types.EmptyUncleHash,
@@ -70,7 +80,7 @@ func (b *Block) GetEthereumHeader() *types.Header {
 		GasLimit:    b.GasLimit,
 		GasUsed:     b.GasUsed,
 		Time:        uint64(b.Time.Time().Unix()),
-		Extra:       nil, // TODO: fill in extra data required for gas computation
+		Extra:       extra,
 		MixDigest:   b.PrevRandao,
 		Nonce:       types.BlockNonce{}, // constant 0 in Ethereum
 		BaseFee:     b.BaseFee,
@@ -134,6 +144,14 @@ func (b *BlockBuilder) AddTransaction(
 
 func (b *BlockBuilder) WithTime(time Timestamp) *BlockBuilder {
 	b.block.Time = time
+	return b
+}
+
+func (b *BlockBuilder) WithDuration(duration time.Duration) *BlockBuilder {
+	if duration < 0 {
+		duration = 0
+	}
+	b.block.Duration = uint64(duration.Nanoseconds())
 	return b
 }
 
