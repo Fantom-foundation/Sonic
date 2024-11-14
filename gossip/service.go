@@ -217,16 +217,17 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	svc.gasPowerCheckReader.Ctx.Store(NewGasPowerContext(svc.store, svc.store.GetValidators(), svc.store.GetEpoch(), net.Economy)) // read gaspower check data from DB
 	svc.checkers = makeCheckers(config.HeavyCheck, txSigner, &svc.heavyCheckReader, &svc.gasPowerCheckReader, svc.store)
 
+	// create GPO
+	svc.gpo = gasprice.NewOracle(svc.config.GPO, nil)
+
 	// create tx pool
 	stateReader := &EvmStateReader{
 		ServiceFeed: &svc.feed,
 		store:       svc.store,
+		gpo:         svc.gpo,
 	}
 	svc.txpool = newTxPool(stateReader)
-
-	// create GPO
-	svc.gpo = gasprice.NewOracle(svc.config.GPO, &GPOBackend{svc.store, svc.txpool})
-	stateReader.gpo = svc.gpo
+	svc.gpo.SetReader(&GPOBackend{svc.store, svc.txpool})
 
 	// init dialCandidates
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
