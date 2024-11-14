@@ -3,6 +3,7 @@ package gossip
 import (
 	"bytes"
 	"cmp"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"slices"
@@ -13,7 +14,7 @@ type ScramblerEntry interface {
 	// Hash returns the transaction hash
 	Hash() common.Hash
 	// Sender returns the sender of the transaction
-	Sender() *common.Address
+	Sender() common.Address
 	// Nonce returns the transaction nonce
 	Nonce() uint64
 	// GasPrice returns the transaction gas price
@@ -21,30 +22,32 @@ type ScramblerEntry interface {
 }
 
 // newScramblerTransaction creates a wrapper around *types.Transaction which implements ScramblerEntry.
-func newScramblerTransaction(signer types.Signer, tx *types.Transaction) ScramblerEntry {
+// Note: if Signer returns error, nil is returned instead
+func newScramblerTransaction(signer types.Signer, tx *types.Transaction) (ScramblerEntry, error) {
 	// if address cannot be derived, it is excluded from address sorting
 	sender, err := types.Sender(signer, tx)
-	var addr *common.Address
-	if err == nil {
-		addr = &sender
+	if err != nil {
+		return nil, err
 	}
 	return &scramblerTransaction{
 		Transaction: tx,
-		sender:      addr,
-	}
+		sender:      sender,
+	}, nil
 }
 
 type scramblerTransaction struct {
 	*types.Transaction
-	sender *common.Address
+	sender common.Address
 }
 
-func (tx *scramblerTransaction) Sender() *common.Address {
+func (tx *scramblerTransaction) Sender() common.Address {
 	return tx.sender
 }
 
 // getExecutionOrder returns correct order of the transactions.
-// If Sonic is enabled, the tx scrambler is used, otherwise the order stays unchanged.
+// If Sonic is enabled, the tx scrambler is used, otherwise the
+// order stays unchanged. If signer is unable to create sender for
+// a transaction, this transaction is not added to the final list.
 func getExecutionOrder(unorderedTxs types.Transactions, signer types.Signer, isSonic bool) types.Transactions {
 	// Don't use scrambler if Sonic is not enabled
 	if !isSonic {
@@ -53,7 +56,11 @@ func getExecutionOrder(unorderedTxs types.Transactions, signer types.Signer, isS
 
 	unorderedEntries := make([]ScramblerEntry, 0, len(unorderedTxs))
 	for _, tx := range unorderedTxs {
-		entry := newScramblerTransaction(signer, tx)
+		entry, err := newScramblerTransaction(signer, tx)
+		if err != nil {
+			// unable to create entry - skip
+			continue
+		}
 		unorderedEntries = append(unorderedEntries, entry)
 	}
 
@@ -86,11 +93,7 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 	senderNonceOrder := slices.Clone(entries)
 	// sort copied slice so that it has all txs from same address together + sorted by nonce ascending
 	slices.SortFunc(senderNonceOrder, func(a, b ScramblerEntry) int {
-		// Txs with nil sender stays at same position
-		if a.Sender() == nil || b.Sender() == nil {
-			return 0
-		}
-		res := a.Sender().Cmp(*b.Sender())
+		res := a.Sender().Cmp(b.Sender())
 		if res != 0 {
 			return res
 		}
@@ -112,22 +115,15 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 	senderIndex := make(map[common.Address]int)
 	for idx, entry := range senderNonceOrder {
 		sender := entry.Sender()
-		if sender == nil {
-			continue
-		}
-		if _, found := senderIndex[*sender]; !found {
-			senderIndex[*sender] = idx
+		if _, found := senderIndex[sender]; !found {
+			senderIndex[sender] = idx
 		}
 	}
 	// replace already scrambled entries so that they are sorted by nonce
 	for idx := range entries {
 		sender := entries[idx].Sender()
-		// Txs with nil sender stays at same position
-		if sender == nil {
-			continue
-		}
-		entries[idx] = senderNonceOrder[senderIndex[*sender]]
-		senderIndex[*sender]++
+		entries[idx] = senderNonceOrder[senderIndex[sender]]
+		senderIndex[sender]++
 	}
 	return
 }
@@ -159,12 +155,10 @@ func analyseEntryList(entries []ScramblerEntry) ([]ScramblerEntry, [32]byte, boo
 		}
 		// mark whether we have duplicate addresses
 		sender := entry.Sender()
-		if sender != nil {
-			if _, ok := seenAddresses[*sender]; ok {
-				hasDuplicateAddresses = true
-			}
-			seenAddresses[*sender] = struct{}{}
+		if _, ok := seenAddresses[sender]; ok {
+			hasDuplicateAddresses = true
 		}
+		seenAddresses[sender] = struct{}{}
 		salt = xorBytes32(salt, entry.Hash())
 		uniqueList = append(uniqueList, entry)
 		seenHashes[entry.Hash()] = struct{}{}

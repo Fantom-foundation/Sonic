@@ -68,19 +68,19 @@ func TestTxScrambler_AnalyseEntryList_ReportsDuplicateAddresses(t *testing.T) {
 			input: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{2},
-					sender: &common.Address{3},
+					sender: common.Address{3},
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{3},
-					sender: &common.Address{2},
+					sender: common.Address{2},
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{4},
-					sender: &common.Address{3},
+					sender: common.Address{3},
 				},
 			},
 			hasDuplicate: true,
@@ -90,15 +90,15 @@ func TestTxScrambler_AnalyseEntryList_ReportsDuplicateAddresses(t *testing.T) {
 			input: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{2},
-					sender: &common.Address{2},
+					sender: common.Address{2},
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{3},
-					sender: &common.Address{3},
+					sender: common.Address{3},
 				},
 			},
 			hasDuplicate: false,
@@ -143,27 +143,27 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByNonce(t *testing.T) {
 	entries := []ScramblerEntry{
 		&dummyScramblerEntry{
 			hash:   common.Hash{1},
-			sender: &common.Address{1},
+			sender: common.Address{1},
 			nonce:  1,
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{2},
-			sender: &common.Address{2},
+			sender: common.Address{2},
 			nonce:  1,
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{3},
-			sender: &common.Address{3},
+			sender: common.Address{3},
 			nonce:  1,
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{4},
-			sender: &common.Address{2},
+			sender: common.Address{2},
 			nonce:  2,
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{5},
-			sender: &common.Address{1},
+			sender: common.Address{1},
 			nonce:  2,
 		},
 	}
@@ -185,25 +185,25 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByGasIfNonceIsSame(t *t
 	entries := []ScramblerEntry{
 		&dummyScramblerEntry{
 			hash:     common.Hash{1},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    1,
 			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{2},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    1,
 			gasPrice: big.NewInt(2),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{3},
-			sender:   &common.Address{2},
+			sender:   common.Address{2},
 			nonce:    1,
 			gasPrice: big.NewInt(3),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{4},
-			sender:   &common.Address{2},
+			sender:   common.Address{2},
 			nonce:    1,
 			gasPrice: big.NewInt(4),
 		},
@@ -226,25 +226,25 @@ func TestTxScrambler_SortTransactionsWithSameSender_SortsByHashIfNonceAndGasIsSa
 	entries := []ScramblerEntry{
 		&dummyScramblerEntry{
 			hash:     common.Hash{0},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    1,
 			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{1},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    1,
 			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{2},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    1,
 			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{3},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    1,
 			gasPrice: big.NewInt(1),
 		},
@@ -271,17 +271,17 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalDat
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  1,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  1,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  1,
 				},
 			},
@@ -291,17 +291,17 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalDat
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  1,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{2},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  2,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{3},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  3,
 				},
 			},
@@ -311,19 +311,19 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalDat
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(3),
 				},
@@ -334,19 +334,19 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_IdenticalDat
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
@@ -380,31 +380,31 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
-					sender:   &common.Address{2},
+					sender:   common.Address{2},
 					nonce:    2,
 					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
-					sender:   &common.Address{3},
+					sender:   common.Address{3},
 					nonce:    3,
 					gasPrice: big.NewInt(3),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
-					sender:   &common.Address{2},
+					sender:   common.Address{2},
 					nonce:    2,
 					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
@@ -415,27 +415,27 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:   common.Hash{1},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  1,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{2},
-					sender: &common.Address{2},
+					sender: common.Address{2},
 					nonce:  2,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{3},
-					sender: &common.Address{3},
+					sender: common.Address{3},
 					nonce:  3,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{4},
-					sender: &common.Address{2},
+					sender: common.Address{2},
 					nonce:  4,
 				},
 				&dummyScramblerEntry{
 					hash:   common.Hash{5},
-					sender: &common.Address{1},
+					sender: common.Address{1},
 					nonce:  5,
 				},
 			},
@@ -445,31 +445,31 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
-					sender:   &common.Address{2},
+					sender:   common.Address{2},
 					nonce:    2,
 					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
-					sender:   &common.Address{3},
+					sender:   common.Address{3},
 					nonce:    3,
 					gasPrice: big.NewInt(3),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{4},
-					sender:   &common.Address{2},
+					sender:   common.Address{2},
 					nonce:    2,
 					gasPrice: big.NewInt(4),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{5},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(5),
 				},
@@ -480,31 +480,31 @@ func TestTxScrambler_FilterAndOrderTransactions_SortIsDeterministic_RepeatedData
 			entries: []ScramblerEntry{
 				&dummyScramblerEntry{
 					hash:     common.Hash{1},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{2},
-					sender:   &common.Address{2},
+					sender:   common.Address{2},
 					nonce:    2,
 					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{3},
-					sender:   &common.Address{3},
+					sender:   common.Address{3},
 					nonce:    3,
 					gasPrice: big.NewInt(3),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{4},
-					sender:   &common.Address{2},
+					sender:   common.Address{2},
 					nonce:    2,
 					gasPrice: big.NewInt(2),
 				},
 				&dummyScramblerEntry{
 					hash:     common.Hash{5},
-					sender:   &common.Address{1},
+					sender:   common.Address{1},
 					nonce:    1,
 					gasPrice: big.NewInt(1),
 				},
@@ -546,29 +546,29 @@ func TestTxScrambler_FilterAndOrderTransactions_SortsSameSenderByNonceAndGas(t *
 	entries := []ScramblerEntry{
 		&dummyScramblerEntry{
 			hash:   common.Hash{1},
-			sender: &common.Address{1},
+			sender: common.Address{1},
 			nonce:  1,
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{2},
-			sender: &common.Address{1},
+			sender: common.Address{1},
 			nonce:  2,
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{3},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    3,
 			gasPrice: big.NewInt(1),
 		},
 		&dummyScramblerEntry{
 			hash:     common.Hash{4},
-			sender:   &common.Address{1},
+			sender:   common.Address{1},
 			nonce:    3,
 			gasPrice: big.NewInt(2),
 		},
 		&dummyScramblerEntry{
 			hash:   common.Hash{5},
-			sender: &common.Address{1},
+			sender: common.Address{1},
 			nonce:  4,
 		},
 	}
@@ -586,41 +586,6 @@ func TestTxScrambler_FilterAndOrderTransactions_SortsSameSenderByNonceAndGas(t *
 				}
 			}
 		}
-	}
-}
-
-func TestTxScrambler_FilterAndOrderTransactionsNilAddressesAreOnlyAffectedByScrambler(t *testing.T) {
-	entries := createRandomScramblerTestInput(100)
-	shuffleEntries(entries)
-	cpy, salt, _ := analyseEntryList(entries)
-	scrambleTransactions(cpy, salt)
-	wantNilAddrs := 0
-	nilAddrPositions := make(map[common.Hash]int)
-
-	for idx, entry := range cpy {
-		if entry.Sender() == nil {
-			wantNilAddrs++
-			nilAddrPositions[entry.Hash()] = idx
-		}
-	}
-	if wantNilAddrs == 0 {
-		t.Fatal("entries does not have nil addresses")
-	}
-	entries = filterAndOrderTransactions(entries)
-	gotNilAddrs := 0
-	for wantIdx, entry := range entries {
-		gotIdx, ok := nilAddrPositions[entry.Hash()]
-		// Continue of not a nil addr entry
-		if !ok {
-			continue
-		}
-		gotNilAddrs++
-		if gotIdx != wantIdx {
-			t.Fatal("incorrect nil addr position")
-		}
-	}
-	if gotNilAddrs != wantNilAddrs {
-		t.Errorf("unexpected number of nil addr entries, got: %d, want %d", gotNilAddrs, wantNilAddrs)
 	}
 }
 
@@ -660,9 +625,58 @@ func TestGetExecutionOrder_IncorrectTxDoesNotBreakScrambling(t *testing.T) {
 	}
 
 	txs := getExecutionOrder(input, &errorEmittingSigner{}, true)
-	if got, want := len(txs), len(input); got != want {
+	// one transaction is removed from the list
+	if got, want := len(txs), len(input)-1; got != want {
 		t.Errorf("unexpected number of transasctions, got: %d, want: %d", got, want)
 	}
+}
+
+func TestGetExecutionOrder_ScramblerIsUsedOnlyForSonic(t *testing.T) {
+	tests := []struct {
+		name        string
+		isSonic     bool
+		expectedLen int
+	}{
+		{
+			name:        "SonicIsDisabled-InputStaysUnchanged",
+			isSonic:     false,
+			expectedLen: 4,
+		},
+		{
+			name:        "SonicIsEnabled-InputIsChanged",
+			isSonic:     true,
+			expectedLen: 3,
+		},
+	}
+
+	input := types.Transactions{
+		types.NewTx(&types.LegacyTx{
+			Nonce: 0,
+			Gas:   0,
+		}),
+		types.NewTx(&types.LegacyTx{
+			Nonce: 1,
+			Gas:   0,
+		}),
+		types.NewTx(&types.LegacyTx{
+			Nonce: 2,
+			Gas:   0,
+		}),
+		types.NewTx(&types.LegacyTx{
+			Nonce: 3,
+			Gas:   0,
+		}),
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			txs := getExecutionOrder(input, &errorEmittingSigner{}, test.isSonic)
+			// one transaction is removed from the list
+			if got, want := len(txs), test.expectedLen; got != want {
+				t.Errorf("unexpected number of transasctions, got: %d, want: %d", got, want)
+			}
+		})
+	}
+
 }
 
 type errorEmittingSigner struct {
@@ -699,11 +713,7 @@ func (m mockSigner) Equal(types.Signer) bool {
 }
 
 func compareFunc(a ScramblerEntry, b ScramblerEntry) int {
-	sender := b.Sender()
-	if sender == nil {
-		return 0
-	}
-	addrCmp := a.Sender().Cmp(*sender)
+	addrCmp := a.Sender().Cmp(b.Sender())
 	if addrCmp != 0 {
 		return addrCmp
 	}
@@ -736,14 +746,9 @@ func createRandomScramblerTestInput(size int64) []ScramblerEntry {
 	for i := int64(0); i < size; i++ {
 		// same hashes must have same data
 		r := rand.IntN(100 - 1)
-		addr := &common.Address{byte(r)}
-		// addr nil addressees to randomizer
-		if r%10 == 0 {
-			addr = nil
-		}
 		entries = append(entries, &dummyScramblerEntry{
 			hash:     common.Hash{byte(r)},
-			sender:   addr,
+			sender:   common.Address{byte(r)},
 			nonce:    uint64(r),
 			gasPrice: big.NewInt(int64(r)),
 		})
@@ -780,17 +785,17 @@ func createRandomSalt() [32]byte {
 
 // dummyScramblerEntry represents scramblery entry data used for testing
 type dummyScramblerEntry struct {
-	hash     common.Hash     // transaction hash
-	sender   *common.Address // sender of the transaction
-	nonce    uint64          // transaction nonce
-	gasPrice *big.Int        // transaction gasPrice
+	hash     common.Hash    // transaction hash
+	sender   common.Address // sender of the transaction
+	nonce    uint64         // transaction nonce
+	gasPrice *big.Int       // transaction gasPrice
 }
 
 func (s *dummyScramblerEntry) Hash() common.Hash {
 	return s.hash
 }
 
-func (s *dummyScramblerEntry) Sender() *common.Address {
+func (s *dummyScramblerEntry) Sender() common.Address {
 	return s.sender
 }
 
