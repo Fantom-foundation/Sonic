@@ -9,17 +9,30 @@ import (
 )
 
 // GetInitialBaseFee returns the initial base fee to be used in the genesis block.
-func GetInitialBaseFee() *big.Int {
-	// The initial base fee is set to 1 Gwei. While a value of 0 would also be valid,
-	// this value was chosen to have non-zero prices in low-load test networks at least
-	// for the first several minutes. In case of no load on the network, the base fee
-	// will decrease to 0 within ~35 minutes.
-	const kInitialBaseFee = 1e9
-	return big.NewInt(kInitialBaseFee)
+func GetInitialBaseFee(rules opera.EconomyRules) *big.Int {
+	// The default initial base fee is set to 1 Gwei. While a value of 0 would
+	// also be valid, this value was chosen to have non-zero prices in low-load
+	// test networks at least for the first several minutes. In case of no load
+	// on the network, the base fee will decrease to 0 within ~35 minutes if
+	// no minimum gas price is set in the rules.
+	const defaultInitialBaseFee = 1e9
+	fee := big.NewInt(defaultInitialBaseFee)
+	if rules.MinGasPrice != nil && rules.MinGasPrice.Cmp(fee) > 0 {
+		fee = new(big.Int).Set(rules.MinGasPrice)
+	}
+	return fee
 }
 
 // GetBaseFeeForNextBlock computes the base fee for the next block based on the parent block.
 func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules) *big.Int {
+	newPrice := getBaseFeeForNextBlock(parent, rules)
+	if rules.MinGasPrice != nil && newPrice.Cmp(rules.MinGasPrice) < 0 {
+		newPrice.Set(rules.MinGasPrice)
+	}
+	return newPrice
+}
+
+func getBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules) *big.Int {
 	// In general, this function computes the new base fee based on the following formula:
 	//
 	//     newPrice := oldPrice * e^(((rate-targetRate)/targetRate)*duration/128)

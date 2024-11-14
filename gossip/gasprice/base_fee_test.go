@@ -256,7 +256,7 @@ func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T
 	for _, blockTime := range blockTimes {
 		t.Run(fmt.Sprintf("blockTime=%s", blockTime.String()), func(t *testing.T) {
 			header := &evmcore.EvmHeader{
-				BaseFee:  GetInitialBaseFee(),
+				BaseFee:  GetInitialBaseFee(opera.EconomyRules{}),
 				GasUsed:  0,
 				Duration: blockTime,
 			}
@@ -272,6 +272,54 @@ func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T
 					decayDuration,
 				)
 			}
+		})
+	}
+}
+
+func TestBaseFee_InitialPriceIsAtLeastMinGasPrice(t *testing.T) {
+	for _, minPrice := range []int64{-1, 0, 1, 1e8, 1e9, 1e10, 1e12} {
+		rules := opera.EconomyRules{MinGasPrice: big.NewInt(int64(minPrice))}
+		got := GetInitialBaseFee(rules).Int64()
+		if got < minPrice {
+			t.Errorf("initial price is below min gas price; got %d, min %d", got, minPrice)
+		}
+	}
+}
+
+func TestBaseFee_DoesNotSinkBelowMinGasPrice(t *testing.T) {
+	for _, minPrice := range []int64{-1, 0, 1, 1e8, 1e9, 1e10} {
+		t.Run(fmt.Sprintf("minPrice=%d", minPrice), func(t *testing.T) {
+			minPrice := big.NewInt(minPrice)
+			rules := opera.EconomyRules{
+				MinGasPrice: minPrice,
+				ShortGasPower: opera.GasPowerRules{
+					AllocPerSec: 1e6,
+				},
+			}
+
+			t.Run("price does not sink below minimum", func(t *testing.T) {
+				header := &evmcore.EvmHeader{
+					BaseFee:  minPrice,
+					GasUsed:  0, // < should reduce the price
+					Duration: time.Second,
+				}
+				newPrice := GetBaseFeeForNextBlock(header, rules)
+				if newPrice.Cmp(minPrice) < 0 {
+					t.Errorf("price sank below minimum; got %v, min %v", newPrice, minPrice)
+				}
+			})
+
+			t.Run("at threshold price is capped at minimum", func(t *testing.T) {
+				header := &evmcore.EvmHeader{
+					BaseFee:  new(big.Int).Add(minPrice, big.NewInt(1)),
+					GasUsed:  0, // < should reduce the price
+					Duration: time.Second,
+				}
+				newPrice := GetBaseFeeForNextBlock(header, rules)
+				if newPrice.Cmp(minPrice) < 0 {
+					t.Errorf("price sank below minimum; got %v, min %v", newPrice, minPrice)
+				}
+			})
 		})
 	}
 }
