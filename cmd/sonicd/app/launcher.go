@@ -131,6 +131,8 @@ func initFlags() {
 		flags.RPCGlobalTimeoutFlag,
 		flags.BatchRequestLimit,
 		flags.BatchResponseMaxSize,
+		flags.MaxResponseSizeFlag,
+		flags.StructLogLimitFlag,
 	}
 
 	metricsFlags = []cli.Flag{

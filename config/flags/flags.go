@@ -307,6 +307,11 @@ var (
 		Usage: "Limit maximum size in some RPC calls execution",
 		Value: gossip.DefaultConfig(cachescale.Identity).MaxResponseSize,
 	}
+	StructLogLimitFlag = cli.IntFlag{
+		Name:  "rpc.structloglimit",
+		Usage: "Limit maximum number of debug logs for structured EVM logs, 0=unlimited, negative value means no log results",
+		Value: gossip.DefaultConfig(cachescale.Identity).StructLogLimit,
+	}
 	ModeFlag = cli.StringFlag{
 		Name:  "mode",
 		Usage: `Mode of the node ("rpc" or "validator")`,
