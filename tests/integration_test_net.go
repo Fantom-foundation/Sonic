@@ -149,7 +149,7 @@ func (n *IntegrationTestNet) EndowAccount(
 
 	transaction, err := types.SignTx(types.NewTx(&types.AccessListTx{
 		ChainID:  chainId,
-		Gas:      21000,
+		Gas:      21_000,
 		GasPrice: price,
 		To:       &address,
 		Value:    big.NewInt(value),

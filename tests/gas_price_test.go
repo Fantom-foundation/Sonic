@@ -108,10 +108,6 @@ func TestGasPrice_GasEvolvesAsExpectedCalculates(t *testing.T) {
 		suggestedPrice, err := client.SuggestGasPrice(context.Background())
 		require.NoError(err)
 
-		SuggestGasTipCap, err := client.SuggestGasTipCap(context.Background())
-		require.NoError(err)
-		t.Logf("i: %v, suggested price (%v), suggested tip %v", i, suggestedPrice, SuggestGasTipCap)
-
 		// new block
 		receipt, err := net.EndowAccount(common.Address{42}, 100)
 		require.NoError(err)
@@ -119,10 +115,7 @@ func TestGasPrice_GasEvolvesAsExpectedCalculates(t *testing.T) {
 		lastBlock, err := client.BlockByNumber(context.Background(), receipt.BlockNumber)
 		require.NoError(err)
 
-		diff, ok := within10Percent(suggestedPrice, receipt.EffectiveGasPrice) //; !ok {
-		t.Logf("i: %v, effective gas price (%v) ok:%v, suggested price %v, diff: %v", i, receipt.EffectiveGasPrice, ok, suggestedPrice, diff)
-
-		diff, ok = within10Percent(suggestedPrice, lastBlock.BaseFee()) //; !ok {
+		diff, ok := within10Percent(suggestedPrice, lastBlock.BaseFee())
 		t.Logf("i: %v, last block's base fee (%v) ok:%v, suggested price %v, diff: %v", i, lastBlock.BaseFee(), ok, suggestedPrice, diff)
 
 	}

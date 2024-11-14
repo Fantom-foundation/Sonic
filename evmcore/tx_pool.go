@@ -706,8 +706,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Ensure Opera-specific hard bounds
 	if recommendedGasTip, minPrice := pool.chain.EffectiveMinTip(), pool.chain.MinGasPrice(); recommendedGasTip != nil && minPrice != nil {
-		if tx.GasTipCapIntCmp(recommendedGasTip) < 0 {
-			log.Trace("Rejecting underpriced tx: recommendedGasTip", "recommendedGasTip", recommendedGasTip, "tx.GasTipCap", tx.GasTipCap())
+		if tx.GasTipCap().Sign() < 0 {
+			log.Trace("Rejecting underpriced tx: negative tip", "tx.GasTipCap", tx.GasTipCap())
 			return ErrUnderpriced
 		}
 		if tx.GasFeeCapIntCmp(new(big.Int).Add(recommendedGasTip, minPrice)) < 0 {

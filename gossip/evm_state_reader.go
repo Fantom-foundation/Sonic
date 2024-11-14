@@ -25,7 +25,14 @@ type EvmStateReader struct {
 
 // MinGasPrice returns current hard lower bound for gas price
 func (r *EvmStateReader) MinGasPrice() *big.Int {
-	return r.store.GetRules().Economy.MinGasPrice
+	// return r.store.GetRules().Economy.MinGasPrice
+
+	// calculate 5% of base fee of previous block
+	oldBaseFee := r.GetHeader(common.Hash{}, uint64(r.CurrentBlock().Number.Uint64()-1)).BaseFee
+	fivePercent := new(big.Int).Mul(oldBaseFee, big.NewInt(5))
+	fivePercent.Div(fivePercent, big.NewInt(100))
+	newMin := new(big.Int).Add(oldBaseFee, fivePercent)
+	return newMin
 }
 
 // EffectiveMinTip returns current soft lower bound for gas tip
