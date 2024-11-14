@@ -4,7 +4,9 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip/emitter/mock"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/golang/mock/gomock"
 	"math/big"
 	"math/rand/v2"
 	"slices"
@@ -621,7 +623,6 @@ func TestGetExecutionOrder_ScramblerIsUsedOnlyForSonic(t *testing.T) {
 			expectedLen: 3,
 		},
 	}
-
 	input := types.Transactions{
 		types.NewTx(&types.LegacyTx{
 			Nonce: 0,
@@ -640,9 +641,21 @@ func TestGetExecutionOrder_ScramblerIsUsedOnlyForSonic(t *testing.T) {
 			Gas:   0,
 		}),
 	}
+
+	ctrl := gomock.NewController(t)
+	signer := mock.NewMockTxSigner(ctrl)
+
+	// Only one loop is expected because the scrambler is disabled if Sonic is not enabled.
+	gomock.InOrder(
+		signer.EXPECT().Sender(input[0]).Return(common.Address{1}, nil),
+		signer.EXPECT().Sender(input[1]).Return(common.Address{2}, nil),
+		signer.EXPECT().Sender(input[2]).Return(common.Address{}, errors.New("error")),
+		signer.EXPECT().Sender(input[3]).Return(common.Address{3}, nil),
+	)
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			txs := getExecutionOrder(input, &errorEmittingSigner{}, test.isSonic)
+			txs := getExecutionOrder(input, signer, test.isSonic)
 			// one transaction is removed from the list
 			if got, want := len(txs), test.expectedLen; got != want {
 				t.Errorf("unexpected number of transasctions, got: %d, want: %d", got, want)
@@ -650,39 +663,6 @@ func TestGetExecutionOrder_ScramblerIsUsedOnlyForSonic(t *testing.T) {
 		})
 	}
 
-}
-
-type errorEmittingSigner struct {
-	mockSigner
-	idx int
-}
-
-func (m *errorEmittingSigner) Sender(*types.Transaction) (common.Address, error) {
-	m.idx++
-
-	// fail every third transaction
-	if m.idx%3 == 0 {
-		return common.Address{}, errors.New("error")
-	}
-	return common.Address{byte(m.idx)}, nil
-}
-
-type mockSigner struct{}
-
-func (m mockSigner) SignatureValues(*types.Transaction, []byte) (r, s, v *big.Int, err error) {
-	return nil, nil, nil, nil
-}
-
-func (m mockSigner) ChainID() *big.Int {
-	return nil
-}
-
-func (m mockSigner) Hash(*types.Transaction) common.Hash {
-	return common.Hash{}
-}
-
-func (m mockSigner) Equal(types.Signer) bool {
-	return true
 }
 
 func compareFunc(a ScramblerEntry, b ScramblerEntry) int {
