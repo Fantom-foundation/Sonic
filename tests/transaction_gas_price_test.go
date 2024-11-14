@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// constant large enough to satisfied tx validation checks
+// Constant large enough to satisfied tx validation checks
 // deduced from net rules minimum gas price
 const enoughGasPrice = 150_000_000_000
 
@@ -56,7 +56,7 @@ func TestTransactionGasPrice(t *testing.T) {
 
 		// 3: checks
 		t.Run("Transaction gas price >= BaseFee  ", func(t *testing.T) {
-			basefeeAfter := getBaseFee(t, client)
+			basefeeAfter := getBaseFeeAt(t, receipt.BlockNumber, client)
 			require.GreaterOrEqual(t,
 				receipt.EffectiveGasPrice.Int64(), basefeeAfter,
 				"effective gas price is less than base fee")
@@ -65,9 +65,9 @@ func TestTransactionGasPrice(t *testing.T) {
 		t.Run("Account is charged gas price * gas used + balance transfer", func(t *testing.T) {
 			costCharged := receipt.EffectiveGasPrice.Uint64()*receipt.GasUsed + tx.Value().Uint64()
 			balance := getBalance(t, client, account.Address())
-			ballanceDifference := balanceBefore - balance
+			balanceDifference := balanceBefore - balance
 			require.Equal(t,
-				ballanceDifference,
+				balanceDifference,
 				int64(costCharged),
 				"changed wrong balance amount",
 			)
@@ -106,7 +106,7 @@ func TestTransactionGasPrice(t *testing.T) {
 			types.ReceiptStatusSuccessful,
 			"transaction execution failed",
 		)
-		basefeeAfter := getBaseFee(t, client)
+		basefeeAfter := getBaseFeeAt(t, receipt.BlockNumber, client)
 
 		// 3: checks
 		t.Run("BaseFee <= EffectiveGasPrice <= maxGasPrice", func(t *testing.T) {
@@ -123,9 +123,9 @@ func TestTransactionGasPrice(t *testing.T) {
 
 			costCharged := receipt.EffectiveGasPrice.Uint64()*receipt.GasUsed + tx.Value().Uint64()
 			balance := getBalance(t, client, account.Address())
-			ballanceDifference := balanceBefore - balance
+			balanceDifference := balanceBefore - balance
 			require.Equal(t,
-				ballanceDifference,
+				balanceDifference,
 				int64(costCharged),
 				"changed wrong balance amount",
 			)
@@ -169,7 +169,7 @@ func TestTransactionGasPrice(t *testing.T) {
 			types.ReceiptStatusSuccessful,
 			"transaction execution failed",
 		)
-		basefeeAfter := getBaseFee(t, client)
+		basefeeAfter := getBaseFeeAt(t, receipt.BlockNumber, client)
 
 		// 3: checks
 		t.Run("BaseFee <= EffectiveGasPrice <= maxGasPrice  ", func(t *testing.T) {
@@ -186,9 +186,9 @@ func TestTransactionGasPrice(t *testing.T) {
 
 			costCharged := receipt.EffectiveGasPrice.Uint64()*receipt.GasUsed + tx.Value().Uint64()
 			balance := getBalance(t, client, account.Address())
-			ballanceDifference := balanceBefore - balance
+			balanceDifference := balanceBefore - balance
 			require.Equal(t,
-				ballanceDifference,
+				balanceDifference,
 				int64(costCharged),
 				"changed wrong balance amount",
 			)
@@ -229,7 +229,7 @@ func TestTransactionGasPrice(t *testing.T) {
 			types.ReceiptStatusSuccessful,
 			"transaction execution failed",
 		)
-		basefeeAfter := getBaseFee(t, client)
+		basefeeAfter := getBaseFeeAt(t, receipt.BlockNumber, client)
 
 		// 3: checks
 		t.Run("BaseFee <= EffectiveGasPrice <= maxGasPrice  ", func(t *testing.T) {
@@ -246,9 +246,9 @@ func TestTransactionGasPrice(t *testing.T) {
 
 			costCharged := receipt.EffectiveGasPrice.Uint64()*receipt.GasUsed + tx.Value().Uint64()
 			balance := getBalance(t, client, account.Address())
-			ballanceDifference := balanceBefore - balance
+			balanceDifference := balanceBefore - balance
 			require.Equal(t,
-				ballanceDifference,
+				balanceDifference,
 				int64(costCharged),
 				"changed wrong balance amount",
 			)
@@ -276,9 +276,9 @@ func makeAccountWithBalance(t *testing.T, net *IntegrationTestNet, balance int64
 	return account
 }
 
-func getBaseFee(t *testing.T, client *ethclient.Client) int64 {
+func getBaseFeeAt(t *testing.T, blockNumber *big.Int, client *ethclient.Client) int64 {
 	t.Helper()
-	block, err := client.BlockByNumber(context.Background(), nil)
+	block, err := client.BlockByNumber(context.Background(), blockNumber)
 	require.NoError(t, err)
 	basefee := block.BaseFee()
 	return basefee.Int64()
