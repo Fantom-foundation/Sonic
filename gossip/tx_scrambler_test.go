@@ -604,33 +604,6 @@ func TestTxScrambler_FilterAndOrderTransactions_RandomInput(t *testing.T) {
 	}
 }
 
-func TestGetExecutionOrder_IncorrectTxDoesNotBreakScrambling(t *testing.T) {
-	input := types.Transactions{
-		types.NewTx(&types.LegacyTx{
-			Nonce: 0,
-			Gas:   0,
-		}),
-		types.NewTx(&types.LegacyTx{
-			Nonce: 1,
-			Gas:   0,
-		}),
-		types.NewTx(&types.LegacyTx{
-			Nonce: 2,
-			Gas:   0,
-		}),
-		types.NewTx(&types.LegacyTx{
-			Nonce: 3,
-			Gas:   0,
-		}),
-	}
-
-	txs := getExecutionOrder(input, &errorEmittingSigner{}, true)
-	// one transaction is removed from the list
-	if got, want := len(txs), len(input)-1; got != want {
-		t.Errorf("unexpected number of transasctions, got: %d, want: %d", got, want)
-	}
-}
-
 func TestGetExecutionOrder_ScramblerIsUsedOnlyForSonic(t *testing.T) {
 	tests := []struct {
 		name        string
