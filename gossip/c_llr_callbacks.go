@@ -48,14 +48,14 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, ga
 	}
 
 	builder := inter.NewBlockBuilder().
-		SetNumber(uint64(br.Idx)).
-		SetTime(br.Time).
-		SetParentHash(parentHash).
-		SetStateRoot(common.Hash(br.StateRoot)).
-		SetGasLimit(gasLimit).
-		SetGasUsed(br.GasUsed).
-		SetBaseFee(baseFee).
-		SetPrevRandao(common.Hash{1})
+		WithNumber(uint64(br.Idx)).
+		WithTime(br.Time).
+		WithParentHash(parentHash).
+		WithStateRoot(common.Hash(br.StateRoot)).
+		WithGasLimit(gasLimit).
+		WithGasUsed(br.GasUsed).
+		WithBaseFee(baseFee).
+		WithPrevRandao(common.Hash{1})
 
 	for i := range br.Txs {
 		copy := types.Receipt(*br.Receipts[i])

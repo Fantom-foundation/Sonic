@@ -180,19 +180,6 @@ func consensusCallbackBeginBlockFn(
 
 				prevRandao := computePrevRandao(confirmedEvents)
 
-				number := uint64(blockCtx.Idx)
-				lastBlockHeader := evmStateReader.GetHeaderByNumber(number - 1)
-
-				maxBlockGas := es.Rules.Blocks.MaxBlockGas
-
-				blockBuilder := inter.NewBlockBuilder().
-					SetEpoch(es.Epoch).
-					SetNumber(number).
-					SetParentHash(lastBlockHeader.Hash).
-					SetTime(blockCtx.Time).
-					SetPrevRandao(prevRandao).
-					SetGasLimit(maxBlockGas)
-
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
 					statedb,
@@ -214,13 +201,6 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 
-				for i := range preInternalTxs {
-					blockBuilder.AddTransaction(
-						preInternalTxs[i],
-						preInternalReceipts[i],
-					)
-				}
-
 				// Seal epoch if requested
 				if sealing {
 					sealer.Update(bs, es)
@@ -240,6 +220,26 @@ func consensusCallbackBeginBlockFn(
 
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				blockFn := func() {
+
+					// Start assembling the resulting block.
+					number := uint64(blockCtx.Idx)
+					lastBlockHeader := evmStateReader.GetHeaderByNumber(number - 1)
+					maxBlockGas := es.Rules.Blocks.MaxBlockGas
+					blockBuilder := inter.NewBlockBuilder().
+						WithEpoch(es.Epoch).
+						WithNumber(number).
+						WithParentHash(lastBlockHeader.Hash).
+						WithTime(blockCtx.Time).
+						WithPrevRandao(prevRandao).
+						WithGasLimit(maxBlockGas)
+
+					for i := range preInternalTxs {
+						blockBuilder.AddTransaction(
+							preInternalTxs[i],
+							preInternalReceipts[i],
+						)
+					}
+
 					// Execute post-internal transactions
 					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 					internalReceipts := evmProcessor.Execute(internalTxs)
@@ -275,9 +275,9 @@ func consensusCallbackBeginBlockFn(
 
 					// Add results of the transaction processing to the block.
 					blockBuilder.
-						SetStateRoot(common.Hash(evmBlock.Root)).
-						SetGasUsed(evmBlock.GasUsed).
-						SetBaseFee(evmBlock.BaseFee)
+						WithStateRoot(common.Hash(evmBlock.Root)).
+						WithGasUsed(evmBlock.GasUsed).
+						WithBaseFee(evmBlock.BaseFee)
 
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)

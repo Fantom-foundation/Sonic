@@ -7,7 +7,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
 )
@@ -56,17 +55,11 @@ func (b *Block) Hash() common.Hash {
 	return b.hash
 }
 
-// uncleHash is the hash to be used for the uncle field in Ethereum headers if
-// there are no uncles. See https://eips.ethereum.org/EIPS/eip-4844.
-var uncleHash = common.BytesToHash(hexutil.MustDecode(
-	"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-))
-
 // GetEthereumHeader returns the Ethereum header corresponding to this block.
 func (b *Block) GetEthereumHeader() *types.Header {
 	return &types.Header{
 		ParentHash:  b.ParentHash,
-		UncleHash:   uncleHash,
+		UncleHash:   types.EmptyUncleHash,
 		Coinbase:    common.Address{}, // < in Sonic, the coinbase is always 0
 		Root:        b.StateRoot,
 		TxHash:      b.TransactionsHashRoot,
@@ -111,17 +104,17 @@ func NewBlockBuilder() *BlockBuilder {
 	return &BlockBuilder{}
 }
 
-func (b *BlockBuilder) SetNumber(number uint64) *BlockBuilder {
+func (b *BlockBuilder) WithNumber(number uint64) *BlockBuilder {
 	b.block.Number = number
 	return b
 }
 
-func (b *BlockBuilder) SetParentHash(hash common.Hash) *BlockBuilder {
+func (b *BlockBuilder) WithParentHash(hash common.Hash) *BlockBuilder {
 	b.block.ParentHash = hash
 	return b
 }
 
-func (b *BlockBuilder) SetStateRoot(hash common.Hash) *BlockBuilder {
+func (b *BlockBuilder) WithStateRoot(hash common.Hash) *BlockBuilder {
 	b.block.StateRoot = hash
 	return b
 }
@@ -139,37 +132,37 @@ func (b *BlockBuilder) AddTransaction(
 	return b
 }
 
-func (b *BlockBuilder) SetTime(time Timestamp) *BlockBuilder {
+func (b *BlockBuilder) WithTime(time Timestamp) *BlockBuilder {
 	b.block.Time = time
 	return b
 }
 
-func (b *BlockBuilder) SetDifficulty(difficulty uint64) *BlockBuilder {
+func (b *BlockBuilder) WithDifficulty(difficulty uint64) *BlockBuilder {
 	b.block.Difficulty = difficulty
 	return b
 }
 
-func (b *BlockBuilder) SetGasLimit(gasLimit uint64) *BlockBuilder {
+func (b *BlockBuilder) WithGasLimit(gasLimit uint64) *BlockBuilder {
 	b.block.GasLimit = gasLimit
 	return b
 }
 
-func (b *BlockBuilder) SetGasUsed(gasUsed uint64) *BlockBuilder {
+func (b *BlockBuilder) WithGasUsed(gasUsed uint64) *BlockBuilder {
 	b.block.GasUsed = gasUsed
 	return b
 }
 
-func (b *BlockBuilder) SetBaseFee(baseFee *big.Int) *BlockBuilder {
+func (b *BlockBuilder) WithBaseFee(baseFee *big.Int) *BlockBuilder {
 	b.block.BaseFee = new(big.Int).Set(baseFee)
 	return b
 }
 
-func (b *BlockBuilder) SetPrevRandao(prevRandao common.Hash) *BlockBuilder {
+func (b *BlockBuilder) WithPrevRandao(prevRandao common.Hash) *BlockBuilder {
 	b.block.PrevRandao = prevRandao
 	return b
 }
 
-func (b *BlockBuilder) SetEpoch(epoch idx.Epoch) *BlockBuilder {
+func (b *BlockBuilder) WithEpoch(epoch idx.Epoch) *BlockBuilder {
 	b.block.Epoch = epoch
 	return b
 }

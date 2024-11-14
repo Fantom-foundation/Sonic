@@ -56,11 +56,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	gasLimit := rules.Blocks.MaxBlockGas
 
 	s.SetBlock(0, inter.NewBlockBuilder().
-		SetNumber(0).
-		SetTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
-		SetGasLimit(gasLimit).
-		SetStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
-		SetBaseFee(big.NewInt(0)).   // TODO: set initial base fee according to the rules
+		WithNumber(0).
+		WithTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
+		WithGasLimit(gasLimit).
+		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
+		WithBaseFee(big.NewInt(0)).   // TODO: set initial base fee according to the rules
 		Build(),
 	)
 
