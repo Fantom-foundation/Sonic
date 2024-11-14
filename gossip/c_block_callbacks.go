@@ -2,6 +2,8 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
+	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -179,14 +181,14 @@ func consensusCallbackBeginBlockFn(
 				}
 
 				prevRandao := computePrevRandao(confirmedEvents)
-
+				chainCfg := es.Rules.EvmChainConfig(store.GetUpgradeHeights())
 				evmProcessor := blockProc.EVMModule.Start(
 					blockCtx,
 					statedb,
 					evmStateReader,
 					onNewLogAll,
 					es.Rules,
-					es.Rules.EvmChainConfig(store.GetUpgradeHeights()),
+					chainCfg,
 					prevRandao,
 				)
 				executionStart := time.Now()
@@ -260,14 +262,17 @@ func consensusCallbackBeginBlockFn(
 					sort.Sort(confirmedEvents)
 
 					blockEvents := spillBlockEvents(store, confirmedEvents, maxBlockGas)
-					txs := make(types.Transactions, 0, blockEvents.Len()*10)
+					unorderedTxs := make(types.Transactions, 0, blockEvents.Len()*10)
 					for _, e := range blockEvents {
-						txs = append(txs, e.Txs()...)
+						unorderedTxs = append(unorderedTxs, e.Txs()...)
 					}
 
-					for i, receipt := range evmProcessor.Execute(txs) {
+					signer := gsignercache.Wrap(types.MakeSigner(chainCfg, new(big.Int).SetUint64(number), uint64(blockCtx.Time)))
+					orderedTxs := getExecutionOrder(unorderedTxs, signer, es.Rules.Upgrades.Sonic)
+
+					for i, receipt := range evmProcessor.Execute(orderedTxs) {
 						if receipt != nil { // < nil if skipped
-							blockBuilder.AddTransaction(txs[i], receipt)
+							blockBuilder.AddTransaction(orderedTxs[i], receipt)
 						}
 					}
 
