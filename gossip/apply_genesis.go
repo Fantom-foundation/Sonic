@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -50,11 +52,23 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.FlushBlockEpochState()
 
 	// write blocks
+	rules := s.GetRules()
+	gasLimit := rules.Blocks.MaxBlockGas
+
+	s.SetBlock(0, inter.NewBlockBuilder().
+		WithNumber(0).
+		WithTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
+		WithGasLimit(gasLimit).
+		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
+		WithBaseFee(big.NewInt(0)).   // TODO: set initial base fee according to the rules
+		Build(),
+	)
+
 	baseFee := prevEs.Rules.Economy.MinGasPrice
 	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
-		s.WriteFullBlockRecord(baseFee, blobGasPrice, br)
+		s.WriteFullBlockRecord(baseFee, blobGasPrice, gasLimit, br)
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}
@@ -95,7 +109,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		}
 	} else { // no S5 section in the genesis file
 		// Import legacy EVM genesis section
-		err = s.evm.ImportLegacyEvmData(g.RawEvmItems, uint64(lastBlock.Idx), common.Hash(lastBlock.Root))
+		err = s.evm.ImportLegacyEvmData(g.RawEvmItems, uint64(lastBlock.Idx), common.Hash(lastBlock.StateRoot))
 		if err != nil {
 			return fmt.Errorf("import of legacy genesis data into StateDB failed; %v", err)
 		}
@@ -104,10 +118,10 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	if err := s.evm.Open(); err != nil {
 		return fmt.Errorf("unable to open EvmStore to check imported state: %w", err)
 	}
-	if err := s.evm.CheckLiveStateHash(lastBlock.Idx, lastBlock.Root); err != nil {
+	if err := s.evm.CheckLiveStateHash(lastBlock.Idx, lastBlock.StateRoot); err != nil {
 		return fmt.Errorf("checking imported live state failed: %w", err)
 	} else {
-		s.Log.Info("StateDB imported successfully, stateRoot matches", "index", lastBlock.Idx, "root", lastBlock.Root)
+		s.Log.Info("StateDB imported successfully, stateRoot matches", "index", lastBlock.Idx, "root", lastBlock.StateRoot)
 	}
 
 	s.SetGenesisID(g.GenesisID)

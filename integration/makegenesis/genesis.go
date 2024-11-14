@@ -195,7 +195,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 
 	bs.LastBlock = blockCtx
 
-	prettyHash := func(root hash.Hash) hash.Event {
+	prettyHash := func(root hash.Hash) hash.Hash {
 		e := inter.MutableEventPayload{}
 		// for nice-looking ID
 		e.SetEpoch(es.Epoch)
@@ -203,7 +203,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		// actual data hashed
 		e.SetExtra(root[:])
 
-		return e.Build().ID()
+		return hash.Hash(e.Build().ID())
 	}
 	receiptsStorage := make([]*types.ReceiptForStorage, len(receipts))
 	for i, r := range receipts {
@@ -212,12 +212,12 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	// add block
 	b.blocks = append(b.blocks, ibr.LlrIdxFullBlockRecord{
 		LlrFullBlockRecord: ibr.LlrFullBlockRecord{
-			Atropos:  prettyHash(bs.FinalizedStateRoot),
-			Root:     bs.FinalizedStateRoot,
-			Txs:      evmBlock.Transactions,
-			Receipts: receiptsStorage,
-			Time:     blockCtx.Time,
-			GasUsed:  evmBlock.GasUsed,
+			BlockHash: prettyHash(bs.FinalizedStateRoot),
+			StateRoot: bs.FinalizedStateRoot,
+			Txs:       evmBlock.Transactions,
+			Receipts:  receiptsStorage,
+			Time:      blockCtx.Time,
+			GasUsed:   evmBlock.GasUsed,
 		},
 		Idx: blockCtx.Idx,
 	})

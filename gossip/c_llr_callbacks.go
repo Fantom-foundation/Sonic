@@ -25,16 +25,14 @@ func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, t
 	}
 }
 
-func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br ibr.LlrIdxFullBlockRecord) {
-	txHashes := make([]common.Hash, 0, len(br.Txs))
+func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, gasLimit uint64, br ibr.LlrIdxFullBlockRecord) {
 	for _, tx := range br.Txs {
-		txHashes = append(txHashes, tx.Hash())
 		s.EvmStore().SetTx(tx.Hash(), tx)
 	}
 
 	if len(br.Receipts) != 0 {
 		// Note: it's possible for receipts to get indexed twice by BR and block processing
-		indexRawReceipts(s, br.Receipts, br.Txs, br.Idx, br.Atropos, s.GetEvmChainConfig(), uint64(br.Time.Unix()), baseFee, blobGasPrice)
+		indexRawReceipts(s, br.Receipts, br.Txs, br.Idx, hash.Event(br.BlockHash), s.GetEvmChainConfig(), uint64(br.Time.Unix()), baseFee, blobGasPrice)
 	}
 	for i, tx := range br.Txs {
 		s.EvmStore().SetTx(tx.Hash(), tx)
@@ -43,17 +41,30 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, br
 			BlockOffset: uint32(i),
 		})
 	}
-	s.SetBlock(br.Idx, &inter.Block{
-		Time:        br.Time,
-		Atropos:     br.Atropos,
-		Events:      hash.Events{},
-		Txs:         txHashes,
-		InternalTxs: []common.Hash{},
-		SkippedTxs:  []uint32{},
-		GasUsed:     br.GasUsed,
-		Root:        br.Root,
-	})
-	s.SetBlockIndex(br.Atropos, br.Idx)
+
+	parentHash := common.Hash{}
+	if parent := s.GetBlock(br.Idx - 1); parent != nil {
+		parentHash = parent.Hash()
+	}
+
+	builder := inter.NewBlockBuilder().
+		WithNumber(uint64(br.Idx)).
+		WithTime(br.Time).
+		WithParentHash(parentHash).
+		WithStateRoot(common.Hash(br.StateRoot)).
+		WithGasLimit(gasLimit).
+		WithGasUsed(br.GasUsed).
+		WithBaseFee(baseFee).
+		WithPrevRandao(common.Hash{1})
+
+	for i := range br.Txs {
+		copy := types.Receipt(*br.Receipts[i])
+		builder.AddTransaction(br.Txs[i], &copy)
+	}
+
+	block := builder.Build()
+	s.SetBlock(br.Idx, block)
+	s.SetBlockIndex(block.Hash(), br.Idx)
 }
 
 func (s *Store) WriteFullEpochRecord(er ier.LlrIdxFullEpochRecord) {

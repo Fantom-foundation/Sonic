@@ -10,8 +10,8 @@ import (
 )
 
 type LlrBlockVote struct {
-	Atropos      hash.Event
-	Root         hash.Hash
+	BlockHash    hash.Hash
+	StateRoot    hash.Hash
 	TxHash       hash.Hash
 	ReceiptsHash hash.Hash
 	Time         inter.Timestamp
@@ -19,12 +19,12 @@ type LlrBlockVote struct {
 }
 
 type LlrFullBlockRecord struct {
-	Atropos  hash.Event
-	Root     hash.Hash
-	Txs      types.Transactions
-	Receipts []*types.ReceiptForStorage
-	Time     inter.Timestamp
-	GasUsed  uint64
+	BlockHash hash.Hash
+	StateRoot hash.Hash
+	Txs       types.Transactions
+	Receipts  []*types.ReceiptForStorage
+	Time      inter.Timestamp
+	GasUsed   uint64
 }
 
 type LlrIdxFullBlockRecord struct {
@@ -33,13 +33,13 @@ type LlrIdxFullBlockRecord struct {
 }
 
 func (bv LlrBlockVote) Hash() hash.Hash {
-	return hash.Of(bv.Atropos.Bytes(), bv.Root.Bytes(), bv.TxHash.Bytes(), bv.ReceiptsHash.Bytes(), bv.Time.Bytes(), bigendian.Uint64ToBytes(bv.GasUsed))
+	return hash.Of(bv.BlockHash.Bytes(), bv.StateRoot.Bytes(), bv.TxHash.Bytes(), bv.ReceiptsHash.Bytes(), bv.Time.Bytes(), bigendian.Uint64ToBytes(bv.GasUsed))
 }
 
 func (br LlrFullBlockRecord) Hash() hash.Hash {
 	return LlrBlockVote{
-		Atropos:      br.Atropos,
-		Root:         br.Root,
+		BlockHash:    br.BlockHash,
+		StateRoot:    br.StateRoot,
 		TxHash:       inter.CalcTxHash(br.Txs),
 		ReceiptsHash: inter.CalcReceiptsHash(br.Receipts),
 		Time:         br.Time,

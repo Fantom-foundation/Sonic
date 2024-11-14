@@ -140,7 +140,7 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 func txBuilder() func(calldata []byte, addr common.Address) *types.Transaction {
 	nonce := uint64(0)
 	return func(calldata []byte, addr common.Address) *types.Transaction {
-		tx := types.NewTransaction(nonce, addr, common.Big0, 1e10, common.Big0, calldata)
+		tx := types.NewTransaction(nonce, addr, common.Big0, 3e6, common.Big0, calldata)
 		nonce++
 		return tx
 	}

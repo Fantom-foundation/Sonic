@@ -799,7 +799,7 @@ func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.H
 
 func (s *PublicBlockChainAPI) getBlockReceipts(ctx context.Context, blkNumber rpc.BlockNumber) (types.Receipts, error) {
 	if blkNumber == rpc.EarliestBlockNumber {
-		return nil, nil
+		return types.Receipts{}, nil
 	}
 	return s.b.GetReceiptsByNumber(ctx, blkNumber)
 }

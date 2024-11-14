@@ -56,6 +56,9 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 			Upgrades: opera.Upgrades{
 				London: true,
 			},
+			Blocks: opera.BlocksRules{
+				MaxBlockGas: 1e12,
+			},
 		},
 		&params.ChainConfig{
 			LondonBlock: big.NewInt(0),
@@ -73,6 +76,9 @@ func TestEvm_IgnoresGasPriceOfInternalTransactions(t *testing.T) {
 
 	if len(receipts) != 1 {
 		t.Fatalf("Expected 1 receipt, got %d", len(receipts))
+	}
+	if receipts[0] == nil {
+		t.Fatalf("Transaction was skipped")
 	}
 	if want, got := types.ReceiptStatusSuccessful, receipts[0].Status; want != got {
 		t.Errorf("Expected status %v, got %v", want, got)
