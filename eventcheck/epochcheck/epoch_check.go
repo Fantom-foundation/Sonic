@@ -96,9 +96,11 @@ func CheckTxs(txs types.Transactions, rules opera.Rules) error {
 		if tx.Type() > maxType {
 			return ErrUnsupportedTxType
 		}
+		/* - TODO: replace with the real gas price check
 		if tx.GasFeeCapIntCmp(rules.Economy.MinGasPrice) < 0 {
 			return ErrUnderpriced
 		}
+		*/
 	}
 	return nil
 }

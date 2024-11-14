@@ -3,6 +3,7 @@ package emitter
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"math/rand/v2"
 	"os"
 	"strings"
@@ -257,7 +258,8 @@ func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
 		txs[from] = lazyTxs
 	}
 
-	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, em.world.GetRules().Economy.MinGasPrice)
+	baseFee := new(big.Int)
+	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, baseFee)
 	em.cache.sortedTxs = sortedTxs
 	em.cache.poolCount = poolCount
 	em.cache.poolBlock = em.world.GetLatestBlockIndex()
