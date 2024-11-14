@@ -333,9 +333,6 @@ func consensusCallbackBeginBlockFn(
 							}
 						}
 					}
-					for _, tx := range append(preInternalTxs, internalTxs...) {
-						store.evm.SetTx(tx.Hash(), tx)
-					}
 
 					bs.LastBlock = blockCtx
 					bs.CheatersWritten = uint32(bs.EpochCheaters.Len())
@@ -346,6 +343,10 @@ func consensusCallbackBeginBlockFn(
 
 					block := blockBuilder.Build()
 					evmBlock.Hash = block.Hash()
+
+					for _, tx := range blockBuilder.GetTransactions() {
+						store.evm.SetTx(tx.Hash(), tx)
+					}
 
 					store.SetBlock(blockCtx.Idx, block)
 					store.SetBlockIndex(block.Hash(), blockCtx.Idx)

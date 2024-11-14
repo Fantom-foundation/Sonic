@@ -188,7 +188,7 @@ func (s *Store) GetBlockTxs(n idx.Block, block *inter.Block) types.Transactions 
 	for _, txHash := range block.TransactionHashes {
 		tx := s.evm.GetTx(txHash)
 		if tx == nil {
-			log.Crit("Internal tx not found", "tx", txHash.String())
+			log.Crit("Referenced transaction not found", "tx", txHash.String())
 			continue
 		}
 		transactions = append(transactions, tx)

@@ -2,6 +2,7 @@ package inter
 
 import (
 	"math/big"
+	"slices"
 	"unsafe"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -123,6 +124,10 @@ func (b *BlockBuilder) SetParentHash(hash common.Hash) *BlockBuilder {
 func (b *BlockBuilder) SetStateRoot(hash common.Hash) *BlockBuilder {
 	b.block.StateRoot = hash
 	return b
+}
+
+func (b *BlockBuilder) GetTransactions() types.Transactions {
+	return slices.Clone(b.transactions)
 }
 
 func (b *BlockBuilder) AddTransaction(
