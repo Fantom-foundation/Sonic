@@ -125,7 +125,6 @@ func sortTransactionsWithSameSender(entries []ScramblerEntry) {
 		entries[idx] = senderNonceOrder[senderIndex[sender]]
 		senderIndex[sender]++
 	}
-	return
 }
 
 // scrambleTransactions scrambles transactions by comparing its XORed hashes with salt
