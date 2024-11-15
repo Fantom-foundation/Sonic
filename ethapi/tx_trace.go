@@ -24,6 +24,12 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 )
 
+const (
+	TraceTypeTrace     = "trace"
+	TraceTypeStateDiff = "stateDiff"
+	TraceTypeVmTrace   = "vmTrace"
+)
+
 // PublicTxTraceAPI provides an API to access transaction tracing
 // It offers only methods that operate on public data that is freely available to anyone
 type PublicTxTraceAPI struct {
@@ -52,6 +58,19 @@ func (s *PublicTxTraceAPI) Call(ctx context.Context, args TransactionArgs, trace
 	defer func(start time.Time) {
 		log.Debug("Executing trace_Call call finished", "txArgs", args, "runtime", time.Since(start))
 	}(time.Now())
+
+	for _, traceType := range traceTypes {
+		switch traceType {
+		case TraceTypeTrace:
+			continue
+		case TraceTypeStateDiff:
+			return nil, fmt.Errorf("stateDiff trace type is not supported")
+		case TraceTypeVmTrace:
+			return nil, fmt.Errorf("vmTrace trace type is not supported")
+		default:
+			return nil, fmt.Errorf("unrecognized trace type: %s", traceType)
+		}
+	}
 
 	block, err := getEvmBlockFromNumberOrHash(ctx, blockNrOrHash, s.b)
 	if err != nil {
