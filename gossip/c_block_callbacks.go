@@ -2,12 +2,13 @@ package gossip
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -227,13 +228,15 @@ func consensusCallbackBeginBlockFn(
 					number := uint64(blockCtx.Idx)
 					lastBlockHeader := evmStateReader.GetHeaderByNumber(number - 1)
 					maxBlockGas := es.Rules.Blocks.MaxBlockGas
+					blockDuration := time.Duration(blockCtx.Time - bs.LastBlock.Time)
 					blockBuilder := inter.NewBlockBuilder().
 						WithEpoch(es.Epoch).
 						WithNumber(number).
 						WithParentHash(lastBlockHeader.Hash).
 						WithTime(blockCtx.Time).
 						WithPrevRandao(prevRandao).
-						WithGasLimit(maxBlockGas)
+						WithGasLimit(maxBlockGas).
+						WithDuration(blockDuration)
 
 					for i := range preInternalTxs {
 						blockBuilder.AddTransaction(
@@ -348,6 +351,7 @@ func consensusCallbackBeginBlockFn(
 
 					block := blockBuilder.Build()
 					evmBlock.Hash = block.Hash()
+					evmBlock.Duration = blockDuration
 
 					for _, tx := range blockBuilder.GetTransactions() {
 						store.evm.SetTx(tx.Hash(), tx)
@@ -380,9 +384,16 @@ func consensusCallbackBeginBlockFn(
 
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())
-					log.Info("New block", "index", blockCtx.Idx, "id", block.Hash(), "gas_used",
-						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
-						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
+					log.Info("New block",
+						"index", blockCtx.Idx,
+						"id", block.Hash(),
+						"gas_used", evmBlock.GasUsed,
+						"gas_rate", float64(evmBlock.GasUsed)/blockDuration.Seconds(),
+						"base_fee", evmBlock.BaseFee.String(),
+						"txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
+						"age", utils.PrettyDuration(blockAge),
+						"t", utils.PrettyDuration(now.Sub(start)),
+					)
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 
 					processedTxsMeter.Mark(int64(len(evmBlock.Transactions)))
