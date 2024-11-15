@@ -2231,6 +2231,93 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 	return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
 }
 
+// TraceCallConfig is the config for traceCall API. It holds one more
+// field to override the state for tracing.
+type TraceCallConfig struct {
+	tracers.TraceConfig
+	StateOverrides *StateOverride
+	TxIndex        *hexutil.Uint
+}
+
+// TraceCall is generating traces for non historical transactions.
+// It is simmilar to eth_call but with debug capabilities.
+func (api *PublicDebugAPI) TraceCall(ctx context.Context, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
+
+	// If pending block, return error
+	if num, ok := blockNrOrHash.Number(); ok && num == rpc.PendingBlockNumber {
+		return nil, errors.New("tracing on top of pending is not supported")
+	}
+
+	// Get block
+	block, err := getEvmBlockFromNumberOrHash(ctx, blockNrOrHash, api.b)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get state
+	var statedb state.StateDB
+	if config != nil && config.TxIndex != nil {
+		_, statedb, err = api.stateAtTransaction(ctx, block, int(*config.TxIndex))
+	} else {
+		statedb, _, err = api.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer statedb.Release()
+
+	// Apply state overrides
+	if config != nil {
+		if err := config.StateOverrides.Apply(statedb); err != nil {
+			return nil, err
+		}
+	}
+
+	msg, err := args.ToMessage(api.b.RPCGasCap(), block.BaseFee)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := types.NewTx(&types.LegacyTx{
+		To:       msg.To,
+		Nonce:    msg.Nonce,
+		Gas:      msg.GasLimit,
+		GasPrice: msg.GasPrice,
+		Value:    msg.Value,
+		Data:     msg.Data,
+	})
+
+	var traceConfig *tracers.TraceConfig
+	if config != nil {
+		traceConfig = &config.TraceConfig
+	}
+
+	return api.traceTx(ctx, tx, msg, new(tracers.Context), &block.EvmHeader, statedb, traceConfig)
+}
+
+// getEvmBlockFromNumberOrHash returns EvmBlock from block number or block hash
+func getEvmBlockFromNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash, b Backend) (*evmcore.EvmBlock, error) {
+	var (
+		block *evmcore.EvmBlock
+		err   error
+	)
+
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		block, err = b.BlockByHash(ctx, hash)
+		if err != nil {
+			return nil, err
+		}
+	} else if number, ok := blockNrOrHash.Number(); ok {
+		block, err = b.BlockByNumber(ctx, number)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("invalid arguments; neither block number nor hash specified")
+	}
+	return block, nil
+}
+
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
 // debugging endpoint.
 type PrivateDebugAPI struct {
