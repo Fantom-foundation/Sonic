@@ -31,7 +31,7 @@ func (q *execQueue) waitNext(drop bool) (f func()) {
 	if drop && len(q.funcs) > 0 {
 		// Remove the function that just executed. We do this here instead of when
 		// dequeuing so len(q.funcs) includes the function that is running.
-		q.funcs = append(q.funcs[:0], q.funcs[1:]...)
+		q.funcs = q.funcs[1:]
 	}
 	for !q.isClosed() {
 		if len(q.funcs) > 0 {
