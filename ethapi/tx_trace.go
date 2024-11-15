@@ -47,6 +47,43 @@ func (s *PublicTxTraceAPI) Transaction(ctx context.Context, hash common.Hash) (*
 	return s.traceTxHash(ctx, hash, nil)
 }
 
+// Call - trace_call function returns transaction inner traces for non historical transactions
+func (s *PublicTxTraceAPI) Call(ctx context.Context, args TransactionArgs, traceTypes []string, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (*[]txtrace.ActionTrace, error) {
+	defer func(start time.Time) {
+		log.Debug("Executing trace_Call call finished", "txArgs", args, "runtime", time.Since(start))
+	}(time.Now())
+
+	block, err := getEvmBlockFromNumberOrHash(ctx, blockNrOrHash, s.b)
+	if err != nil {
+		return nil, err
+	}
+	var txIndex uint
+	if config != nil && config.TxIndex != nil {
+		txIndex = uint(*config.TxIndex)
+	}
+
+	// Get state
+	_, statedb, err := stateAtTransaction(ctx, block, int(txIndex), s.b)
+	if err != nil {
+		return nil, err
+	}
+	defer statedb.Release()
+
+	// Apply state overrides
+	if config != nil {
+		if err := config.StateOverrides.Apply(statedb); err != nil {
+			return nil, err
+		}
+	}
+
+	tx, msg, err := getTxAndMessage(&args, block, s.b)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.traceTx(ctx, s.b, block.Header(), msg, statedb, block, tx, uint64(txIndex), 1)
+}
+
 // Block - trace_block function returns transaction traces in given block
 func (s *PublicTxTraceAPI) Block(ctx context.Context, numberOrHash rpc.BlockNumberOrHash) (*[]txtrace.ActionTrace, error) {
 
