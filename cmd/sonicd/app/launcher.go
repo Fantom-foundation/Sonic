@@ -239,8 +239,6 @@ func lachesisMain(ctx *cli.Context) error {
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces.
 func startNode(ctx *cli.Context, stack *node.Node) error {
-	debug.Memsize.Add("node", stack)
-
 	// Start up the node itself
 	if err := stack.Start(); err != nil {
 		return fmt.Errorf("error starting protocol stack: %w", err)
