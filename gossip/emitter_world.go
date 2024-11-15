@@ -35,7 +35,7 @@ type emitterWorld struct {
 
 func (ew *emitterWorldProc) Check(emitted *inter.EventPayload, parents inter.Events) error {
 	// sanity check
-	return ew.s.checkers.Validate(emitted, parents.Interfaces(), nil)
+	return ew.s.checkers.Validate(emitted, parents.Interfaces())
 }
 
 func (ew *emitterWorldProc) Process(emitted *inter.EventPayload) error {

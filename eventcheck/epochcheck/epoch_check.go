@@ -2,13 +2,11 @@ package epochcheck
 
 import (
 	"errors"
-	"math/big"
 
 	base "github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
@@ -83,11 +81,7 @@ func (v *Checker) checkGas(e inter.EventPayloadI, rules opera.Rules) error {
 	return nil
 }
 
-func CheckTxs(
-	txs types.Transactions,
-	rules opera.Rules,
-	baseFee *big.Int,
-) error {
+func CheckTxs(txs types.Transactions, rules opera.Rules) error {
 	maxType := uint8(0)
 	if rules.Upgrades.Berlin {
 		maxType = 1
@@ -98,20 +92,16 @@ func CheckTxs(
 	if rules.Upgrades.Sonic {
 		maxType = 3
 	}
-	limit := gaspricelimits.GetMinimumFeeCapForEventEmitter(baseFee)
 	for _, tx := range txs {
 		if tx.Type() > maxType {
 			return ErrUnsupportedTxType
-		}
-		if tx.GasFeeCapIntCmp(limit) < 0 {
-			return ErrUnderpriced
 		}
 	}
 	return nil
 }
 
-// Validate event. The baseFee may be nil if it should not be checked for.
-func (v *Checker) Validate(e inter.EventPayloadI, baseFee *big.Int) error {
+// Validate event
+func (v *Checker) Validate(e inter.EventPayloadI) error {
 	if err := v.Base.Validate(e); err != nil {
 		return err
 	}
@@ -129,7 +119,7 @@ func (v *Checker) Validate(e inter.EventPayloadI, baseFee *big.Int) error {
 	if err := v.checkGas(e, rules); err != nil {
 		return err
 	}
-	if err := CheckTxs(e.Txs(), rules, baseFee); err != nil {
+	if err := CheckTxs(e.Txs(), rules); err != nil {
 		return err
 	}
 

@@ -2,10 +2,9 @@ package gossip
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/metrics"
 	"math/big"
 	"sync/atomic"
-
-	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -210,12 +209,7 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	if s.store.HasEvent(e.ID()) {
 		return eventcheck.ErrAlreadyConnectedEvent
 	}
-
-	// We do not reject events for including transactions with too little gas
-	// prices at this point since gas prices are not synchronized between nodes.
-	// It must not happen that an event is rejected by one node and accepted by
-	// another. This would lead to a fork in the DAG.
-	if err := s.checkers.Epochcheck.Validate(e, nil); err != nil {
+	if err := s.checkers.Epochcheck.Validate(e); err != nil {
 		return err
 	}
 

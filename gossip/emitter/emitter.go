@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/go-opera/gossip/emitter/originatedtxs"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/tracing"
@@ -280,8 +281,10 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 		return nil, nil
 	}
 
-	baseFee := em.baseFeeSource.GetCurrentBaseFee()
-	sortedTxs := em.getSortedTxs(baseFee)
+	minimFeeCap := gaspricelimits.GetMinimumFeeCapForEventEmitter(
+		em.baseFeeSource.GetCurrentBaseFee(),
+	)
+	sortedTxs := em.getSortedTxs(minimFeeCap)
 
 	if em.world.IsBusy() {
 		return nil, nil
@@ -290,7 +293,7 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 	em.world.Lock()
 	defer em.world.Unlock()
 
-	e, err := em.createEvent(sortedTxs, baseFee)
+	e, err := em.createEvent(sortedTxs)
 	if e == nil || err != nil {
 		return nil, err
 	}
@@ -338,10 +341,7 @@ func (em *Emitter) loadPrevEmitTime() time.Time {
 }
 
 // createEvent is not safe for concurrent use.
-func (em *Emitter) createEvent(
-	sortedTxs *transactionsByPriceAndNonce,
-	baseFee *big.Int,
-) (*inter.EventPayload, error) {
+func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.EventPayload, error) {
 	if !em.isValidator() {
 		return nil, nil
 	}
@@ -457,7 +457,7 @@ func (em *Emitter) createEvent(
 	}
 
 	// Add txs
-	em.addTxs(mutEvent, sortedTxs, baseFee)
+	em.addTxs(mutEvent, sortedTxs)
 
 	// Check if event should be emitted
 	// Check only if no txs were added, since check in a case with added txs was performed above

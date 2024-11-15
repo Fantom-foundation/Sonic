@@ -1,7 +1,6 @@
 package emitter
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
@@ -143,11 +142,7 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 	return false
 }
 
-func (em *Emitter) addTxs(
-	e *inter.MutableEventPayload,
-	sorted *transactionsByPriceAndNonce,
-	baseFee *big.Int,
-) {
+func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPriceAndNonce) {
 	maxGasUsed := em.maxGasPowerToUse(e)
 	if maxGasUsed <= e.GasPowerUsed() {
 		return
@@ -159,7 +154,7 @@ func (em *Emitter) addTxs(
 		resolvedTx := tx.Resolve()
 		sender, _ := types.Sender(em.world.TxSigner, resolvedTx)
 		// check transaction epoch rules (tx type, gas price)
-		if epochcheck.CheckTxs(types.Transactions{resolvedTx}, rules, baseFee) != nil {
+		if epochcheck.CheckTxs(types.Transactions{resolvedTx}, rules) != nil {
 			txsSkippedEpochRules.Inc(1)
 			sorted.Pop()
 			continue

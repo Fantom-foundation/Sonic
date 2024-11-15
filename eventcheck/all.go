@@ -1,8 +1,6 @@
 package eventcheck
 
 import (
-	"math/big"
-
 	"github.com/Fantom-foundation/go-opera/eventcheck/basiccheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/go-opera/eventcheck/gaspowercheck"
@@ -21,15 +19,11 @@ type Checkers struct {
 }
 
 // Validate runs all the checks except Poset-related
-func (v *Checkers) Validate(
-	e inter.EventPayloadI,
-	parents inter.EventIs,
-	baseFee *big.Int,
-) error {
+func (v *Checkers) Validate(e inter.EventPayloadI, parents inter.EventIs) error {
 	if err := v.Basiccheck.Validate(e); err != nil {
 		return err
 	}
-	if err := v.Epochcheck.Validate(e, baseFee); err != nil {
+	if err := v.Epochcheck.Validate(e); err != nil {
 		return err
 	}
 	if err := v.Parentscheck.Validate(e, parents); err != nil {
