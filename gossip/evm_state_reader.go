@@ -22,20 +22,10 @@ type EvmStateReader struct {
 	gpo   *gasprice.Oracle
 }
 
-// MinGasPrice returns current hard lower bound for gas price
-func (r *EvmStateReader) MinGasPrice() *big.Int {
-	return r.store.GetRules().Economy.MinGasPrice
-}
-
-// EffectiveMinTip returns current soft lower bound for gas tip
-func (r *EvmStateReader) EffectiveMinTip() *big.Int {
-	min := r.MinGasPrice()
-	est := r.gpo.EffectiveMinGasPrice()
-	est.Sub(est, min)
-	if est.Sign() < 0 {
-		return new(big.Int)
-	}
-	return est
+// GetCurrentBaseFee returns the base fee charged in the most recent block.
+func (r *EvmStateReader) GetCurrentBaseFee() *big.Int {
+	res := r.store.GetBlock(r.store.GetLatestBlockIndex()).BaseFee
+	return new(big.Int).Set(res)
 }
 
 func (r *EvmStateReader) MaxGasLimit() uint64 {

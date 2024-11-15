@@ -8,7 +8,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
@@ -98,7 +98,7 @@ func CheckTxs(
 	if rules.Upgrades.Sonic {
 		maxType = 3
 	}
-	limit := gasprice.GetMinimumFeeCapForEventEmitter(baseFee)
+	limit := gaspricelimits.GetMinimumFeeCapForEventEmitter(baseFee)
 	for _, tx := range txs {
 		if tx.Type() > maxType {
 			return ErrUnsupportedTxType
