@@ -2243,32 +2243,19 @@ type TraceCallConfig struct {
 // It is simmilar to eth_call but with debug capabilities.
 func (api *PublicDebugAPI) TraceCall(ctx context.Context, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
 
-	var (
-		block   *evmcore.EvmBlock
-		err     error
-		statedb state.StateDB
-	)
+	// If pending block, return error
+	if num, ok := blockNrOrHash.Number(); ok && num == rpc.PendingBlockNumber {
+		return nil, errors.New("tracing on top of pending is not supported")
+	}
 
 	// Get block
-	if hash, ok := blockNrOrHash.Hash(); ok {
-		block, err = api.b.BlockByHash(ctx, hash)
-		if err != nil {
-			return nil, err
-		}
-	} else if number, ok := blockNrOrHash.Number(); ok {
-		if number == rpc.PendingBlockNumber {
-			// Tracing on top of pending is not supported
-			return nil, errors.New("tracing on top of pending is not supported")
-		}
-		block, err = api.b.BlockByNumber(ctx, number)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, errors.New("invalid arguments; neither block number nor hash specified")
+	block, err := getEvmBlockFromNumberOrHash(ctx, blockNrOrHash, api.b)
+	if err != nil {
+		return nil, err
 	}
 
 	// Get state
+	var statedb state.StateDB
 	if config != nil && config.TxIndex != nil {
 		_, statedb, err = api.stateAtTransaction(ctx, block, int(*config.TxIndex))
 	} else {
@@ -2306,6 +2293,29 @@ func (api *PublicDebugAPI) TraceCall(ctx context.Context, args TransactionArgs, 
 	}
 
 	return api.traceTx(ctx, tx, msg, new(tracers.Context), &block.EvmHeader, statedb, traceConfig)
+}
+
+// getEvmBlockFromNumberOrHash returns EvmBlock from block number or block hash
+func getEvmBlockFromNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash, b Backend) (*evmcore.EvmBlock, error) {
+	var (
+		block *evmcore.EvmBlock
+		err   error
+	)
+
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		block, err = b.BlockByHash(ctx, hash)
+		if err != nil {
+			return nil, err
+		}
+	} else if number, ok := blockNrOrHash.Number(); ok {
+		block, err = b.BlockByNumber(ctx, number)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("invalid arguments; neither block number nor hash specified")
+	}
+	return block, nil
 }
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
