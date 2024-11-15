@@ -2015,7 +2015,7 @@ func (api *PublicDebugAPI) TraceTransaction(ctx context.Context, hash common.Has
 	if err != nil {
 		return nil, err
 	}
-	msg, statedb, err := api.stateAtTransaction(ctx, block, int(index))
+	msg, statedb, err := stateAtTransaction(ctx, block, int(index), api.b)
 	if err != nil {
 		return nil, err
 	}
@@ -2195,22 +2195,22 @@ func (api *PublicDebugAPI) traceBlock(ctx context.Context, block *evmcore.EvmBlo
 }
 
 // stateAtTransaction returns the execution environment of a certain transaction.
-func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex int) (*core.Message, state.StateDB, error) {
+func stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex int, b Backend) (*core.Message, state.StateDB, error) {
 	// Short circuit if it's genesis block.
 	if block.NumberU64() == 0 {
 		return nil, nil, errors.New("no transaction in genesis")
 	}
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
-	statedb, _, err := api.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
+	statedb, _, err := b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, nil, err
 	}
-	if txIndex == 0 && len(block.Transactions) == 0 {
+	if txIndex == 0 || len(block.Transactions) == 0 {
 		return nil, statedb, nil
 	}
 	// Recompute transactions up to the target index.
-	signer := gsignercache.Wrap(types.MakeSigner(api.b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
+	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 	for idx, tx := range block.Transactions {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
@@ -2218,7 +2218,7 @@ func (api *PublicDebugAPI) stateAtTransaction(ctx context.Context, block *evmcor
 			return msg, statedb, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv, _, err := api.b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
+		vmenv, _, err := b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
 		if err != nil {
 			statedb.Release()
 			return msg, nil, err
@@ -2258,13 +2258,13 @@ func (api *PublicDebugAPI) TraceCall(ctx context.Context, args TransactionArgs, 
 		return nil, err
 	}
 
-	// Get state
-	var statedb state.StateDB
+	var txIndex uint
 	if config != nil && config.TxIndex != nil {
-		_, statedb, err = api.stateAtTransaction(ctx, block, int(*config.TxIndex))
-	} else {
-		statedb, _, err = api.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+		txIndex = uint(*config.TxIndex)
 	}
+
+	// Get state
+	_, statedb, err := stateAtTransaction(ctx, block, int(txIndex), api.b)
 	if err != nil {
 		return nil, err
 	}
@@ -2277,19 +2277,10 @@ func (api *PublicDebugAPI) TraceCall(ctx context.Context, args TransactionArgs, 
 		}
 	}
 
-	msg, err := args.ToMessage(api.b.RPCGasCap(), block.BaseFee)
+	tx, msg, err := getTxAndMessage(&args, block, api.b)
 	if err != nil {
 		return nil, err
 	}
-
-	tx := types.NewTx(&types.LegacyTx{
-		To:       msg.To,
-		Nonce:    msg.Nonce,
-		Gas:      msg.GasLimit,
-		GasPrice: msg.GasPrice,
-		Value:    msg.Value,
-		Data:     msg.Data,
-	})
 
 	var traceConfig *tracers.TraceConfig
 	if config != nil {
@@ -2320,6 +2311,25 @@ func getEvmBlockFromNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNum
 		return nil, errors.New("invalid arguments; neither block number nor hash specified")
 	}
 	return block, nil
+}
+
+// getTxAndMessage returns transaction and message constructed from transaction arguments
+func getTxAndMessage(args *TransactionArgs, block *evmcore.EvmBlock, b Backend) (*types.Transaction, *core.Message, error) {
+	msg, err := args.ToMessage(b.RPCGasCap(), block.BaseFee)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tx := types.NewTx(&types.LegacyTx{
+		To:       msg.To,
+		Nonce:    msg.Nonce,
+		Gas:      msg.GasLimit,
+		GasPrice: msg.GasPrice,
+		Value:    msg.Value,
+		Data:     msg.Data,
+	})
+
+	return tx, msg, nil
 }
 
 // PrivateDebugAPI is the collection of Ethereum APIs exposed over the private
