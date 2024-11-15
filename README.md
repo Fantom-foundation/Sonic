@@ -17,7 +17,7 @@ The build output are ```build/sonicd``` and ```build/sonictool``` executables.
 You will need a genesis file to join a network. Please check the following
 site for details how to get one: https://github.com/Fantom-foundation/lachesis_launch
 Once you obtain the most recent genesis file available, you need to use the `sonictool`
-create a starting DB.
+to create a starting DB.
 
 ```shell
 sonictool --datadir=<target DB path> genesis <path to the genesis file>
