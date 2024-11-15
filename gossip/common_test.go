@@ -196,7 +196,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 		_ = valKeystore.Unlock(pubkey, validatorpk.FakePassword)
 		world := env.EmitterWorld(env.signer)
 		world.External = testEmitterWorldExternal{world.External, env}
-		em := emitter.NewEmitter(cfg, world)
+		em := emitter.NewEmitter(cfg, world, store.AsBaseFeeSource())
 		env.RegisterEmitter(em)
 		env.pubkeys = append(env.pubkeys, pubkey)
 		em.Start()

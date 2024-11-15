@@ -27,6 +27,7 @@ import (
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	"github.com/Fantom-foundation/Carmen/go/common/immutable"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	bip39 "github.com/tyler-smith/go-bip39"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -82,9 +83,12 @@ func NewPublicEthereumAPI(b Backend) *PublicEthereumAPI {
 
 // GasPrice returns a suggestion for a gas price for legacy transactions.
 func (s *PublicEthereumAPI) GasPrice(ctx context.Context) (*hexutil.Big, error) {
-	tipcap := s.b.SuggestGasTipCap(ctx, gasprice.AsDefaultCertainty)
-	tipcap.Add(tipcap, s.b.MinGasPrice())
-	return (*hexutil.Big)(tipcap), nil
+	// Right now, we are not suggesting any tips since those have no real
+	// effect on the Sonic network. So the suggested gas price is a slightly
+	// increased base fee to provide a buffer for short-term price fluctuations.
+	price := s.b.CurrentBlock().Header().BaseFee
+	price = gaspricelimits.GetSuggestedGasPriceForNewTransactions(price)
+	return (*hexutil.Big)(price), nil
 }
 
 // MaxPriorityFeePerGas returns a suggestion for a gas tip cap for dynamic fee transactions.

@@ -3,6 +3,7 @@ package emitter
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"math/rand/v2"
 	"os"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/go-opera/gossip/emitter/originatedtxs"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/tracing"
@@ -103,12 +105,19 @@ type Emitter struct {
 	busyRate         *rate.Gauge
 
 	logger.Periodic
+
+	baseFeeSource BaseFeeSource
+}
+
+type BaseFeeSource interface {
+	GetCurrentBaseFee() *big.Int
 }
 
 // NewEmitter creation.
 func NewEmitter(
 	config Config,
 	world World,
+	baseFeeSource BaseFeeSource,
 ) *Emitter {
 	// Randomize event time to decrease chance of 2 parallel instances emitting event at the same time
 	// It increases the chance of detecting parallel instances
@@ -122,6 +131,7 @@ func NewEmitter(
 		intervals:                config.EmitIntervals,
 		globalConfirmingInterval: config.EmitIntervals.Confirming,
 		Periodic:                 logger.Periodic{Instance: logger.New()},
+		baseFeeSource:            baseFeeSource,
 	}
 }
 
@@ -218,7 +228,7 @@ func (em *Emitter) tick() {
 	}
 }
 
-func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
+func (em *Emitter) getSortedTxs(baseFee *big.Int) *transactionsByPriceAndNonce {
 	// Short circuit if pool wasn't updated since the cache was built
 	poolCount := em.world.TxPool.Count()
 	if em.cache.sortedTxs != nil &&
@@ -257,7 +267,7 @@ func (em *Emitter) getSortedTxs() *transactionsByPriceAndNonce {
 		txs[from] = lazyTxs
 	}
 
-	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, em.world.GetRules().Economy.MinGasPrice)
+	sortedTxs := newTransactionsByPriceAndNonce(em.world.TxSigner, txs, baseFee)
 	em.cache.sortedTxs = sortedTxs
 	em.cache.poolCount = poolCount
 	em.cache.poolBlock = em.world.GetLatestBlockIndex()
@@ -270,7 +280,11 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 		// short circuit if not a validator
 		return nil, nil
 	}
-	sortedTxs := em.getSortedTxs()
+
+	minimFeeCap := gaspricelimits.GetMinimumFeeCapForEventEmitter(
+		em.baseFeeSource.GetCurrentBaseFee(),
+	)
+	sortedTxs := em.getSortedTxs(minimFeeCap)
 
 	if em.world.IsBusy() {
 		return nil, nil

@@ -2,10 +2,12 @@ package gossip
 
 import (
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/eventid"
@@ -183,6 +185,18 @@ func (s *Store) flushDBs() error {
 
 func (s *Store) EvmStore() *evmstore.Store {
 	return s.evm
+}
+
+func (s *Store) AsBaseFeeSource() emitter.BaseFeeSource {
+	return &baseFeeSource{store: s}
+}
+
+type baseFeeSource struct {
+	store *Store
+}
+
+func (s *baseFeeSource) GetCurrentBaseFee() *big.Int {
+	return s.store.GetBlock(s.store.GetLatestBlockIndex()).BaseFee
 }
 
 /*
