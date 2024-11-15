@@ -251,10 +251,10 @@ func (c *Config) Validate() error {
 	p := c.Protocol
 	defaultChunkSize := dag.Metric{idx.Event(p.DagStreamLeecher.Session.DefaultChunkItemsNum), p.DagStreamLeecher.Session.DefaultChunkItemsSize}
 	if defaultChunkSize.Num > hardLimitItems-1 {
-		return fmt.Errorf("DefaultChunkSize.Num has to be at not greater than %d", hardLimitItems-1)
+		return fmt.Errorf("DefaultChunkSize.Num has to be no greater than %d", hardLimitItems-1)
 	}
 	if defaultChunkSize.Size > protocolMaxMsgSize/2 {
-		return fmt.Errorf("DefaultChunkSize.Num has to be at not greater than %d", protocolMaxMsgSize/2)
+		return fmt.Errorf("DefaultChunkSize.Num has to be no greater than %d", protocolMaxMsgSize/2)
 	}
 	if p.EventsSemaphoreLimit.Num < 2*defaultChunkSize.Num ||
 		p.EventsSemaphoreLimit.Size < 2*defaultChunkSize.Size {
