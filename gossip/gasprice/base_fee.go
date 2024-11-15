@@ -17,8 +17,8 @@ func GetInitialBaseFee(rules opera.EconomyRules) *big.Int {
 	// no minimum gas price is set in the rules.
 	const defaultInitialBaseFee = 1e9
 	fee := big.NewInt(defaultInitialBaseFee)
-	if rules.MinGasPrice != nil && rules.MinGasPrice.Cmp(fee) > 0 {
-		fee = new(big.Int).Set(rules.MinGasPrice)
+	if rules.MinBaseFee != nil && rules.MinBaseFee.Cmp(fee) > 0 {
+		fee = new(big.Int).Set(rules.MinBaseFee)
 	}
 	return fee
 }
@@ -26,8 +26,8 @@ func GetInitialBaseFee(rules opera.EconomyRules) *big.Int {
 // GetBaseFeeForNextBlock computes the base fee for the next block based on the parent block.
 func GetBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules) *big.Int {
 	newPrice := getBaseFeeForNextBlock(parent, rules)
-	if rules.MinGasPrice != nil && newPrice.Cmp(rules.MinGasPrice) < 0 {
-		newPrice.Set(rules.MinGasPrice)
+	if rules.MinBaseFee != nil && newPrice.Cmp(rules.MinBaseFee) < 0 {
+		newPrice.Set(rules.MinBaseFee)
 	}
 	return newPrice
 }
