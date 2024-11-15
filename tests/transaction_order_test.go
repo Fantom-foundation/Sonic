@@ -2,14 +2,15 @@ package tests
 
 import (
 	"context"
-	"github.com/Fantom-foundation/go-opera/tests/contracts/counter_event_emitter"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/stretchr/testify/require"
 	"math"
 	"math/big"
 	"math/rand/v2"
 	"testing"
+
+	"github.com/Fantom-foundation/go-opera/tests/contracts/counter_event_emitter"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTransactionOrder(t *testing.T) {
@@ -78,7 +79,7 @@ func TestTransactionOrder(t *testing.T) {
 			count, err := contract.ParseCount(*receipt.Logs[0])
 			require.NoError(t, err)
 			// Nonce starts at 0 and count starts at 1 per account
-			accCount := count.Count.Uint64()
+			accCount := count.PerAddrCount.Uint64()
 			nonce := tx.Nonce() + 1
 			if accCount != nonce {
 				t.Fatalf("transactions are not ordered, got idx: %d, want idx: %d", accCount, nonce)
@@ -99,6 +100,43 @@ func TestTransactionOrder(t *testing.T) {
 	if got, want := gotCount.Uint64(), numTxs*numBlocks; got != want {
 		t.Errorf("wrong count, got: %d, want: %d", got, want)
 	}
+
+	// Check that transactions are ordered correctly in the blockchain and that
+	// for each transaction a correct receipt is available.
+	globalCounter := uint64(0)
+	context := context.Background()
+	lastBlock, err := client.BlockNumber(context)
+	require.NoError(t, err)
+	for i := range lastBlock + 1 {
+		block, err := client.BlockByNumber(context, big.NewInt(int64(i)))
+		require.NoError(t, err)
+		for i, tx := range block.Transactions() {
+			receipt, err := client.TransactionReceipt(context, tx.Hash())
+			require.NoError(t, err)
+
+			// Check that the receipt matches to the transaction.
+			require.Equal(t, receipt.Status, types.ReceiptStatusSuccessful)
+			require.Equal(t, receipt.TxHash, tx.Hash())
+			require.Equal(t, receipt.BlockHash, block.Hash())
+			require.Equal(t, receipt.BlockNumber, block.Number())
+			require.Equal(t, receipt.TransactionIndex, uint(i))
+
+			// Check whether the receipt is for a counter transaction.
+			if len(receipt.Logs) != 1 {
+				continue
+			}
+			count, err := contract.ParseCount(*receipt.Logs[0])
+			if err != nil {
+				continue
+			}
+
+			// Check that transactions have been processed in order.
+			require.Equal(t, count.PerAddrCount.Uint64(), tx.Nonce()+1)
+			require.Equal(t, count.TotalCount.Uint64(), globalCounter+1)
+			globalCounter++
+		}
+	}
+	require.Equal(t, globalCounter, numTxs*numBlocks)
 }
 
 // makeAccountWithMaxBalance creates a new account and endows it with math.MaxInt64 balance.
