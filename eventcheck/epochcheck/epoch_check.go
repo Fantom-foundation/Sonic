@@ -110,7 +110,7 @@ func CheckTxs(
 	return nil
 }
 
-// Validate event; the baseFee may be nil if it should not be checked for.
+// Validate event. The baseFee may be nil if it should not be checked for.
 func (v *Checker) Validate(e inter.EventPayloadI, baseFee *big.Int) error {
 	if err := v.Base.Validate(e); err != nil {
 		return err

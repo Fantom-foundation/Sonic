@@ -114,8 +114,7 @@ func (f *txFactory) makeLegacyTransactionWithPrice(
 	nonce uint64,
 	price int64,
 ) *types.Transaction {
-	transaction, err := types.SignTx(types.NewTx(&types.AccessListTx{
-		ChainID:  f.chainId,
+	transaction, err := types.SignTx(types.NewTx(&types.LegacyTx{
 		Gas:      21_000,
 		GasPrice: big.NewInt(price),
 		To:       &common.Address{},
