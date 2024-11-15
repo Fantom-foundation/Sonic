@@ -15,9 +15,9 @@ var (
 	noopSpan = opentracing.NoopTracer{}.StartSpan("")
 )
 
-func SetEnabled(val bool) {
-	enabled = val
-}
+// func SetEnabled(val bool) {
+// 	enabled = val
+// }
 
 func Enabled() bool {
 	return enabled
@@ -41,23 +41,23 @@ func StartTx(tx common.Hash, operation string) {
 	txSpans[tx] = span
 }
 
-func FinishTx(tx common.Hash, operation string) {
-	if !enabled {
-		return
-	}
+// func FinishTx(tx common.Hash, operation string) {
+// 	if !enabled {
+// 		return
+// 	}
 
-	txSpansMu.Lock()
-	defer txSpansMu.Unlock()
+// 	txSpansMu.Lock()
+// 	defer txSpansMu.Unlock()
 
-	span, ok := txSpans[tx]
-	if !ok {
-		return
-	}
+// 	span, ok := txSpans[tx]
+// 	if !ok {
+// 		return
+// 	}
 
-	span.SetTag("exit", operation)
-	span.Finish()
-	delete(txSpans, tx)
-}
+// 	span.SetTag("exit", operation)
+// 	span.Finish()
+// 	delete(txSpans, tx)
+// }
 
 func CheckTx(tx common.Hash, operation string) opentracing.Span {
 	if !enabled {

@@ -60,6 +60,7 @@ STATICCHECK_VERSION = 2024.1.1
 staticcheck: 
 	@go install honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VERSION)
 	staticcheck ./...
+	deadcode ./...
 
 ERRCHECK_VERSION = v1.7.0
 .PHONY: errcheck

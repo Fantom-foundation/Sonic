@@ -11,9 +11,9 @@ type ValidatorEpochsSet struct {
 	Val map[idx.ValidatorID]idx.Epoch
 }
 
-func WrapValidatorEpochsSet(v map[idx.ValidatorID]idx.Epoch) *ValidatorEpochsSet {
-	return &ValidatorEpochsSet{
-		RWMutex: sync.RWMutex{},
-		Val:     v,
-	}
-}
+// func WrapValidatorEpochsSet(v map[idx.ValidatorID]idx.Epoch) *ValidatorEpochsSet {
+// 	return &ValidatorEpochsSet{
+// 		RWMutex: sync.RWMutex{},
+// 		Val:     v,
+// 	}
+// }

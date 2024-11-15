@@ -22,6 +22,6 @@ func U64toBig(u64 uint64) *big.Int {
 }
 
 // I64to256 converts int64 to 32 bytes array
-func I64to256(i64 int64) common.Hash {
-	return BigTo256(new(big.Int).SetInt64(i64))
-}
+// func I64to256(i64 int64) common.Hash {
+// 	return BigTo256(new(big.Int).SetInt64(i64))
+// }

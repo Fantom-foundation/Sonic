@@ -7,9 +7,9 @@ import (
 )
 
 type (
-	countedDbProducer struct {
-		kvdb.DBProducer
-	}
+	// countedDbProducer struct {
+	// 	kvdb.DBProducer
+	// }
 
 	countedFullDbProducer struct {
 		kvdb.FullDBProducer
@@ -25,19 +25,19 @@ type (
 	}
 )
 
-func CountedDBProducer(dbs kvdb.DBProducer) kvdb.DBProducer {
-	return &countedDbProducer{dbs}
-}
+// func CountedDBProducer(dbs kvdb.DBProducer) kvdb.DBProducer {
+// 	return &countedDbProducer{dbs}
+// }
 
 // CountedFullDBProducer obtains one thread from the GlobalPool for each opened iterator.
 func CountedFullDBProducer(dbs kvdb.FullDBProducer) kvdb.FullDBProducer {
 	return &countedFullDbProducer{dbs}
 }
 
-func (p *countedDbProducer) OpenDB(name string) (kvdb.Store, error) {
-	s, err := p.DBProducer.OpenDB(name)
-	return &countedStore{s}, err
-}
+// func (p *countedDbProducer) OpenDB(name string) (kvdb.Store, error) {
+// 	s, err := p.DBProducer.OpenDB(name)
+// 	return &countedStore{s}, err
+// }
 
 func (p *countedFullDbProducer) OpenDB(name string) (kvdb.Store, error) {
 	s, err := p.FullDBProducer.OpenDB(name)
