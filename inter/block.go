@@ -1,8 +1,11 @@
 package inter
 
 import (
+	"encoding/binary"
+	"errors"
 	"math/big"
 	"slices"
+	"time"
 	"unsafe"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -43,6 +46,10 @@ type Block struct {
 	// Fields required for linking the block internally to a lachesis epoch.
 	Epoch idx.Epoch
 
+	// The duration of this block, being the difference between the predecessor
+	// block's timestamp and this block's timestamp, in nanoseconds.
+	Duration uint64
+
 	// The hash of this block, cached on first access.
 	hash common.Hash
 }
@@ -70,10 +77,13 @@ func (b *Block) GetEthereumHeader() *types.Header {
 		GasLimit:    b.GasLimit,
 		GasUsed:     b.GasUsed,
 		Time:        uint64(b.Time.Time().Unix()),
-		Extra:       nil, // TODO: fill in extra data required for gas computation
-		MixDigest:   b.PrevRandao,
-		Nonce:       types.BlockNonce{}, // constant 0 in Ethereum
-		BaseFee:     b.BaseFee,
+		Extra: EncodeExtraData(
+			b.Time.Time(),
+			time.Duration(b.Duration)*time.Nanosecond,
+		),
+		MixDigest: b.PrevRandao,
+		Nonce:     types.BlockNonce{}, // constant 0 in Ethereum
+		BaseFee:   b.BaseFee,
 
 		// Sonic does not have a beacon chain and no withdrawals.
 		WithdrawalsHash: &types.EmptyWithdrawalsHash,
@@ -83,6 +93,37 @@ func (b *Block) GetEthereumHeader() *types.Header {
 		BlobGasUsed:   new(uint64), // = 0
 		ExcessBlobGas: new(uint64), // = 0
 	}
+}
+
+// EncodeExtraData produces the ExtraData field encoding Sonic-specific data
+// in the Ethereum block header. This data includes:
+//   - the nano-second part of the block's timestamp, for sub-second precision;
+//   - the duration of the block, in nanoseconds, defined as the time elapsed
+//     between the predecessor block's timestamp and this block's timestamp.
+//     This is used for the computation of gas rates to adjust the base fee.
+func EncodeExtraData(time time.Time, duration time.Duration) []byte {
+	if duration < 0 {
+		duration = 0
+	}
+	extra := make([]byte, 12)
+	binary.BigEndian.PutUint32(extra[:4], uint32(time.Nanosecond()))
+	binary.BigEndian.PutUint64(extra[4:], uint64(duration.Nanoseconds()))
+	return extra
+}
+
+// DecodeExtraData decodes the ExtraData field encoding Sonic-specific data
+// in the Ethereum block header. See EncodeExtraData for details.
+func DecodeExtraData(extra []byte) (
+	nanos int,
+	duration time.Duration,
+	err error,
+) {
+	if len(extra) != 12 {
+		return 0, 0, errors.New("extra data must be 12 bytes long")
+	}
+	return int(binary.BigEndian.Uint32(extra[:4])),
+		time.Duration(binary.BigEndian.Uint64(extra[4:])),
+		nil
 }
 
 func (b *Block) EstimateSize() int {
@@ -134,6 +175,14 @@ func (b *BlockBuilder) AddTransaction(
 
 func (b *BlockBuilder) WithTime(time Timestamp) *BlockBuilder {
 	b.block.Time = time
+	return b
+}
+
+func (b *BlockBuilder) WithDuration(duration time.Duration) *BlockBuilder {
+	if duration < 0 {
+		duration = 0
+	}
+	b.block.Duration = uint64(duration.Nanoseconds())
 	return b
 }
 

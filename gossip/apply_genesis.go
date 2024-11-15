@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
@@ -51,6 +53,9 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.SetBlockEpochState(topEr.BlockState, topEr.EpochState)
 	s.FlushBlockEpochState()
 
+	s.SetGenesisID(g.GenesisID)
+	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
+
 	// write blocks
 	rules := s.GetRules()
 	gasLimit := rules.Blocks.MaxBlockGas
@@ -60,7 +65,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		WithTime(evmcore.FakeGenesisTime-1). // TODO: extend genesis generator to provide time
 		WithGasLimit(gasLimit).
 		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
-		WithBaseFee(big.NewInt(0)).   // TODO: set initial base fee according to the rules
+		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
 		Build(),
 	)
 
@@ -68,7 +73,20 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
-		s.WriteFullBlockRecord(baseFee, blobGasPrice, gasLimit, br)
+		var duration time.Duration
+		if rules.Upgrades.Sonic {
+			block := s.GetBlock(br.Idx - 1)
+			if block == nil {
+				block = &inter.Block{BaseFee: new(big.Int)}
+			}
+			header := &evmcore.EvmHeader{
+				GasUsed: block.GasUsed,
+				BaseFee: block.BaseFee,
+			}
+			baseFee = gasprice.GetBaseFeeForNextBlock(header, rules.Economy)
+			duration = time.Duration(br.Time-block.Time) * time.Nanosecond
+		}
+		s.WriteFullBlockRecord(baseFee, blobGasPrice, gasLimit, duration, br)
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}
@@ -123,9 +141,6 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	} else {
 		s.Log.Info("StateDB imported successfully, stateRoot matches", "index", lastBlock.Idx, "root", lastBlock.StateRoot)
 	}
-
-	s.SetGenesisID(g.GenesisID)
-	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 
 	return nil
 }

@@ -81,6 +81,8 @@ func ToEvmHeader(block *inter.Block, prevHash common.Hash, rules opera.Rules) *E
 	baseFee := rules.Economy.MinGasPrice
 	if !rules.Upgrades.London {
 		baseFee = nil
+	} else if rules.Upgrades.Sonic {
+		baseFee = block.BaseFee
 	}
 
 	prevRandao := common.Hash{}
@@ -99,6 +101,7 @@ func ToEvmHeader(block *inter.Block, prevHash common.Hash, rules opera.Rules) *E
 		Root:            block.StateRoot,
 		Number:          big.NewInt(int64(block.Number)),
 		Time:            block.Time,
+		Duration:        time.Duration(block.Duration) * time.Nanosecond,
 		GasLimit:        block.GasLimit,
 		GasUsed:         block.GasUsed,
 		BaseFee:         baseFee,
@@ -135,13 +138,13 @@ func (h *EvmHeader) EthHeader() *types.Header {
 	ethHeader := &types.Header{
 		Number:     h.Number,
 		Coinbase:   h.Coinbase,
-		GasLimit:   0xffffffffffff, // don't use h.GasLimit (too much bits) here to avoid parsing issues
+		GasLimit:   h.GasLimit,
 		GasUsed:    h.GasUsed,
 		Root:       h.Root,
 		TxHash:     h.TxHash,
 		ParentHash: h.ParentHash,
 		Time:       uint64(h.Time.Unix()),
-		Extra:      h.Hash.Bytes(),
+		Extra:      inter.EncodeExtraData(h.Time.Time(), h.Duration),
 		BaseFee:    h.BaseFee,
 
 		Difficulty: new(big.Int),
@@ -199,6 +202,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		UncleHash:       types.EmptyUncleHash,
 		Time:            hexutil.Uint64(h.Time.Unix()),
 		TimeNano:        hexutil.Uint64(h.Time),
+		Extra:           inter.EncodeExtraData(h.Time.Time(), h.Duration),
 		BaseFee:         (*hexutil.Big)(h.BaseFee),
 		Difficulty:      new(hexutil.Big),
 		PrevRandao:      h.PrevRandao,

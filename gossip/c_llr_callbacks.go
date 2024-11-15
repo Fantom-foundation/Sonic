@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -25,7 +26,7 @@ func indexRawReceipts(s *Store, receiptsForStorage []*types.ReceiptForStorage, t
 	}
 }
 
-func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, gasLimit uint64, br ibr.LlrIdxFullBlockRecord) {
+func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, gasLimit uint64, duration time.Duration, br ibr.LlrIdxFullBlockRecord) {
 	for _, tx := range br.Txs {
 		s.EvmStore().SetTx(tx.Hash(), tx)
 	}
@@ -55,7 +56,8 @@ func (s *Store) WriteFullBlockRecord(baseFee *big.Int, blobGasPrice *big.Int, ga
 		WithGasLimit(gasLimit).
 		WithGasUsed(br.GasUsed).
 		WithBaseFee(baseFee).
-		WithPrevRandao(common.Hash{1})
+		WithPrevRandao(common.Hash{1}).
+		WithDuration(duration)
 
 	for i := range br.Txs {
 		copy := types.Receipt(*br.Receipts[i])
