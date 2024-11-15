@@ -31,8 +31,8 @@ var (
 
 // CounterEventEmitterMetaData contains all meta data concerning the CounterEventEmitter contract.
 var CounterEventEmitterMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"count\",\"type\":\"int256\"}],\"name\":\"Count\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getTotalCount\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"increment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"perAddrCount\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
-	Bin: "0x60806040525f5f553480156011575f5ffd5b506102f78061001f5f395ff3fe608060405234801561000f575f5ffd5b506004361061003f575f3560e01c80633435b0ee1461004357806356d42bb314610073578063d09de08a14610091575b5f5ffd5b61005d600480360381019061005891906101f7565b61009b565b60405161006a919061023a565b60405180910390f35b61007b6100b0565b604051610088919061023a565b60405180910390f35b6100996100b8565b005b6001602052805f5260405f205f915090505481565b5f5f54905090565b6001805f3373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f8282546101049190610280565b9250508190555060015f5f82825461011c9190610280565b925050819055507f47a90661b520aaf860e17d861200923904ff3dc45e8640c690c905b71719464e60015f3373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205460405161018f919061023a565b60405180910390a1565b5f5ffd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6101c68261019d565b9050919050565b6101d6816101bc565b81146101e0575f5ffd5b50565b5f813590506101f1816101cd565b92915050565b5f6020828403121561020c5761020b610199565b5b5f610219848285016101e3565b91505092915050565b5f819050919050565b61023481610222565b82525050565b5f60208201905061024d5f83018461022b565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61028a82610222565b915061029583610222565b92508282019050828112155f8312168382125f8412151617156102bb576102ba610253565b5b9291505056fea26469706673582212201f6e1650c3c2d9c55d0f57cd8bef0d47896db7805b6a9c592601847e908fe70c64736f6c634300081c0033",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"totalCount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"perAddrCount\",\"type\":\"int256\"}],\"name\":\"Count\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getTotalCount\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"increment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"perAddrCount\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	Bin: "0x60806040525f5f553480156011575f5ffd5b506103218061001f5f395ff3fe608060405234801561000f575f5ffd5b506004361061003f575f3560e01c80633435b0ee1461004357806356d42bb314610073578063d09de08a14610091575b5f5ffd5b61005d600480360381019061005891906101fa565b61009b565b60405161006a919061023d565b60405180910390f35b61007b6100b0565b604051610088919061023d565b60405180910390f35b6100996100b8565b005b6001602052805f5260405f205f915090505481565b5f5f54905090565b6001805f3373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f8282546101049190610283565b9250508190555060015f5f82825461011c9190610283565b925050819055507ff38db9e60fee7e9669f144be87158326bc2d8bbc3ebbce7e9038041e0934b6e55f5460015f3373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f20546040516101929291906102c4565b60405180910390a1565b5f5ffd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6101c9826101a0565b9050919050565b6101d9816101bf565b81146101e3575f5ffd5b50565b5f813590506101f4816101d0565b92915050565b5f6020828403121561020f5761020e61019c565b5b5f61021c848285016101e6565b91505092915050565b5f819050919050565b61023781610225565b82525050565b5f6020820190506102505f83018461022e565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61028d82610225565b915061029883610225565b92508282019050828112155f8312168382125f8412151617156102be576102bd610256565b5b92915050565b5f6040820190506102d75f83018561022e565b6102e4602083018461022e565b939250505056fea2646970667358221220d0990abfc9785d9517d8be2d48753c09f101b5771af929e55822d6c03316719c64736f6c634300081c0033",
 }
 
 // CounterEventEmitterABI is the input ABI used to generate the binding from.
@@ -354,13 +354,14 @@ func (it *CounterEventEmitterCountIterator) Close() error {
 
 // CounterEventEmitterCount represents a Count event raised by the CounterEventEmitter contract.
 type CounterEventEmitterCount struct {
-	Count *big.Int
-	Raw   types.Log // Blockchain specific contextual infos
+	TotalCount   *big.Int
+	PerAddrCount *big.Int
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterCount is a free log retrieval operation binding the contract event 0x47a90661b520aaf860e17d861200923904ff3dc45e8640c690c905b71719464e.
+// FilterCount is a free log retrieval operation binding the contract event 0xf38db9e60fee7e9669f144be87158326bc2d8bbc3ebbce7e9038041e0934b6e5.
 //
-// Solidity: event Count(int256 count)
+// Solidity: event Count(int256 totalCount, int256 perAddrCount)
 func (_CounterEventEmitter *CounterEventEmitterFilterer) FilterCount(opts *bind.FilterOpts) (*CounterEventEmitterCountIterator, error) {
 
 	logs, sub, err := _CounterEventEmitter.contract.FilterLogs(opts, "Count")
@@ -370,9 +371,9 @@ func (_CounterEventEmitter *CounterEventEmitterFilterer) FilterCount(opts *bind.
 	return &CounterEventEmitterCountIterator{contract: _CounterEventEmitter.contract, event: "Count", logs: logs, sub: sub}, nil
 }
 
-// WatchCount is a free log subscription operation binding the contract event 0x47a90661b520aaf860e17d861200923904ff3dc45e8640c690c905b71719464e.
+// WatchCount is a free log subscription operation binding the contract event 0xf38db9e60fee7e9669f144be87158326bc2d8bbc3ebbce7e9038041e0934b6e5.
 //
-// Solidity: event Count(int256 count)
+// Solidity: event Count(int256 totalCount, int256 perAddrCount)
 func (_CounterEventEmitter *CounterEventEmitterFilterer) WatchCount(opts *bind.WatchOpts, sink chan<- *CounterEventEmitterCount) (event.Subscription, error) {
 
 	logs, sub, err := _CounterEventEmitter.contract.WatchLogs(opts, "Count")
@@ -407,9 +408,9 @@ func (_CounterEventEmitter *CounterEventEmitterFilterer) WatchCount(opts *bind.W
 	}), nil
 }
 
-// ParseCount is a log parse operation binding the contract event 0x47a90661b520aaf860e17d861200923904ff3dc45e8640c690c905b71719464e.
+// ParseCount is a log parse operation binding the contract event 0xf38db9e60fee7e9669f144be87158326bc2d8bbc3ebbce7e9038041e0934b6e5.
 //
-// Solidity: event Count(int256 count)
+// Solidity: event Count(int256 totalCount, int256 perAddrCount)
 func (_CounterEventEmitter *CounterEventEmitterFilterer) ParseCount(log types.Log) (*CounterEventEmitterCount, error) {
 	event := new(CounterEventEmitterCount)
 	if err := _CounterEventEmitter.contract.UnpackLog(event, "Count", log); err != nil {
