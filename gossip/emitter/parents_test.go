@@ -16,7 +16,11 @@ import (
 func TestChooseParents_NoParentsForGenesisEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	external := mock.NewMockExternal(ctrl)
-	em := NewEmitter(DefaultConfig(), World{External: external})
+	em := NewEmitter(
+		DefaultConfig(),
+		World{External: external},
+		fixedPriceBaseFeeSource{},
+	)
 
 	epoch := idx.Epoch(1)
 	validatorId := idx.ValidatorID(1)
@@ -38,7 +42,11 @@ func TestChooseParents_NoParentsForGenesisEvent(t *testing.T) {
 func TestChooseParents_NonGenesisEventMustHaveOneSelfParent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	external := mock.NewMockExternal(ctrl)
-	em := NewEmitter(DefaultConfig(), World{External: external})
+	em := NewEmitter(
+		DefaultConfig(),
+		World{External: external},
+		fixedPriceBaseFeeSource{},
+	)
 	em.maxParents = 3
 	em.payloadIndexer = ancestor.NewPayloadIndexer(3)
 

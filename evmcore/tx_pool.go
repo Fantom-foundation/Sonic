@@ -699,13 +699,13 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrInvalidSender
 	}
 
+	// Drop non-local transactions under our own minimal accepted gas price or tip
+	local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
+	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
+		log.Trace("Rejecting underpriced tx: pool.gasPrice", "pool.gasPrice", pool.gasPrice, "tx.GasTipCap", tx.GasTipCap())
+		return ErrUnderpriced
+	}
 	/*
-		// Drop non-local transactions under our own minimal accepted gas price or tip
-		local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
-		if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
-			log.Trace("Rejecting underpriced tx: pool.gasPrice", "pool.gasPrice", pool.gasPrice, "tx.GasTipCap", tx.GasTipCap())
-			return ErrUnderpriced
-		}
 		// Ensure Opera-specific hard bounds
 		if recommendedGasTip, minPrice := pool.chain.EffectiveMinTip(), pool.chain.MinGasPrice(); recommendedGasTip != nil && minPrice != nil {
 			if tx.GasTipCapIntCmp(recommendedGasTip) < 0 {

@@ -236,7 +236,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 		if err := checkers.Basiccheck.Validate(e.(inter.EventPayloadI)); err != nil {
 			return err
 		}
-		if err := checkers.Epochcheck.Validate(e.(inter.EventPayloadI)); err != nil {
+		if err := checkers.Epochcheck.Validate(e.(inter.EventPayloadI), nil); err != nil {
 			return err
 		}
 		return nil
