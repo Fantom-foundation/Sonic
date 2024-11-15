@@ -276,9 +276,9 @@ func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T
 	}
 }
 
-func TestBaseFee_InitialPriceIsAtLeastMinGasPrice(t *testing.T) {
+func TestBaseFee_InitialPriceIsAtLeastMinBaseFee(t *testing.T) {
 	for _, minPrice := range []int64{-1, 0, 1, 1e8, 1e9, 1e10, 1e12} {
-		rules := opera.EconomyRules{MinGasPrice: big.NewInt(int64(minPrice))}
+		rules := opera.EconomyRules{MinBaseFee: big.NewInt(int64(minPrice))}
 		got := GetInitialBaseFee(rules).Int64()
 		if got < minPrice {
 			t.Errorf("initial price is below min gas price; got %d, min %d", got, minPrice)
@@ -286,12 +286,12 @@ func TestBaseFee_InitialPriceIsAtLeastMinGasPrice(t *testing.T) {
 	}
 }
 
-func TestBaseFee_DoesNotSinkBelowMinGasPrice(t *testing.T) {
+func TestBaseFee_DoesNotSinkBelowMinBaseFee(t *testing.T) {
 	for _, minPrice := range []int64{-1, 0, 1, 1e8, 1e9, 1e10} {
 		t.Run(fmt.Sprintf("minPrice=%d", minPrice), func(t *testing.T) {
 			minPrice := big.NewInt(minPrice)
 			rules := opera.EconomyRules{
-				MinGasPrice: minPrice,
+				MinBaseFee: minPrice,
 				ShortGasPower: opera.GasPowerRules{
 					AllocPerSec: 1e6,
 				},

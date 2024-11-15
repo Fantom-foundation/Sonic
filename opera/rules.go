@@ -125,7 +125,32 @@ type EconomyRules struct {
 
 	Gas GasRules
 
+	// MinGasPrice defines a lower boundary for the gas price
+	// on the network. However, its interpretation is different
+	// in the context of the Fantom and Sonic networks.
+	//
+	// On the Fantom network: MinGasPrice is the minimum gas price
+	// defining the base fee of a block. The MinGasPrice is set by
+	// the node driver and SFC on the Fantom network and adjusted
+	// based on load observed during an epoch. Base fees charged
+	// on the network correspond exactly to the MinGasPrice.
+	//
+	// On the Sonic network: this parameter is ignored. Base fees
+	// are controlled by the MinBaseFee parameter.
 	MinGasPrice *big.Int
+
+	// MinBaseFee is a lower bound for the base fee on the network.
+	// This option is only supported by the Sonic network. On the
+	// Fantom network it is ignored.
+	//
+	// On the Sonic network, base fees are automatically adjusted
+	// after each block based on the observed gas consumption rate.
+	// The value set by this parameter is a lower bound for these
+	// adjustments. Base fees may never fall below this value.
+	// Adjustments are made dynamically analogous to EIP-1559.
+	// See https://eips.ethereum.org/EIPS/eip-1559 and https://t.ly/BKrcr
+	// for additional information.
+	MinBaseFee *big.Int
 
 	ShortGasPower GasPowerRules
 	LongGasPower  GasPowerRules
@@ -163,10 +188,10 @@ var BaseChainConfig = ethparams.ChainConfig{
 	PetersburgBlock:               big.NewInt(0),
 	IstanbulBlock:                 big.NewInt(0),
 	MuirGlacierBlock:              big.NewInt(0), // EIP-2384: Muir Glacier Difficulty Bomb Delay - relevant for ethereum only
-	BerlinBlock:                   nil, // to be overwritten in EvmChainConfig
-	LondonBlock:                   nil, // to be overwritten in EvmChainConfig
-	ArrowGlacierBlock:             nil, // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
-	GrayGlacierBlock:              nil, // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
+	BerlinBlock:                   nil,           // to be overwritten in EvmChainConfig
+	LondonBlock:                   nil,           // to be overwritten in EvmChainConfig
+	ArrowGlacierBlock:             nil,           // EIP-4345: Difficulty Bomb Delay - relevant for ethereum only
+	GrayGlacierBlock:              nil,           // EIP-5133: Delaying Difficulty Bomb - relevant for ethereum only
 	MergeNetsplitBlock:            nil,
 	ShanghaiTime:                  nil, // to be overwritten in EvmChainConfig
 	CancunTime:                    nil, // to be overwritten in EvmChainConfig
@@ -258,6 +283,7 @@ func DefaultEconomyRules() EconomyRules {
 		BlockMissedSlack: 50,
 		Gas:              DefaultGasRules(),
 		MinGasPrice:      big.NewInt(1e9),
+		MinBaseFee:       big.NewInt(1e3),
 		ShortGasPower:    DefaultShortGasPowerRules(),
 		LongGasPower:     DefaulLongGasPowerRules(),
 	}
