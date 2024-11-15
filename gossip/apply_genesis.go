@@ -77,14 +77,11 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 		if rules.Upgrades.Sonic {
 			block := s.GetBlock(br.Idx - 1)
 			if block == nil {
-				block = &inter.Block{
-					BaseFee: big.NewInt(0),
-				}
+				block = &inter.Block{BaseFee: new(big.Int)}
 			}
 			header := &evmcore.EvmHeader{
-				GasUsed:  block.GasUsed,
-				GasLimit: block.GasLimit,
-				BaseFee:  block.BaseFee,
+				GasUsed: block.GasUsed,
+				BaseFee: block.BaseFee,
 			}
 			baseFee = gasprice.GetBaseFeeForNextBlock(header, rules.Economy)
 			duration = time.Duration(br.Time-block.Time) * time.Nanosecond

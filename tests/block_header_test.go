@@ -2,13 +2,13 @@ package tests
 
 import (
 	"context"
-	"encoding/binary"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -109,13 +109,22 @@ func testHeaders_GasUsedIsBelowGasLimit(t *testing.T, headers []*types.Header) {
 
 func testHeaders_EncodesDurationAndNanoTimeInExtraData(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
+
+	getUnixTime := func(header *types.Header) time.Time {
+		t.Helper()
+		nanos, _, err := inter.DecodeExtraData(header.Extra)
+		require.NoError(err)
+		return time.Unix(int64(header.Time), int64(nanos))
+	}
+
 	// Check the nano-time and duration encoded in the extra data field.
 	for i := 1; i < len(headers); i++ {
-		require.Equal(len(headers[i].Extra), 16, "extra data length of block %d", i)
-		lastTime := binary.BigEndian.Uint64(headers[i-1].Extra[:8])
-		currentTime := binary.BigEndian.Uint64(headers[i].Extra[:8])
-		wantedDuration := currentTime - lastTime
-		gotDuration := binary.BigEndian.Uint64(headers[i].Extra[8:])
+		require.Equal(len(headers[i].Extra), 12, "extra data length of block %d", i)
+		lastTime := getUnixTime(headers[i-1])
+		currentTime := getUnixTime(headers[i])
+		wantedDuration := currentTime.Sub(lastTime)
+		_, gotDuration, err := inter.DecodeExtraData(headers[i].Extra)
+		require.NoError(err, "decoding extra data of block %d", i)
 		require.Equal(wantedDuration, gotDuration, "duration of block %d", i)
 	}
 }
@@ -132,13 +141,12 @@ func testHeaders_BaseFeeEvolutionFollowsPricingRules(t *testing.T, headers []*ty
 
 	// All other blocks compute the base-fee based on the previous block.
 	for i := 1; i < len(headers); i++ {
+		_, duration, err := inter.DecodeExtraData(headers[i-1].Extra)
+		require.NoError(err, "decoding extra data of block %d", i-1)
 		last := &evmcore.EvmHeader{
 			BaseFee:  headers[i-1].BaseFee,
-			GasLimit: headers[i-1].GasLimit,
 			GasUsed:  headers[i-1].GasUsed,
-			Duration: time.Duration(
-				binary.BigEndian.Uint64(headers[i-1].Extra[8:]),
-			),
+			Duration: duration,
 		}
 		require.Equal(
 			gasprice.GetBaseFeeForNextBlock(last, rules),

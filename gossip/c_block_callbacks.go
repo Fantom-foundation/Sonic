@@ -2,12 +2,13 @@ package gossip
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -381,17 +382,13 @@ func consensusCallbackBeginBlockFn(
 						feed.newLogs.Send(logs)
 					}
 
-					lastBlockTime := evmStateReader.GetHeader(common.Hash{}, uint64(blockCtx.Idx-1)).Time.Time()
-					thisBlockTime := block.Time.Time()
-					blockTime := thisBlockTime.Sub(lastBlockTime)
-
 					now := time.Now()
 					blockAge := now.Sub(block.Time.Time())
 					log.Info("New block",
 						"index", blockCtx.Idx,
 						"id", block.Hash(),
 						"gas_used", evmBlock.GasUsed,
-						"gas_rate", float64(evmBlock.GasUsed)/blockTime.Seconds(),
+						"gas_rate", float64(evmBlock.GasUsed)/blockDuration.Seconds(),
 						"base_fee", evmBlock.BaseFee.String(),
 						"txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
 						"age", utils.PrettyDuration(blockAge),

@@ -17,7 +17,6 @@
 package evmcore
 
 import (
-	"encoding/binary"
 	"math"
 	"math/big"
 	"time"
@@ -135,9 +134,6 @@ func (h *EvmHeader) EthHeader() *types.Header {
 	if h == nil {
 		return nil
 	}
-	extra := make([]byte, 16)
-	binary.BigEndian.PutUint64(extra[:8], uint64(h.Time))
-	binary.BigEndian.PutUint64(extra[8:], uint64(h.Duration))
 	// NOTE: incomplete conversion
 	ethHeader := &types.Header{
 		Number:     h.Number,
@@ -148,7 +144,7 @@ func (h *EvmHeader) EthHeader() *types.Header {
 		TxHash:     h.TxHash,
 		ParentHash: h.ParentHash,
 		Time:       uint64(h.Time.Unix()),
-		Extra:      extra,
+		Extra:      inter.EncodeExtraData(h.Time.Time(), h.Duration),
 		BaseFee:    h.BaseFee,
 
 		Difficulty: new(big.Int),
@@ -195,7 +191,6 @@ type EvmBlockJson struct {
 }
 
 func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
-	ethHeader := h.EthHeader()
 	enc := &EvmHeaderJson{
 		Number:          (*hexutil.Big)(h.Number),
 		Miner:           h.Coinbase,
@@ -207,7 +202,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		UncleHash:       types.EmptyUncleHash,
 		Time:            hexutil.Uint64(h.Time.Unix()),
 		TimeNano:        hexutil.Uint64(h.Time),
-		Extra:           ethHeader.Extra,
+		Extra:           inter.EncodeExtraData(h.Time.Time(), h.Duration),
 		BaseFee:         (*hexutil.Big)(h.BaseFee),
 		Difficulty:      new(hexutil.Big),
 		PrevRandao:      h.PrevRandao,
