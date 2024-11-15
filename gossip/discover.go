@@ -25,7 +25,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 )
 
-// enrEntry is the ENR entry which advertises `eth` protocol on the discovery.
+// enrEntry is the ENR entry that advertises the `opera` protocol on the discovery network.
 type enrEntry struct {
 	ForkID forkid.ID // Fork identifier per EIP-2124
 
