@@ -90,10 +90,10 @@ func (m *Migration) veryFirst() bool {
 }
 
 // IDs return list of migrations ids in chain
-func (m *Migration) IDs() []string {
-	if m.prev == nil {
-		return []string{m.ID()}
-	}
+// func (m *Migration) IDs() []string {
+// 	if m.prev == nil {
+// 		return []string{m.ID()}
+// 	}
 
-	return append(m.prev.IDs(), m.ID())
-}
+// 	return append(m.prev.IDs(), m.ID())
+// }

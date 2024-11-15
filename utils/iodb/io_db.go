@@ -9,27 +9,27 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
 
-func Write(writer io.Writer, it kvdb.Iterator) error {
-	for it.Next() {
-		_, err := writer.Write(bigendian.Uint32ToBytes(uint32(len(it.Key()))))
-		if err != nil {
-			return err
-		}
-		_, err = writer.Write(it.Key())
-		if err != nil {
-			return err
-		}
-		_, err = writer.Write(bigendian.Uint32ToBytes(uint32(len(it.Value()))))
-		if err != nil {
-			return err
-		}
-		_, err = writer.Write(it.Value())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// func Write(writer io.Writer, it kvdb.Iterator) error {
+// 	for it.Next() {
+// 		_, err := writer.Write(bigendian.Uint32ToBytes(uint32(len(it.Key()))))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		_, err = writer.Write(it.Key())
+// 		if err != nil {
+// 			return err
+// 		}
+// 		_, err = writer.Write(bigendian.Uint32ToBytes(uint32(len(it.Value()))))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		_, err = writer.Write(it.Value())
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
 func NewIterator(reader io.Reader) kvdb.Iterator {
 	return &Iterator{
