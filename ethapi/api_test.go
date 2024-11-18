@@ -8,7 +8,9 @@ import (
 	"github.com/Fantom-foundation/Carmen/go/common/witness"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"math/big"
 	"testing"
 
@@ -18,7 +20,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	gomock "go.uber.org/mock/gomock"
 )
 
 func TestGetBlockReceipts(t *testing.T) {
@@ -115,6 +116,61 @@ func TestAPI_GetProof(t *testing.T) {
 	require.Equal(t, hexutil.Uint64(nonce.ToUint64()), accountProof.Nonce)
 	require.Equal(t, common.Hash(storageHash), accountProof.StorageHash)
 	require.Equal(t, []StorageResult{storageProof}, accountProof.StorageProof)
+}
+
+func TestAPI_GetAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	addr := common.Address{1}
+	codeHash := common.Hash{2}
+	storageRoot := cc.Hash{3}
+	balance := uint256.NewInt(4)
+	nonce := uint64(5)
+	headerRoot := common.Hash{123}
+
+	mockBackend := NewMockBackend(ctrl)
+	mockState := state.NewMockStateDB(ctrl)
+	mockProof := witness.NewMockProof(ctrl)
+	mockHeader := &evmcore.EvmHeader{Root: headerRoot}
+
+	blkNr := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+
+	mockBackend.EXPECT().StateAndHeaderByNumberOrHash(gomock.Any(), blkNr).Return(mockState, mockHeader, nil)
+	mockState.EXPECT().GetProof(addr, nil).Return(mockProof, nil)
+	mockProof.EXPECT().GetAccountElements(cc.Hash(headerRoot), cc.Address(addr)).Return(nil, storageRoot, true)
+	mockState.EXPECT().GetCodeHash(addr).Return(codeHash)
+	mockState.EXPECT().GetBalance(addr).Return(balance)
+	mockState.EXPECT().GetNonce(addr).Return(nonce)
+	mockState.EXPECT().Error().Return(nil)
+	mockState.EXPECT().Release()
+
+	api := NewPublicBlockChainAPI(mockBackend)
+
+	account, err := api.GetAccount(context.Background(), addr, blkNr)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+
+	if codeHash.Cmp(account.CodeHash) != 0 {
+		t.Errorf("unexpected code hash, got: %s want %s", account.CodeHash, codeHash)
+	}
+
+	if common.Hash(storageRoot).Cmp(account.StorageRoot) != 0 {
+		t.Errorf("unexpected storage root, got: %s want %s", account.StorageRoot, storageRoot)
+	}
+
+	if balance.Cmp((*uint256.Int)(account.Balance)) != 0 {
+		t.Errorf("unexpected balance, got: %s want %s", account.Balance, balance)
+	}
+
+	if balance.Cmp((*uint256.Int)(account.Balance)) != 0 {
+		t.Errorf("unexpected balance, got: %s want %s", account.Balance, balance)
+	}
+
+	if nonce != uint64(account.Nonce) {
+		t.Errorf("unexpected nonce, got: %d want %d", account.Nonce, nonce)
+	}
 }
 
 func testGetBlockReceipts(t *testing.T, blockParam rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {

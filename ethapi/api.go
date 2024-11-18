@@ -708,6 +708,40 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	return (*hexutil.U256)(state.GetBalance(address)), state.Error()
 }
 
+// GetAccountResult is result struct for GetAccount
+type GetAccountResult struct {
+	CodeHash    common.Hash    `json:"codeHash"`
+	StorageRoot common.Hash    `json:"storageRoot"`
+	Balance     *hexutil.U256  `json:"balance"`
+	Nonce       hexutil.Uint64 `json:"nonce"`
+}
+
+// GetAccount returns the information about account with given address in the state of the given block number.
+// The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta block numbers are also allowed.
+// The result contains:
+// 1) CodeHash - hash of the code for the given address
+// 2) StorageRoot - storage root for the given address
+// 3) Balance - the amount of wei for the given address
+// 4) Nonce - the number of transactions for given address
+func (s *PublicBlockChainAPI) GetAccount(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (*GetAccountResult, error) {
+	state, header, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+	proof, err := state.GetProof(address, nil)
+	if err != nil {
+		return nil, err
+	}
+	_, storageRoot, _ := proof.GetAccountElements(cc.Hash(header.Root), cc.Address(address))
+	defer state.Release()
+	return &GetAccountResult{
+		CodeHash:    state.GetCodeHash(address),
+		StorageRoot: common.Hash(storageRoot),
+		Balance:     (*hexutil.U256)(state.GetBalance(address)),
+		Nonce:       hexutil.Uint64(state.GetNonce(address)),
+	}, state.Error()
+}
+
 // AccountResult is result struct for GetProof
 type AccountResult struct {
 	Address      common.Address  `json:"address"`
