@@ -12,6 +12,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,12 +67,32 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		testHeaders_BaseFeeEvolutionFollowsPricingRules(t, headers)
 	})
 
+	t.Run("TransactionRootMatchesHashOfBlockTxs", func(t *testing.T) {
+		testHeaders_TransactionRootMatchesBlockTxsHash(t, headers, client)
+	})
+
+	t.Run("ReceiptRootMatchesBlockReceipts", func(t *testing.T) {
+		testHeaders_ReceiptRootMatchesBlockReceipts(t, headers, client)
+	})
+
+	t.Run("LogsBloomMatchesLogsInReceipts", func(t *testing.T) {
+		testHeaders_LogsBloomMatchesLogsInReceipts(t, headers, client)
+	})
+
+	t.Run("CoinbaseIsZeroForAllBlocks", func(t *testing.T) {
+		testHeaders_CoinbaseIsZeroForAllBlocks(t, headers)
+	})
+
+	t.Run("DifficultyIsZeroForAllBlocks", func(t *testing.T) {
+		testHeaders_DifficultyIsZeroForAllBlocks(t, headers)
+	})
+
+	t.Run("NonceIsZeroForAllBlocks", func(t *testing.T) {
+		testHeaders_NonceIsZeroForAllBlocks(t, headers)
+	})
+
 	// TODO: Add more tests.
-	// - check that the transaction root matches the transactions in the block
-	// - check that the receipt root matches the receipts in the block
-	// - check that the logs bloom matches the logs in the receipts
-	// - coinbase is zero for all blocks
-	// - difficulty and nonce is set to 0
+	// - check that the receipt root matches the receipts in the block by hash
 	// - time is progressing strictly monotonically and approximately matches the current time
 	// - the random mixDigest field is different for each block
 }
@@ -153,5 +176,71 @@ func testHeaders_BaseFeeEvolutionFollowsPricingRules(t *testing.T, headers []*ty
 			headers[i].BaseFee,
 			"base fee of block %d", i,
 		)
+	}
+}
+
+// - check that the transaction root matches the transactions in the block
+func testHeaders_TransactionRootMatchesBlockTxsHash(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		block, err := client.BlockByNumber(context.Background(), header.Number)
+		require.NoError(err, "failed to get block receipts")
+
+		txsHash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil))
+		require.Equal(header.TxHash, txsHash, "transaction root mismatch")
+	}
+}
+
+// - check that the receipt root matches the receipts in the block
+func testHeaders_ReceiptRootMatchesBlockReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+		require.NoError(err, "failed to get block receipts")
+
+		receiptsHash := types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil))
+		require.Equal(header.ReceiptHash, receiptsHash, "receipt root mismatch")
+	}
+}
+
+// - check that the logs bloom matches the logs in the receipts
+func testHeaders_LogsBloomMatchesLogsInReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+		require.NoError(err, "failed to get block receipts")
+
+		logsBloom := types.CreateBloom(receipts)
+		require.Equal(header.Bloom, logsBloom, "logs bloom mismatch")
+	}
+}
+
+func testHeaders_CoinbaseIsZeroForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		require.Empty(header.Coinbase, "coinbase is not zero")
+	}
+}
+
+func testHeaders_DifficultyIsZeroForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		// Cmp returns 0 when the values are equal
+		require.Equal(0, big.NewInt(0).Cmp(header.Difficulty), "difficulty is not zero")
+	}
+}
+
+func testHeaders_NonceIsZeroForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		require.Empty(header.Nonce.Uint64(), "nonce is not zero")
 	}
 }
