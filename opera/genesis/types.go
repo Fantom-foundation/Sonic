@@ -1,9 +1,11 @@
 package genesis
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"io"
 
+	"github.com/Fantom-foundation/lachesis-base/hash"
+
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 )
@@ -35,7 +37,7 @@ type (
 	}
 	SignedMetadata struct {
 		Signature []byte
-		Hashes []byte
+		Hashes    []byte
 	}
 	Genesis struct {
 		Header
@@ -48,6 +50,8 @@ type (
 		SignatureSection
 	}
 )
+
+const TimeStampZero inter.Timestamp = 1608600000
 
 func (hh Hashes) Includes(hh2 Hashes) bool {
 	for n, h := range hh {

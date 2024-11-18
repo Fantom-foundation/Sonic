@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"os"
+
 	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -18,8 +21,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
-	"os"
 )
 
 type GenesisJson struct {
@@ -80,7 +81,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 			BlockState: iblockproc.BlockState{
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     0,
-					Time:    FakeGenesisTime,
+					Time:    genesis.TimeStampZero,
 					Atropos: hash.Event{},
 				},
 				FinalizedStateRoot:    hash.Hash{},
@@ -94,8 +95,8 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 			},
 			EpochState: iblockproc.EpochState{
 				Epoch:             1,
-				EpochStart:        FakeGenesisTime,
-				PrevEpochStart:    FakeGenesisTime - 1,
+				EpochStart:        genesis.TimeStampZero,
+				PrevEpochStart:    genesis.TimeStampZero - 1,
 				EpochStateRoot:    hash.Zero,
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),

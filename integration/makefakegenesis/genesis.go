@@ -3,7 +3,6 @@ package makefakegenesis
 import (
 	"crypto/ecdsa"
 	"math/big"
-	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -31,10 +29,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesis/gpos"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-)
-
-var (
-	FakeGenesisTime = inter.Timestamp(1608600000 * time.Second)
 )
 
 // FakeKey gets n-th fake private key.
@@ -89,7 +83,7 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 			BlockState: iblockproc.BlockState{
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     block - 1,
-					Time:    FakeGenesisTime,
+					Time:    genesis.TimeStampZero,
 					Atropos: hash.Event{},
 				},
 				FinalizedStateRoot:    hash.Hash{},
@@ -103,8 +97,8 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 			},
 			EpochState: iblockproc.EpochState{
 				Epoch:             epoch - 1,
-				EpochStart:        FakeGenesisTime,
-				PrevEpochStart:    FakeGenesisTime - 1,
+				EpochStart:        genesis.TimeStampZero,
+				PrevEpochStart:    genesis.TimeStampZero - 1,
 				EpochStateRoot:    hash.Zero,
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
@@ -176,7 +170,7 @@ func GetFakeValidators(num idx.Validator) gpos.Validators {
 				Raw:  pubkeyraw,
 				Type: validatorpk.Types.Secp256k1,
 			},
-			CreationTime:     FakeGenesisTime,
+			CreationTime:     genesis.TimeStampZero,
 			CreationEpoch:    0,
 			DeactivatedTime:  0,
 			DeactivatedEpoch: 0,
