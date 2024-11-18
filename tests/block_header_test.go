@@ -282,3 +282,26 @@ func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Hea
 		seen[headers[i].MixDigest] = struct{}{}
 	}
 }
+
+func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for i := 1; i < len(headers); i++ {
+		require.GreaterOrEqual(headers[i].Time, headers[i-1].Time, "time is not monotonically increasing")
+		// the following log is related to ISSUE #80
+		// t.Logf("block %d: %d = %v,  previous: %d", i, headers[i].Time,
+		// 	time.Unix(int64(headers[i].Time), 0), headers[i-1].Time)
+	}
+}
+
+func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	seen := map[common.Hash]struct{}{}
+
+	for i := 1; i < len(headers); i++ {
+		_, ok := seen[headers[i].MixDigest]
+		require.False(ok, "mix digest is not unique")
+		seen[headers[i].MixDigest] = struct{}{}
+	}
+}
