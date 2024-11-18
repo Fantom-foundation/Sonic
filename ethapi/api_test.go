@@ -2,6 +2,9 @@ package ethapi
 
 import (
 	"context"
+	"github.com/Fantom-foundation/go-opera/inter/state"
+	"github.com/holiman/uint256"
+	"go.uber.org/mock/gomock"
 	"math/big"
 	"testing"
 
@@ -11,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	gomock "go.uber.org/mock/gomock"
 )
 
 func TestGetBlockReceipts(t *testing.T) {
@@ -49,6 +51,57 @@ func TestGetBlockReceipts(t *testing.T) {
 				t.Fatalf("expected 1 receipt, got %d", len(receipts))
 			}
 		})
+	}
+}
+
+func TestAPI_GetAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	addr := common.Address{1}
+	codeHash := common.Hash{2}
+	storageRoot := common.Hash{3}
+	balance := uint256.NewInt(4)
+	nonce := uint64(5)
+
+	mockBackend := NewMockBackend(ctrl)
+	mockState := state.NewMockStateDB(ctrl)
+
+	blkNr := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+
+	mockBackend.EXPECT().StateAndHeaderByNumberOrHash(gomock.Any(), blkNr).Return(mockState, nil, nil)
+	mockState.EXPECT().GetCodeHash(addr).Return(codeHash)
+	mockState.EXPECT().GetStorageRoot(addr).Return(storageRoot)
+	mockState.EXPECT().GetBalance(addr).Return(balance)
+	mockState.EXPECT().GetNonce(addr).Return(nonce)
+	mockState.EXPECT().Error().Return(nil)
+	mockState.EXPECT().Release()
+
+	api := NewPublicBlockChainAPI(mockBackend)
+
+	account, err := api.GetAccount(context.Background(), addr, blkNr)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+
+	if codeHash.Cmp(account.CodeHash) != 0 {
+		t.Errorf("unexpected code hash, got: %s want %s", account.CodeHash, codeHash)
+	}
+
+	if storageRoot.Cmp(account.StorageRoot) != 0 {
+		t.Errorf("unexpected storage root, got: %s want %s", account.StorageRoot, storageRoot)
+	}
+
+	if balance.Cmp((*uint256.Int)(account.Balance)) != 0 {
+		t.Errorf("unexpected balance, got: %s want %s", account.Balance, balance)
+	}
+
+	if balance.Cmp((*uint256.Int)(account.Balance)) != 0 {
+		t.Errorf("unexpected balance, got: %s want %s", account.Balance, balance)
+	}
+
+	if nonce != uint64(account.Nonce) {
+		t.Errorf("unexpected nonce, got: %d want %d", account.Nonce, nonce)
 	}
 }
 
