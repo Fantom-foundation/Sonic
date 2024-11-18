@@ -269,7 +269,8 @@ func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Head
 	for i := 1; i < len(headers); i++ {
 		currentTime := getTimeFrom(headers[i])
 		previousTime := getTimeFrom(headers[i-1])
-		require.Greater(currentTime, previousTime, "time is not monotonically increasing")
+		t.Logf("block %d: %s parent time: %v", i, currentTime, previousTime)
+		require.Greater(currentTime, previousTime, "time is not monotonically increasing. block %d", i)
 	}
 }
 

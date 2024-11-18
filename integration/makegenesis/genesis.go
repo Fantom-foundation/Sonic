@@ -48,6 +48,8 @@ type GenesisBuilder struct {
 	blocks       []ibr.LlrIdxFullBlockRecord
 	epochs       []ier.LlrIdxFullEpochRecord
 	currentEpoch ier.LlrIdxFullEpochRecord
+
+	time inter.Timestamp
 }
 
 type BlockProc struct {
@@ -85,6 +87,10 @@ func (b *GenesisBuilder) SetNonce(acc common.Address, nonce uint64) {
 
 func (b *GenesisBuilder) SetStorage(acc common.Address, key, val common.Hash) {
 	b.tmpStateDB.SetState(acc, key, val)
+}
+
+func (b *GenesisBuilder) SetTime(t inter.Timestamp) {
+	b.time = t
 }
 
 func (b *GenesisBuilder) AddBlock(br ibr.LlrIdxFullBlockRecord) {
@@ -273,7 +279,7 @@ func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
 			return nil, errors.New("not found")
 		}
 		return buf, nil
-	}, head, func() error {
+	}, head, b.time, func() error {
 		err := os.RemoveAll(b.carmenDir)
 		*b = GenesisBuilder{}
 		return err

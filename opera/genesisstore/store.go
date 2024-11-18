@@ -3,6 +3,7 @@ package genesisstore
 import (
 	"io"
 
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
@@ -34,17 +35,19 @@ type Store struct {
 	fMap  FilesMap
 	head  genesis.Header
 	close func() error
+	time  inter.Timestamp
 
 	logger.Instance
 }
 
 // NewStore creates store over key-value db.
-func NewStore(fMap FilesMap, head genesis.Header, close func() error) *Store {
+func NewStore(fMap FilesMap, head genesis.Header, time inter.Timestamp, close func() error) *Store {
 	return &Store{
 		fMap:     fMap,
 		head:     head,
 		close:    close,
 		Instance: logger.New("genesis-store"),
+		time:     time,
 	}
 }
 

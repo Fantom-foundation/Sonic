@@ -15,6 +15,7 @@ import (
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/filelog"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/fileshash"
@@ -145,7 +146,12 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 
 	hashedMap := fileshash.Wrap(unitsMap.Open, FilesHashMaxMemUsage, hashes)
 
-	return NewStore(hashedMap, header, rawReader.Close), hashes, nil
+	return NewStore(
+			hashedMap,
+			header,
+			inter.Timestamp(time.Duration(time.Now().Unix())*time.Second),
+			rawReader.Close),
+		hashes, nil
 }
 
 // getLoggerName provides a human-readable name of a unit for logging purposes

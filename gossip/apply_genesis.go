@@ -44,6 +44,10 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	if topEr == nil {
 		return errors.New("no ERs in genesis")
 	}
+	if g.Time == 0 {
+		return errors.New("genesis time is not set")
+	}
+
 	var prevEs *iblockproc.EpochState
 	s.ForEachHistoryBlockEpochState(func(bs iblockproc.BlockState, es iblockproc.EpochState) bool {
 		s.WriteUpgradeHeight(bs, es, prevEs)
@@ -62,7 +66,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 
 	blockZero := inter.NewBlockBuilder().
 		WithNumber(0).
-		WithTime(evmcore.FakeGenesisTime - 1). // TODO: extend genesis generator to provide time
+		WithTime(g.Time - 1).
 		WithGasLimit(gasLimit).
 		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
 		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).

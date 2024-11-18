@@ -1,9 +1,11 @@
 package genesis
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"io"
 
+	"github.com/Fantom-foundation/lachesis-base/hash"
+
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 )
@@ -35,7 +37,7 @@ type (
 	}
 	SignedMetadata struct {
 		Signature []byte
-		Hashes []byte
+		Hashes    []byte
 	}
 	Genesis struct {
 		Header
@@ -46,6 +48,8 @@ type (
 		FwsLiveSection
 		FwsArchiveSection
 		SignatureSection
+
+		Time inter.Timestamp
 	}
 )
 
