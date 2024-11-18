@@ -14,6 +14,6 @@ type Enr struct {
 }
 
 // ENRKey implements enr.Entry.
-func (e Enr) ENRKey() string {
-	return "opera"
-}
+// func (e Enr) ENRKey() string {
+// 	return "opera"
+// }

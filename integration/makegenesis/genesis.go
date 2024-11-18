@@ -87,14 +87,6 @@ func (b *GenesisBuilder) SetStorage(acc common.Address, key, val common.Hash) {
 	b.tmpStateDB.SetState(acc, key, val)
 }
 
-func (b *GenesisBuilder) AddBlock(br ibr.LlrIdxFullBlockRecord) {
-	b.blocks = append(b.blocks, br)
-}
-
-func (b *GenesisBuilder) AddEpoch(er ier.LlrIdxFullEpochRecord) {
-	b.epochs = append(b.epochs, er)
-}
-
 func (b *GenesisBuilder) SetCurrentEpoch(er ier.LlrIdxFullEpochRecord) {
 	b.currentEpoch = er
 }

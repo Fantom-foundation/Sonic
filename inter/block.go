@@ -186,11 +186,6 @@ func (b *BlockBuilder) WithDuration(duration time.Duration) *BlockBuilder {
 	return b
 }
 
-func (b *BlockBuilder) WithDifficulty(difficulty uint64) *BlockBuilder {
-	b.block.Difficulty = difficulty
-	return b
-}
-
 func (b *BlockBuilder) WithGasLimit(gasLimit uint64) *BlockBuilder {
 	b.block.GasLimit = gasLimit
 	return b

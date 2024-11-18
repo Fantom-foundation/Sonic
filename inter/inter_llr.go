@@ -37,24 +37,6 @@ type LlrSignedEpochVote struct {
 	Val                          LlrEpochVote
 }
 
-func AsSignedBlockVotes(e EventPayloadI) LlrSignedBlockVotes {
-	return LlrSignedBlockVotes{
-		Signed:                       AsSignedEventLocator(e),
-		TxsAndMisbehaviourProofsHash: hash.Of(CalcTxHash(e.Txs()).Bytes(), CalcMisbehaviourProofsHash(e.MisbehaviourProofs()).Bytes()),
-		EpochVoteHash:                e.EpochVote().Hash(),
-		Val:                          e.BlockVotes(),
-	}
-}
-
-func AsSignedEpochVote(e EventPayloadI) LlrSignedEpochVote {
-	return LlrSignedEpochVote{
-		Signed:                       AsSignedEventLocator(e),
-		TxsAndMisbehaviourProofsHash: hash.Of(CalcTxHash(e.Txs()).Bytes(), CalcMisbehaviourProofsHash(e.MisbehaviourProofs()).Bytes()),
-		BlockVotesHash:               e.BlockVotes().Hash(),
-		Val:                          e.EpochVote(),
-	}
-}
-
 func (r SignedEventLocator) Size() uint64 {
 	return uint64(len(r.Sig)) + 3*32 + 4*4
 }

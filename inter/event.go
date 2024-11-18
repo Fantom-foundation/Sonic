@@ -2,6 +2,7 @@ package inter
 
 import (
 	"crypto/sha256"
+
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -47,13 +48,6 @@ type EventLocator struct {
 type SignedEventLocator struct {
 	Locator EventLocator
 	Sig     Signature
-}
-
-func AsSignedEventLocator(e EventPayloadI) SignedEventLocator {
-	return SignedEventLocator{
-		Locator: e.Locator(),
-		Sig:     e.Sig(),
-	}
 }
 
 type EventPayloadI interface {
