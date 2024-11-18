@@ -128,11 +128,10 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			opts := env.ReadOnly()
-			opts.From = adminAddr
 
-			isOwn, err := authDriver10.IsOwner(opts)
+			actualOwner, err := authDriver10.Owner(opts)
 			require.NoError(err)
-			require.True(isOwn)
+			require.Equal(adminAddr, actualOwner)
 		}) &&
 		t.Run("SFC upgrade", func(t *testing.T) {
 			require := require.New(t)
