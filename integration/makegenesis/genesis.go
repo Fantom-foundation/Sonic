@@ -161,7 +161,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 			Upgrades: es.Rules.Upgrades,
 			Height:   0,
 		},
-	}), common.Hash{})
+	}), common.Hash{0x01}) // non-zero prevrandao necessary to enable Cancun
 
 	// Execute genesis transactions
 	evmProcessor.Execute(genesisTxs)
@@ -184,13 +184,13 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	evmProcessor.Execute(internalTxs)
 
 	evmBlock, skippedTxs, receipts := evmProcessor.Finalize()
-	for _, r := range receipts {
+	for i, r := range receipts {
 		if r.Status == 0 {
-			return errors.New("genesis transaction reverted")
+			return fmt.Errorf("genesis transaction %d of %d reverted", i, len(receipts))
 		}
 	}
 	if len(skippedTxs) != 0 {
-		return errors.New("genesis transaction is skipped")
+		return fmt.Errorf("genesis transaction is skipped (%v)", skippedTxs)
 	}
 	bs = txListener.Finalize()
 	bs.FinalizedStateRoot = hash.Hash(evmBlock.Root)
