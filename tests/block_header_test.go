@@ -91,10 +91,16 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		testHeaders_NonceIsZeroForAllBlocks(t, headers)
 	})
 
+	t.Run("TimeProgressesMonotonically", func(t *testing.T) {
+		testHeaders_TimeProgressesMonotonically(t, headers)
+	})
+
+	t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
+		testHeaders_MixDigestDiffersForAllBlocks(t, headers)
+	})
+
 	// TODO: Add more tests.
-	// - check that the receipt root matches the receipts in the block by hash
-	// - time is progressing strictly monotonically and approximately matches the current time
-	// - the random mixDigest field is different for each block
+	// - check that the receipt root matches the receipts in the block by hash (ISSUE #81)
 }
 
 func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
@@ -179,7 +185,6 @@ func testHeaders_BaseFeeEvolutionFollowsPricingRules(t *testing.T, headers []*ty
 	}
 }
 
-// - check that the transaction root matches the transactions in the block
 func testHeaders_TransactionRootMatchesBlockTxsHash(t *testing.T, headers []*types.Header, client *ethclient.Client) {
 	require := require.New(t)
 
@@ -188,11 +193,10 @@ func testHeaders_TransactionRootMatchesBlockTxsHash(t *testing.T, headers []*typ
 		require.NoError(err, "failed to get block receipts")
 
 		txsHash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil))
-		require.Equal(header.TxHash, txsHash, "transaction root mismatch")
+		require.Equal(header.TxHash, txsHash, "transaction root hash mismatch")
 	}
 }
 
-// - check that the receipt root matches the receipts in the block
 func testHeaders_ReceiptRootMatchesBlockReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
 	require := require.New(t)
 
@@ -202,11 +206,10 @@ func testHeaders_ReceiptRootMatchesBlockReceipts(t *testing.T, headers []*types.
 		require.NoError(err, "failed to get block receipts")
 
 		receiptsHash := types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil))
-		require.Equal(header.ReceiptHash, receiptsHash, "receipt root mismatch")
+		require.Equal(header.ReceiptHash, receiptsHash, "receipt root hash mismatch")
 	}
 }
 
-// - check that the logs bloom matches the logs in the receipts
 func testHeaders_LogsBloomMatchesLogsInReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
 	require := require.New(t)
 
@@ -242,5 +245,28 @@ func testHeaders_NonceIsZeroForAllBlocks(t *testing.T, headers []*types.Header) 
 
 	for _, header := range headers {
 		require.Empty(header.Nonce.Uint64(), "nonce is not zero")
+	}
+}
+
+func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for i := 1; i < len(headers); i++ {
+		require.GreaterOrEqual(headers[i].Time, headers[i-1].Time, "time is not monotonically increasing")
+		// the following log is related to ISSUE #80
+		// t.Logf("block %d: %d = %v,  previous: %d", i, headers[i].Time,
+		// 	time.Unix(int64(headers[i].Time), 0), headers[i-1].Time)
+	}
+}
+
+func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	seen := map[common.Hash]struct{}{}
+
+	for i := 1; i < len(headers); i++ {
+		_, ok := seen[headers[i].MixDigest]
+		require.False(ok, "mix digest is not unique")
+		seen[headers[i].MixDigest] = struct{}{}
 	}
 }
