@@ -66,7 +66,7 @@ func InternalTxBuilder(statedb state.StateDB) func(calldata []byte, addr common.
 		if nonce == math.MaxUint64 {
 			nonce = statedb.GetNonce(common.Address{})
 		}
-		tx := types.NewTransaction(nonce, addr, common.Big0, 1e6, common.Big0, calldata)
+		tx := types.NewTransaction(nonce, addr, common.Big0, 500_000_000, common.Big0, calldata)
 		nonce++
 		return tx
 	}

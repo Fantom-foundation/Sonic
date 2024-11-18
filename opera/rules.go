@@ -25,6 +25,8 @@ const (
 	londonBit              = 1 << 1
 	llrBit                 = 1 << 2
 	sonicBit               = 1 << 3
+
+	defaultMaxBlockGas uint64 = 1_000_000_000
 )
 
 var DefaultVMConfig = func() vm.Config {
@@ -251,7 +253,7 @@ func MainNetRules() Rules {
 		Epochs:    DefaultEpochsRules(),
 		Economy:   DefaultEconomyRules(),
 		Blocks: BlocksRules{
-			MaxBlockGas:             20500000,
+			MaxBlockGas:             defaultMaxBlockGas,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(1 * time.Minute),
 		},
 	}
@@ -265,7 +267,7 @@ func FakeNetRules() Rules {
 		Epochs:    FakeNetEpochsRules(),
 		Economy:   FakeEconomyRules(),
 		Blocks: BlocksRules{
-			MaxBlockGas:             20500000,
+			MaxBlockGas:             defaultMaxBlockGas,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(3 * time.Second),
 		},
 		Upgrades: Upgrades{
