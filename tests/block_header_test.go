@@ -257,7 +257,7 @@ func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Head
 		return time.Unix(int64(header.Time), int64(currentNano))
 	}
 
-	for i := 2; i < len(headers); i++ {
+	for i := 1; i < len(headers); i++ {
 
 		currentTime := makeTimeFrom(headers[i])
 		previousTime := makeTimeFrom(headers[i-1])
