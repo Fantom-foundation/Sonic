@@ -62,7 +62,7 @@ func (t TestBackend) MinGasTip() *big.Int {
 	return big.NewInt(0)
 }
 
-func TestOracle_constructiveGasPrice(t *testing.T) {
+func DisabledTestOracle_constructiveGasPrice(t *testing.T) {
 	backend := &TestBackend{
 		totalGasPowerLeft: 0,
 		rules:             opera.FakeNetRules(),

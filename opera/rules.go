@@ -26,7 +26,9 @@ const (
 	llrBit                 = 1 << 2
 	sonicBit               = 1 << 3
 
-	defaultMaxBlockGas uint64 = 1_000_000_000
+	defaultMaxBlockGas          = 1_000_000_000
+	defaultTargetGasRate        = 15_000_000 // 15 MGas/s
+	defaultEventEmitterInterval = 600 * time.Millisecond
 )
 
 var DefaultVMConfig = func() vm.Config {
@@ -328,19 +330,16 @@ func DefaultEconomyRules() EconomyRules {
 		BlockMissedSlack: 50,
 		Gas:              DefaultGasRules(),
 		MinGasPrice:      big.NewInt(1e9),
-		MinBaseFee:       big.NewInt(1e3),
-		ShortGasPower:    DefaultShortGasPowerRules(),
-		LongGasPower:     DefaulLongGasPowerRules(),
+		MinBaseFee:       big.NewInt(1e9), // 1 Gwei
+		ShortGasPower:    DefaultGasPowerRules(),
+		LongGasPower:     DefaultGasPowerRules(),
 	}
 	return rules
 }
 
 // FakeEconomyRules returns fakenet economy
 func FakeEconomyRules() EconomyRules {
-	cfg := DefaultEconomyRules()
-	cfg.ShortGasPower = FakeShortGasPowerRules()
-	cfg.LongGasPower = FakeLongGasPowerRules()
-	return cfg
+	return DefaultEconomyRules()
 }
 
 func DefaultDagRules() DagRules {
@@ -353,7 +352,7 @@ func DefaultDagRules() DagRules {
 
 func DefaultEmitterRules() EmitterRules {
 	return EmitterRules{
-		Interval:        inter.Timestamp(600 * time.Millisecond),
+		Interval:        inter.Timestamp(defaultEventEmitterInterval.Nanoseconds()),
 		StallThreshold:  inter.Timestamp(30 * time.Second),
 		StalledInterval: inter.Timestamp(60 * time.Second),
 	}
@@ -361,14 +360,14 @@ func DefaultEmitterRules() EmitterRules {
 
 func DefaultEpochsRules() EpochsRules {
 	return EpochsRules{
-		MaxEpochGas:      1500000000,
+		MaxEpochGas:      defaultTargetGasRate * 300, // ~5 minute epoch
 		MaxEpochDuration: inter.Timestamp(4 * time.Hour),
 	}
 }
 
 func DefaultGasRules() GasRules {
 	return GasRules{
-		MaxEventGas:          10000000 + DefaultEventGas,
+		MaxEventGas:          defaultTargetGasRate*1000/uint64(defaultEventEmitterInterval.Milliseconds()) + DefaultEventGas,
 		EventGas:             DefaultEventGas,
 		ParentGas:            2400,
 		ExtraDataGas:         25,
@@ -381,43 +380,35 @@ func DefaultGasRules() GasRules {
 
 func FakeNetEpochsRules() EpochsRules {
 	cfg := DefaultEpochsRules()
-	cfg.MaxEpochGas /= 5
 	cfg.MaxEpochDuration = inter.Timestamp(10 * time.Minute)
 	return cfg
 }
 
-// DefaulLongGasPowerRules is long-window config
-func DefaulLongGasPowerRules() GasPowerRules {
+// DefaultGasPowerRules is long-window config
+func DefaultGasPowerRules() GasPowerRules {
 	return GasPowerRules{
-		AllocPerSec:        100 * DefaultEventGas,
-		MaxAllocPeriod:     inter.Timestamp(60 * time.Minute),
-		StartupAllocPeriod: inter.Timestamp(5 * time.Second),
+		// In total, the network can spend 2x the target rate of gas per second.
+		// This allocation rate is distributed among validators weighted by their
+		// stake. Validators gain gas power to spend on events accordingly.
+		//
+		// The selected value is twice as high as the targeted gas rate to allow
+		// for some head-room in a stable network load situation. If the network
+		// load is higher than the target rate, gas prices will increase exponentially
+		// and the demand for transactions should decrease.
+		AllocPerSec: 2 * defaultTargetGasRate,
+
+		// Validators can at most spend 5s of gas in one event. This accumulation is
+		// required to accommodate large transactions with a gas limit larger than
+		// the allocation share of a single validator. For instance, if there would
+		// be 10 validators with even stake, and the allocation rate would be 10 MGas/s,
+		// the maximum gas each validator could spend per second would be 1 MGas/s.
+		// With this setting, a single validator could accumulate up to 5 MGas of gas
+		// over a period of 5 seconds to spend in a single event.
+		MaxAllocPeriod: inter.Timestamp(5 * time.Second),
+
+		StartupAllocPeriod: inter.Timestamp(time.Second),
 		MinStartupGas:      DefaultEventGas * 20,
 	}
-}
-
-// DefaultShortGasPowerRules is short-window config
-func DefaultShortGasPowerRules() GasPowerRules {
-	// 2x faster allocation rate, 6x lower max accumulated gas power
-	cfg := DefaulLongGasPowerRules()
-	cfg.AllocPerSec *= 2
-	cfg.StartupAllocPeriod /= 2
-	cfg.MaxAllocPeriod /= 2 * 6
-	return cfg
-}
-
-// FakeLongGasPowerRules is fake long-window config
-func FakeLongGasPowerRules() GasPowerRules {
-	config := DefaulLongGasPowerRules()
-	config.AllocPerSec *= 1000
-	return config
-}
-
-// FakeShortGasPowerRules is fake short-window config
-func FakeShortGasPowerRules() GasPowerRules {
-	config := DefaultShortGasPowerRules()
-	config.AllocPerSec *= 1000
-	return config
 }
 
 func (r Rules) Copy() Rules {
