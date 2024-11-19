@@ -726,10 +726,10 @@ type GetAccountResult struct {
 // 1) CodeHash - hash of the code for the given address
 // 2) StorageRoot - storage root for the given address
 // 3) Balance - the amount of wei for the given address
-// 4) Nonce - the number of transactions the given address
+// 4) Nonce - the number of transactions for given address
 func (s *PublicBlockChainAPI) GetAccount(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (*GetAccountResult, error) {
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
-	if state == nil || err != nil {
+	if err != nil {
 		return nil, err
 	}
 	defer state.Release()

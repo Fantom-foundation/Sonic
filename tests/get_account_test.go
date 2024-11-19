@@ -17,24 +17,12 @@ func TestGetAccount(t *testing.T) {
 	defer net.Stop()
 
 	// Deploy the transient storage contract
-	contract, deployReceipt, err := DeployContract(net, transientstorage.DeployTransientstorage)
+	_, deployReceipt, err := DeployContract(net, transientstorage.DeployTransientstorage)
 	if err != nil {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}
 
-	// Fund the account furthermore with some tokens
 	addr := deployReceipt.ContractAddress
-
-	// Store the value in transient storage value
-	receipt, err := net.Apply(contract.StoreValue)
-	if err != nil {
-		t.Fatalf("failed to store value; %v", err)
-	}
-
-	// Check that the value was stored during transaction and emitted to logs
-	if len(receipt.Logs) != 1 {
-		t.Fatalf("unexpected number of logs; expected 1, got %d", len(receipt.Logs))
-	}
 
 	c, err := net.GetClient()
 	if err != nil {
@@ -58,10 +46,10 @@ func TestGetAccount(t *testing.T) {
 	}
 
 	if got, want := (*uint256.Int)(res.Balance).Uint64(), uint64(0); got != want {
-		t.Errorf("balance too low, got: %d want: %d", got, want)
+		t.Errorf("balance not as expected, got: %d want: %d", got, want)
 	}
 
 	if res.Nonce < 1 {
-		t.Errorf("accounts nonce is expected to by at least 1")
+		t.Errorf("account nonce is expected to by at least 1")
 	}
 }
