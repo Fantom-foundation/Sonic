@@ -23,13 +23,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 )
 
 type (
@@ -51,6 +51,8 @@ type (
 		BaseFee *big.Int
 
 		PrevRandao common.Hash // == mixHash/mixDigest
+
+		Epoch idx.Epoch
 	}
 
 	EvmBlock struct {
@@ -107,6 +109,7 @@ func ToEvmHeader(block *inter.Block, prevHash common.Hash, rules opera.Rules) *E
 		BaseFee:         baseFee,
 		PrevRandao:      prevRandao,
 		WithdrawalsHash: withdrawalsHash,
+		Epoch:           block.Epoch,
 	}
 }
 
@@ -208,7 +211,7 @@ func (h *EvmHeader) ToJson(receipts types.Receipts) *EvmHeaderJson {
 		PrevRandao:      h.PrevRandao,
 		TotalDiff:       new(hexutil.Big),
 		Hash:            &h.Hash,
-		Epoch:           hexutil.Uint64(hash.Event(h.Hash).Epoch()),
+		Epoch:           (hexutil.Uint64)(h.Epoch),
 		WithdrawalsHash: h.WithdrawalsHash,
 		BlobGasUsed:     (*hexutil.Uint64)(new(uint64)),
 		ExcessBlobGas:   (*hexutil.Uint64)(new(uint64)),
