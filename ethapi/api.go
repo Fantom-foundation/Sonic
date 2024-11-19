@@ -2200,20 +2200,27 @@ func stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex in
 	if block.NumberU64() == 0 {
 		return nil, nil, errors.New("no transaction in genesis")
 	}
+
+	// Check correct txIndex
+	if txIndex >= len(block.Transactions) {
+		return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	}
+
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
 	statedb, _, err := b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, nil, err
 	}
-	if txIndex == 0 || len(block.Transactions) == 0 {
-		return nil, statedb, nil
-	}
+
 	// Recompute transactions up to the target index.
 	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 	for idx, tx := range block.Transactions {
 		// Assemble the transaction call message and return if the requested offset
-		msg, _ := evmcore.TxAsMessage(tx, signer, block.BaseFee)
+		msg, err := evmcore.TxAsMessage(tx, signer, block.BaseFee)
+		if err != nil {
+			return nil, nil, err
+		}
 		if idx == txIndex {
 			return msg, statedb, nil
 		}
@@ -2221,7 +2228,7 @@ func stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex in
 		vmenv, _, err := b.GetEVM(ctx, msg, statedb, block.Header(), &opera.DefaultVMConfig)
 		if err != nil {
 			statedb.Release()
-			return msg, nil, err
+			return nil, nil, err
 		}
 		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
