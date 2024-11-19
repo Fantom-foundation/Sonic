@@ -227,7 +227,7 @@ func testHeaders_CoinbaseIsZeroForAllBlocks(t *testing.T, headers []*types.Heade
 	require := require.New(t)
 
 	for _, header := range headers {
-		require.Empty(header.Coinbase, "coinbase is not zero")
+		require.Zero(header.Coinbase, "coinbase is not zero")
 	}
 }
 
@@ -236,7 +236,7 @@ func testHeaders_DifficultyIsZeroForAllBlocks(t *testing.T, headers []*types.Hea
 
 	for _, header := range headers {
 		// Cmp returns 0 when the values are equal
-		require.Equal(0, big.NewInt(0).Cmp(header.Difficulty), "difficulty is not zero")
+		require.Zero(big.NewInt(0).Cmp(header.Difficulty), "difficulty is not zero")
 	}
 }
 
@@ -244,18 +244,30 @@ func testHeaders_NonceIsZeroForAllBlocks(t *testing.T, headers []*types.Header) 
 	require := require.New(t)
 
 	for _, header := range headers {
-		require.Empty(header.Nonce.Uint64(), "nonce is not zero")
+		require.Zero(header.Nonce.Uint64(), "nonce is not zero")
 	}
 }
 
 func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
 
-	for i := 1; i < len(headers); i++ {
-		require.GreaterOrEqual(headers[i].Time, headers[i-1].Time, "time is not monotonically increasing")
+	makeTimeFrom := func(header *types.Header) time.Time {
+		currentNano, _, err := inter.DecodeExtraData(header.Extra)
+		require.NoError(err)
+		return time.Unix(int64(header.Time), int64(currentNano))
+	}
+
+	for i := 2; i < len(headers); i++ {
+
+		currentTime := makeTimeFrom(headers[i])
+		previousTime := makeTimeFrom(headers[i-1])
+
+		require.Greater(currentTime, previousTime, "time is not monotonically increasing")
+
 		// the following log is related to ISSUE #80
-		// t.Logf("block %d: %d = %v,  previous: %d", i, headers[i].Time,
-		// 	time.Unix(int64(headers[i].Time), 0), headers[i-1].Time)
+		// t.Logf("block %v: %v = %v,  previous: %v", i, currentTime,
+		// 	time.Unix(int64(headers[i].Time), 0), previousTime)
+
 	}
 }
 
