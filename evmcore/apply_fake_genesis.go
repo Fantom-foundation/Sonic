@@ -26,7 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var FakeGenesisTime = inter.Timestamp( /*1608600000*/ time.Duration(time.Now().Unix()) * time.Second)
+var FakeGenesisTime = inter.Timestamp(time.Duration(time.Now().Unix()) * time.Second)
 
 // FakeKey gets n-th fake private key.
 func FakeKey(n uint32) *ecdsa.PrivateKey {
