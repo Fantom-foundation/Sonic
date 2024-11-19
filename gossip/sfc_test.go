@@ -1,34 +1,27 @@
 package gossip
 
 // compile SFC with truffle
-//go:generate bash -c "cd ../../opera-sfc && git checkout 424031c81a77196f4e9d60c7d876032dd47208ce"
-//go:generate bash -c "docker run --name go-opera-sfc-compiler -v $(pwd)/contract/solc:/src/build/contracts -v $(pwd)/../../opera-sfc:/src -w /src node:10.5.0 bash -c 'export NPM_CONFIG_PREFIX=~; npm install --no-save; npm install --no-save truffle@5.1.4' && docker commit go-opera-sfc-compiler go-opera-sfc-compiler-image && docker rm go-opera-sfc-compiler"
-//go:generate bash -c "docker run --rm -v $(pwd)/contract/solc:/src/build/contracts -v $(pwd)/../../opera-sfc:/src -w /src go-opera-sfc-compiler-image bash -c 'export NPM_CONFIG_PREFIX=~; rm -f /src/build/contracts/*json; npm run build'"
-//go:generate bash -c "cd ./contract/solc && for f in SFC.json SFCLib.json; do jq -j .bytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin; jq -j .deployedBytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin-runtime; jq -c .abi $DOLLAR{f} > $DOLLAR{f%.json}.abi; done"
-//go:generate bash -c "docker run --rm -v $(pwd)/contract/solc:/src/build/contracts -v $(pwd)/../../opera-sfc:/src -w /src go-opera-sfc-compiler-image bash -c 'export NPM_CONFIG_PREFIX=~; sed -i s/runs:\\ 200,/runs:\\ 10000,/ /src/truffle-config.js; rm -f /src/build/contracts/*json; npm run build'"
-//go:generate bash -c "cd ../../opera-sfc && git checkout -- truffle-config.js; docker rmi go-opera-sfc-compiler-image"
-//go:generate bash -c "cd ./contract/solc && for f in NetworkInitializer.json NodeDriver.json NodeDriverAuth.json; do jq -j .bytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin; jq -j .deployedBytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin-runtime; jq -c .abi $DOLLAR{f} > $DOLLAR{f%.json}.abi; done"
+//go:generate bash -c "cd ../../opera-sfc && git checkout e86e5db95f98965f4489ad962565a3850126023a"
+//go:generate bash -c "docker run --name go-opera-sfc-compiler -v $(pwd)/contract/solc:/src/build/contracts -v $(pwd)/../../opera-sfc:/src -w /src node:23.2.0 bash -c 'export NPM_CONFIG_PREFIX=~; npm install --no-save; npm install --no-save truffle@5.11.5' && docker commit go-opera-sfc-compiler go-opera-sfc-compiler-image && docker rm go-opera-sfc-compiler"
+//go:generate bash -c "docker run --rm -v $(pwd)/contract/solc:/src/artifacts/contracts/sfc -v $(pwd)/../../opera-sfc:/src -w /src go-opera-sfc-compiler-image bash -c 'export NPM_CONFIG_PREFIX=~; rm -f /src/artifacts/contracts/*; npm run compile; chmod -R a+w /src/artifacts/contracts'"
+//go:generate bash -c "cd ./contract/solc && for f in SFC.sol/SFC.json NetworkInitializer.sol/NetworkInitializer.json NodeDriver.sol/NodeDriver.json NodeDriverAuth.sol/NodeDriverAuth.json; do jq -j .bytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin; jq -j .deployedBytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin-runtime; jq -c .abi $DOLLAR{f} > $DOLLAR{f%.json}.abi; done"
 
 // wrap SFC with golang
 //go:generate mkdir -p ./contract/sfc100
-//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/SFC.bin --abi=./contract/solc/SFC.abi --pkg=sfc100 --type=Contract --out=contract/sfc100/contract.go
-//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/SFC.bin-runtime; echo '\"') >> contract/sfc100/contract.go"
-// wrap SFC lib with golang
-//go:generate mkdir -p ./contract/sfclib100
-//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/SFCLib.bin --abi=./contract/solc/SFCLib.abi --pkg=sfclib100 --type=Contract --out=contract/sfclib100/contract.go
-//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/SFCLib.bin-runtime; echo '\"') >> contract/sfclib100/contract.go"
+//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/SFC.sol/SFC.bin --abi=./contract/solc/SFC.sol/SFC.abi --pkg=sfc100 --type=Contract --out=contract/sfc100/contract.go
+//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/SFC.sol/SFC.bin-runtime; echo '\"') >> contract/sfc100/contract.go"
 // wrap NetworkInitializer with golang
 //go:generate mkdir -p ./contract/netinit100
-//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/NetworkInitializer.bin --abi=./contract/solc/NetworkInitializer.abi --pkg=netinit100 --type=Contract --out=contract/netinit100/contract.go
-//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NetworkInitializer.bin-runtime; echo '\"') >> contract/netinit100/contract.go"
+//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/NetworkInitializer.sol/NetworkInitializer.bin --abi=./contract/solc/NetworkInitializer.sol/NetworkInitializer.abi --pkg=netinit100 --type=Contract --out=contract/netinit100/contract.go
+//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NetworkInitializer.sol/NetworkInitializer.bin-runtime; echo '\"') >> contract/netinit100/contract.go"
 // wrap NodeDriver with golang
 //go:generate mkdir -p ./contract/driver100
-//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/NodeDriver.bin --abi=./contract/solc/NodeDriver.abi --pkg=driver100 --type=Contract --out=contract/driver100/contract.go
-//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NodeDriver.bin-runtime; echo '\"') >> contract/driver100/contract.go"
+//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/NodeDriver.sol/NodeDriver.bin --abi=./contract/solc/NodeDriver.sol/NodeDriver.abi --pkg=driver100 --type=Contract --out=contract/driver100/contract.go
+//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NodeDriver.sol/NodeDriver.bin-runtime; echo '\"') >> contract/driver100/contract.go"
 // wrap NodeDriverAuth with golang
 //go:generate mkdir -p ./contract/driverauth100
-//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/NodeDriverAuth.bin --abi=./contract/solc/NodeDriverAuth.abi --pkg=driverauth100 --type=Contract --out=contract/driverauth100/contract.go
-//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NodeDriverAuth.bin-runtime; echo '\"') >> contract/driverauth100/contract.go"
+//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen --bin=./contract/solc/NodeDriverAuth.sol/NodeDriverAuth.bin --abi=./contract/solc/NodeDriverAuth.sol/NodeDriverAuth.abi --pkg=driverauth100 --type=Contract --out=contract/driverauth100/contract.go
+//go:generate bash -c "(echo -ne '\nvar ContractBinRuntime = \"'; cat contract/solc/NodeDriverAuth.sol/NodeDriverAuth.bin-runtime; echo '\"') >> contract/driverauth100/contract.go"
 
 import (
 	"context"
@@ -128,18 +121,17 @@ func TestSFC(t *testing.T) {
 			require := require.New(t)
 
 			opts := env.ReadOnly()
-			opts.From = adminAddr
 
-			isOwn, err := authDriver10.IsOwner(opts)
+			actualOwner, err := authDriver10.Owner(opts)
 			require.NoError(err)
-			require.True(isOwn)
+			require.Equal(adminAddr, actualOwner)
 		}) &&
 		t.Run("SFC upgrade", func(t *testing.T) {
 			require := require.New(t)
 
 			// create new
 			rr, err := env.ApplyTxs(nextEpoch,
-				env.Contract(admin, utils.ToFtm(0), sfc100.ContractBin),
+				env.Contract(admin, utils.ToFtm(0), sfc100.ContractMetaData.Bin),
 			)
 			require.NoError(err)
 			require.Equal(1, rr.Len())
