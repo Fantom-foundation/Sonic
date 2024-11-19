@@ -202,7 +202,7 @@ func testHeaders_ReceiptRootMatchesBlockReceipts(t *testing.T, headers []*types.
 
 	for _, header := range headers {
 		receipts, err := client.BlockReceipts(context.Background(),
-			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+			rpc.BlockNumberOrHashWithHash(header.Hash(), false))
 		require.NoError(err, "failed to get block receipts")
 
 		receiptsHash := types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil))
@@ -265,9 +265,8 @@ func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Head
 		require.Greater(currentTime, previousTime, "time is not monotonically increasing")
 
 		// the following log is related to ISSUE #80
-		// t.Logf("block %v: %v = %v,  previous: %v", i, currentTime,
-		// 	time.Unix(int64(headers[i].Time), 0), previousTime)
-
+		t.Logf("block %v: %v = %v,  previous: %v", i, currentTime,
+			time.Unix(int64(headers[i].Time), 0), previousTime)
 	}
 }
 
