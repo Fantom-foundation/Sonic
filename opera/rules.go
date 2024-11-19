@@ -338,9 +338,9 @@ func FakeNetEpochsRules() EpochsRules {
 // DefaulLongGasPowerRules is long-window config
 func DefaulLongGasPowerRules() GasPowerRules {
 	return GasPowerRules{
-		AllocPerSec:        100 * DefaultEventGas,
-		MaxAllocPeriod:     inter.Timestamp(60 * time.Minute),
-		StartupAllocPeriod: inter.Timestamp(5 * time.Second),
+		AllocPerSec:        20_000_000,
+		MaxAllocPeriod:     inter.Timestamp(time.Second), // inter.Timestamp(60 * time.Minute),
+		StartupAllocPeriod: inter.Timestamp(time.Second), // inter.Timestamp(5 * time.Second),
 		MinStartupGas:      DefaultEventGas * 20,
 	}
 }
@@ -349,23 +349,23 @@ func DefaulLongGasPowerRules() GasPowerRules {
 func DefaultShortGasPowerRules() GasPowerRules {
 	// 2x faster allocation rate, 6x lower max accumulated gas power
 	cfg := DefaulLongGasPowerRules()
-	cfg.AllocPerSec *= 2
-	cfg.StartupAllocPeriod /= 2
-	cfg.MaxAllocPeriod /= 2 * 6
+	//cfg.AllocPerSec *= 2
+	//cfg.StartupAllocPeriod /= 2
+	//cfg.MaxAllocPeriod /= 2 * 6
 	return cfg
 }
 
 // FakeLongGasPowerRules is fake long-window config
 func FakeLongGasPowerRules() GasPowerRules {
 	config := DefaulLongGasPowerRules()
-	config.AllocPerSec *= 1000
+	//config.AllocPerSec *= 1000
 	return config
 }
 
 // FakeShortGasPowerRules is fake short-window config
 func FakeShortGasPowerRules() GasPowerRules {
 	config := DefaultShortGasPowerRules()
-	config.AllocPerSec *= 1000
+	//config.AllocPerSec *= 1000
 	return config
 }
 

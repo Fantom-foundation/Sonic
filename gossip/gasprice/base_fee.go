@@ -1,6 +1,7 @@
 package gasprice
 
 import (
+	"fmt"
 	"math/big"
 	"time"
 
@@ -80,6 +81,8 @@ func getBaseFeeForNextBlock(parent *evmcore.EvmHeader, rules opera.EconomyRules)
 	if usedGas.Cmp(maxUsedGas) > 0 {
 		usedGas.Set(maxUsedGas)
 	}
+
+	fmt.Printf("Target Rate: %v - used gas: %v - duration: %v\n", targetRate, usedGas, duration)
 
 	durationInNanos := big.NewInt(int64(duration)) // 63-bit is enough for a duration of 292 years
 
