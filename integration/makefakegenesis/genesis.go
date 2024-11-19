@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	FakeGenesisTime = inter.Timestamp(1608600000 * time.Second)
+	FakeGenesisTime = inter.Timestamp( /*1608600000*/ time.Duration(time.Now().Unix()) * time.Second)
 )
 
 // FakeKey gets n-th fake private key.
