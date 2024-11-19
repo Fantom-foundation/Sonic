@@ -98,10 +98,6 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
 		testHeaders_MixDigestDiffersForAllBlocks(t, headers)
 	})
-
-	t.Run("HeadersGasUsedIsSumOfGasInTxs", func(t *testing.T) {
-		testHeaders_HeadersGasUsedIsSumOfGasInReceipts(t, headers, client)
-	})
 }
 
 func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
@@ -277,8 +273,30 @@ func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Hea
 	}
 }
 
-func testHeaders_HeadersGasUsedIsSumOfGasInReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+func TestHeaders_HeadersGasUsedIsSumOfGasInReceipts(t *testing.T) {
 	require := require.New(t)
+
+	// get network and client
+	net, err := StartIntegrationTestNet(t.TempDir())
+	require.NoError(err)
+	defer net.Stop()
+
+	client, err := net.GetClient()
+	require.NoError(err)
+	defer client.Close()
+
+	sendTransactions(t, net, client)
+
+	// get headers
+	lastBlock, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(err)
+
+	headers := []*types.Header{}
+	for i := int64(0); i <= int64(lastBlock.NumberU64()); i++ {
+		header, err := client.HeaderByNumber(context.Background(), big.NewInt(i))
+		require.NoError(err)
+		headers = append(headers, header)
+	}
 
 	for _, header := range headers {
 		receipts, err := client.BlockReceipts(context.Background(),
@@ -291,4 +309,39 @@ func testHeaders_HeadersGasUsedIsSumOfGasInReceipts(t *testing.T, headers []*typ
 
 		require.Equal(header.GasUsed, gasUsed, "gas used mismatch for block %v", header.Number)
 	}
+}
+
+func sendTransactions(t *testing.T, net *IntegrationTestNet, client *ethclient.Client) {
+	require := require.New(t)
+	// setup
+	chainId, err := client.ChainID(context.Background())
+	require.NoError(err, "failed to get chain ID:")
+	nonce, err := client.NonceAt(context.Background(), net.validator.Address(), nil)
+	require.NoError(err, "failed to get nonce:")
+
+	factory := &txFactory{
+		senderKey: net.validator.PrivateKey,
+		chainId:   chainId,
+	}
+	send := func(tx *types.Transaction) error {
+		return client.SendTransaction(context.Background(), tx)
+	}
+
+	// make first block with one tx.
+	_, err = net.EndowAccount(common.Address{42}, 100)
+	require.NoError(err, "failed to endow account")
+
+	// get suggested price
+	suggestedPrice, err := client.SuggestGasPrice(context.Background())
+	require.NoError(err, "failed to get suggested gas price")
+
+	// make a block with multiple transactions
+	err = send(factory.makeLegacyTransactionWithPrice(t, nonce+1, int64(suggestedPrice.Uint64())))
+	require.NoError(err)
+
+	err = send(factory.makeAccessListTransactionWithPrice(t, nonce+2, int64(suggestedPrice.Uint64())))
+	require.NoError(err)
+
+	_, err = net.Run(factory.makeDynamicFeeTransactionWithPrice(t, nonce+3, int64(suggestedPrice.Uint64())))
+	require.NoError(err)
 }
