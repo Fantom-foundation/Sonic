@@ -46,6 +46,9 @@ func (em *Emitter) isAllowedToEmit(e inter.EventI, eTxs bool, metric ancestor.Me
 	if passedTime < 0 {
 		passedTime = 0
 	}
+
+	return passedTime >= 600*time.Millisecond // TODO: make it configurable
+
 	passedTimeIdle := e.CreationTime().Time().Sub(em.prevIdleTime)
 	if passedTimeIdle < 0 {
 		passedTimeIdle = 0
