@@ -41,7 +41,7 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	require.GreaterOrEqual(lastBlock.NumberU64(), uint64(numBlocks))
 
 	headers := []*types.Header{}
-	for i := int64(0); i < int64(lastBlock.NumberU64()); i++ {
+	for i := int64(0); i <= int64(lastBlock.NumberU64()); i++ {
 		header, err := client.HeaderByNumber(context.Background(), big.NewInt(i))
 		require.NoError(err)
 		headers = append(headers, header)
@@ -97,6 +97,10 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 
 	t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
 		testHeaders_MixDigestDiffersForAllBlocks(t, headers)
+	})
+
+	t.Run("HeadersGasUsedIsSumOfGasInTxs", func(t *testing.T) {
+		testHeaders_HeadersGasUsedIsSumOfGasInReceipts(t, headers, client)
 	})
 }
 
@@ -270,5 +274,21 @@ func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Hea
 		_, ok := seen[headers[i].MixDigest]
 		require.False(ok, "mix digest is not unique")
 		seen[headers[i].MixDigest] = struct{}{}
+	}
+}
+
+func testHeaders_HeadersGasUsedIsSumOfGasInReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+		require.NoError(err, "failed to get block receipts")
+		var gasUsed uint64
+		for _, receipt := range receipts {
+			gasUsed += receipt.GasUsed
+		}
+
+		require.Equal(header.GasUsed, gasUsed, "gas used mismatch for block %v", header.Number)
 	}
 }
