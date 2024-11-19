@@ -2200,16 +2200,19 @@ func stateAtTransaction(ctx context.Context, block *evmcore.EvmBlock, txIndex in
 	if block.NumberU64() == 0 {
 		return nil, nil, errors.New("no transaction in genesis")
 	}
+
+	// Check correct txIndex
+	if txIndex >= len(block.Transactions) {
+		return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
+	}
+
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
 	statedb, _, err := b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithHash(block.ParentHash, false))
 	if err != nil {
 		return nil, nil, err
 	}
-	if txIndex >= len(block.Transactions) {
-		statedb.Release()
-		return nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash)
-	}
+
 	// Recompute transactions up to the target index.
 	signer := gsignercache.Wrap(types.MakeSigner(b.ChainConfig(), block.Number, uint64(block.Time.Unix())))
 	for idx, tx := range block.Transactions {
