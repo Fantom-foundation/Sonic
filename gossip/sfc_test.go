@@ -1,7 +1,7 @@
 package gossip
 
 // compile SFC with truffle
-//go:generate bash -c "cd ../../opera-sfc && git checkout 8c700e0ef1224cdb29e8afed6ea89eacdfba9dd7"
+//go:generate bash -c "cd ../../opera-sfc && git checkout e86e5db95f98965f4489ad962565a3850126023a"
 //go:generate bash -c "docker run --name go-opera-sfc-compiler -v $(pwd)/contract/solc:/src/build/contracts -v $(pwd)/../../opera-sfc:/src -w /src node:23.2.0 bash -c 'export NPM_CONFIG_PREFIX=~; npm install --no-save; npm install --no-save truffle@5.11.5' && docker commit go-opera-sfc-compiler go-opera-sfc-compiler-image && docker rm go-opera-sfc-compiler"
 //go:generate bash -c "docker run --rm -v $(pwd)/contract/solc:/src/artifacts/contracts/sfc -v $(pwd)/../../opera-sfc:/src -w /src go-opera-sfc-compiler-image bash -c 'export NPM_CONFIG_PREFIX=~; rm -f /src/artifacts/contracts/*; npm run compile; chmod -R a+w /src/artifacts/contracts'"
 //go:generate bash -c "cd ./contract/solc && for f in SFC.sol/SFC.json NetworkInitializer.sol/NetworkInitializer.json NodeDriver.sol/NodeDriver.json NodeDriverAuth.sol/NodeDriverAuth.json; do jq -j .bytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin; jq -j .deployedBytecode $DOLLAR{f} > $DOLLAR{f%.json}.bin-runtime; jq -c .abi $DOLLAR{f} > $DOLLAR{f%.json}.abi; done"
