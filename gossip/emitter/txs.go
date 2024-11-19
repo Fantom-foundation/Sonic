@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
@@ -144,9 +145,15 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 }
 
 func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPriceAndNonce) {
+	debug := false
+
 	maxGasUsed := em.maxGasPowerToUse(e)
 	if maxGasUsed <= e.GasPowerUsed() {
 		return
+	}
+
+	if debug {
+		fmt.Printf("\t\tmaxGasUsed: %d - gas power used: %d\n", maxGasUsed, e.GasPowerUsed())
 	}
 
 	// sort transactions by price and nonce
@@ -158,6 +165,9 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPr
 		if epochcheck.CheckTxs(types.Transactions{resolvedTx}, rules) != nil {
 			txsSkippedEpochRules.Inc(1)
 			sorted.Pop()
+			if debug {
+				fmt.Printf("\t\t\tSkipped due to epoch rules\n")
+			}
 			continue
 		}
 		// check there's enough gas power to originate the transaction
@@ -165,27 +175,46 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPr
 			txsSkippedNoValidatorGas.Inc(1)
 			if params.TxGas >= e.GasPowerLeft().Min() || e.GasPowerUsed()+params.TxGas >= maxGasUsed {
 				// stop if cannot originate even an empty transaction
+				if debug {
+					fmt.Printf("\t\t\tStopped due to insufficient gas - %d >= %d || %d+%d >= %d\n",
+						params.TxGas, e.GasPowerLeft().Min(), e.GasPowerUsed(), params.TxGas, maxGasUsed,
+					)
+				}
 				break
 			}
 			sorted.Pop()
+			if debug {
+				fmt.Printf("\t\t\tSkipped due to insufficient gas\n")
+			}
 			continue
 		}
-		// check not conflicted with already originated txs (in any connected event)
-		if em.originatedTxs.TotalOf(sender) != 0 {
-			txsSkippedConflictingSender.Inc(1)
-			sorted.Pop()
-			continue
-		}
+		/*
+			// check not conflicted with already originated txs (in any connected event)
+			if em.originatedTxs.TotalOf(sender) != 0 {
+				txsSkippedConflictingSender.Inc(1)
+				sorted.Pop()
+				if debug {
+					fmt.Printf("\t\t\tSkipped due to sender conflict\n")
+				}
+				continue
+			}
+		*/
 		// my turn, i.e. try to not include the same tx simultaneously by different validators
 		if !em.isMyTxTurn(tx.Hash, sender, resolvedTx.Nonce(), time.Now(), em.validators, e.Creator(), em.epoch) {
 			txsSkippedNotMyTurn.Inc(1)
 			sorted.Pop()
+			if debug {
+				fmt.Printf("\t\t\tSkipped due to wrong turn\n")
+			}
 			continue
 		}
 		// check transaction is not outdated
 		if !em.world.TxPool.Has(tx.Hash) {
 			txsSkippedOutdated.Inc(1)
 			sorted.Pop()
+			if debug {
+				fmt.Printf("\t\t\tSkipped due to out-dated timer\n")
+			}
 			continue
 		}
 		// add
@@ -193,5 +222,8 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, sorted *transactionsByPr
 		e.SetGasPowerLeft(e.GasPowerLeft().Sub(tx.Gas))
 		e.SetTxs(append(e.Txs(), resolvedTx))
 		sorted.Shift()
+		if debug {
+			fmt.Printf("\t\t\tAdded transaction\n")
+		}
 	}
 }

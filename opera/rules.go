@@ -317,7 +317,7 @@ func DefaultEpochsRules() EpochsRules {
 
 func DefaultGasRules() GasRules {
 	return GasRules{
-		MaxEventGas:          10000000 + DefaultEventGas,
+		MaxEventGas:          1e10, //10000000 + DefaultEventGas,
 		EventGas:             DefaultEventGas,
 		ParentGas:            2400,
 		ExtraDataGas:         25,
@@ -330,7 +330,8 @@ func DefaultGasRules() GasRules {
 
 func FakeNetEpochsRules() EpochsRules {
 	cfg := DefaultEpochsRules()
-	cfg.MaxEpochGas /= 5
+	//cfg.MaxEpochGas /= 5
+	cfg.MaxEpochGas *= 50
 	cfg.MaxEpochDuration = inter.Timestamp(10 * time.Minute)
 	return cfg
 }
@@ -338,7 +339,7 @@ func FakeNetEpochsRules() EpochsRules {
 // DefaulLongGasPowerRules is long-window config
 func DefaulLongGasPowerRules() GasPowerRules {
 	return GasPowerRules{
-		AllocPerSec:        20_000_000,
+		AllocPerSec:        20_000_000_000,
 		MaxAllocPeriod:     inter.Timestamp(time.Second), // inter.Timestamp(60 * time.Minute),
 		StartupAllocPeriod: inter.Timestamp(time.Second), // inter.Timestamp(5 * time.Second),
 		MinStartupGas:      DefaultEventGas * 20,

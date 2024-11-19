@@ -243,6 +243,13 @@ func (em *Emitter) getSortedTxs(baseFee *big.Int) *transactionsByPriceAndNonce {
 		em.Log.Error("Tx pool transactions fetching error", "err", err)
 		return nil
 	}
+
+	numPending := 0
+	for _, txs := range pendingTxs {
+		numPending += len(txs)
+	}
+	fmt.Printf("\tPending transactions: %v / pool size: %d\n", numPending, em.world.TxPool.Count())
+
 	for from, txs := range pendingTxs {
 		// Filter the excessive transactions from each sender
 		if len(txs) > em.config.MaxTxsPerAddress {
@@ -281,6 +288,11 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 		return nil, nil
 	}
 
+	// Checking this here saves wasted processing time for creating the sorted transactions.
+	if time.Since(em.prevEmittedAtTime) < 600*time.Millisecond {
+		return nil, nil
+	}
+
 	minimFeeCap := gaspricelimits.GetMinimumFeeCapForEventEmitter(
 		em.baseFeeSource.GetCurrentBaseFee(),
 	)
@@ -298,6 +310,8 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 		return nil, err
 	}
 	em.syncStatus.prevLocalEmittedID = e.ID()
+
+	fmt.Printf("\tcreated event with %d transactions\n", len(e.Txs()))
 
 	err = em.world.Process(e)
 	if err != nil {

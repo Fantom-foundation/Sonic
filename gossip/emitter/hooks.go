@@ -1,8 +1,9 @@
 package emitter
 
 import (
-	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/utils/txtime"
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -125,8 +126,10 @@ func (em *Emitter) OnEventConfirmed(he inter.EventI) {
 	if he.AnyTxs() {
 		e := em.world.GetEventPayload(he.ID())
 		for _, tx := range e.Txs() {
-			addr, _ := types.Sender(em.world.TxSigner, tx)
-			em.originatedTxs.Dec(addr)
+			/*
+				addr, _ := types.Sender(em.world.TxSigner, tx)
+				em.originatedTxs.Dec(addr)
+			*/
 
 			if he.Creator() == em.config.Validator.ID {
 				txTime := txtime.Get(tx.Hash()) // time when was the tx seen first time

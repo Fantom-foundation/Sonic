@@ -18,6 +18,7 @@ package evmcore
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand/v2"
@@ -1245,6 +1246,10 @@ func (pool *TxPool) scheduleReorgLoop() {
 
 // runReorg runs reset and promoteExecutables on behalf of scheduleReorgLoop.
 func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirtyAccounts *accountSet, events map[common.Address]*txSortedMap) {
+	start := time.Now()
+	defer func() {
+		fmt.Printf("Transaction pool reorg completed, took %v\n", time.Since(start))
+	}()
 	defer close(done)
 
 	var promoteAddrs []common.Address
