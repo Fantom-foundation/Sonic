@@ -1,8 +1,9 @@
 package emitter
 
 import (
-	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/utils/txtime"
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -117,6 +118,8 @@ func (em *Emitter) OnEventConfirmed(he inter.EventI) {
 	if !em.isValidator() {
 		return
 	}
+	now := time.Now()
+	em.lastTimeAnEventWasConfirmed.Store(&now)
 	if em.pendingGas > he.GasPowerUsed() {
 		em.pendingGas -= he.GasPowerUsed()
 	} else {

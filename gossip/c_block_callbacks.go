@@ -158,6 +158,11 @@ func consensusCallbackBeginBlockFn(
 				// We have to skip block in case (1) to ensure that every block ID is unique.
 				// If Atropos ID wasn't used as a block ID, it wouldn't be required.
 				skipBlock := atroposDegenerate
+				// Check if empty block should be pruned
+				if es.Rules.Emitter.Interval == 0 {
+					emptyBlock := false // confirmedEvents.Len() == 0 && cBlock.Cheaters.Len() == 0
+					skipBlock = skipBlock || (emptyBlock && blockCtx.Time < bs.LastBlock.Time+es.Rules.Blocks.MaxEmptyBlockSkipPeriod)
+				}
 				// Finalize the progress of eventProcessor
 				bs = eventProcessor.Finalize(blockCtx, skipBlock) // TODO: refactor to not mutate the bs, it is unclear
 				if skipBlock {

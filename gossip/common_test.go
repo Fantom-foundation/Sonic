@@ -140,6 +140,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 	rules := opera.FakeNetRules()
 	rules.Epochs.MaxEpochDuration = inter.Timestamp(maxEpochDuration)
 	rules.Blocks.MaxEmptyBlockSkipPeriod = 0
+	rules.Emitter.Interval = 0
 
 	genStore := makefakegenesis.FakeGenesisStoreWithRulesAndStart(validatorsNum, utils.ToFtm(genesisBalance), utils.ToFtm(genesisStake), rules, firstEpoch, 2)
 	genesis := genStore.Genesis()
