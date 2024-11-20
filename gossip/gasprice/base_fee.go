@@ -10,12 +10,12 @@ import (
 
 // GetInitialBaseFee returns the initial base fee to be used in the genesis block.
 func GetInitialBaseFee(rules opera.EconomyRules) *big.Int {
-	// The default initial base fee is set to 1 Gwei. While a value of 0 would
+	// The default initial base fee is set to 10 Gwei. While a value of 0 would
 	// also be valid, this value was chosen to have non-zero prices in low-load
 	// test networks at least for the first several minutes. In case of no load
 	// on the network, the base fee will decrease to 0 within ~35 minutes if
 	// no minimum gas price is set in the rules.
-	const defaultInitialBaseFee = 1e9
+	const defaultInitialBaseFee = 1e10
 	fee := big.NewInt(defaultInitialBaseFee)
 	if rules.MinBaseFee != nil && rules.MinBaseFee.Cmp(fee) > 0 {
 		fee = new(big.Int).Set(rules.MinBaseFee)
