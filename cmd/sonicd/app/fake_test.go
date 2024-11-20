@@ -95,5 +95,5 @@ func readFakeValidator(fakenet string) *validatorpk.PubKey {
 }
 
 func genesisStart() string {
-	return time.Unix(genesis.TimeStampZero, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
+	return time.Unix(genesis.TimeStampZero.Unix(), 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 }
