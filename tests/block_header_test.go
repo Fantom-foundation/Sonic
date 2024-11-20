@@ -277,8 +277,19 @@ func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Hea
 	seen := map[common.Hash]struct{}{}
 
 	for i := 1; i < len(headers); i++ {
-		_, ok := seen[headers[i].MixDigest]
-		require.False(ok, "mix digest is not unique")
-		seen[headers[i].MixDigest] = struct{}{}
+		// We skip empty blocks, since in those cases the MixDigest value is not
+		// consumed by any transaction. For those cases, values may be reused.
+		// Since the prev-randao value filling this field is computed based on
+		// the hash of non-empty lachesis events, the value used for empty blocks
+		// is always the same.
+		header := headers[i]
+		if header.GasUsed == 0 {
+			continue
+		}
+		digest := header.MixDigest
+		_, found := seen[digest]
+		require.False(found, "mix digest is not unique, block %d, value %x", i, digest)
+		seen[digest] = struct{}{}
 	}
+	require.NotZero(len(seen), "no non-empty blocks in the chain")
 }
