@@ -393,6 +393,7 @@ func consensusCallbackBeginBlockFn(
 						"txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(skippedTxs)),
 						"age", utils.PrettyDuration(blockAge),
 						"t", utils.PrettyDuration(now.Sub(start)),
+						"epoch", evmBlock.Epoch,
 					)
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 
