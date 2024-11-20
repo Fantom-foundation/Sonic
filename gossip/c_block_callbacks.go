@@ -160,7 +160,7 @@ func consensusCallbackBeginBlockFn(
 				skipBlock := atroposDegenerate
 				// Check if empty block should be pruned
 				if es.Rules.Emitter.Interval == 0 {
-					emptyBlock := false // confirmedEvents.Len() == 0 && cBlock.Cheaters.Len() == 0
+					emptyBlock := confirmedEvents.Len() == 0 && cBlock.Cheaters.Len() == 0
 					skipBlock = skipBlock || (emptyBlock && blockCtx.Time < bs.LastBlock.Time+es.Rules.Blocks.MaxEmptyBlockSkipPeriod)
 				}
 				// Finalize the progress of eventProcessor
