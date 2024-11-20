@@ -12,6 +12,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,14 +67,40 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		testHeaders_BaseFeeEvolutionFollowsPricingRules(t, headers)
 	})
 
+	t.Run("TransactionRootMatchesHashOfBlockTxs", func(t *testing.T) {
+		testHeaders_TransactionRootMatchesBlockTxsHash(t, headers, client)
+	})
+
+	t.Run("ReceiptRootMatchesBlockReceipts", func(t *testing.T) {
+		testHeaders_ReceiptRootMatchesBlockReceipts(t, headers, client)
+	})
+
+	t.Run("LogsBloomMatchesLogsInReceipts", func(t *testing.T) {
+		testHeaders_LogsBloomMatchesLogsInReceipts(t, headers, client)
+	})
+
+	t.Run("CoinbaseIsZeroForAllBlocks", func(t *testing.T) {
+		testHeaders_CoinbaseIsZeroForAllBlocks(t, headers)
+	})
+
+	t.Run("DifficultyIsZeroForAllBlocks", func(t *testing.T) {
+		testHeaders_DifficultyIsZeroForAllBlocks(t, headers)
+	})
+
+	t.Run("NonceIsZeroForAllBlocks", func(t *testing.T) {
+		testHeaders_NonceIsZeroForAllBlocks(t, headers)
+	})
+
+	t.Run("TimeProgressesMonotonically", func(t *testing.T) {
+		testHeaders_TimeProgressesMonotonically(t, headers)
+	})
+
+	t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
+		testHeaders_MixDigestDiffersForAllBlocks(t, headers)
+	})
+
 	// TODO: Add more tests.
-	// - check that the transaction root matches the transactions in the block
-	// - check that the receipt root matches the receipts in the block
-	// - check that the logs bloom matches the logs in the receipts
-	// - coinbase is zero for all blocks
-	// - difficulty and nonce is set to 0
-	// - time is progressing strictly monotonically and approximately matches the current time
-	// - the random mixDigest field is different for each block
+	// - check that the receipt root matches the receipts in the block by hash (ISSUE #81)
 }
 
 func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
@@ -153,5 +182,103 @@ func testHeaders_BaseFeeEvolutionFollowsPricingRules(t *testing.T, headers []*ty
 			headers[i].BaseFee,
 			"base fee of block %d", i,
 		)
+	}
+}
+
+func testHeaders_TransactionRootMatchesBlockTxsHash(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		block, err := client.BlockByNumber(context.Background(), header.Number)
+		require.NoError(err, "failed to get block receipts")
+
+		txsHash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil))
+		require.Equal(header.TxHash, txsHash, "transaction root hash mismatch")
+	}
+}
+
+func testHeaders_ReceiptRootMatchesBlockReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+		require.NoError(err, "failed to get block receipts")
+
+		receiptsHash := types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil))
+		require.Equal(header.ReceiptHash, receiptsHash, "receipt root hash mismatch")
+	}
+}
+
+func testHeaders_LogsBloomMatchesLogsInReceipts(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+		require.NoError(err, "failed to get block receipts")
+
+		logsBloom := types.CreateBloom(receipts)
+		require.Equal(header.Bloom, logsBloom, "logs bloom mismatch")
+	}
+}
+
+func testHeaders_CoinbaseIsZeroForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		require.Zero(header.Coinbase, "coinbase is not zero")
+	}
+}
+
+func testHeaders_DifficultyIsZeroForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		// Cmp returns 0 when the values are equal
+		require.Zero(big.NewInt(0).Cmp(header.Difficulty), "difficulty is not zero")
+	}
+}
+
+func testHeaders_NonceIsZeroForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		require.Zero(header.Nonce.Uint64(), "nonce is not zero")
+	}
+}
+
+func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	makeTimeFrom := func(header *types.Header) time.Time {
+		currentNano, _, err := inter.DecodeExtraData(header.Extra)
+		require.NoError(err)
+		return time.Unix(int64(header.Time), int64(currentNano))
+	}
+
+	for i := 1; i < len(headers); i++ {
+
+		currentTime := makeTimeFrom(headers[i])
+		previousTime := makeTimeFrom(headers[i-1])
+
+		require.Greater(currentTime, previousTime, "time is not monotonically increasing")
+
+		// the following log is related to ISSUE #80
+		// t.Logf("block %v: %v = %v,  previous: %v", i, currentTime,
+		// 	time.Unix(int64(headers[i].Time), 0), previousTime)
+
+	}
+}
+
+func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Header) {
+	require := require.New(t)
+
+	seen := map[common.Hash]struct{}{}
+
+	for i := 1; i < len(headers); i++ {
+		_, ok := seen[headers[i].MixDigest]
+		require.False(ok, "mix digest is not unique")
+		seen[headers[i].MixDigest] = struct{}{}
 	}
 }
