@@ -62,7 +62,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 
 	blockZero := inter.NewBlockBuilder().
 		WithNumber(0).
-		WithTime(genesis.TimeStampZero - 1). // TODO: extend genesis generator to provide time
+		WithTime(genesis.TimeStampZero - 1).
 		WithGasLimit(gasLimit).
 		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
 		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
