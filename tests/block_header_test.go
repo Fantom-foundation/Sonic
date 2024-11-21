@@ -98,9 +98,6 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
 		testHeaders_MixDigestDiffersForAllBlocks(t, headers)
 	})
-
-	// TODO: Add more tests.
-	// - check that the receipt root matches the receipts in the block by hash (ISSUE #81)
 }
 
 func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
@@ -202,7 +199,7 @@ func testHeaders_ReceiptRootMatchesBlockReceipts(t *testing.T, headers []*types.
 
 	for _, header := range headers {
 		receipts, err := client.BlockReceipts(context.Background(),
-			rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(header.Number.Uint64())))
+			rpc.BlockNumberOrHashWithHash(header.Hash(), false))
 		require.NoError(err, "failed to get block receipts")
 
 		receiptsHash := types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil))
@@ -251,23 +248,16 @@ func testHeaders_NonceIsZeroForAllBlocks(t *testing.T, headers []*types.Header) 
 func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Header) {
 	require := require.New(t)
 
-	makeTimeFrom := func(header *types.Header) time.Time {
+	getTimeFrom := func(header *types.Header) time.Time {
 		currentNano, _, err := inter.DecodeExtraData(header.Extra)
 		require.NoError(err)
 		return time.Unix(int64(header.Time), int64(currentNano))
 	}
 
 	for i := 1; i < len(headers); i++ {
-
-		currentTime := makeTimeFrom(headers[i])
-		previousTime := makeTimeFrom(headers[i-1])
-
+		currentTime := getTimeFrom(headers[i])
+		previousTime := getTimeFrom(headers[i-1])
 		require.Greater(currentTime, previousTime, "time is not monotonically increasing")
-
-		// the following log is related to ISSUE #80
-		// t.Logf("block %v: %v = %v,  previous: %v", i, currentTime,
-		// 	time.Unix(int64(headers[i].Time), 0), previousTime)
-
 	}
 }
 
