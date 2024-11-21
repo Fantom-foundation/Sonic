@@ -57,7 +57,8 @@ func LoadGenesisJson(filename string) (*GenesisJson, error) {
 }
 
 func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
-	builder := makegenesis.NewGenesisBuilder()
+	// 0 for default
+	builder := makegenesis.NewGenesisBuilder(0)
 
 	fmt.Printf("Building genesis file - rules: %+v\n", json.Rules)
 

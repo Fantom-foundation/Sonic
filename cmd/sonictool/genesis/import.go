@@ -3,6 +3,7 @@ package genesis
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
+	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -29,7 +30,8 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 	defer dbs.Close()
 	setGenesisProcessing(chaindataDir)
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio)
+	gdbConfig := gossip.IntegrationTestConfig(cacheRatio)
+	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, gdbConfig)
 	if err != nil {
 		return err
 	}

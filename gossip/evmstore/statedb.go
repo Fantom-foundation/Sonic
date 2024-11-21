@@ -30,7 +30,7 @@ func (s *Store) GetTxPoolStateDB() (state.StateDB, error) {
 	if s.carmenState == nil {
 		return nil, fmt.Errorf("unable to get TxPool StateDb - EvmStore is not open")
 	}
-	stateDb := carmen.CreateNonCommittableStateDBUsing(s.carmenState)
+	stateDb := carmen.CreateCustomStateDBUsing(s.carmenState, s.cfg.Cache.StoredDataSize)
 	return CreateCarmenStateDb(stateDb), nil
 }
 

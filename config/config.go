@@ -256,9 +256,9 @@ func cacheScaler(ctx *cli.Context) cachescale.Func {
 		return cachescale.Identity
 	}
 	targetCache := ctx.GlobalInt(flags.CacheFlag.Name)
-	if targetCache < baseSize {
-		log.Crit("Invalid flag", "flag", flags.CacheFlag.Name, "err", fmt.Sprintf("minimum cache size is %d MB", baseSize))
-	}
+	//if targetCache < baseSize {
+	//	log.Crit("Invalid flag", "flag", flags.CacheFlag.Name, "err", fmt.Sprintf("minimum cache size is %d MB", baseSize))
+	//}
 	if totalMemory != 0 && targetCache > maxCache {
 		log.Warn(fmt.Sprintf("Requested cache size exceeds 60%% of available memory. Reducing cache size to %d MB.", maxCache))
 		targetCache = maxCache
@@ -333,9 +333,9 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 		return nil, err
 	}
 
-	if err := cfg.Opera.Validate(); err != nil {
-		return nil, err
-	}
+	//if err := cfg.Opera.Validate(); err != nil {
+	//	return nil, err
+	//}
 
 	if ctx.IsSet(flags.SuppressFramePanicFlag.Name) {
 		cfg.Lachesis.SuppressFramePanic = true

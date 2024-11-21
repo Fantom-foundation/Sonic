@@ -78,7 +78,7 @@ func (s *Store) Open() error {
 	if err != nil {
 		return fmt.Errorf("failed to create carmen state; %s", err)
 	}
-	s.liveStateDb = carmen.CreateStateDBUsing(s.carmenState)
+	s.liveStateDb = carmen.CreateCustomStateDBUsing(s.carmenState, s.cfg.Cache.StoredDataSize)
 	return nil
 }
 

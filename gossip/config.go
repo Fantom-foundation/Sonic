@@ -275,6 +275,17 @@ func MemTestStoreConfig(tmpDir string) StoreConfig {
 	return cfg
 }
 
+// IntegrationTestConfig is used for integration tests - lowers cache to minimum.
+func IntegrationTestConfig(scale cachescale.Func) StoreConfig {
+	cfg := DefaultStoreConfig(scale)
+	// todo play with values
+	//cfg.EVM.StateDb.LiveCache = 100    // bytes, to be overridden by the minimal value
+	//cfg.EVM.StateDb.ArchiveCache = 100 // bytes, to be overridden by the minimal value
+
+	cfg.EVM.Cache.StoredDataSize = 1024
+	return cfg
+}
+
 func DefaultPeerCacheConfig(scale cachescale.Func) PeerCacheConfig {
 	return PeerCacheConfig{
 		MaxKnownTxs:    24576*3/4 + scale.I(24576/4),
