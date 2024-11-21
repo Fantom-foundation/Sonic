@@ -85,11 +85,6 @@ var (
 		Usage: "Time interval to regenerate the local transaction journal",
 		Value: evmcore.DefaultTxPoolConfig.Rejournal,
 	}
-	TxPoolPriceLimitFlag = cli.Uint64Flag{
-		Name:  "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
-		Value: evmcore.DefaultTxPoolConfig.PriceLimit,
-	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
 		Usage: "Price bump percentage to replace an already existing transaction",

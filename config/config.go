@@ -137,9 +137,6 @@ func setTxPool(ctx *cli.Context, cfg *evmcore.TxPoolConfig) error {
 	if ctx.GlobalIsSet(flags.TxPoolRejournalFlag.Name) {
 		cfg.Rejournal = ctx.GlobalDuration(flags.TxPoolRejournalFlag.Name)
 	}
-	if ctx.GlobalIsSet(flags.TxPoolPriceLimitFlag.Name) {
-		cfg.PriceLimit = ctx.GlobalUint64(flags.TxPoolPriceLimitFlag.Name)
-	}
 	if ctx.GlobalIsSet(flags.TxPoolPriceBumpFlag.Name) {
 		cfg.PriceBump = ctx.GlobalUint64(flags.TxPoolPriceBumpFlag.Name)
 	}
