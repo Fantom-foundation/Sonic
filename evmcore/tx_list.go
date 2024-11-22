@@ -294,26 +294,20 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 		oldTipCap := old.GasTipCap()
 		newTipCap := tx.GasTipCap()
 
-		// If the new transaction has gasTipCap than the maxFeeCap it cannot
-		// be paid in entirety and therefore the replacement is rejected.
-		// (This is a redundant check, the pool validation should have caught this)
-		if newTipCap.Cmp(tx.GasFeeCap()) > 0 {
-			return false, nil
-		}
-
 		numerator := big.NewInt(100 + int64(priceBump))
 		denominator := big.NewInt(100)
-		minimumNewTipCap := new(big.Int).Div(new(big.Int).Mul(oldTipCap, numerator), denominator)
+		minimumIncrement := new(big.Int).Div(new(big.Int).Mul(oldTipCap, numerator), denominator)
 
 		// the so called "ultra low prices" have rounding issues with the above calculation
 		// a simple increment of 1 wei is enough to allow replacement
-		ultraLow := minimumNewTipCap.Cmp(oldTipCap) == 0
+		ultraLow := minimumIncrement.Cmp(oldTipCap) == 0
 		if ultraLow && oldTipCap.Cmp(newTipCap) >= 0 {
 			return false, nil
 		}
 
-		// if the new transaction has an insufficient tip cap, it cannot replace the old one
-		if newTipCap.Cmp(minimumNewTipCap) < 0 {
+		// if the new transaction has a lower tip than the old one, it can't replace it
+		// unless the new tip is at least x% higher than the old one
+		if newTipCap.Cmp(minimumIncrement) < 0 {
 			return false, nil
 		}
 	}

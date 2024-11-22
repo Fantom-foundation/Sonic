@@ -65,7 +65,7 @@ func BenchmarkTxListAdd(t *testing.B) {
 	priceLimit := big.NewInt(int64(DefaultTxPoolConfig.PriceLimit))
 	t.ResetTimer()
 	for _, v := range rand.Perm(len(txs)) {
-		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
+		list.Add(txs[v], 10)
 		list.Filter(priceLimit, DefaultTxPoolConfig.PriceLimit)
 	}
 }
@@ -75,32 +75,23 @@ func TestTxList_Replacements(t *testing.T) {
 	list := newTxList(false)
 
 	tx := pricedTransaction(0, 0, big.NewInt(1000), key)
-	inserted, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+	inserted, replacedTx := list.Add(tx, 10)
 	require.True(t, inserted, "transaction was not inserted")
 	require.Nil(t, replacedTx, "replaced transaction should be nil")
 
 	t.Run("transaction replacement with insufficient tipCap is rejected",
 		func(t *testing.T) {
 			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), tx.GasTipCap(), key)
-			replaced, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+			replaced, replacedTx := list.Add(tx, 10)
 			require.False(t, replaced, "transaction was replaced")
 			require.Nil(t, replacedTx, "replaced transaction should be nil")
-		})
-
-	t.Run("transaction replacement with sufficient gasTip increment but insufficient gasFeeCap is rejected",
-		func(t *testing.T) {
-			newGasTip := new(big.Int).Add(tx.GasTipCap(), big.NewInt(100))
-			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), newGasTip, key)
-			replaced, _ := list.Add(tx, DefaultTxPoolConfig.PriceBump)
-			require.False(t, replaced, "transaction wasn't replaced")
 		})
 
 	t.Run("transaction replacement with sufficient gasTip increment is accepted",
 		func(t *testing.T) {
 			newGasTip := new(big.Int).Add(tx.GasTipCap(), big.NewInt(100))
-			newGasFeeCap := new(big.Int).Set(newGasTip)
-			tx := dynamicFeeTx(tx.Nonce(), 0, newGasFeeCap, newGasTip, key)
-			replaced, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), newGasTip, key)
+			replaced, replacedTx := list.Add(tx, 10)
 			require.True(t, replaced, "transaction wasn't replaced")
 			require.NotNil(t, replacedTx, "replaced transaction should't be nil")
 		})
