@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -10,7 +11,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -19,7 +22,7 @@ import (
 )
 
 func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
-	const numBlocks = 5
+	const numBlocks = 10
 	require := require.New(t)
 
 	net, err := StartIntegrationTestNet(t.TempDir())
@@ -47,57 +50,66 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		headers = append(headers, header)
 	}
 
-	t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
-		testHeaders_BlockNumberEqualsPositionInChain(t, headers)
-	})
+	// Run twice - once before and once after a node restart.
+	for range 2 {
+		t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
+			testHeaders_BlockNumberEqualsPositionInChain(t, headers)
+		})
 
-	t.Run("ParentHashCoversParentContent", func(t *testing.T) {
-		testHeaders_ParentHashCoversParentContent(t, headers)
-	})
+		t.Run("ParentHashCoversParentContent", func(t *testing.T) {
+			testHeaders_ParentHashCoversParentContent(t, headers)
+		})
 
-	t.Run("GasUsedIsBelowGasLimit", func(t *testing.T) {
-		testHeaders_GasUsedIsBelowGasLimit(t, headers)
-	})
+		t.Run("GasUsedIsBelowGasLimit", func(t *testing.T) {
+			testHeaders_GasUsedIsBelowGasLimit(t, headers)
+		})
 
-	t.Run("EncodesDurationAndNanoTimeInExtraData", func(t *testing.T) {
-		testHeaders_EncodesDurationAndNanoTimeInExtraData(t, headers)
-	})
+		t.Run("EncodesDurationAndNanoTimeInExtraData", func(t *testing.T) {
+			testHeaders_EncodesDurationAndNanoTimeInExtraData(t, headers)
+		})
 
-	t.Run("BaseFeeEvolutionFollowsPricingRules", func(t *testing.T) {
-		testHeaders_BaseFeeEvolutionFollowsPricingRules(t, headers)
-	})
+		t.Run("BaseFeeEvolutionFollowsPricingRules", func(t *testing.T) {
+			testHeaders_BaseFeeEvolutionFollowsPricingRules(t, headers)
+		})
 
-	t.Run("TransactionRootMatchesHashOfBlockTxs", func(t *testing.T) {
-		testHeaders_TransactionRootMatchesBlockTxsHash(t, headers, client)
-	})
+		t.Run("TransactionRootMatchesHashOfBlockTxs", func(t *testing.T) {
+			testHeaders_TransactionRootMatchesBlockTxsHash(t, headers, client)
+		})
 
-	t.Run("ReceiptRootMatchesBlockReceipts", func(t *testing.T) {
-		testHeaders_ReceiptRootMatchesBlockReceipts(t, headers, client)
-	})
+		t.Run("ReceiptRootMatchesBlockReceipts", func(t *testing.T) {
+			testHeaders_ReceiptRootMatchesBlockReceipts(t, headers, client)
+		})
 
-	t.Run("LogsBloomMatchesLogsInReceipts", func(t *testing.T) {
-		testHeaders_LogsBloomMatchesLogsInReceipts(t, headers, client)
-	})
+		t.Run("LogsBloomMatchesLogsInReceipts", func(t *testing.T) {
+			testHeaders_LogsBloomMatchesLogsInReceipts(t, headers, client)
+		})
 
-	t.Run("CoinbaseIsZeroForAllBlocks", func(t *testing.T) {
-		testHeaders_CoinbaseIsZeroForAllBlocks(t, headers)
-	})
+		t.Run("CoinbaseIsZeroForAllBlocks", func(t *testing.T) {
+			testHeaders_CoinbaseIsZeroForAllBlocks(t, headers)
+		})
 
-	t.Run("DifficultyIsZeroForAllBlocks", func(t *testing.T) {
-		testHeaders_DifficultyIsZeroForAllBlocks(t, headers)
-	})
+		t.Run("DifficultyIsZeroForAllBlocks", func(t *testing.T) {
+			testHeaders_DifficultyIsZeroForAllBlocks(t, headers)
+		})
 
-	t.Run("NonceIsZeroForAllBlocks", func(t *testing.T) {
-		testHeaders_NonceIsZeroForAllBlocks(t, headers)
-	})
+		t.Run("NonceIsZeroForAllBlocks", func(t *testing.T) {
+			testHeaders_NonceIsZeroForAllBlocks(t, headers)
+		})
 
-	t.Run("TimeProgressesMonotonically", func(t *testing.T) {
-		testHeaders_TimeProgressesMonotonically(t, headers)
-	})
+		t.Run("TimeProgressesMonotonically", func(t *testing.T) {
+			testHeaders_TimeProgressesMonotonically(t, headers)
+		})
 
-	t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
-		testHeaders_MixDigestDiffersForAllBlocks(t, headers)
-	})
+		t.Run("MixDigestDiffersForAllBlocks", func(t *testing.T) {
+			testHeaders_MixDigestDiffersForAllBlocks(t, headers)
+		})
+
+		t.Run("LastBlockOfEpochContainsSealingTransaction", func(t *testing.T) {
+			testHeaders_LastBlockOfEpochContainsSealingTransaction(t, headers, client)
+		})
+
+		require.NoError(net.Restart())
+	}
 }
 
 func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
@@ -271,4 +283,59 @@ func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Hea
 		require.False(ok, "mix digest is not unique")
 		seen[headers[i].MixDigest] = struct{}{}
 	}
+}
+
+func testHeaders_LastBlockOfEpochContainsSealingTransaction(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	maxEpoch := 0
+	for i := 0; i < len(headers)-1; i++ {
+
+		block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(i)))
+		require.NoError(err, "failed to get block body")
+
+		currentBlockEpoch, err := getEpochOfBlock(client, i)
+		require.NoError(err, "failed to get epoch of block %d", i)
+
+		nextBlockEpoch, err := getEpochOfBlock(client, i+1)
+		require.NoError(err, "failed to get epoch of block %d", i+1)
+
+		shouldContainSealingTx := currentBlockEpoch != nextBlockEpoch
+
+		containsSealingTx := false
+		for _, tx := range block.Transactions() {
+			// Any call to the driver is considered a sealing transaction.
+			if tx.To() != nil && *tx.To() == driver.ContractAddress {
+				containsSealingTx = true
+				break
+			}
+		}
+
+		require.Equal(
+			shouldContainSealingTx,
+			containsSealingTx,
+			"block %d, current epoch %d, next epoch %d",
+			i, currentBlockEpoch, nextBlockEpoch,
+		)
+
+		if currentBlockEpoch > maxEpoch {
+			maxEpoch = currentBlockEpoch
+		}
+	}
+}
+
+func getEpochOfBlock(client *ethclient.Client, blockNumber int) (int, error) {
+	var result struct {
+		Epoch hexutil.Uint64
+	}
+	err := client.Client().Call(
+		&result,
+		"eth_getBlockByNumber",
+		fmt.Sprintf("0x%x", blockNumber),
+		false,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return int(result.Epoch), nil
 }

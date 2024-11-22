@@ -230,7 +230,7 @@ func consensusCallbackBeginBlockFn(
 					maxBlockGas := es.Rules.Blocks.MaxBlockGas
 					blockDuration := time.Duration(blockCtx.Time - bs.LastBlock.Time)
 					blockBuilder := inter.NewBlockBuilder().
-						WithEpoch(es.Epoch).
+						WithEpoch(blockCtx.Atropos.Epoch()).
 						WithNumber(number).
 						WithParentHash(lastBlockHeader.Hash).
 						WithTime(blockCtx.Time).
