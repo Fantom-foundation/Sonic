@@ -536,6 +536,12 @@ func (p *peer) readStatus(network uint64, handshake *handshakeData, genesis comm
 	return nil
 }
 
+// SendPeerInfoRequest sends a request to the peer asking for an update of
+// its list of peers.
+func (p *peer) SendPeerInfoRequest() error {
+	return p2p.Send(p.rw, GetPeerInfosMsg, struct{}{})
+}
+
 // String implements fmt.Stringer.
 func (p *peer) String() string {
 	return fmt.Sprintf("Peer %s [%s]", p.id,

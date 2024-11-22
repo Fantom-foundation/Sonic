@@ -136,6 +136,9 @@ type handler struct {
 	peerWG  sync.WaitGroup
 	started sync.WaitGroup
 
+	// channels for peer info collection loop
+	peerInfoStop chan<- struct{}
+
 	logger.Instance
 }
 
@@ -369,6 +372,11 @@ func (h *handler) Start(maxPeers int) {
 	h.loopsWg.Add(1)
 	go h.txBroadcastLoop()
 
+	h.loopsWg.Add(1)
+	peerInfoStopChannel := make(chan struct{})
+	h.peerInfoStop = peerInfoStopChannel
+	go h.peerInfoCollectionLoop(peerInfoStopChannel)
+
 	if h.notifier != nil {
 		// broadcast mined events
 		h.emittedEventsCh = make(chan *inter.EventPayload, 4)
@@ -413,6 +421,9 @@ func (h *handler) Stop() {
 		h.emittedEventsSub.Unsubscribe() // quits eventBroadcastLoop
 		h.newEpochsSub.Unsubscribe()     // quits onNewEpochLoop
 	}
+
+	close(h.peerInfoStop)
+	h.peerInfoStop = nil
 
 	// Wait for the subscription loops to come down.
 	h.loopsWg.Wait()
@@ -840,6 +851,34 @@ func (h *handler) handleMsg(p *peer) error {
 
 		_ = h.dagLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
 
+	case msg.Code == GetPeerInfosMsg:
+		h.Log.Info("Peer requested peer infos", "peer", p.id)
+		infos := []peerInfo{}
+		for _, peer := range h.peers.List() {
+			if peer.Useless() {
+				continue
+			}
+			infos = append(infos, peerInfo{
+				ID: peer.ID(),
+			})
+		}
+		h.Log.Info("Sending peer information", "peer", p.id, "num_peers", len(infos), "infos", infos)
+		err := p2p.Send(p.rw, PeerInfosMsg, peerInfoMsg{
+			Peers: infos,
+		})
+		if err != nil {
+			return err
+		}
+
+	case msg.Code == PeerInfosMsg:
+		var infos peerInfoMsg
+		if err := msg.Decode(&infos); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.Log.Info("Received peer information", "peer", p.id, "num_peers", len(infos.Peers), "infos", infos)
+
+		// TODO: consume peer info data
+
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -1026,6 +1065,24 @@ func (h *handler) txBroadcastLoop() {
 			}
 			randPeer := peers[rand.IntN(len(peers))]
 			h.syncTransactions(randPeer, h.txpool.SampleHashes(h.config.Protocol.MaxRandomTxHashesSend))
+		}
+	}
+}
+
+func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
+	//ticker := time.NewTicker(h.config.Protocol.PeerInfoCollectionPeriod)
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+	defer h.loopsWg.Done()
+	for {
+		select {
+		case <-ticker.C:
+			peers := h.peers.List()
+			for _, peer := range peers {
+				peer.SendPeerInfoRequest()
+			}
+		case <-stop:
+			break
 		}
 	}
 }
