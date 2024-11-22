@@ -32,12 +32,3 @@ func (gv Validators) Map() map[idx.ValidatorID]Validator {
 	}
 	return validators
 }
-
-// Addresses returns not sorted genesis addresses
-func (gv Validators) Addresses() []common.Address {
-	res := make([]common.Address, 0, len(gv))
-	for _, v := range gv {
-		res = append(res, v.Address)
-	}
-	return res
-}

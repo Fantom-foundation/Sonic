@@ -79,10 +79,6 @@ func (b *GenesisBuilder) SetCode(acc common.Address, code []byte) {
 	b.tmpStateDB.SetCode(acc, code)
 }
 
-func (b *GenesisBuilder) SetNonce(acc common.Address, nonce uint64) {
-	b.tmpStateDB.SetNonce(acc, nonce)
-}
-
 func (b *GenesisBuilder) SetStorage(acc common.Address, key, val common.Hash) {
 	b.tmpStateDB.SetState(acc, key, val)
 }
