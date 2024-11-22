@@ -66,7 +66,7 @@ func gfileGenesisImport(ctx *cli.Context) error {
 			return fmt.Errorf("genesis file check failed: %w", err)
 		}
 	}
-	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio)
+	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio, false)
 }
 
 func jsonGenesisImport(ctx *cli.Context) error {
@@ -98,7 +98,7 @@ func jsonGenesisImport(ctx *cli.Context) error {
 		return fmt.Errorf("failed to prepare JSON genesis: %w", err)
 	}
 	defer genesisStore.Close()
-	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio)
+	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio, false)
 }
 
 func fakeGenesisImport(ctx *cli.Context) error {
@@ -127,7 +127,7 @@ func fakeGenesisImport(ctx *cli.Context) error {
 
 	genesisStore := makefakegenesis.FakeGenesisStore(idx.Validator(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
-	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio)
+	return genesis.ImportGenesisStore(genesisStore, dataDir, validatorMode, cacheRatio, true)
 }
 
 func isValidatorModeSet(ctx *cli.Context) (bool, error) {

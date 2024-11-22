@@ -32,7 +32,7 @@ func ExportEvents(w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity)
+	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity, false)
 	if err != nil {
 		return err
 	}

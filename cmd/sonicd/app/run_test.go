@@ -26,7 +26,7 @@ func tmpdir(t *testing.T) string {
 func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
 	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
-	if err := genesis.ImportGenesisStore(genesisStore, dataDir, false, cachescale.Identity); err != nil {
+	if err := genesis.ImportGenesisStore(genesisStore, dataDir, false, cachescale.Identity, true); err != nil {
 		panic(err)
 	}
 }

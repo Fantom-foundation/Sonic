@@ -31,7 +31,7 @@ func makeDatabaseHandles() uint64 {
 	if err != nil {
 		panic(fmt.Errorf("failed to raise file descriptor allowance: %v", err))
 	}
-	return raised / 6 + 1
+	return raised/6 + 1
 }
 
 func AssertDatabaseNotInitialized(dataDir string) error {
@@ -61,13 +61,18 @@ func MakeDbProducer(chaindataDir string, cacheRatio cachescale.Func) (kvdb.FullD
 	})
 }
 
-func MakeGossipDb(dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func) (*gossip.Store, error) {
+func MakeGossipDb(dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func, isFakeNet bool) (*gossip.Store, error) {
 	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
 	gdbConfig.EVM.StateDb.Directory = filepath.Join(dataDir, "carmen")
 	if validatorMode {
 		gdbConfig.EVM.StateDb.Archive = carmen.NoArchive
 		gdbConfig.EVM.DisableLogsIndexing = true
 		gdbConfig.EVM.DisableTxHashesIndexing = true
+	}
+
+	if isFakeNet {
+		gdbConfig.EVM.StateDb.ArchiveCache = 1
+		gdbConfig.EVM.StateDb.LiveCache = 1
 	}
 
 	gdb, err := gossip.NewStore(dbs, gdbConfig)

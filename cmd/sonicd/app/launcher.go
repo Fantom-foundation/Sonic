@@ -222,6 +222,10 @@ func lachesisMain(ctx *cli.Context) error {
 	}
 
 	metrics.SetDataDir(cfg.Node.DataDir) // report disk space usage into metrics
+	if ctx.GlobalIsSet(config.FakeNetFlag.Name) {
+		cfg.OperaStore.EVM.StateDb.LiveCache = 1
+		cfg.OperaStore.EVM.StateDb.ArchiveCache = 1
+	}
 
 	node, _, nodeClose, err := config.MakeNode(ctx, cfg)
 	if err != nil {

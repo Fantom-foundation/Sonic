@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 )
 
-func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func) error {
+func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func, isFakeNet bool) error {
 	if err := db.AssertDatabaseNotInitialized(dataDir); err != nil {
 		return fmt.Errorf("database in datadir is already initialized: %w", err)
 	}
@@ -29,7 +29,7 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 	defer dbs.Close()
 	setGenesisProcessing(chaindataDir)
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio)
+	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio, isFakeNet)
 	if err != nil {
 		return err
 	}
