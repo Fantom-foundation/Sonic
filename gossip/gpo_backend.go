@@ -1,11 +1,12 @@
 package gossip
 
 import (
+	"math/big"
+
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 
 	"github.com/Fantom-foundation/go-opera/eventcheck/gaspowercheck"
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -42,8 +43,12 @@ func (b *GPOBackend) PendingTxs() map[common.Address]types.Transactions {
 	return txs
 }
 
+// MinGasTip returns the minimum priority fee that a transaction must have to be
+// to be accepted in the pool of this sonicd instance.
+// Since the validators of the Sonic network do not cash the priority fee, there
+// is no need to set a minimum priority fee.
 func (b *GPOBackend) MinGasTip() *big.Int {
-	return b.txpool.GasPrice()
+	return big.NewInt(0)
 }
 
 // TotalGasPowerLeft returns a total amount of obtained gas power by the validators, according to the latest events from each validator
