@@ -23,7 +23,12 @@ func tmpdir(t *testing.T) string {
 }
 
 func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
-	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	genesisStore := makefakegenesis.FakeGenesisStore(
+		validatorsNum,
+		futils.ToFtm(1000000000),
+		futils.ToFtm(5000000),
+		1024, // 1024 bytes is both small and safe value used by tests
+	)
 	defer genesisStore.Close()
 
 	if err := genesis.ImportGenesisStore(genesis.ImportParams{

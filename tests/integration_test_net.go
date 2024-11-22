@@ -201,13 +201,12 @@ func startIntegrationTestNet(directory string, args []string) (*IntegrationTestN
 		"--datadir", result.stateDir(),
 		"--statedb.livecache", "1",
 		"--statedb.archivecache", "1",
+		"--statedb.cache", "1024",
 	}, args...)
 	if err := sonictool.Run(); err != nil {
 		os.Args = originalArgs
 		return nil, fmt.Errorf("failed to initialize the test network: %w", err)
 	}
-	os.Args = originalArgs
-
 	os.Args = originalArgs
 
 	if err := result.start(); err != nil {
@@ -274,6 +273,7 @@ func (n *IntegrationTestNet) start() error {
 			// database memory usage options
 			"--statedb.livecache", "1",
 			"--statedb.archivecache", "1",
+			"--statedb.cache", "1024",
 		}
 
 		err := sonicd.Run()

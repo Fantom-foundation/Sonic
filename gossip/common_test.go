@@ -143,7 +143,15 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 	rules.Blocks.MaxEmptyBlockSkipPeriod = 0
 	rules.Emitter.Interval = 0
 
-	genStore := makefakegenesis.FakeGenesisStoreWithRulesAndStart(validatorsNum, utils.ToFtm(genesisBalance), utils.ToFtm(genesisStake), rules, firstEpoch, 2)
+	genStore := makefakegenesis.FakeGenesisStoreWithRulesAndStart(
+		validatorsNum,
+		utils.ToFtm(genesisBalance),
+		utils.ToFtm(genesisStake),
+		rules,
+		firstEpoch,
+		2,
+		1024,
+	)
 	genesis := genStore.Genesis()
 
 	store, err := NewMemStore(tb)

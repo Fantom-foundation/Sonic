@@ -365,4 +365,10 @@ var (
 			"Setting this value to <=2000 will result in pre-confugired cache capacity of 2KB", CacheFlag.Name),
 		Value: 0,
 	}
+	StateDbCacheCapacityFlag = cli.IntFlag{
+		Name: "statedb.cache",
+		Usage: "Size of StateDb instances cache in bytes. Leaving this blank (which is generally recommended), or setting" +
+			"this to <1 will automatically set the cache capacity a hard-coded constant.",
+		Value: 0,
+	}
 )

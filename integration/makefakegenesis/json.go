@@ -61,12 +61,12 @@ func LoadGenesisJson(filename string) (*GenesisJson, error) {
 	return &decoded, nil
 }
 
-func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
+func ApplyGenesisJson(json *GenesisJson, stateDbCacheCapacity int) (*genesisstore.Store, error) {
 	if json.BlockZeroTime.IsZero() {
 		return nil, fmt.Errorf("block zero time must be set")
 	}
 
-	builder := makegenesis.NewGenesisBuilder()
+	builder := makegenesis.NewGenesisBuilder(stateDbCacheCapacity)
 
 	fmt.Printf("Building genesis file - rules: %+v\n", json.Rules)
 

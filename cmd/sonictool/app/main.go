@@ -62,6 +62,9 @@ Initialize the database using data from the experimental genesis file.
 					ArgsUsage: "<validators>",
 					Action:    fakeGenesisImport,
 					Flags: []cli.Flag{
+						flags.LiveDbCacheFlag,
+						flags.ArchiveCacheFlag,
+						flags.StateDbCacheCapacityFlag,
 						ModeFlag,
 					},
 					Description: `
