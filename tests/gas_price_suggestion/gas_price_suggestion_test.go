@@ -1,4 +1,4 @@
-package tests
+package gas_price_suggestion
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -92,8 +93,8 @@ func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
 	require.NoError(send(factory.makeBlobTransactionWithPrice(t, nonce+3, feeCap)))
 }
 
-func makeNetAndClient(t *testing.T) (*IntegrationTestNet, *ethclient.Client) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+func makeNetAndClient(t *testing.T) (*tests.IntegrationTestNet, *ethclient.Client) {
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
 	t.Cleanup(func() { net.Stop() })
 

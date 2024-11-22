@@ -1,4 +1,4 @@
-package tests
+package blockheader_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -25,7 +26,7 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	const numBlocks = 10
 	require := require.New(t)
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(err)
 	defer net.Stop()
 
