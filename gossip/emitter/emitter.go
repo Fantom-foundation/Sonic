@@ -25,7 +25,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice/gaspricelimits"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/tracing"
 	"github.com/Fantom-foundation/go-opera/utils/errlock"
 	"github.com/Fantom-foundation/go-opera/utils/rate"
 )
@@ -316,14 +315,6 @@ func (em *Emitter) EmitEvent() (*inter.EventPayload, error) {
 
 	em.prevEmittedAtTime = time.Now() // record time after connecting, to add the event processing time
 	em.prevEmittedAtBlock = em.world.GetLatestBlockIndex()
-
-	// metrics
-	if tracing.Enabled() {
-		for _, t := range e.Txs() {
-			span := tracing.CheckTx(t.Hash(), "Emitter.EmitEvent()")
-			defer span.Finish()
-		}
-	}
 
 	return e, nil
 }

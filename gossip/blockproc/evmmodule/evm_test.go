@@ -8,7 +8,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/ethereum/go-ethereum/common"
-	tracing "github.com/ethereum/go-ethereum/core/tracing"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 	uint256 "github.com/holiman/uint256"

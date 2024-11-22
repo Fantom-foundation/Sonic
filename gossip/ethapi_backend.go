@@ -31,7 +31,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
-	"github.com/Fantom-foundation/go-opera/tracing"
 )
 
 // EthAPIBackend implements ethapi.Backend.
@@ -232,7 +231,7 @@ func (b *EthAPIBackend) GetHeads(ctx context.Context, epoch rpc.BlockNumber) (he
 	return
 }
 
-func (b *EthAPIBackend) epochWithDefault(ctx context.Context, epoch rpc.BlockNumber) (requested idx.Epoch, err error) {
+func (b *EthAPIBackend) epochWithDefault(_ context.Context, epoch rpc.BlockNumber) (requested idx.Epoch, err error) {
 	current := b.svc.store.GetEpoch()
 
 	switch {
@@ -339,12 +338,7 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state vm.
 }
 
 func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) error {
-	err := b.svc.txpool.AddLocal(signedTx)
-	if err == nil {
-		// NOTE: only sent txs tracing, see TxPool.addTxs() for all
-		tracing.StartTx(signedTx.Hash(), "EthAPIBackend.SendTx()")
-	}
-	return err
+	return b.svc.txpool.AddLocal(signedTx)
 }
 
 func (b *EthAPIBackend) SubscribeLogsNotify(ch chan<- []*types.Log) notify.Subscription {
