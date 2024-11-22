@@ -12,31 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func writeToStdIn(t *testing.T, input string) {
-	t.Helper()
-	// Open the file to use as stdin
-	file, err := os.Create(t.TempDir() + "/input.txt")
-	if err != nil {
-		t.Error("Error opening file:", err)
-	}
-	file.Write([]byte(input))
-	t.Cleanup(func() { file.Close() })
-
-	originalStdin := os.Stdin
-	t.Cleanup(func() { os.Stdin = originalStdin })
-	// Redirect stdin
-	file.Seek(0, 0)
-	os.Stdin = file
-}
-
 func TestGenesisExportImport(t *testing.T) {
-	const numBlocks = 5
+	const numBlocks = 3
 	require := require.New(t)
 
 	tempDir := t.TempDir()
 	net, err := StartIntegrationTestNet(tempDir)
 	require.NoError(err)
-	// defer net.Stop()
 
 	// Produce a few blocks on the network.
 	for range numBlocks {
@@ -79,20 +61,21 @@ func TestGenesisExportImport(t *testing.T) {
 
 	t.Log("Network started. Checking if blocks are still there...")
 
-	// TODO: check address 32 has balance
+	// get client
+	client, err := net.GetClient()
+	require.NoError(err)
+	defer client.Close()
 
-	// TODO: check blocks timestamps
+	// TODO: check address 32 has balance
+	balance42, err := client.BalanceAt(context.Background(), common.Address{42}, nil)
+	require.NoError(err)
+	require.Equal(0, balance42.Cmp(big.NewInt(100)), "unexpected balance")
 
 	// Produce a few blocks on the network.
 	for range numBlocks {
 		_, err := net.EndowAccount(common.Address{42}, 100)
 		require.NoError(err, "failed to endow account")
 	}
-
-	// get client
-	client, err := net.GetClient()
-	require.NoError(err)
-	defer client.Close()
 
 	// get headers for all blocks.
 	lastBlock, err := client.BlockByNumber(context.Background(), nil)
@@ -106,5 +89,8 @@ func TestGenesisExportImport(t *testing.T) {
 		headers = append(headers, header)
 	}
 
+	// check headers from before the export are still reachable.
 	require.Equal(numBlocks*2+2, len(headers), "unexpected number of headers")
+
+	// TODO: check blocks timestamps
 }

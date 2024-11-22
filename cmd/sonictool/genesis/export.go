@@ -3,6 +3,10 @@ package genesis
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path"
+
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -16,9 +20,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	gzip "github.com/klauspost/pgzip"
-	"io"
-	"os"
-	"path"
 )
 
 func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, out *os.File, tmpPath string) error {
@@ -64,6 +65,15 @@ func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, 
 		return err
 	}
 
+	// Time
+	writer = newUnitWriter(out)
+	if err := writer.Start(header, "fot", tmpPath); err != nil {
+		return err
+	}
+	if err := exportTimeSection(ctx, gdb, writer); err != nil {
+		return err
+	}
+
 	// archive
 	if includeArchive {
 		writer = newUnitWriter(out)
@@ -74,6 +84,7 @@ func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, 
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -109,7 +120,7 @@ func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWri
 func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to idx.Epoch, maxBlocks idx.Block) error {
 	toBlock := getEpochBlock(to, gdb)
 	fromBlock := idx.Block(1)
-	if maxBlocks != 0 && toBlock > 1 + maxBlocks {
+	if maxBlocks != 0 && toBlock > 1+maxBlocks {
 		fromBlock = toBlock - maxBlocks
 	}
 	log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
@@ -153,6 +164,24 @@ func exportFwsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter
 	}
 	log.Info("Exported Fantom World State Live data")
 	fmt.Printf("- FWS hash: %v \n", fwsHash.String())
+	return nil
+}
+
+func exportTimeSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter) error {
+	log.Info("Exporting Fantom Origin Time")
+
+	originTime := gdb.GetBlock(0).Time
+	fmt.Printf("- Fantom Origin time: %v \n", originTime)
+	if b, err := rlp.EncodeToBytes(originTime); err != nil {
+		return err
+	} else {
+		if _, err := writer.Write(b); err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

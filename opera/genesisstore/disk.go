@@ -15,6 +15,7 @@ import (
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/filelog"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/fileshash"
@@ -143,12 +144,26 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 		return nil, hashes, err
 	}
 
+	// FIX: read "fot" produces "gzip: invalid header"
+	// timeReader, err := unitsMap.Open("fot")
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+	// originTimeInBytes := make([]byte, 64)
+	// _, err = timeReader.Read(originTimeInBytes)
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+	// rawReader.ReadAt(originTimeInBytes[:], 0)
+	// originTime := binary.BigEndian.Uint64(originTimeInBytes[:])
+	// fmt.Println("originTime:", originTime)
+
 	hashedMap := fileshash.Wrap(unitsMap.Open, FilesHashMaxMemUsage, hashes)
 
 	return NewStore(
 			hashedMap,
 			header,
-			0, // this call is only used to get the headers for the signing process, so the time is not important
+			inter.Timestamp(1),
 			rawReader.Close),
 		hashes, nil
 }

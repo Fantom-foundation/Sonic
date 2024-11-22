@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
+	sonictool "github.com/Fantom-foundation/go-opera/cmd/sonictool/app"
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -25,7 +27,8 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	const numBlocks = 10
 	require := require.New(t)
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	tempDir := t.TempDir()
+	net, err := StartIntegrationTestNet(tempDir)
 	require.NoError(err)
 	defer net.Stop()
 
@@ -50,8 +53,7 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		headers = append(headers, header)
 	}
 
-	// Run twice - once before and once after a node restart.
-	for range 2 {
+	runTests := func() {
 		t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
 			testHeaders_BlockNumberEqualsPositionInChain(t, headers)
 		})
@@ -107,9 +109,19 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		t.Run("LastBlockOfEpochContainsSealingTransaction", func(t *testing.T) {
 			testHeaders_LastBlockOfEpochContainsSealingTransaction(t, headers, client)
 		})
-
-		require.NoError(net.Restart())
 	}
+
+	// Run test three times:
+	// - once before a node restart
+	// - once after a node restart.
+	// - once after a node restart with export/import of the genesis file.
+
+	runTests()
+	require.NoError(net.Restart())
+	runTests()
+	restartWithExportImport(t, net, tempDir)
+	runTests()
+
 }
 
 func testHeaders_BlockNumberEqualsPositionInChain(t *testing.T, headers []*types.Header) {
@@ -339,4 +351,41 @@ func getEpochOfBlock(client *ethclient.Client, blockNumber int) (int, error) {
 		return 0, err
 	}
 	return int(result.Epoch), nil
+}
+
+func restartWithExportImport(t *testing.T, net *IntegrationTestNet, tempDir string) {
+	require := require.New(t)
+
+	net.Stop()
+	t.Log("Network stopped. Exporting genesis file...")
+
+	// export
+	os.Args = []string{
+		"sonictool",
+		"--datadir", tempDir,
+		"genesis", "export", "testGenesis.g",
+	}
+	err := sonictool.Run()
+	require.NoError(err, "failed to import genesis file")
+
+	// cleant tempDir
+	err = os.RemoveAll(tempDir)
+	require.NoError(err, "failed to delete temp directory contents")
+
+	t.Log("Temp directory cleaned. Importing genesis file...")
+
+	// import genesis file
+	os.Args = []string{
+		"sonictool",
+		"--datadir", tempDir,
+		"genesis", "--experimental", "testGenesis.g",
+	}
+	err = sonictool.Run()
+	require.NoError(err, "failed to import genesis file")
+
+	t.Log("Genesis file imported. Starting network...")
+
+	// start network again
+	err = net.start()
+	require.NoError(err)
 }
