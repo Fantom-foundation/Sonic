@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
@@ -150,7 +149,7 @@ type dagChunk struct {
 }
 
 type peerInfo struct {
-	ID enode.ID
+	Enode string
 }
 
 type peerInfoMsg struct {
