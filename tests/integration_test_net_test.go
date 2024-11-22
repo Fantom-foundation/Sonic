@@ -11,6 +11,7 @@ import (
 )
 
 func TestIntegrationTestNet_CanStartRestartAndStopIntegrationTestNet(t *testing.T) {
+	t.Parallel()
 	dataDir := t.TempDir()
 	net, err := StartIntegrationTestNet(dataDir)
 	if err != nil {
@@ -23,6 +24,7 @@ func TestIntegrationTestNet_CanStartRestartAndStopIntegrationTestNet(t *testing.
 }
 
 func TestIntegrationTestNet_CanStartMultipleConsecutiveInstances(t *testing.T) {
+	t.Parallel()
 	for i := 0; i < 2; i++ {
 		dataDir := t.TempDir()
 		net, err := StartIntegrationTestNet(dataDir)
@@ -34,6 +36,7 @@ func TestIntegrationTestNet_CanStartMultipleConsecutiveInstances(t *testing.T) {
 }
 
 func TestIntegrationTestNet_IsOperational(t *testing.T) {
+	t.Parallel()
 
 	dataDir := t.TempDir()
 	net, err := StartIntegrationTestNet(dataDir)
