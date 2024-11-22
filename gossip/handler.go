@@ -752,6 +752,16 @@ func (h *handler) handleMsg(p *peer) error {
 			return err
 		}
 		_ = h.dagFetcher.NotifyReceived(eventIDsToInterfaces(events.IDs()))
+
+		// Mark contained events as known by the peer.
+		for _, e := range events {
+			p.MarkEvent(e.ID())
+		}
+		// Forward the events to peers as part of a async broadcasts before processing.
+		for _, e := range events {
+			h.BroadcastEvent(e, 0)
+		}
+
 		h.handleEvents(p, events.Bases(), events.Len() > 1)
 
 	case msg.Code == NewEventIDsMsg:
@@ -914,7 +924,7 @@ func (h *handler) BroadcastEvent(event *inter.EventPayload, passed time.Duration
 	for _, peer := range hashBroadcast {
 		peer.AsyncSendEventIDs(hash.Events{event.ID()}, peer.queue)
 	}
-	log.Trace("Broadcast event", "hash", id, "fullRecipients", len(fullBroadcast), "hashRecipients", len(hashBroadcast))
+	log.Info("Broadcast event", "hash", id, "fullRecipients", len(fullBroadcast), "hashRecipients", len(hashBroadcast))
 	return len(peers)
 }
 
