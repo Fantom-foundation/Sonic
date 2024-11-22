@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
@@ -44,7 +43,7 @@ func (s *Store) Genesis() genesis.Genesis {
 		FwsLiveSection:    s.FwsLiveSection(),
 		FwsArchiveSection: s.FwsArchiveSection(),
 		SignatureSection:  s.SignatureSection(),
-		Time:              inter.Timestamp(s.time),
+		Time:              s.time,
 	}
 }
 

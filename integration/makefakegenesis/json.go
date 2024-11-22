@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -27,6 +28,7 @@ type GenesisJson struct {
 	Rules    opera.Rules
 	Accounts []Account     `json:",omitempty"`
 	Txs      []Transaction `json:",omitempty"`
+	Time     uint64        `json:",omitempty"`
 }
 
 type Account struct {
@@ -76,13 +78,18 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 		}
 	}
 
-	builder.SetTime(FakeGenesisTime)
+	if json.Time == 0 {
+		return nil, fmt.Errorf("genesis time is not set")
+	}
+
+	jsonTime := inter.Timestamp(json.Time)
+	builder.SetTime(jsonTime)
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
 		LlrFullEpochRecord: ier.LlrFullEpochRecord{
 			BlockState: iblockproc.BlockState{
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     0,
-					Time:    FakeGenesisTime,
+					Time:    jsonTime,
 					Atropos: hash.Event{},
 				},
 				FinalizedStateRoot:    hash.Hash{},
@@ -96,8 +103,8 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 			},
 			EpochState: iblockproc.EpochState{
 				Epoch:             1,
-				EpochStart:        FakeGenesisTime,
-				PrevEpochStart:    FakeGenesisTime - 1,
+				EpochStart:        jsonTime,
+				PrevEpochStart:    jsonTime - 1,
 				EpochStateRoot:    hash.Zero,
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),

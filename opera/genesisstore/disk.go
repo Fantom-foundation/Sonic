@@ -15,7 +15,6 @@ import (
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/filelog"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/fileshash"
@@ -149,7 +148,7 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 	return NewStore(
 			hashedMap,
 			header,
-			inter.Timestamp(time.Duration(time.Now().Unix())*time.Second),
+			0, // this call is only used to get the headers for the signing process, so the time is not important
 			rawReader.Close),
 		hashes, nil
 }

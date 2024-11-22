@@ -47,6 +47,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	if g.Time == 0 {
 		return errors.New("genesis time is not set")
 	}
+	fmt.Printf("Importing Fantom World State Time from genesis: %v", g.Time)
 
 	var prevEs *iblockproc.EpochState
 	s.ForEachHistoryBlockEpochState(func(bs iblockproc.BlockState, es iblockproc.EpochState) bool {
@@ -66,7 +67,7 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 
 	blockZero := inter.NewBlockBuilder().
 		WithNumber(0).
-		WithTime(g.Time - 1).
+		WithTime(g.Time).
 		WithGasLimit(gasLimit).
 		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
 		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
