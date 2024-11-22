@@ -180,11 +180,11 @@ func getEmitterIntervalLimit(
 	}
 
 	// Check for a network-stall situation in which events emitting should be slowed down.
-	stallThreshold := time.Duration(rules.StallThreshold) * time.Millisecond
+	stallThreshold := time.Duration(rules.StallThreshold)
 	if delayOfLastConfirmedEvent > stallThreshold {
-		return time.Duration(rules.StalledInterval) * time.Millisecond, true
+		return time.Duration(rules.StalledInterval), true
 	}
 
 	// Use the regular emitter interval.
-	return time.Duration(rules.Interval) * time.Millisecond, true
+	return time.Duration(rules.Interval), true
 }

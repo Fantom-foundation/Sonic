@@ -133,7 +133,7 @@ type EmitterRules struct {
 	// and the inter-connection of events. However, the Interval
 	// should provide an effective mean to control the block
 	// production rate.
-	Interval uint64 // in milliseconds, 0 to disable
+	Interval inter.Timestamp
 
 	// StallThreshold defines a maximum time the confirmation of
 	// new events may be delayed before the emitter considers the
@@ -148,12 +148,12 @@ type EmitterRules struct {
 	// switches to stalled mode.
 	//
 	// This option is disabled if Interval is set to 0.
-	StallThreshold uint64 // in milliseconds
+	StallThreshold inter.Timestamp
 
 	// StallInterval defines the length of the period between
 	// events produced by the emitter in milliseconds when the
 	// network is stalled.
-	StalledInterval uint64 // in milliseconds
+	StalledInterval inter.Timestamp
 }
 
 // BlocksMissed is information about missed blocks from a staker
@@ -353,9 +353,9 @@ func DefaultDagRules() DagRules {
 
 func DefaultEmitterRules() EmitterRules {
 	return EmitterRules{
-		Interval:        600,       // ms
-		StallThreshold:  30 * 1000, // 30 seconds in ms
-		StalledInterval: 60 * 1000, // 60 seconds in ms
+		Interval:        inter.Timestamp(600 * time.Millisecond),
+		StallThreshold:  inter.Timestamp(30 * time.Second),
+		StalledInterval: inter.Timestamp(60 * time.Second),
 	}
 }
 
