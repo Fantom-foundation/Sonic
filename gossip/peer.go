@@ -539,6 +539,12 @@ func (p *peer) readStatus(network uint64, handshake *handshakeData, genesis comm
 // SendPeerInfoRequest sends a request to the peer asking for an update of
 // its list of peers.
 func (p *peer) SendPeerInfoRequest() error {
+	// If the peer doesn't support the peer info protocol, don't bother
+	// sending the request. This request would lead to a disconnect
+	// if the peer doesn't understand it.
+	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_64}) {
+		return nil
+	}
 	return p2p.Send(p.rw, GetPeerInfosMsg, struct{}{})
 }
 
