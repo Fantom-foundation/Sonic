@@ -2,6 +2,7 @@ package topology
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/p2p/enode"
 )
@@ -23,20 +24,29 @@ type ConnectionAdvisor interface {
 
 func NewConnectionAdvisor(localId enode.ID) ConnectionAdvisor {
 	return &connectionAdvisor{
-		neighborhood: make(map[enode.ID][]*enode.Node),
+		neighborhood: make(map[enode.ID]neighborhoodEntry),
 		localId:      localId,
 	}
 }
+
+// maxPeerInfoAge is the maximum age of peer information that is considered
+// when making suggestions on adding or removing peers. Older information
+// is discarded.
+const maxPeerInfoAge = 60 * time.Second
 
 type connectionAdvisor struct {
 	mu sync.Mutex
 
 	// Keep track of the neighbors of each peer.
-	// TODO: add support for forgetting old information.
-	neighborhood map[enode.ID][]*enode.Node
+	neighborhood map[enode.ID]neighborhoodEntry
 
 	// The ID of the local node.
 	localId enode.ID
+}
+
+type neighborhoodEntry struct {
+	peers []*enode.Node
+	time  time.Time
 }
 
 func (c *connectionAdvisor) GetNewPeerSuggestion() *enode.Node {
@@ -44,13 +54,17 @@ func (c *connectionAdvisor) GetNewPeerSuggestion() *enode.Node {
 	defer c.mu.Unlock()
 
 	// Search for a peer of a peer that is not already connected to the local node.
-	for _, peers := range c.neighborhood {
-		for _, peer := range peers {
+	now := time.Now()
+	for peer, entry := range c.neighborhood {
+		if now.Sub(entry.time) > maxPeerInfoAge {
+			delete(c.neighborhood, peer)
+			continue
+		}
+		for _, peer := range entry.peers {
 			if peer.ID() == c.localId {
 				continue
 			}
 			if _, found := c.neighborhood[peer.ID()]; !found {
-				//			fmt.Printf("Suggestion: %v\n", peer.ID())
 				return peer
 			}
 		}
@@ -66,8 +80,13 @@ func (c *connectionAdvisor) GetRedundantPeerSuggestion() *enode.ID {
 	// Count the number of indirect connections to all peers and
 	// recommend the one that has the most indirect connections.
 	count := map[enode.ID]int{}
-	for _, peers := range c.neighborhood {
-		for _, peer := range peers {
+	now := time.Now()
+	for peer, entry := range c.neighborhood {
+		if now.Sub(entry.time) > maxPeerInfoAge {
+			delete(c.neighborhood, peer)
+			continue
+		}
+		for _, peer := range entry.peers {
 			if _, found := c.neighborhood[peer.ID()]; found {
 				count[peer.ID()]++
 			}
@@ -93,5 +112,8 @@ func (c *connectionAdvisor) GetRedundantPeerSuggestion() *enode.ID {
 func (c *connectionAdvisor) UpdatePeers(peer enode.ID, peers []*enode.Node) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.neighborhood[peer] = peers
+	c.neighborhood[peer] = neighborhoodEntry{
+		peers: peers,
+		time:  time.Now(),
+	}
 }
