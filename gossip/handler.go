@@ -1088,8 +1088,7 @@ func (h *handler) txBroadcastLoop() {
 }
 
 func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
-	//ticker := time.NewTicker(h.config.Protocol.PeerInfoCollectionPeriod)
-	ticker := time.NewTicker(3 * time.Second) // TODO: make it configurable
+	ticker := time.NewTicker(h.config.Protocol.PeerInfoCollectionPeriod)
 	defer ticker.Stop()
 	defer h.loopsWg.Done()
 	for {
