@@ -7,6 +7,10 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 )
 
+// ConnectionAdvisor is a utility that provides suggestions on which peers to
+// connect to and which peers to disconnect from based on the local node's
+// neighborhood. The advisor is used to maintain a healthy peer set and to
+// optimize the local node's connectivity as well as the overall network topology.
 type ConnectionAdvisor interface {
 	// GetNewPeerSuggestion returns a new peer that should be connected to.
 	GetNewPeerSuggestion() *enode.Node

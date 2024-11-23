@@ -860,7 +860,6 @@ func (h *handler) handleMsg(p *peer) error {
 		_ = h.dagLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
 
 	case msg.Code == GetPeerInfosMsg:
-		//h.Log.Info("Peer requested peer infos", "peer", p.id)
 		infos := []peerInfo{}
 		for _, peer := range h.peers.List() {
 			if peer.Useless() {
@@ -870,7 +869,6 @@ func (h *handler) handleMsg(p *peer) error {
 				Enode: peer.Node().String(),
 			})
 		}
-		//h.Log.Info("Sending peer information", "peer", p.id, "num_peers", len(infos), "infos", infos)
 		err := p2p.Send(p.rw, PeerInfosMsg, peerInfoMsg{
 			Peers: infos,
 		})
@@ -883,7 +881,6 @@ func (h *handler) handleMsg(p *peer) error {
 		if err := msg.Decode(&infos); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		//h.Log.Info("Received peer information", "peer", p.id, "num_peers", len(infos.Peers), "infos", infos)
 
 		reportedPeers := []*enode.Node{}
 		for _, info := range infos.Peers {
