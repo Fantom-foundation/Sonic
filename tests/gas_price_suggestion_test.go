@@ -37,10 +37,10 @@ func TestGasPrice_SuggestedGasPricesApproximateActualBaseFees(t *testing.T) {
 	}
 
 	// Suggestions should over-estimate the actual prices by ~10%
-	for i := range suggestions {
-		ratio := float64(suggestions[i]) / float64(fees[i])
-		require.Less(1.09, ratio)
-		require.Less(ratio, 1.11)
+	for i := 1; i < int(len(suggestions)); i++ {
+		ratio := float64(suggestions[i]) / float64(fees[i-1])
+		require.Less(1.09, ratio, "step %d, suggestion %d, fees %d", i, suggestions[i], fees[i-1])
+		require.Less(ratio, 1.11, "step %d, suggestion %d, fees %d", i, suggestions[i], fees[i-1])
 	}
 }
 

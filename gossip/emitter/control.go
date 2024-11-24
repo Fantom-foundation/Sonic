@@ -9,6 +9,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 
 	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/opera"
 )
 
 func scalarUpdMetric(diff idx.Event, weight pos.Weight, totalWeight pos.Weight) ancestor.Metric {
@@ -46,6 +47,12 @@ func (em *Emitter) isAllowedToEmit(e inter.EventI, eTxs bool, metric ancestor.Me
 	if passedTime < 0 {
 		passedTime = 0
 	}
+
+	// If a emitter interval is defined, all other heuristics are ignored.
+	if interval, enabled := em.getEmitterIntervalLimit(); enabled {
+		return passedTime >= interval
+	}
+
 	passedTimeIdle := e.CreationTime().Time().Sub(em.prevIdleTime)
 	if passedTimeIdle < 0 {
 		passedTimeIdle = 0
@@ -142,4 +149,42 @@ func (em *Emitter) recheckIdleTime() {
 	if em.idle() {
 		em.prevIdleTime = time.Now()
 	}
+}
+
+func (em *Emitter) getEmitterIntervalLimit() (interval time.Duration, enabled bool) {
+	rules := em.world.GetRules().Emitter
+
+	var lastConfirmationTime time.Time
+	if last := em.lastTimeAnEventWasConfirmed.Load(); last != nil {
+		lastConfirmationTime = *last
+	} else {
+		// If we have not seen any event confirmed so far, we take the current time
+		// as the last confirmation time. Thus, during start-up we would not unnecessarily
+		// slow down the event emission for the very first event. The switch into the stall
+		// mode is delayed by the stall-threshold.
+		now := time.Now()
+		em.lastTimeAnEventWasConfirmed.Store(&now)
+		lastConfirmationTime = now
+	}
+
+	return getEmitterIntervalLimit(rules, time.Since(lastConfirmationTime))
+}
+
+func getEmitterIntervalLimit(
+	rules opera.EmitterRules,
+	delayOfLastConfirmedEvent time.Duration,
+) (interval time.Duration, enabled bool) {
+	// Check whether the fixed-interval emitter should be enabled.
+	if rules.Interval == 0 {
+		return 0, false
+	}
+
+	// Check for a network-stall situation in which events emitting should be slowed down.
+	stallThreshold := time.Duration(rules.StallThreshold)
+	if delayOfLastConfirmedEvent > stallThreshold {
+		return time.Duration(rules.StalledInterval), true
+	}
+
+	// Use the regular emitter interval.
+	return time.Duration(rules.Interval), true
 }

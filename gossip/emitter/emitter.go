@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/utils"
@@ -107,6 +108,8 @@ type Emitter struct {
 	logger.Periodic
 
 	baseFeeSource BaseFeeSource
+
+	lastTimeAnEventWasConfirmed atomic.Pointer[time.Time]
 }
 
 type BaseFeeSource interface {

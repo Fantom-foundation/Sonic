@@ -65,6 +65,9 @@ type RulesRLP struct {
 	// Graph options
 	Dag DagRules
 
+	// Emitter options
+	Emitter EmitterRules
+
 	// Epochs options
 	Epochs EpochsRules
 
@@ -113,6 +116,44 @@ type DagRules struct {
 	MaxParents     idx.Event
 	MaxFreeParents idx.Event // maximum number of parents with no gas cost
 	MaxExtraData   uint32
+}
+
+// EmitterRules contains options for the emitter of Lachesis events.
+type EmitterRules struct {
+	// Interval defines the length of the period
+	// between events produced by the emitter in milliseconds.
+	// If set to zero, a heuristic is used producing irregular
+	// intervals.
+	//
+	// The Interval is used to control the rate of event
+	// production by the emitter. It thus indirectly controls
+	// the rate of blocks production on the network, by providing
+	// a lower bound. The actual block production rate is also
+	// influenced by the number of validators, their weighting,
+	// and the inter-connection of events. However, the Interval
+	// should provide an effective mean to control the block
+	// production rate.
+	Interval inter.Timestamp
+
+	// StallThreshold defines a maximum time the confirmation of
+	// new events may be delayed before the emitter considers the
+	// network stalled.
+	//
+	// The emitter has two modes: normal and stalled. In normal
+	// mode, the emitter produces events at a regular interval, as
+	// defined by the Interval option. In stalled mode, the emitter
+	// produces events at a much lower rate, to avoid building up
+	// a backlog of events. The StallThreshold defines the upper
+	// limit of delay seen for new confirmed events before the emitter
+	// switches to stalled mode.
+	//
+	// This option is disabled if Interval is set to 0.
+	StallThreshold inter.Timestamp
+
+	// StallInterval defines the length of the period between
+	// events produced by the emitter in milliseconds when the
+	// network is stalled.
+	StalledInterval inter.Timestamp
 }
 
 // BlocksMissed is information about missed blocks from a staker
@@ -250,6 +291,7 @@ func MainNetRules() Rules {
 		Name:      "main",
 		NetworkID: MainNetworkID,
 		Dag:       DefaultDagRules(),
+		Emitter:   DefaultEmitterRules(),
 		Epochs:    DefaultEpochsRules(),
 		Economy:   DefaultEconomyRules(),
 		Blocks: BlocksRules{
@@ -264,6 +306,7 @@ func FakeNetRules() Rules {
 		Name:      "fake",
 		NetworkID: FakeNetworkID,
 		Dag:       DefaultDagRules(),
+		Emitter:   DefaultEmitterRules(),
 		Epochs:    FakeNetEpochsRules(),
 		Economy:   FakeEconomyRules(),
 		Blocks: BlocksRules{
@@ -305,6 +348,14 @@ func DefaultDagRules() DagRules {
 		MaxParents:     10,
 		MaxFreeParents: 3,
 		MaxExtraData:   128,
+	}
+}
+
+func DefaultEmitterRules() EmitterRules {
+	return EmitterRules{
+		Interval:        inter.Timestamp(600 * time.Millisecond),
+		StallThreshold:  inter.Timestamp(30 * time.Second),
+		StalledInterval: inter.Timestamp(60 * time.Second),
 	}
 }
 
