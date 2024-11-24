@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip"
+	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"io"
 	"math/big"
 	"os"
 	"path/filepath"
-
-	"github.com/ethereum/go-ethereum/core/tracing"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,7 +25,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/evmmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/sealmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -143,7 +143,7 @@ func (d dummyHeaderReturner) GetHeader(common.Hash, uint64) *evmcore.EvmHeader {
 
 func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types.Transactions) error {
 	bs, es := b.currentEpoch.BlockState.Copy(), b.currentEpoch.EpochState.Copy()
-	es.Rules.Economy.MinGasPrice = big.NewInt(0) // < needed since genesis transactions us gas price 0
+	es.Rules.Economy.MinGasPrice = big.NewInt(0) // < needed since genesis transactions have gas price 0
 
 	blockCtx := iblockproc.BlockCtx{
 		Idx:     bs.LastBlock.Idx + 1,
@@ -152,7 +152,6 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	}
 
 	sealer := blockProc.SealerModule.Start(blockCtx, bs, es)
-	sealing := true
 	txListener := blockProc.TxListenerModule.Start(blockCtx, bs, es, b.tmpStateDB)
 	evmProcessor := blockProc.EVMModule.Start(blockCtx, b.tmpStateDB, dummyHeaderReturner{}, func(l *types.Log) {
 		txListener.OnNewLog(l)
@@ -161,26 +160,24 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 			Upgrades: es.Rules.Upgrades,
 			Height:   0,
 		},
-	}), common.Hash{0x01}) // non-zero prevrandao necessary to enable Cancun
+	}), common.Hash{0x01}) // non-zero PrevRandao necessary to enable Cancun
 
 	// Execute genesis transactions
 	evmProcessor.Execute(genesisTxs)
 	bs = txListener.Finalize()
 
 	// Execute pre-internal transactions
-	preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, b.tmpStateDB)
+	preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, true, b.tmpStateDB)
 	evmProcessor.Execute(preInternalTxs)
 	bs = txListener.Finalize()
 
-	// Seal epoch if requested
-	if sealing {
-		sealer.Update(bs, es)
-		bs, es = sealer.SealEpoch()
-		txListener.Update(bs, es)
-	}
+	// Seal epoch
+	sealer.Update(bs, es)
+	bs, es = sealer.SealEpoch()
+	txListener.Update(bs, es)
 
 	// Execute post-internal transactions
-	internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, b.tmpStateDB)
+	internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, true, b.tmpStateDB)
 	evmProcessor.Execute(internalTxs)
 
 	evmBlock, skippedTxs, receipts := evmProcessor.Finalize()
@@ -197,32 +194,38 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 
 	bs.LastBlock = blockCtx
 
-	prettyHash := func(root hash.Hash) hash.Hash {
-		e := inter.MutableEventPayload{}
-		// for nice-looking ID
-		e.SetEpoch(es.Epoch)
-		e.SetLamport(1)
-		// actual data hashed
-		e.SetExtra(root[:])
-
-		return hash.Hash(e.Build().ID())
-	}
 	receiptsStorage := make([]*types.ReceiptForStorage, len(receipts))
 	for i, r := range receipts {
 		receiptsStorage[i] = (*types.ReceiptForStorage)(r)
 	}
-	// add block
+
+	// construct the block record for the genesis block
+	blockBuilder := inter.NewBlockBuilder().
+		WithNumber(uint64(blockCtx.Idx)).
+		WithParentHash(common.Hash{}).
+		WithStateRoot(common.Hash(bs.FinalizedStateRoot)).
+		WithTime(evmBlock.Time).
+		WithDuration(evmBlock.Duration).
+		WithGasLimit(evmBlock.GasLimit).
+		WithGasUsed(evmBlock.GasUsed).
+		WithBaseFee(evmBlock.BaseFee).
+		WithPrevRandao(evmBlock.PrevRandao).
+		WithEpoch(evmBlock.Epoch)
+
+	for txIndex, transaction := range evmBlock.Transactions {
+		if !bytes.Equal(transaction.Hash().Bytes(), receipts[txIndex].TxHash.Bytes()) {
+			return fmt.Errorf("genesis transaction hash %d of %d does not match with the receipt",
+				txIndex, len(receipts))
+		}
+		blockBuilder.AddTransaction(transaction, receipts[txIndex])
+	}
+
+	llrBlock := gossip.FullBlockRecordFor(blockBuilder.Build(), evmBlock.Transactions, receiptsStorage)
 	b.blocks = append(b.blocks, ibr.LlrIdxFullBlockRecord{
-		LlrFullBlockRecord: ibr.LlrFullBlockRecord{
-			BlockHash: prettyHash(bs.FinalizedStateRoot),
-			StateRoot: bs.FinalizedStateRoot,
-			Txs:       evmBlock.Transactions,
-			Receipts:  receiptsStorage,
-			Time:      blockCtx.Time,
-			GasUsed:   evmBlock.GasUsed,
-		},
-		Idx: blockCtx.Idx,
+		LlrFullBlockRecord: *llrBlock,
+		Idx:                blockCtx.Idx,
 	})
+
 	// add epoch
 	b.currentEpoch = ier.LlrIdxFullEpochRecord{
 		LlrFullEpochRecord: ier.LlrFullEpochRecord{
