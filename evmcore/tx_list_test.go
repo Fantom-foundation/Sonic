@@ -65,7 +65,7 @@ func BenchmarkTxListAdd(t *testing.B) {
 	priceLimit := big.NewInt(int64(DefaultTxPoolConfig.PriceLimit))
 	t.ResetTimer()
 	for _, v := range rand.Perm(len(txs)) {
-		list.Add(txs[v], 10)
+		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
 		list.Filter(priceLimit, DefaultTxPoolConfig.PriceLimit)
 	}
 }
@@ -75,14 +75,14 @@ func TestTxList_Replacements(t *testing.T) {
 	list := newTxList(false)
 
 	tx := pricedTransaction(0, 0, big.NewInt(1000), key)
-	inserted, replacedTx := list.Add(tx, 10)
+	inserted, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
 	require.True(t, inserted, "transaction was not inserted")
 	require.Nil(t, replacedTx, "replaced transaction should be nil")
 
 	t.Run("transaction replacement with insufficient tipCap is rejected",
 		func(t *testing.T) {
 			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), tx.GasTipCap(), key)
-			replaced, replacedTx := list.Add(tx, 10)
+			replaced, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
 			require.False(t, replaced, "transaction was replaced")
 			require.Nil(t, replacedTx, "replaced transaction should be nil")
 		})

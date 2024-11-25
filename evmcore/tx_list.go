@@ -303,18 +303,17 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 
 		numerator := big.NewInt(100 + int64(priceBump))
 		denominator := big.NewInt(100)
-		minimumIncrement := new(big.Int).Div(new(big.Int).Mul(oldTipCap, numerator), denominator)
+		minimumNewTipCap := new(big.Int).Div(new(big.Int).Mul(oldTipCap, numerator), denominator)
 
 		// the so called "ultra low prices" have rounding issues with the above calculation
 		// a simple increment of 1 wei is enough to allow replacement
-		ultraLow := minimumIncrement.Cmp(oldTipCap) == 0
+		ultraLow := minimumNewTipCap.Cmp(oldTipCap) == 0
 		if ultraLow && oldTipCap.Cmp(newTipCap) >= 0 {
 			return false, nil
 		}
 
-		// if the new transaction has a lower tip than the old one, it can't replace it
-		// unless the new tip is at least x% higher than the old one
-		if newTipCap.Cmp(minimumIncrement) < 0 {
+		// if the new transaction has an insufficient tip cap, it cannot replace the old one
+		if newTipCap.Cmp(minimumNewTipCap) < 0 {
 			return false, nil
 		}
 	}
