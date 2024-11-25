@@ -68,8 +68,8 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		headers, err := net.GetHeaders()
 		require.NoError(err)
 
-		t.Run("CompareHeadersHashes", func(t *testing.T) {
-			testHeaders_CompareHeadersHashes(t, originalHashes, headers)
+		t.Run("CompareHeaderHashes", func(t *testing.T) {
+			testHeaders_CompareHeaderHashes(t, originalHashes, headers)
 		})
 
 		t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
@@ -148,12 +148,12 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 	runTests()
 }
 
-func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
+func testHeaders_CompareHeaderHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
 	require := require.New(t)
 
 	require.GreaterOrEqual(len(newHeaders), len(hashes), "length mismatch")
 	for i, hash := range hashes {
-		require.Equal(hash, newHeaders[i].Hash(), "hash mismatch")
+		require.Equal(hash, newHeaders[i].Hash(), "hash mismatch for block %d", i)
 	}
 }
 
