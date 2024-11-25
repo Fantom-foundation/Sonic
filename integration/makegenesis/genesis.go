@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/ethereum/go-ethereum/common"
@@ -29,6 +30,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/ier"
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/opera/blockzero"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/go-opera/utils"
@@ -149,6 +151,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		Time:    bs.LastBlock.Time + 1,
 		Atropos: hash.Event{},
 	}
+	blockDuration := time.Duration(blockCtx.Time - bs.LastBlock.Time)
 
 	sealer := blockProc.SealerModule.Start(blockCtx, bs, es)
 	txListener := blockProc.TxListenerModule.Start(blockCtx, bs, es, b.tmpStateDB)
@@ -198,13 +201,15 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		receiptsStorage[i] = (*types.ReceiptForStorage)(r)
 	}
 
+	blockZero := blockzero.GetBlockZero(es.Rules)
+
 	// construct the block record for the genesis block
 	blockBuilder := inter.NewBlockBuilder().
 		WithNumber(uint64(blockCtx.Idx)).
-		WithParentHash(common.Hash{}).
+		WithParentHash(blockZero.Hash()).
 		WithStateRoot(common.Hash(bs.FinalizedStateRoot)).
 		WithTime(evmBlock.Time).
-		WithDuration(evmBlock.Duration).
+		WithDuration(blockDuration).
 		WithGasLimit(evmBlock.GasLimit).
 		WithGasUsed(evmBlock.GasUsed).
 		WithBaseFee(evmBlock.BaseFee).
