@@ -21,6 +21,14 @@ func (s *Store) GetFullBlockRecord(n idx.Block) *ibr.LlrFullBlockRecord {
 }
 
 func (s *Store) GetFullEpochRecord(epoch idx.Epoch) *ier.LlrFullEpochRecord {
+	// Use current state if current epoch is requested.
+	if epoch == s.GetEpoch() {
+		state := s.getBlockEpochState()
+		return &ier.LlrFullEpochRecord{
+			BlockState: *state.BlockState,
+			EpochState: *state.EpochState,
+		}
+	}
 	hbs, hes := s.GetHistoryBlockEpochState(epoch)
 	if hbs == nil || hes == nil {
 		return nil

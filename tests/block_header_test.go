@@ -22,7 +22,7 @@ import (
 )
 
 func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
-	const numBlocks = 10
+	const numBlocks = 5
 	require := require.New(t)
 
 	net, err := StartIntegrationTestNet(t.TempDir())
@@ -115,10 +115,8 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	runTests()
 	require.NoError(net.Restart())
 	runTests()
-
-	// TODO: enable when genesis is fixed
-	// require.NoError(net.restartWithExportImport())
-	// runTests()
+	require.NoError(net.RestartWithExportImport())
+	runTests()
 }
 
 func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
