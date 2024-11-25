@@ -2,8 +2,6 @@ package evmstore
 
 import (
 	"fmt"
-	"math/big"
-
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
@@ -11,6 +9,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
@@ -66,7 +65,6 @@ func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
 	}
 	stateHash := s.liveStateDb.GetHash()
 	if cc.Hash(root) != stateHash {
-		fmt.Printf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x\n", blockNum, root, stateHash)
 		return fmt.Errorf("hash of the EVM state is incorrect: blockNum: %d expected: %x reproducedHash: %x", blockNum, root, stateHash)
 	}
 	return nil
