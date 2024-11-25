@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: enable test once genesis is fixed
-func DisabledTestGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
+func TestGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
 	const numBlocks = 3
 	require := require.New(t)
 
