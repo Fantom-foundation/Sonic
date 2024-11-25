@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"os"
+
 	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -18,8 +21,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
-	"os"
 )
 
 type GenesisJson struct {
@@ -105,6 +106,10 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 		},
 		Idx: 1,
 	})
+
+	if err := builder.FinalizeBlockZero(json.Rules, FakeGenesisTime); err != nil {
+		return nil, fmt.Errorf("failed to finalize block zero; %v", err)
+	}
 
 	blockProc := makegenesis.DefaultBlockProc()
 	buildTx := txBuilder()
