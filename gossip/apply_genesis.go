@@ -3,9 +3,7 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
-	"github.com/Fantom-foundation/go-opera/inter"
+
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -54,20 +52,6 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 
 	// write blocks
-	rules := s.GetRules()
-	gasLimit := rules.Blocks.MaxBlockGas
-
-	blockZero := inter.NewBlockBuilder().
-		WithNumber(0).
-		WithTime(evmcore.FakeGenesisTime - 1). // TODO: extend genesis generator to provide time
-		WithGasLimit(gasLimit).
-		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
-		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
-		Build()
-
-	s.SetBlock(0, blockZero)
-	s.SetBlockIndex(blockZero.Hash(), 0)
-
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
 		err = s.WriteFullBlockRecord(br)
