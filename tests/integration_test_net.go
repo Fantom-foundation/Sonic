@@ -132,6 +132,7 @@ func (n *IntegrationTestNet) start() error {
 
 			// data storage options
 			"--datadir", n.directory,
+			"--datadir.minfreedisk", "0",
 
 			// fake network options
 			"--fakenet", "1/1",
@@ -144,11 +145,10 @@ func (n *IntegrationTestNet) start() error {
 			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(wsPort),
 			"--ws.api", "admin,eth,ftm",
 
-			// discovery options
-			"--nodiscover",
-
 			//  net options
 			"--port", fmt.Sprint(netPort),
+			"--nat", "none",
+			"--nodiscover",
 		}
 
 		err := sonicd.Run()
