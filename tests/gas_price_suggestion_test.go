@@ -13,35 +13,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGasPrice_SuggestedGasPricesApproximateActualBaseFees(t *testing.T) {
+func TestGasPrice_SuggestionsAreCoherent(t *testing.T) {
 	require := require.New(t)
 	net, client := makeNetAndClient(t)
-
-	fees := []uint64{}
-	suggestions := []uint64{}
 	ctxt := context.Background()
-	for i := 0; i < 10; i++ {
-		suggestedPrice, err := client.SuggestGasPrice(ctxt)
+
+	t.Run("SuggestedGasPricesApproximateActualBaseFees", func(t *testing.T) {
+
+		fees := []uint64{}
+		suggestions := []uint64{}
+		for i := 0; i < 10; i++ {
+			suggestedPrice, err := client.SuggestGasPrice(ctxt)
+			require.NoError(err)
+
+			// new block
+			receipt, err := net.EndowAccount(common.Address{42}, 100)
+			require.NoError(err)
+
+			lastBlock, err := client.BlockByNumber(ctxt, receipt.BlockNumber)
+			require.NoError(err)
+
+			// store suggested and actual prices.
+			suggestions = append(suggestions, suggestedPrice.Uint64())
+			fees = append(fees, lastBlock.BaseFee().Uint64())
+		}
+
+		// Suggestions should over-estimate the actual prices by ~10%
+		for i := 1; i < int(len(suggestions)); i++ {
+			ratio := float64(suggestions[i]) / float64(fees[i-1])
+			require.Less(1.09, ratio, "step %d, suggestion %d, fees %d", i, suggestions[i], fees[i-1])
+			require.Less(ratio, 1.11, "step %d, suggestion %d, fees %d", i, suggestions[i], fees[i-1])
+		}
+
+	})
+
+	t.Run("SuggestedGasTipCapIsZero", func(t *testing.T) {
+		suggestedTip, err := client.SuggestGasTipCap(ctxt)
 		require.NoError(err)
-
-		// new block
-		receipt, err := net.EndowAccount(common.Address{42}, 100)
-		require.NoError(err)
-
-		lastBlock, err := client.BlockByNumber(ctxt, receipt.BlockNumber)
-		require.NoError(err)
-
-		// store suggested and actual prices.
-		suggestions = append(suggestions, suggestedPrice.Uint64())
-		fees = append(fees, lastBlock.BaseFee().Uint64())
-	}
-
-	// Suggestions should over-estimate the actual prices by ~10%
-	for i := 1; i < int(len(suggestions)); i++ {
-		ratio := float64(suggestions[i]) / float64(fees[i-1])
-		require.Less(1.09, ratio, "step %d, suggestion %d, fees %d", i, suggestions[i], fees[i-1])
-		require.Less(ratio, 1.11, "step %d, suggestion %d, fees %d", i, suggestions[i], fees[i-1])
-	}
+		require.Equal(int64(0), suggestedTip.Int64())
+	})
 }
 
 func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
