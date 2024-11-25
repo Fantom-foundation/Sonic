@@ -288,6 +288,79 @@ func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
 	return ethclient.Dial("http://localhost:18545")
 }
 
+// RestartWithExportImport stops the network, exports the genesis file, cleans the
+// temporary directory, imports the genesis file, and starts the network again.
+func (n *IntegrationTestNet) RestartWithExportImport() error {
+	n.Stop()
+	fmt.Println("Network stopped. Exporting genesis file...")
+
+	// save original args
+	originalArgs := os.Args
+
+	// export
+	os.Args = []string{
+		"sonictool",
+		"--datadir", n.directory,
+		"genesis", "export", "testGenesis.g",
+	}
+	err := sonictool.Run()
+	if err != nil {
+		return err
+	}
+
+	// cleant tempDir
+	err = os.RemoveAll(n.directory)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Temp directory cleaned. Importing genesis file...")
+
+	// import genesis file
+	os.Args = []string{
+		"sonictool",
+		"--datadir", n.directory,
+		"genesis", "--experimental", "testGenesis.g",
+	}
+	err = sonictool.Run()
+	if err != nil {
+		return err
+	}
+
+	// restore original args
+	os.Args = originalArgs
+
+	fmt.Println("Genesis file imported. Starting network...")
+
+	// start network again
+	return n.start()
+}
+
+// GetHeaders returns the headers of all blocks on the network from block 0 to the latest block.
+func (n *IntegrationTestNet) GetHeaders() ([]*types.Header, error) {
+	client, err := n.GetClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to the Ethereum client: %w", err)
+	}
+	defer client.Close()
+
+	lastBlock, err := client.BlockByNumber(context.Background(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last block: %w", err)
+	}
+
+	headers := []*types.Header{}
+	for i := int64(0); i < int64(lastBlock.NumberU64()); i++ {
+		header, err := client.HeaderByNumber(context.Background(), big.NewInt(i))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get header: %w", err)
+		}
+		headers = append(headers, header)
+	}
+
+	return headers, nil
+}
+
 // DeployContract is a utility function handling the deployment of a contract on the network.
 // The contract is deployed with by the network's validator account. The function returns the
 // deployed contract instance and the transaction receipt.
