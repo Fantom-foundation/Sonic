@@ -432,16 +432,6 @@ func (pool *TxPool) SubscribeNewTxsNotify(ch chan<- NewTxsNotify) notify.Subscri
 	return pool.scope.Track(pool.txFeed.Subscribe(ch))
 }
 
-// GasPrice returns the current gas price enforced by the transaction pool.
-func (pool *TxPool) GasPrice() *big.Int {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
-
-	return new(big.Int).Set(
-		gaspricelimits.GetMinimumFeeCapForTransactionPool(
-			pool.chain.GetCurrentBaseFee()))
-}
-
 // Nonce returns the next nonce of an account, with all transactions executable
 // by the pool already applied on top.
 func (pool *TxPool) Nonce(addr common.Address) uint64 {
