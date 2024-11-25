@@ -2373,7 +2373,7 @@ func TestTransactionReplacementDynamicFee(t *testing.T) {
 		"Reject not bumping tip and fee cap": {
 			originalTx:    dynamicFeeTx(0, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
 			replacementTx: dynamicFeeTx(0, 100001, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
-			expectedErr:   ErrReplaceUnderpriced, // current lists accept any tip increment increment
+			expectedErr:   ErrReplaceUnderpriced,
 		},
 		"Reject bumping fee cap only": {
 			originalTx:    dynamicFeeTx(1, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
