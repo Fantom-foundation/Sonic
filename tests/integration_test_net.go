@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -55,23 +56,27 @@ type IntegrationTestNet struct {
 // node.
 func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 
-	// initialize the data directory for the single node on the test network
-	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
-	originalArgs := os.Args
-	os.Args = []string{"sonictool", "--datadir", directory, "genesis", "fake", "1"}
-	sonictool.Run()
-	os.Args = originalArgs
-
 	// start the fakenet sonic node
 	result := &IntegrationTestNet{
 		directory: directory,
 		validator: Account{evmcore.FakeKey(1)},
 	}
 
+	// initialize the data directory for the single node on the test network
+	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
+	originalArgs := os.Args
+	os.Args = []string{"sonictool", "--datadir", result.stateDir(), "genesis", "fake", "1"}
+	sonictool.Run()
+	os.Args = originalArgs
+
 	if err := result.start(); err != nil {
 		return nil, fmt.Errorf("failed to start the test network: %w", err)
 	}
 	return result, nil
+}
+
+func (n *IntegrationTestNet) stateDir() string {
+	return filepath.Join(n.directory, "state")
 }
 
 func (n *IntegrationTestNet) start() error {
@@ -86,7 +91,7 @@ func (n *IntegrationTestNet) start() error {
 		// equivalent to running `sonicd ...` but in this local process
 		os.Args = []string{
 			"sonicd",
-			"--datadir", n.directory,
+			"--datadir", n.stateDir(),
 			"--fakenet", "1/1",
 			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
@@ -300,16 +305,16 @@ func (n *IntegrationTestNet) RestartWithExportImport() error {
 	// export
 	os.Args = []string{
 		"sonictool",
-		"--datadir", n.directory,
-		"genesis", "export", "testGenesis.g",
+		"--datadir", n.stateDir(),
+		"genesis", "export", n.directory + "/testGenesis.g",
 	}
 	err := sonictool.Run()
 	if err != nil {
 		return err
 	}
 
-	// cleant tempDir
-	err = os.RemoveAll(n.directory)
+	// clean client state
+	err = os.RemoveAll(n.stateDir())
 	if err != nil {
 		return err
 	}
@@ -319,8 +324,8 @@ func (n *IntegrationTestNet) RestartWithExportImport() error {
 	// import genesis file
 	os.Args = []string{
 		"sonictool",
-		"--datadir", n.directory,
-		"genesis", "--experimental", "testGenesis.g",
+		"--datadir", n.stateDir(),
+		"genesis", "--experimental", n.directory + "/testGenesis.g",
 	}
 	err = sonictool.Run()
 	if err != nil {

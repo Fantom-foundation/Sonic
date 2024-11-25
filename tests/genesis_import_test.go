@@ -10,8 +10,6 @@ import (
 )
 
 // TODO: enable test once genesis is fixed
-//
-//lint:ignore U1000 This is a test that should be re-enabled
 func DisabledTestGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
 	const numBlocks = 3
 	require := require.New(t)

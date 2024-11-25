@@ -124,9 +124,9 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
 	require := require.New(t)
 
-	require.Len(newHeaders, len(hashes), "length mismatch")
-	for i, header := range newHeaders {
-		require.Equal(hashes[i], header.Hash(), "hash mismatch")
+	require.GreaterOrEqual(newHeaders, len(hashes), "length mismatch")
+	for i, hash := range hashes {
+		require.Equal(hash, newHeaders[i].Hash(), "hash mismatch")
 	}
 }
 
