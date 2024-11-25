@@ -444,10 +444,6 @@ func (b *EthAPIBackend) SuggestGasTipCap(ctx context.Context, certainty uint64) 
 	return b.svc.gpo.SuggestTip(certainty)
 }
 
-func (b *EthAPIBackend) EffectiveMinGasPrice(ctx context.Context) *big.Int {
-	return b.svc.gpo.EffectiveMinGasPrice()
-}
-
 func (b *EthAPIBackend) AccountManager() *accounts.Manager {
 	return b.svc.AccountManager()
 }

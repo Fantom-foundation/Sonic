@@ -66,12 +66,6 @@ type tipCache struct {
 	tip *big.Int
 }
 
-type effectiveMinGasPriceCache struct {
-	head  idx.Block
-	lock  sync.RWMutex
-	value *big.Int
-}
-
 // Oracle recommends gas prices based on the content of recent
 // blocks. Suitable for both light and full clients.
 type Oracle struct {
@@ -81,7 +75,6 @@ type Oracle struct {
 
 	cfg Config
 
-	eCache effectiveMinGasPriceCache
 	tCache *lru.Cache
 
 	wg   sync.WaitGroup
@@ -192,30 +185,4 @@ func (gpo *Oracle) SuggestTip(certainty uint64) *big.Int {
 		tip: tip,
 	})
 	return new(big.Int).Set(tip)
-}
-
-// EffectiveMinGasPrice returns softly enforced minimum gas price on top of on-chain minimum gas price (base fee)
-func (gpo *Oracle) EffectiveMinGasPrice() *big.Int {
-	if gpo.backend == nil {
-		return new(big.Int).Set(gpo.cfg.MinGasPrice)
-	}
-	head := gpo.backend.GetLatestBlockIndex()
-
-	// If the latest gasprice is still available, return it.
-	gpo.eCache.lock.RLock()
-	cachedHead, cachedValue := gpo.eCache.head, gpo.eCache.value
-	gpo.eCache.lock.RUnlock()
-	if head <= cachedHead {
-		return new(big.Int).Set(cachedValue)
-	}
-
-	value := gpo.effectiveMinGasPrice()
-
-	gpo.eCache.lock.Lock()
-	if head > gpo.eCache.head {
-		gpo.eCache.head = head
-		gpo.eCache.value = value
-	}
-	gpo.eCache.lock.Unlock()
-	return new(big.Int).Set(value)
 }

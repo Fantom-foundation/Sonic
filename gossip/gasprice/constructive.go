@@ -16,10 +16,6 @@ func (gpo *Oracle) maxTotalGasPower() *big.Int {
 	return maxTotalGasPowerBn
 }
 
-func (gpo *Oracle) effectiveMinGasPrice() *big.Int {
-	return gpo.constructiveGasPrice(0, 0, gpo.backend.GetRules().Economy.MinGasPrice)
-}
-
 func (gpo *Oracle) constructiveGasPrice(gasOffestAbs uint64, gasOffestRatio uint64, adjustedMinPrice *big.Int) *big.Int {
 	max := gpo.maxTotalGasPower()
 

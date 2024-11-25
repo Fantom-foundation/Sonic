@@ -57,7 +57,6 @@ type Backend interface {
 	// General Ethereum API
 	Progress() PeerProgress
 	SuggestGasTipCap(ctx context.Context, certainty uint64) *big.Int
-	EffectiveMinGasPrice(ctx context.Context) *big.Int
 	AccountManager() *accounts.Manager
 	ExtRPCEnabled() bool
 	RPCGasCap() uint64            // global gas cap for eth_call over rpc: DoS protection
