@@ -72,28 +72,32 @@ func DefaultBlockProc() BlockProc {
 }
 
 func (b *GenesisBuilder) AddBalance(acc common.Address, balance *big.Int) {
+	if len(b.blocks) > 0 {
+		panic("cannot add balance after block zero is finalized")
+	}
 	b.tmpStateDB.AddBalance(acc, utils.BigIntToUint256(balance), tracing.BalanceIncreaseGenesisBalance)
 	b.totalSupply.Add(b.totalSupply, balance)
 }
 
 func (b *GenesisBuilder) SetCode(acc common.Address, code []byte) {
+	if len(b.blocks) > 0 {
+		panic("cannot add code after block zero is finalized")
+	}
 	b.tmpStateDB.SetCode(acc, code)
 }
 
 func (b *GenesisBuilder) SetNonce(acc common.Address, nonce uint64) {
+	if len(b.blocks) > 0 {
+		panic("cannot add nonce after block zero is finalized")
+	}
 	b.tmpStateDB.SetNonce(acc, nonce)
 }
 
 func (b *GenesisBuilder) SetStorage(acc common.Address, key, val common.Hash) {
+	if len(b.blocks) > 0 {
+		panic("cannot set storage after block zero is finalized")
+	}
 	b.tmpStateDB.SetState(acc, key, val)
-}
-
-func (b *GenesisBuilder) AddBlock(br ibr.LlrIdxFullBlockRecord) {
-	b.blocks = append(b.blocks, br)
-}
-
-func (b *GenesisBuilder) AddEpoch(er ier.LlrIdxFullEpochRecord) {
-	b.epochs = append(b.epochs, er)
 }
 
 func (b *GenesisBuilder) SetCurrentEpoch(er ier.LlrIdxFullEpochRecord) {
@@ -155,6 +159,9 @@ func (b *GenesisBuilder) FinalizeBlockZero(
 	rules opera.Rules,
 	genesisTime inter.Timestamp,
 ) error {
+	if len(b.blocks) > 0 {
+		return errors.New("block zero already finalized")
+	}
 
 	// construct state root of initial state
 	b.tmpStateDB.EndBlock(0)
