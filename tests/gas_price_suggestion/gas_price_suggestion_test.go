@@ -15,6 +15,7 @@ import (
 )
 
 func TestGasPrice_SuggestedGasPricesApproximateActualBaseFees(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 	net, client := makeNetAndClient(t)
 
@@ -46,6 +47,7 @@ func TestGasPrice_SuggestedGasPricesApproximateActualBaseFees(t *testing.T) {
 }
 
 func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	net, client := makeNetAndClient(t)
