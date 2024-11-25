@@ -155,20 +155,6 @@ func (mr *MockBackendMockRecorder) CurrentEpoch(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentEpoch", reflect.TypeOf((*MockBackend)(nil).CurrentEpoch), ctx)
 }
 
-// EffectiveMinGasPrice mocks base method.
-func (m *MockBackend) EffectiveMinGasPrice(ctx context.Context) *big.Int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EffectiveMinGasPrice", ctx)
-	ret0, _ := ret[0].(*big.Int)
-	return ret0
-}
-
-// EffectiveMinGasPrice indicates an expected call of EffectiveMinGasPrice.
-func (mr *MockBackendMockRecorder) EffectiveMinGasPrice(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EffectiveMinGasPrice", reflect.TypeOf((*MockBackend)(nil).EffectiveMinGasPrice), ctx)
-}
-
 // ExtRPCEnabled mocks base method.
 func (m *MockBackend) ExtRPCEnabled() bool {
 	m.ctrl.T.Helper()
