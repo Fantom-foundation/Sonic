@@ -1,12 +1,13 @@
 package gossip
 
 import (
+	"math/big"
+
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
-	"math/big"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
@@ -15,18 +16,24 @@ import (
 
 // Constants to match up protocol versions and messages
 const (
-	FTM62           = 62
-	ProtocolVersion = FTM62
+	_FTM62    = 62
+	_Sonic_64 = 64
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
 const ProtocolName = "opera"
 
 // ProtocolVersions are the supported versions of the protocol (first is primary).
-var ProtocolVersions = []uint{FTM62}
+var ProtocolVersions = []uint{
+	_Sonic_64,
+	_FTM62,
+}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{FTM62: EventsStreamResponse + 1}
+var protocolLengths = map[uint]uint64{
+	_Sonic_64: PeerInfosMsg + 1,
+	_FTM62:    EventsStreamResponse + 1,
+}
 
 const protocolMaxMsgSize = inter.ProtocolMaxMsgSize // Maximum cap on the size of a protocol message
 
@@ -58,6 +65,11 @@ const (
 	RequestEventsStream = 8
 	// Contains the requested events by RequestEventsStream
 	EventsStreamResponse = 9
+
+	// Request the list of known peers and their information.
+	GetPeerInfosMsg = 10
+	// Contains the list of known peers and their information.
+	PeerInfosMsg = 11
 )
 
 type errCode int
@@ -134,4 +146,12 @@ type dagChunk struct {
 	Done      bool
 	IDs       hash.Events
 	Events    inter.EventPayloads
+}
+
+type peerInfo struct {
+	Enode string
+}
+
+type peerInfoMsg struct {
+	Peers []peerInfo
 }
