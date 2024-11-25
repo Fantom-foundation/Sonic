@@ -294,6 +294,13 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 		oldTipCap := old.GasTipCap()
 		newTipCap := tx.GasTipCap()
 
+		// If the new transaction has gasTipCap than the maxFeeCap it cannot
+		// be paid in entirety and therefore the replacement is rejected.
+		// (This is a redundant check, the pool validation should have caught this)
+		if newTipCap.Cmp(tx.GasFeeCap()) > 0 {
+			return false, nil
+		}
+
 		numerator := big.NewInt(100 + int64(priceBump))
 		denominator := big.NewInt(100)
 		minimumIncrement := new(big.Int).Div(new(big.Int).Mul(oldTipCap, numerator), denominator)
