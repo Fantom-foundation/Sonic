@@ -10,7 +10,9 @@ import (
 )
 
 // TODO: enable test once genesis is fixed
-func testGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
+//
+//lint:ignore U1000 This is a test that should be re-enabled
+func DisabledTestGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
 	const numBlocks = 3
 	require := require.New(t)
 
@@ -24,6 +26,8 @@ func testGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
 		require.NoError(err, "failed to endow account")
 	}
 
+	// TODO: check for error once genesis is fixed
+
 	// get client
 	client, err := net.GetClient()
 	require.NoError(err)
@@ -36,7 +40,8 @@ func testGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
 		originalHashes = append(originalHashes, header.Hash())
 	}
 
-	net.RestartWithExportImport()
+	err = net.RestartWithExportImport()
+	require.NoError(err)
 
 	// get a fresh client
 	newClient, err := net.GetClient()
