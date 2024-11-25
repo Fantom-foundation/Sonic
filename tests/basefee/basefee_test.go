@@ -1,22 +1,23 @@
-package tests
+package basefee_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/basefee"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
 func TestBaseFee_CanReadBaseFeeFromHeadAndBlockAndHistory(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 
 	// Deploy the base fee contract.
-	contract, _, err := DeployContract(net, basefee.DeployBasefee)
+	contract, _, err := tests.DeployContract(net, basefee.DeployBasefee)
 	if err != nil {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}

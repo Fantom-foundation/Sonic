@@ -1,9 +1,10 @@
-package tests
+package address_access_test
 
 import (
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	accessCost "github.com/Fantom-foundation/go-opera/tests/contracts/access_cost"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,13 +14,13 @@ import (
 func TestAddressAccess(t *testing.T) {
 	someAccountAddress := common.Address{1}
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 
-	contract, receipt, err := DeployContract(net, accessCost.DeployAccessCost)
+	contract, receipt, err := tests.DeployContract(net, accessCost.DeployAccessCost)
 	checkTxExecution(t, receipt, err)
 
 	// Execute function on an address, cold access

@@ -11,6 +11,7 @@ import (
 )
 
 func TestNodeRestart_CanRestartAndRestoreItsState(t *testing.T) {
+	t.Parallel()
 	const numBlocks = 3
 	const numRestarts = 2
 	require := require.New(t)

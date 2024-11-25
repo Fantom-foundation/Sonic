@@ -1,22 +1,23 @@
-package tests
+package transientstorage_test
 
 import (
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/transientstorage"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
 func TestTransientStorage_TransientStorageIsValidInTransaction(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 
 	// Deploy the transient storage contract
-	contract, _, err := DeployContract(net, transientstorage.DeployTransientstorage)
+	contract, _, err := tests.DeployContract(net, transientstorage.DeployTransientstorage)
 	if err != nil {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}
@@ -33,7 +34,7 @@ func TestTransientStorage_TransientStorageIsValidInTransaction(t *testing.T) {
 		t.Fatalf("failed to store value; %v", err)
 	}
 
-	// Check that the value was stored during transaction and emited to logs
+	// Check that the value was stored during transaction and emitted to logs
 	if len(receipt.Logs) != 1 {
 		t.Fatalf("unexpected number of logs; expected 1, got %d", len(receipt.Logs))
 	}

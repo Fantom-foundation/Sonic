@@ -29,7 +29,7 @@ jobs:
       - name: Run unit tests
         env:
           GOPRIVATE: github.com/Fantom-foundation
-        run: go test -v ./...
+        run: go test -v ./... -p 1 # github agents ony have ram for 1 integration test at the time
 
       - name: Build
         run: make
