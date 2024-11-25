@@ -3,12 +3,7 @@ package gossip
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"time"
 
-	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
-	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -57,38 +52,14 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (err error) {
 	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 
 	// write blocks
-	rules := s.GetRules()
-	gasLimit := rules.Blocks.MaxBlockGas
-
-	blockZero := inter.NewBlockBuilder().
-		WithNumber(0).
-		WithTime(evmcore.FakeGenesisTime - 1). // TODO: extend genesis generator to provide time
-		WithGasLimit(gasLimit).
-		WithStateRoot(common.Hash{}). // TODO: get proper state root from genesis data
-		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
-		Build()
-
-	s.SetBlock(0, blockZero)
-	s.SetBlockIndex(blockZero.Hash(), 0)
-
-	baseFee := prevEs.Rules.Economy.MinGasPrice
-	blobGasPrice := big.NewInt(1) // TODO issue #147
 	var lastBlock ibr.LlrIdxFullBlockRecord
 	g.Blocks.ForEach(func(br ibr.LlrIdxFullBlockRecord) bool {
-		var duration time.Duration
-		if rules.Upgrades.Sonic {
-			block := s.GetBlock(br.Idx - 1)
-			if block == nil {
-				block = &inter.Block{BaseFee: new(big.Int)}
-			}
-			header := &evmcore.EvmHeader{
-				GasUsed: block.GasUsed,
-				BaseFee: block.BaseFee,
-			}
-			baseFee = gasprice.GetBaseFeeForNextBlock(header, rules.Economy)
-			duration = time.Duration(br.Time-block.Time) * time.Nanosecond
+		err = s.WriteFullBlockRecord(br)
+		if err != nil {
+			s.Log.Crit(err.Error())
+			return false
 		}
-		s.WriteFullBlockRecord(baseFee, blobGasPrice, gasLimit, duration, br)
+
 		if br.Idx > lastBlock.Idx {
 			lastBlock = br
 		}

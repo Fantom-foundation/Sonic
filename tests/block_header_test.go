@@ -39,19 +39,22 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 	require.NoError(err)
 	defer client.Close()
 
-	lastBlock, err := client.BlockByNumber(context.Background(), nil)
+	originalHeaders, err := net.GetHeaders()
 	require.NoError(err)
-	require.GreaterOrEqual(lastBlock.NumberU64(), uint64(numBlocks))
-
-	headers := []*types.Header{}
-	for i := int64(0); i < int64(lastBlock.NumberU64()); i++ {
-		header, err := client.HeaderByNumber(context.Background(), big.NewInt(i))
-		require.NoError(err)
-		headers = append(headers, header)
+	originalHashes := []common.Hash{}
+	for _, header := range originalHeaders {
+		originalHashes = append(originalHashes, header.Hash())
 	}
 
 	// Run twice - once before and once after a node restart.
-	for range 2 {
+	runTests := func() {
+		headers, err := net.GetHeaders()
+		require.NoError(err)
+
+		t.Run("CompareHeadersHashes", func(t *testing.T) {
+			testHeaders_CompareHeadersHashes(t, originalHashes, headers)
+		})
+
 		t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
 			testHeaders_BlockNumberEqualsPositionInChain(t, headers)
 		})
@@ -107,8 +110,21 @@ func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
 		t.Run("LastBlockOfEpochContainsSealingTransaction", func(t *testing.T) {
 			testHeaders_LastBlockOfEpochContainsSealingTransaction(t, headers, client)
 		})
+	}
 
-		require.NoError(net.Restart())
+	runTests()
+	require.NoError(net.Restart())
+	runTests()
+	require.NoError(net.RestartWithExportImport())
+	runTests()
+}
+
+func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
+	require := require.New(t)
+
+	require.GreaterOrEqual(len(newHeaders), len(hashes), "length mismatch")
+	for i, hash := range hashes {
+		require.Equal(hash, newHeaders[i].Hash(), "hash mismatch")
 	}
 }
 
@@ -269,7 +285,7 @@ func testHeaders_TimeProgressesMonotonically(t *testing.T, headers []*types.Head
 	for i := 1; i < len(headers); i++ {
 		currentTime := getTimeFrom(headers[i])
 		previousTime := getTimeFrom(headers[i-1])
-		require.Greater(currentTime, previousTime, "time is not monotonically increasing")
+		require.Greater(currentTime, previousTime, "time is not monotonically increasing. block %d", i)
 	}
 }
 

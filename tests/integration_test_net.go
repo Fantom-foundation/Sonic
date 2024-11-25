@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -55,23 +56,27 @@ type IntegrationTestNet struct {
 // node.
 func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 
-	// initialize the data directory for the single node on the test network
-	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
-	originalArgs := os.Args
-	os.Args = []string{"sonictool", "--datadir", directory, "genesis", "fake", "1"}
-	sonictool.Run()
-	os.Args = originalArgs
-
 	// start the fakenet sonic node
 	result := &IntegrationTestNet{
 		directory: directory,
 		validator: Account{evmcore.FakeKey(1)},
 	}
 
+	// initialize the data directory for the single node on the test network
+	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
+	originalArgs := os.Args
+	os.Args = []string{"sonictool", "--datadir", result.stateDir(), "genesis", "fake", "1"}
+	sonictool.Run()
+	os.Args = originalArgs
+
 	if err := result.start(); err != nil {
 		return nil, fmt.Errorf("failed to start the test network: %w", err)
 	}
 	return result, nil
+}
+
+func (n *IntegrationTestNet) stateDir() string {
+	return filepath.Join(n.directory, "state")
 }
 
 func (n *IntegrationTestNet) start() error {
@@ -86,7 +91,7 @@ func (n *IntegrationTestNet) start() error {
 		// equivalent to running `sonicd ...` but in this local process
 		os.Args = []string{
 			"sonicd",
-			"--datadir", n.directory,
+			"--datadir", n.stateDir(),
 			"--fakenet", "1/1",
 			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
@@ -286,6 +291,79 @@ func (n *IntegrationTestNet) GetTransactOptions(account *Account) (*bind.Transac
 // The resulting client must be closed after use.
 func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
 	return ethclient.Dial("http://localhost:18545")
+}
+
+// RestartWithExportImport stops the network, exports the genesis file, cleans the
+// temporary directory, imports the genesis file, and starts the network again.
+func (n *IntegrationTestNet) RestartWithExportImport() error {
+	n.Stop()
+	fmt.Println("Network stopped. Exporting genesis file...")
+
+	// save original args
+	originalArgs := os.Args
+
+	// export
+	os.Args = []string{
+		"sonictool",
+		"--datadir", n.stateDir(),
+		"genesis", "export", n.directory + "/testGenesis.g",
+	}
+	err := sonictool.Run()
+	if err != nil {
+		return err
+	}
+
+	// clean client state
+	err = os.RemoveAll(n.stateDir())
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Temp directory cleaned. Importing genesis file...")
+
+	// import genesis file
+	os.Args = []string{
+		"sonictool",
+		"--datadir", n.stateDir(),
+		"genesis", "--experimental", n.directory + "/testGenesis.g",
+	}
+	err = sonictool.Run()
+	if err != nil {
+		return err
+	}
+
+	// restore original args
+	os.Args = originalArgs
+
+	fmt.Println("Genesis file imported. Starting network...")
+
+	// start network again
+	return n.start()
+}
+
+// GetHeaders returns the headers of all blocks on the network from block 0 to the latest block.
+func (n *IntegrationTestNet) GetHeaders() ([]*types.Header, error) {
+	client, err := n.GetClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to the Ethereum client: %w", err)
+	}
+	defer client.Close()
+
+	lastBlock, err := client.BlockByNumber(context.Background(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last block: %w", err)
+	}
+
+	headers := []*types.Header{}
+	for i := int64(0); i < int64(lastBlock.NumberU64()); i++ {
+		header, err := client.HeaderByNumber(context.Background(), big.NewInt(i))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get header: %w", err)
+		}
+		headers = append(headers, header)
+	}
+
+	return headers, nil
 }
 
 // DeployContract is a utility function handling the deployment of a contract on the network.

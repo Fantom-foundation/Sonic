@@ -85,10 +85,6 @@ func (ew *emitterWorldRead) GetLastEvent(epoch idx.Epoch, from idx.ValidatorID) 
 	return ew.Store.GetLastEvent(epoch, from)
 }
 
-func (ew *emitterWorldRead) GetBlockRecordHash(n idx.Block) *hash.Hash {
-	return ew.Store.GetBlockRecordHash(n)
-}
-
 func (ew *emitterWorldRead) GetBlockEpoch(block idx.Block) idx.Epoch {
 	return ew.Store.FindBlockEpoch(block)
 }
