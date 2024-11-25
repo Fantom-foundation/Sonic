@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"io"
@@ -219,7 +220,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		blockBuilder.AddTransaction(transaction, receipts[txIndex])
 	}
 
-	llrBlock := ibr.FullBlockRecordFor(blockBuilder.Build(), evmBlock.Transactions, receiptsStorage)
+	llrBlock := gossip.FullBlockRecordFor(blockBuilder.Build(), evmBlock.Transactions, receiptsStorage)
 	b.blocks = append(b.blocks, ibr.LlrIdxFullBlockRecord{
 		LlrFullBlockRecord: *llrBlock,
 		Idx:                blockCtx.Idx,
