@@ -25,6 +25,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/evmmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/sealmodule"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
+	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -133,15 +134,59 @@ func NewGenesisBuilder() *GenesisBuilder {
 }
 
 type dummyHeaderReturner struct {
+	blocks []ibr.LlrIdxFullBlockRecord
 }
 
-func (d dummyHeaderReturner) GetHeader(common.Hash, uint64) *evmcore.EvmHeader {
+func (d dummyHeaderReturner) GetHeader(_ common.Hash, position uint64) *evmcore.EvmHeader {
+	if position < uint64(len(d.blocks)) {
+		return &evmcore.EvmHeader{
+			BaseFee: d.blocks[position].BaseFee,
+		}
+	}
 	return &evmcore.EvmHeader{
 		BaseFee: big.NewInt(0),
 	}
 }
 
+// FinalizeBlockZero finalizes the genesis block 0 by computing the state root hash of
+// the initial block and filling in other block header information. This function must
+// be called before ExecuteGenesisTxs.
+func (b *GenesisBuilder) FinalizeBlockZero(
+	rules opera.Rules,
+	genesisTime inter.Timestamp,
+) error {
+
+	// construct state root of initial state
+	b.tmpStateDB.EndBlock(0)
+	genesisStateRoot := b.tmpStateDB.GetStateHash()
+
+	// construct the block record for the genesis block
+	blockBuilder := inter.NewBlockBuilder().
+		WithEpoch(0).
+		WithNumber(0).
+		WithParentHash(common.Hash{}).
+		WithStateRoot(genesisStateRoot).
+		WithTime(genesisTime).
+		WithDuration(0).
+		WithGasLimit(rules.Blocks.MaxBlockGas).
+		WithGasUsed(0).
+		WithBaseFee(gasprice.GetInitialBaseFee(rules.Economy)).
+		WithPrevRandao(common.Hash{31: 1})
+
+	llrBlock := ibr.FullBlockRecordFor(blockBuilder.Build(), nil, nil)
+	b.blocks = append(b.blocks, ibr.LlrIdxFullBlockRecord{
+		LlrFullBlockRecord: *llrBlock,
+		Idx:                0,
+	})
+
+	return nil
+}
+
 func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types.Transactions) error {
+	if len(b.blocks) == 0 {
+		return errors.New("no block zero - run FinalizeBlockZero first")
+	}
+
 	bs, es := b.currentEpoch.BlockState.Copy(), b.currentEpoch.EpochState.Copy()
 	es.Rules.Economy.MinGasPrice = big.NewInt(0) // < needed since genesis transactions have gas price 0
 
@@ -153,7 +198,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 
 	sealer := blockProc.SealerModule.Start(blockCtx, bs, es)
 	txListener := blockProc.TxListenerModule.Start(blockCtx, bs, es, b.tmpStateDB)
-	evmProcessor := blockProc.EVMModule.Start(blockCtx, b.tmpStateDB, dummyHeaderReturner{}, func(l *types.Log) {
+	evmProcessor := blockProc.EVMModule.Start(blockCtx, b.tmpStateDB, dummyHeaderReturner{b.blocks}, func(l *types.Log) {
 		txListener.OnNewLog(l)
 	}, es.Rules, es.Rules.EvmChainConfig([]opera.UpgradeHeight{
 		{
@@ -202,10 +247,10 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	// construct the block record for the genesis block
 	blockBuilder := inter.NewBlockBuilder().
 		WithNumber(uint64(blockCtx.Idx)).
-		WithParentHash(common.Hash{}).
+		WithParentHash(common.Hash(b.blocks[len(b.blocks)-1].BlockHash)).
 		WithStateRoot(common.Hash(bs.FinalizedStateRoot)).
 		WithTime(evmBlock.Time).
-		WithDuration(evmBlock.Duration).
+		WithDuration(1).
 		WithGasLimit(evmBlock.GasLimit).
 		WithGasUsed(evmBlock.GasUsed).
 		WithBaseFee(evmBlock.BaseFee).

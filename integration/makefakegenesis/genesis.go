@@ -120,6 +120,10 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 		owner = validators[0].Address
 	}
 
+	if err := builder.FinalizeBlockZero(rules, FakeGenesisTime); err != nil {
+		panic(err)
+	}
+
 	blockProc := makegenesis.DefaultBlockProc()
 	genesisTxs := GetGenesisTxs(epoch-2, validators, builder.TotalSupply(), delegations, owner)
 	err := builder.ExecuteGenesisTxs(blockProc, genesisTxs)
