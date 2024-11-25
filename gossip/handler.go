@@ -20,6 +20,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamleecher"
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream/dagstreamseeder"
+	"github.com/Fantom-foundation/go-opera/gossip/topology"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
@@ -86,6 +87,7 @@ type handlerConfig struct {
 	checkers *eventcheck.Checkers
 	s        *Store
 	process  processCallback
+	localId  enode.ID
 }
 
 type handler struct {
@@ -136,6 +138,13 @@ type handler struct {
 	peerWG  sync.WaitGroup
 	started sync.WaitGroup
 
+	// channels for peer info collection loop
+	peerInfoStop chan<- struct{}
+
+	// suggests new peers to connect to by monitoring the neighborhood
+	connectionAdvisor topology.ConnectionAdvisor
+	nextSuggestedPeer chan *enode.Node
+
 	logger.Instance
 }
 
@@ -162,6 +171,8 @@ func newHandler(
 		txsyncCh:             make(chan *txsync),
 		quitSync:             make(chan struct{}),
 		quitProgressBradcast: make(chan struct{}),
+		connectionAdvisor:    topology.NewConnectionAdvisor(c.localId),
+		nextSuggestedPeer:    make(chan *enode.Node, 1),
 
 		Instance: logger.New("PM"),
 	}
@@ -369,6 +380,11 @@ func (h *handler) Start(maxPeers int) {
 	h.loopsWg.Add(1)
 	go h.txBroadcastLoop()
 
+	h.loopsWg.Add(1)
+	peerInfoStopChannel := make(chan struct{})
+	h.peerInfoStop = peerInfoStopChannel
+	go h.peerInfoCollectionLoop(peerInfoStopChannel)
+
 	if h.notifier != nil {
 		// broadcast mined events
 		h.emittedEventsCh = make(chan *inter.EventPayload, 4)
@@ -413,6 +429,9 @@ func (h *handler) Stop() {
 		h.emittedEventsSub.Unsubscribe() // quits eventBroadcastLoop
 		h.newEpochsSub.Unsubscribe()     // quits onNewEpochLoop
 	}
+
+	close(h.peerInfoStop)
+	h.peerInfoStop = nil
 
 	// Wait for the subscription loops to come down.
 	h.loopsWg.Wait()
@@ -840,6 +859,41 @@ func (h *handler) handleMsg(p *peer) error {
 
 		_ = h.dagLeecher.NotifyChunkReceived(chunk.SessionID, last, chunk.Done)
 
+	case msg.Code == GetPeerInfosMsg:
+		infos := []peerInfo{}
+		for _, peer := range h.peers.List() {
+			if peer.Useless() {
+				continue
+			}
+			infos = append(infos, peerInfo{
+				Enode: peer.Node().String(),
+			})
+		}
+		err := p2p.Send(p.rw, PeerInfosMsg, peerInfoMsg{
+			Peers: infos,
+		})
+		if err != nil {
+			return err
+		}
+
+	case msg.Code == PeerInfosMsg:
+		var infos peerInfoMsg
+		if err := msg.Decode(&infos); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+
+		reportedPeers := []*enode.Node{}
+		for _, info := range infos.Peers {
+			var enode enode.Node
+			if err := enode.UnmarshalText([]byte(info.Enode)); err != nil {
+				h.Log.Warn("Failed to unmarshal enode", "enode", info.Enode, "err", err)
+			} else {
+				reportedPeers = append(reportedPeers, &enode)
+			}
+		}
+
+		h.connectionAdvisor.UpdatePeers(p.ID(), reportedPeers)
+
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -1030,6 +1084,47 @@ func (h *handler) txBroadcastLoop() {
 	}
 }
 
+func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
+	ticker := time.NewTicker(h.config.Protocol.PeerInfoCollectionPeriod)
+	defer ticker.Stop()
+	defer h.loopsWg.Done()
+	for {
+		select {
+		case <-ticker.C:
+			// Get a suggestion for a new peer.
+			suggestion := h.connectionAdvisor.GetNewPeerSuggestion()
+			if suggestion != nil {
+				select {
+				case h.nextSuggestedPeer <- suggestion:
+				default:
+				}
+			}
+
+			// Request updated peer information from current peers.
+			peers := h.peers.List()
+			for _, peer := range peers {
+				peer.SendPeerInfoRequest()
+			}
+
+			// Drop a redundant connection if there are too many connections.
+			if suggestion != nil && len(peers) >= h.maxPeers-1 {
+				redundant := h.connectionAdvisor.GetRedundantPeerSuggestion()
+				if redundant != nil {
+					for _, peer := range peers {
+						if peer.Node().ID() == *redundant {
+							peer.Disconnect(p2p.DiscTooManyPeers)
+							break
+						}
+					}
+				}
+			}
+
+		case <-stop:
+			return
+		}
+	}
+}
+
 // NodeInfo represents a short summary of the sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
@@ -1058,4 +1153,34 @@ func getSemaphoreWarningFn(name string) func(dag.Metric, dag.Metric, dag.Metric)
 			"processingNum", processing.Num, "processingSize", processing.Size,
 			"releasingNum", releasing.Num, "releasingSize", releasing.Size)
 	}
+}
+
+func (h *handler) GetSuggestedPeerIterator() enode.Iterator {
+	return &suggestedPeerIterator{
+		handler: h,
+		close:   make(chan struct{}),
+	}
+}
+
+type suggestedPeerIterator struct {
+	handler *handler
+	next    *enode.Node
+	close   chan struct{}
+}
+
+func (i *suggestedPeerIterator) Next() bool {
+	select {
+	case i.next = <-i.handler.nextSuggestedPeer:
+		return true
+	case <-i.close:
+		return false
+	}
+}
+
+func (i *suggestedPeerIterator) Node() *enode.Node {
+	return i.next
+}
+
+func (i *suggestedPeerIterator) Close() {
+	close(i.close)
 }

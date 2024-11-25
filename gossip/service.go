@@ -161,7 +161,8 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 		return nil, err
 	}
 
-	svc, err := newService(config, store, blockProc, engine, dagIndexer, newTxPool)
+	localNodeId := enode.PubkeyToIDV4(&stack.Server().PrivateKey.PublicKey)
+	svc, err := newService(config, store, blockProc, engine, dagIndexer, newTxPool, localNodeId)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +177,7 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 	return svc, nil
 }
 
-func newService(config Config, store *Store, blockProc BlockProc, engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool) (*Service, error) {
+func newService(config Config, store *Store, blockProc BlockProc, engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool, localId enode.ID) (*Service, error) {
 	svc := &Service{
 		config:             config,
 		blockProcTasksDone: make(chan struct{}),
@@ -245,6 +246,7 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 		engineMu: svc.engineMu,
 		checkers: svc.checkers,
 		s:        store,
+		localId:  localId,
 		process: processCallback{
 			Event: func(event *inter.EventPayload) error {
 				done := svc.procLogger.EventConnectionStarted(event, false)
@@ -338,6 +340,10 @@ func (s *Service) RegisterEmitter(em *emitter.Emitter) {
 
 // MakeProtocols constructs the P2P protocol definitions for `opera`.
 func MakeProtocols(svc *Service, backend *handler, disc enode.Iterator) []p2p.Protocol {
+	nodeIter := enode.NewFairMix(time.Second)
+	nodeIter.AddSource(disc)
+	nodeIter.AddSource(backend.GetSuggestedPeerIterator())
+
 	protocols := make([]p2p.Protocol, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		version := version // Closure
@@ -371,7 +377,7 @@ func MakeProtocols(svc *Service, backend *handler, disc enode.Iterator) []p2p.Pr
 				return nil
 			},
 			Attributes:     []enr.Entry{currentENREntry(svc, 0 /* time */)},
-			DialCandidates: disc,
+			DialCandidates: nodeIter,
 		}
 	}
 	return protocols

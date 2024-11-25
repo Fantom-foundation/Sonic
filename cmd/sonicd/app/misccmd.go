@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/version"
 	"os"
 	"runtime"
+
+	"github.com/Fantom-foundation/go-opera/version"
 
 	"github.com/Fantom-foundation/go-opera/config"
 	"gopkg.in/urfave/cli.v1"
@@ -35,7 +36,7 @@ func versionAction(ctx *cli.Context) error {
 		fmt.Println("Git Commit Date:", config.GitDate)
 	}
 	fmt.Println("Architecture:", runtime.GOARCH)
-	fmt.Println("Protocol Versions:", []uint{gossip.ProtocolVersion})
+	fmt.Println("Protocol Versions:", gossip.ProtocolVersions)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))
