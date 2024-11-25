@@ -2390,6 +2390,11 @@ func TestTransactionReplacementDynamicFee(t *testing.T) {
 			replacementTx: dynamicFeeTx(3, 100000, big.NewInt(gasFeeCap+10), big.NewInt(gasTipCap+6), key),
 			expectedErr:   nil,
 		},
+		"Reject Tip larger than Fee Cap": {
+			originalTx:    dynamicFeeTx(4, 100000, big.NewInt(gasFeeCap), big.NewInt(gasFeeCap), key),
+			replacementTx: dynamicFeeTx(4, 100000, big.NewInt(gasFeeCap), big.NewInt(gasFeeCap+10), key),
+			expectedErr:   ErrTipAboveFeeCap,
+		},
 	}
 
 	for name, test := range tests {

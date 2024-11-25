@@ -87,11 +87,20 @@ func TestTxList_Replacements(t *testing.T) {
 			require.Nil(t, replacedTx, "replaced transaction should be nil")
 		})
 
-	t.Run("transaction replacement with sufficient gasTip increment is accepted",
+	t.Run("transaction replacement with sufficient gasTip increment but insufficient gasFeeCap is rejected",
 		func(t *testing.T) {
 			newGasTip := new(big.Int).Add(tx.GasTipCap(), big.NewInt(100))
 			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), newGasTip, key)
-			replaced, replacedTx := list.Add(tx, 10)
+			replaced, _ := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+			require.False(t, replaced, "transaction wasn't replaced")
+		})
+
+	t.Run("transaction replacement with sufficient gasTip increment is accepted",
+		func(t *testing.T) {
+			newGasTip := new(big.Int).Add(tx.GasTipCap(), big.NewInt(100))
+			newGasFeeCap := new(big.Int).Set(newGasTip)
+			tx := dynamicFeeTx(tx.Nonce(), 0, newGasFeeCap, newGasTip, key)
+			replaced, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
 			require.True(t, replaced, "transaction wasn't replaced")
 			require.NotNil(t, replacedTx, "replaced transaction should't be nil")
 		})
