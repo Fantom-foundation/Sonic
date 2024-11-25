@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +14,15 @@ import (
 	sonicd "github.com/Fantom-foundation/go-opera/cmd/sonicd/app"
 	sonictool "github.com/Fantom-foundation/go-opera/cmd/sonictool/app"
 	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
+	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/driver/drivercall"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/driverauth"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/netinit"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
+	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -55,7 +65,95 @@ type IntegrationTestNet struct {
 // is intended to facilitate debugging of client code in the context of a running
 // node.
 func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
+	return startIntegrationTestNet(directory, []string{
+		"genesis", "fake", "1",
+	})
+}
 
+func StartIntegrationTestNetFromJsonGenesis(directory string) (*IntegrationTestNet, error) {
+	jsonGenesis := makefakegenesis.GenesisJson{
+		Rules: opera.FakeNetRules(),
+	}
+
+	// Create infrastructure contracts.
+	jsonGenesis.Accounts = []makefakegenesis.Account{
+		{
+			Name:    "NetworkInitializer",
+			Address: netinit.ContractAddress,
+			Code:    netinit.GetContractBin(),
+		},
+		{
+			Name:    "NodeDriver",
+			Address: driver.ContractAddress,
+			Code:    driver.GetContractBin(),
+		},
+		{
+			Name:    "NodeDriverAuth",
+			Address: driverauth.ContractAddress,
+			Code:    driverauth.GetContractBin(),
+		},
+		{
+			Name:    "SFC",
+			Address: sfc.ContractAddress,
+			Code:    sfc.GetContractBin(),
+		},
+		{
+			Name:    "ContractAddress",
+			Address: evmwriter.ContractAddress,
+			Code:    []byte{0},
+		},
+	}
+
+	// Create the validator account and provide some tokens.
+	totalSupply := futils.ToFtm(1000000000)
+	validators := makefakegenesis.GetFakeValidators(1)
+	for _, validator := range validators {
+		jsonGenesis.Accounts = append(jsonGenesis.Accounts, makefakegenesis.Account{
+			Address: validator.Address,
+			Balance: totalSupply,
+		})
+	}
+
+	var delegations []drivercall.Delegation
+	for _, val := range validators {
+		delegations = append(delegations, drivercall.Delegation{
+			Address:            val.Address,
+			ValidatorID:        val.ID,
+			Stake:              futils.ToFtm(5000000),
+			LockedStake:        new(big.Int),
+			LockupFromEpoch:    0,
+			LockupEndTime:      0,
+			LockupDuration:     0,
+			EarlyUnlockPenalty: new(big.Int),
+			Rewards:            new(big.Int),
+		})
+	}
+
+	// Create the genesis transactions.
+	genesisTxs := makefakegenesis.GetGenesisTxs(0, validators, totalSupply, delegations, validators[0].Address)
+	for _, tx := range genesisTxs {
+		jsonGenesis.Txs = append(jsonGenesis.Txs, makefakegenesis.Transaction{
+			To:   *tx.To(),
+			Data: tx.Data(),
+		})
+	}
+
+	encoded, err := json.MarshalIndent(jsonGenesis, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode genesis json: %w", err)
+	}
+
+	jsonFile := filepath.Join(directory, "genesis.json")
+	err = os.WriteFile(jsonFile, encoded, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write genesis.json file: %w", err)
+	}
+	return startIntegrationTestNet(directory, []string{
+		"genesis", "json", "--experimental", jsonFile,
+	})
+}
+
+func startIntegrationTestNet(directory string, args []string) (*IntegrationTestNet, error) {
 	// start the fakenet sonic node
 	result := &IntegrationTestNet{
 		directory: directory,
@@ -65,7 +163,7 @@ func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 	// initialize the data directory for the single node on the test network
 	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
 	originalArgs := os.Args
-	os.Args = []string{"sonictool", "--datadir", result.stateDir(), "genesis", "fake", "1"}
+	os.Args = append([]string{"sonictool", "--datadir", result.stateDir()}, args...)
 	sonictool.Run()
 	os.Args = originalArgs
 

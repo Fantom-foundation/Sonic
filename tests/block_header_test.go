@@ -21,13 +21,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBlockHeader_SatisfiesInvariants(t *testing.T) {
-	const numBlocks = 10
+func TestBlockHeader_FakeGenesis_SatisfiesInvariants(t *testing.T) {
 	require := require.New(t)
-
 	net, err := StartIntegrationTestNet(t.TempDir())
 	require.NoError(err)
 	defer net.Stop()
+	testBlockHeadersOnNetwork(t, net)
+}
+
+func TestBlockHeader_JsonGenesis_SatisfiesInvariants(t *testing.T) {
+	require := require.New(t)
+	net, err := StartIntegrationTestNetFromJsonGenesis(t.TempDir())
+	require.NoError(err)
+	defer net.Stop()
+	testBlockHeadersOnNetwork(t, net)
+}
+
+func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
+	const numBlocks = 10
+	require := require.New(t)
 
 	// Produce a few blocks on the network.
 	for range numBlocks {

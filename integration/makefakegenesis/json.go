@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"os"
+
 	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -18,8 +21,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
-	"os"
 )
 
 type GenesisJson struct {
@@ -75,15 +76,19 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 		}
 	}
 
+	genesisTime := FakeGenesisTime // < TODO: include in JSON file
+
+	builder.FinalizeBlockZero(json.Rules, genesisTime)
+
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
 		LlrFullEpochRecord: ier.LlrFullEpochRecord{
 			BlockState: iblockproc.BlockState{
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     0,
-					Time:    FakeGenesisTime,
+					Time:    genesisTime,
 					Atropos: hash.Event{},
 				},
-				FinalizedStateRoot:    hash.Hash{},
+				FinalizedStateRoot:    hash.Hash{}, // TODO: fix this
 				EpochGas:              0,
 				EpochCheaters:         lachesis.Cheaters{},
 				CheatersWritten:       0,
@@ -94,9 +99,9 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 			},
 			EpochState: iblockproc.EpochState{
 				Epoch:             1,
-				EpochStart:        FakeGenesisTime,
-				PrevEpochStart:    FakeGenesisTime - 1,
-				EpochStateRoot:    hash.Zero,
+				EpochStart:        genesisTime + 1,
+				PrevEpochStart:    genesisTime,
+				EpochStateRoot:    hash.Zero, // TODO: fix this
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
 				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
@@ -130,7 +135,7 @@ func (c *VariableLenCode) MarshalJSON() ([]byte, error) {
 	out := make([]byte, hex.EncodedLen(len(*c))+4)
 	out[0], out[1], out[2] = '"', '0', 'x'
 	hex.Encode(out[3:], *c)
-	out[len(*c)-1] = '"'
+	out[len(out)-1] = '"'
 	return out, nil
 }
 
