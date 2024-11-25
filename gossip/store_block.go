@@ -1,6 +1,8 @@
 package gossip
 
 import (
+	"encoding/json"
+	"fmt"
 	"math"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -48,6 +50,12 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 
 // SetBlock stores chain block.
 func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
+	print, err := json.MarshalIndent(b.GetEthereumHeader(), "", "  ")
+	if err != nil {
+		panic("Failed to marshal block")
+	}
+	fmt.Printf("SetBlock: %v\n%v\n", n, string(print))
+
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
 
 	// Add to LRU cache.
