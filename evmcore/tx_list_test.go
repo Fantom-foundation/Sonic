@@ -63,10 +63,11 @@ func BenchmarkTxListAdd(t *testing.B) {
 	// Insert the transactions in a random order
 	list := newTxList(true)
 	accountBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(1)
 	t.ResetTimer()
 	for _, v := range rand.Perm(len(txs)) {
 		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
-		list.Filter(accountBalance, DefaultTxPoolConfig.PriceLimit)
+		list.Filter(accountBalance, gasLimit)
 	}
 }
 
