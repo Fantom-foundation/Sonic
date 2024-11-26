@@ -238,7 +238,7 @@ func TestBaseFee_ShrinksAtMostTwelveAndAHalfPercentPer15Seconds(t *testing.T) {
 	}
 }
 
-func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T) {
+func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately40Minutes(t *testing.T) {
 	rules := opera.EconomyRules{
 		ShortGasPower: opera.GasPowerRules{
 			AllocPerSec: 1e6,
@@ -266,7 +266,7 @@ func TestBaseFee_DecayTimeFromInitialToZeroIsApproximately35Minutes(t *testing.T
 				decayDuration += blockTime
 			}
 
-			if decayDuration < 30*time.Minute || decayDuration > 40*time.Minute {
+			if decayDuration < 35*time.Minute || decayDuration > 45*time.Minute {
 				t.Errorf(
 					"time to decay from initial to zero is incorrect; got %v",
 					decayDuration,
