@@ -282,33 +282,42 @@ func (l *txList) Overlaps(tx *types.Transaction) bool {
 
 // Add tries to insert a new transaction into the list, returning whether the
 // transaction was accepted, and if yes, any previous transaction it replaced.
-//
-// If the new transaction is accepted into the list, the lists' cost and gas
-// thresholds are also potentially updated.
+// To replace an existing transaction the new transaction must have a higher gas
+// tip cap.
 func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Transaction) {
-	// If there's an older better transaction, abort
 	old := l.txs.Get(tx.Nonce())
+
+	// If there is an existing transaction with the same nonce, compare the two
+	// tips to stablish an order. This order makes replacements deterministic in
+	// each replacement in the distributed pools.
 	if old != nil {
-		if old.GasFeeCapCmp(tx) >= 0 || old.GasTipCapCmp(tx) >= 0 {
+		oldTipCap := old.GasTipCap()
+		newTipCap := tx.GasTipCap()
+
+		// If the new transaction has gasTipCap than the maxFeeCap it cannot
+		// be paid in entirety and therefore the replacement is rejected.
+		// (This is a redundant check, the pool validation should have caught this)
+		if newTipCap.Cmp(tx.GasFeeCap()) > 0 {
 			return false, nil
 		}
-		// thresholdFeeCap = oldFC  * (100 + priceBump) / 100
-		a := big.NewInt(100 + int64(priceBump))
-		aFeeCap := new(big.Int).Mul(a, old.GasFeeCap())
-		aTip := a.Mul(a, old.GasTipCap())
 
-		// thresholdTip    = oldTip * (100 + priceBump) / 100
-		b := big.NewInt(100)
-		thresholdFeeCap := aFeeCap.Div(aFeeCap, b)
-		thresholdTip := aTip.Div(aTip, b)
+		numerator := big.NewInt(100 + int64(priceBump))
+		denominator := big.NewInt(100)
+		minimumNewTipCap := new(big.Int).Div(new(big.Int).Mul(oldTipCap, numerator), denominator)
 
-		// Have to ensure that either the new fee cap or tip is higher than the
-		// old ones as well as checking the percentage threshold to ensure that
-		// this is accurate for low (Wei-level) gas price replacements
-		if tx.GasFeeCapIntCmp(thresholdFeeCap) < 0 || tx.GasTipCapIntCmp(thresholdTip) < 0 {
+		// the so called "ultra low prices" have rounding issues with the above calculation
+		// a simple increment of 1 wei is enough to allow replacement
+		ultraLow := minimumNewTipCap.Cmp(oldTipCap) == 0
+		if ultraLow && oldTipCap.Cmp(newTipCap) >= 0 {
+			return false, nil
+		}
+
+		// if the new transaction has an insufficient tip cap, it cannot replace the old one
+		if newTipCap.Cmp(minimumNewTipCap) < 0 {
 			return false, nil
 		}
 	}
+
 	// Otherwise overwrite the old transaction with the current one
 	l.txs.Put(tx)
 	if cost := tx.Cost(); l.costcap.Cmp(cost) < 0 {

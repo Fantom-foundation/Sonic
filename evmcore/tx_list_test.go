@@ -23,6 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 // Tests that transactions can be added to strict lists and list contents and
@@ -38,7 +39,7 @@ func TestStrictTxListAdd(t *testing.T) {
 	// Insert the transactions in a random order
 	list := newTxList(true)
 	for _, v := range rand.Perm(len(txs)) {
-		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
+		list.Add(txs[v], 10)
 	}
 	// Verify internal state
 	if len(list.txs.items) != len(txs) {
@@ -65,6 +66,42 @@ func BenchmarkTxListAdd(t *testing.B) {
 	t.ResetTimer()
 	for _, v := range rand.Perm(len(txs)) {
 		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
-		list.Filter(priceLimit, DefaultTxPoolConfig.PriceBump)
+		list.Filter(priceLimit, DefaultTxPoolConfig.PriceLimit)
 	}
+}
+
+func TestTxList_Replacements(t *testing.T) {
+	key, _ := crypto.GenerateKey()
+	list := newTxList(false)
+
+	tx := pricedTransaction(0, 0, big.NewInt(1000), key)
+	inserted, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+	require.True(t, inserted, "transaction was not inserted")
+	require.Nil(t, replacedTx, "replaced transaction should be nil")
+
+	t.Run("transaction replacement with insufficient tipCap is rejected",
+		func(t *testing.T) {
+			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), tx.GasTipCap(), key)
+			replaced, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+			require.False(t, replaced, "transaction was replaced")
+			require.Nil(t, replacedTx, "replaced transaction should be nil")
+		})
+
+	t.Run("transaction replacement with sufficient gasTip increment but insufficient gasFeeCap is rejected",
+		func(t *testing.T) {
+			newGasTip := new(big.Int).Add(tx.GasTipCap(), big.NewInt(100))
+			tx := dynamicFeeTx(tx.Nonce(), 0, tx.GasFeeCap(), newGasTip, key)
+			replaced, _ := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+			require.False(t, replaced, "transaction wasn't replaced")
+		})
+
+	t.Run("transaction replacement with sufficient gasTip increment is accepted",
+		func(t *testing.T) {
+			newGasTip := new(big.Int).Add(tx.GasTipCap(), big.NewInt(100))
+			newGasFeeCap := new(big.Int).Set(newGasTip)
+			tx := dynamicFeeTx(tx.Nonce(), 0, newGasFeeCap, newGasTip, key)
+			replaced, replacedTx := list.Add(tx, DefaultTxPoolConfig.PriceBump)
+			require.True(t, replaced, "transaction wasn't replaced")
+			require.NotNil(t, replacedTx, "replaced transaction should't be nil")
+		})
 }

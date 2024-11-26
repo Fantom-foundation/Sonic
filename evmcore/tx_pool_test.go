@@ -35,6 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -226,6 +227,9 @@ func validateTxPoolInternals(pool *TxPool) error {
 // were fired on the pool's event feed.
 func validateEvents(events chan NewTxsNotify, count int) error {
 	var received []*types.Transaction
+
+	// add a timer to detect non-firing events
+	time.Sleep(50 * time.Millisecond)
 
 	for len(received) < count {
 		select {
@@ -2350,8 +2354,61 @@ func TestTransactionReplacement(t *testing.T) {
 }
 
 // Tests that the pool rejects replacement dynamic fee transactions that don't
-// meet the minimum price bump required.
+// meet the replacement policy
 func TestTransactionReplacementDynamicFee(t *testing.T) {
+	t.Parallel()
+
+	pool, key := setupTxPoolWithConfig(eip1559Config)
+	defer pool.Stop()
+	testAddBalance(pool, crypto.PubkeyToAddress(key.PublicKey), big.NewInt(1000000000))
+
+	gasFeeCap := int64(100)
+	gasTipCap := int64(60)
+
+	tests := map[string]struct {
+		originalTx    *types.Transaction
+		replacementTx *types.Transaction
+		expectedErr   error
+	}{
+		"Reject not bumping tip and fee cap": {
+			originalTx:    dynamicFeeTx(0, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
+			replacementTx: dynamicFeeTx(0, 100001, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
+			expectedErr:   ErrReplaceUnderpriced,
+		},
+		"Reject bumping fee cap only": {
+			originalTx:    dynamicFeeTx(1, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
+			replacementTx: dynamicFeeTx(1, 100000, big.NewInt(gasFeeCap+1), big.NewInt(gasTipCap), key),
+			expectedErr:   ErrReplaceUnderpriced,
+		},
+		"Accept bumping tip only": {
+			originalTx:    dynamicFeeTx(2, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
+			replacementTx: dynamicFeeTx(2, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap+6), key),
+			expectedErr:   nil,
+		},
+		"Accept bumping both": {
+			originalTx:    dynamicFeeTx(3, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key),
+			replacementTx: dynamicFeeTx(3, 100000, big.NewInt(gasFeeCap+10), big.NewInt(gasTipCap+6), key),
+			expectedErr:   nil,
+		},
+		"Reject Tip larger than Fee Cap": {
+			originalTx:    dynamicFeeTx(4, 100000, big.NewInt(gasFeeCap), big.NewInt(gasFeeCap), key),
+			replacementTx: dynamicFeeTx(4, 100000, big.NewInt(gasFeeCap), big.NewInt(gasFeeCap+10), key),
+			expectedErr:   ErrTipAboveFeeCap,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := pool.AddRemote(test.originalTx)
+			require.NoError(t, err)
+
+			err = pool.AddRemote(test.replacementTx)
+			require.Equal(t, test.expectedErr, err)
+		})
+	}
+}
+
+func TestTransactionPool_FeedAnnouncesChanges(t *testing.T) {
 	t.Parallel()
 
 	// Create the pool to test the pricing enforcement with
@@ -2359,104 +2416,30 @@ func TestTransactionReplacementDynamicFee(t *testing.T) {
 	defer pool.Stop()
 	testAddBalance(pool, crypto.PubkeyToAddress(key.PublicKey), big.NewInt(1000000000))
 
-	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsNotify, 32)
-	sub := pool.txFeed.Subscribe(events)
+	// Keep track of transaction feed to ensure all executables get announced
+	feed := make(chan NewTxsNotify, 32)
+	sub := pool.txFeed.Subscribe(feed)
 	defer sub.Unsubscribe()
 
-	// Add pending transactions, ensuring the minimum price bump is enforced for replacement (for ultra low prices too)
-	gasFeeCap := int64(100)
-	feeCapThreshold := (gasFeeCap * (100 + int64(testTxPoolConfig.PriceBump))) / 100
-	gasTipCap := int64(60)
-	tipThreshold := (gasTipCap * (100 + int64(testTxPoolConfig.PriceBump))) / 100
+	// Add a transaction and ensure it's announced
+	err := pool.AddLocal(dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), key))
+	require.NoError(t, err)
+	require.NoError(t, validateEvents(feed, 1))
 
-	// Run the following identical checks for both the pending and queue pools:
-	//	1.  Send initial tx => accept
-	//	2.  Don't bump tip or fee cap => discard
-	//	3.  Bump both more than min => accept
-	//	4.  Check events match expected (2 new executable txs during pending, 0 during queue)
-	//	5.  Send new tx with larger tip and gasFeeCap => accept
-	//	6.  Bump tip max allowed so it's still underpriced => discard
-	//	7.  Bump fee cap max allowed so it's still underpriced => discard
-	//	8.  Bump tip min for acceptance => discard
-	//	9.  Bump feecap min for acceptance => discard
-	//	10. Bump feecap and tip min for acceptance => accept
-	//	11. Check events match expected (2 new executable txs during pending, 0 during queue)
-	stages := []string{"pending", "queued"}
-	for _, stage := range stages {
-		// Since state is empty, 0 nonce txs are "executable" and can go
-		// into pending immediately. 2 nonce txs are "happed
-		nonce := uint64(0)
-		if stage == "queued" {
-			nonce = 2
-		}
+	// Add a replacement transaction and ensure it's announced
+	err = pool.AddLocal(dynamicFeeTx(0, 100000, big.NewInt(3), big.NewInt(3), key))
+	require.NoError(t, err)
+	require.NoError(t, validateEvents(feed, 1))
 
-		// 1.  Send initial tx => accept
-		tx := dynamicFeeTx(nonce, 100000, big.NewInt(2), big.NewInt(1), key)
-		if err := pool.addRemoteSync(tx); err != nil {
-			t.Fatalf("failed to add original cheap %s transaction: %v", stage, err)
-		}
-		// 2.  Don't bump tip or feecap => discard
-		tx = dynamicFeeTx(nonce, 100001, big.NewInt(2), big.NewInt(1), key)
-		if err := pool.AddRemote(tx); err != ErrReplaceUnderpriced {
-			t.Fatalf("original cheap %s transaction replacement error mismatch: have %v, want %v", stage, err, ErrReplaceUnderpriced)
-		}
-		// 3.  Bump both more than min => accept
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(3), big.NewInt(2), key)
-		if err := pool.AddRemote(tx); err != nil {
-			t.Fatalf("failed to replace original cheap %s transaction: %v", stage, err)
-		}
-		// 4.  Check events match expected (2 new executable txs during pending, 0 during queue)
-		count := 2
-		if stage == "queued" {
-			count = 0
-		}
-		if err := validateEvents(events, count); err != nil {
-			t.Fatalf("cheap %s replacement event firing failed: %v", stage, err)
-		}
-		// 5.  Send new tx with larger tip and feeCap => accept
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(gasFeeCap), big.NewInt(gasTipCap), key)
-		if err := pool.addRemoteSync(tx); err != nil {
-			t.Fatalf("failed to add original proper %s transaction: %v", stage, err)
-		}
-		// 6.  Bump tip max allowed so it's still underpriced => discard
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(gasFeeCap), big.NewInt(tipThreshold-1), key)
-		if err := pool.AddRemote(tx); err != ErrReplaceUnderpriced {
-			t.Fatalf("original proper %s transaction replacement error mismatch: have %v, want %v", stage, err, ErrReplaceUnderpriced)
-		}
-		// 7.  Bump fee cap max allowed so it's still underpriced => discard
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(feeCapThreshold-1), big.NewInt(gasTipCap), key)
-		if err := pool.AddRemote(tx); err != ErrReplaceUnderpriced {
-			t.Fatalf("original proper %s transaction replacement error mismatch: have %v, want %v", stage, err, ErrReplaceUnderpriced)
-		}
-		// 8.  Bump tip min for acceptance => accept
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(gasFeeCap), big.NewInt(tipThreshold), key)
-		if err := pool.AddRemote(tx); err != ErrReplaceUnderpriced {
-			t.Fatalf("original proper %s transaction replacement error mismatch: have %v, want %v", stage, err, ErrReplaceUnderpriced)
-		}
-		// 9.  Bump fee cap min for acceptance => accept
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(feeCapThreshold), big.NewInt(gasTipCap), key)
-		if err := pool.AddRemote(tx); err != ErrReplaceUnderpriced {
-			t.Fatalf("original proper %s transaction replacement error mismatch: have %v, want %v", stage, err, ErrReplaceUnderpriced)
-		}
-		// 10. Check events match expected (3 new executable txs during pending, 0 during queue)
-		tx = dynamicFeeTx(nonce, 100000, big.NewInt(feeCapThreshold), big.NewInt(tipThreshold), key)
-		if err := pool.AddRemote(tx); err != nil {
-			t.Fatalf("failed to replace original cheap %s transaction: %v", stage, err)
-		}
-		// 11. Check events match expected (3 new executable txs during pending, 0 during queue)
-		count = 2
-		if stage == "queued" {
-			count = 0
-		}
-		if err := validateEvents(events, count); err != nil {
-			t.Fatalf("replacement %s event firing failed: %v", stage, err)
-		}
-	}
+	// Add a future transaction and ensure it's not announced
+	err = pool.AddLocal(dynamicFeeTx(2, 100000, big.NewInt(3), big.NewInt(3), key))
+	require.NoError(t, err)
+	require.NoError(t, validateEvents(feed, 0))
 
-	if err := validateTxPoolInternals(pool); err != nil {
-		t.Fatalf("pool internal state corrupted: %v", err)
-	}
+	// Add the missing nonce and ensure both are announced
+	err = pool.AddLocal(dynamicFeeTx(1, 100000, big.NewInt(3), big.NewInt(3), key))
+	require.NoError(t, err)
+	require.NoError(t, validateEvents(feed, 2))
 }
 
 // Tests that local transactions are journaled to disk, but remote transactions
