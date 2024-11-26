@@ -72,7 +72,8 @@ func StartIntegrationTestNet(directory string) (*IntegrationTestNet, error) {
 
 func StartIntegrationTestNetFromJsonGenesis(directory string) (*IntegrationTestNet, error) {
 	jsonGenesis := makefakegenesis.GenesisJson{
-		Rules: opera.FakeNetRules(),
+		Rules:         opera.FakeNetRules(),
+		BlockZeroTime: time.Now(),
 	}
 
 	// Create infrastructure contracts.
@@ -164,7 +165,10 @@ func startIntegrationTestNet(directory string, args []string) (*IntegrationTestN
 	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
 	originalArgs := os.Args
 	os.Args = append([]string{"sonictool", "--datadir", result.stateDir()}, args...)
-	sonictool.Run()
+	if err := sonictool.Run(); err != nil {
+		os.Args = originalArgs
+		return nil, fmt.Errorf("failed to initialize the test network: %w", err)
+	}
 	os.Args = originalArgs
 
 	if err := result.start(); err != nil {

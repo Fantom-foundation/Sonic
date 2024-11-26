@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"time"
 
 	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
@@ -24,9 +26,10 @@ import (
 )
 
 type GenesisJson struct {
-	Rules    opera.Rules
-	Accounts []Account     `json:",omitempty"`
-	Txs      []Transaction `json:",omitempty"`
+	Rules         opera.Rules
+	BlockZeroTime time.Time
+	Accounts      []Account     `json:",omitempty"`
+	Txs           []Transaction `json:",omitempty"`
 }
 
 type Account struct {
@@ -58,6 +61,10 @@ func LoadGenesisJson(filename string) (*GenesisJson, error) {
 }
 
 func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
+	if json.BlockZeroTime.IsZero() {
+		return nil, fmt.Errorf("block zero time must be set")
+	}
+
 	builder := makegenesis.NewGenesisBuilder()
 
 	fmt.Printf("Building genesis file - rules: %+v\n", json.Rules)
@@ -76,9 +83,12 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 		}
 	}
 
-	genesisTime := FakeGenesisTime // < TODO: include in JSON file
+	genesisTime := inter.Timestamp(json.BlockZeroTime.UnixNano())
 
-	builder.FinalizeBlockZero(json.Rules, genesisTime)
+	_, genesisStateRoot, err := builder.FinalizeBlockZero(json.Rules, genesisTime)
+	if err != nil {
+		return nil, err
+	}
 
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
 		LlrFullEpochRecord: ier.LlrFullEpochRecord{
@@ -88,7 +98,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 					Time:    genesisTime,
 					Atropos: hash.Event{},
 				},
-				FinalizedStateRoot:    hash.Hash{}, // TODO: fix this
+				FinalizedStateRoot:    hash.Hash(genesisStateRoot),
 				EpochGas:              0,
 				EpochCheaters:         lachesis.Cheaters{},
 				CheatersWritten:       0,
@@ -101,7 +111,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				Epoch:             1,
 				EpochStart:        genesisTime + 1,
 				PrevEpochStart:    genesisTime,
-				EpochStateRoot:    hash.Zero, // TODO: fix this
+				EpochStateRoot:    hash.Hash(genesisStateRoot),
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
 				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
@@ -117,7 +127,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 	for _, tx := range json.Txs {
 		genesisTxs = append(genesisTxs, buildTx(tx.Data, tx.To))
 	}
-	err := builder.ExecuteGenesisTxs(blockProc, genesisTxs)
+	err = builder.ExecuteGenesisTxs(blockProc, genesisTxs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute json genesis txs; %v", err)
 	}

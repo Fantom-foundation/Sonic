@@ -158,9 +158,13 @@ func (d dummyHeaderReturner) GetHeader(_ common.Hash, position uint64) *evmcore.
 func (b *GenesisBuilder) FinalizeBlockZero(
 	rules opera.Rules,
 	genesisTime inter.Timestamp,
-) error {
+) (
+	blockHash common.Hash,
+	stateRoot common.Hash,
+	err error,
+) {
 	if len(b.blocks) > 0 {
-		return errors.New("block zero already finalized")
+		return common.Hash{}, common.Hash{}, errors.New("block zero already finalized")
 	}
 
 	// construct state root of initial state
@@ -186,7 +190,7 @@ func (b *GenesisBuilder) FinalizeBlockZero(
 		Idx:                0,
 	})
 
-	return nil
+	return common.Hash(b.blocks[0].BlockHash), genesisStateRoot, nil
 }
 
 func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types.Transactions) error {

@@ -84,6 +84,11 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 	// set non-zero code for pre-compiled contracts
 	builder.SetCode(evmwriter.ContractAddress, []byte{0})
 
+	_, genesisStateRoot, err := builder.FinalizeBlockZero(rules, FakeGenesisTime)
+	if err != nil {
+		panic(err)
+	}
+
 	builder.SetCurrentEpoch(ier.LlrIdxFullEpochRecord{
 		LlrFullEpochRecord: ier.LlrFullEpochRecord{
 			BlockState: iblockproc.BlockState{
@@ -92,7 +97,7 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 					Time:    FakeGenesisTime,
 					Atropos: hash.Event{},
 				},
-				FinalizedStateRoot:    hash.Hash{},
+				FinalizedStateRoot:    hash.Hash(genesisStateRoot),
 				EpochGas:              0,
 				EpochCheaters:         lachesis.Cheaters{},
 				CheatersWritten:       0,
@@ -105,7 +110,7 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 				Epoch:             epoch - 1,
 				EpochStart:        FakeGenesisTime,
 				PrevEpochStart:    FakeGenesisTime - 1,
-				EpochStateRoot:    hash.Zero,
+				EpochStateRoot:    hash.Hash(genesisStateRoot),
 				Validators:        pos.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
 				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
@@ -120,13 +125,9 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 		owner = validators[0].Address
 	}
 
-	if err := builder.FinalizeBlockZero(rules, FakeGenesisTime); err != nil {
-		panic(err)
-	}
-
 	blockProc := makegenesis.DefaultBlockProc()
 	genesisTxs := GetGenesisTxs(epoch-2, validators, builder.TotalSupply(), delegations, owner)
-	err := builder.ExecuteGenesisTxs(blockProc, genesisTxs)
+	err = builder.ExecuteGenesisTxs(blockProc, genesisTxs)
 	if err != nil {
 		panic(err)
 	}
