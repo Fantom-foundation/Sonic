@@ -1,6 +1,7 @@
 package app
 
 import (
+	"flag"
 	"fmt"
 	"gopkg.in/urfave/cli.v1"
 	"os"
@@ -27,7 +28,13 @@ func tmpdir(t *testing.T) string {
 func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
 	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
-	if err := genesis.ImportGenesisStore(&cli.Context{}, genesisStore, dataDir, false, cachescale.Identity); err != nil {
+	if err := genesis.ImportGenesisStore(
+		cli.NewContext(cli.NewApp(), new(flag.FlagSet), nil),
+		genesisStore,
+		dataDir,
+		false,
+		cachescale.Identity,
+	); err != nil {
 		panic(err)
 	}
 }
