@@ -171,7 +171,6 @@ func (b *GenesisBuilder) FinalizeBlockZero(
 	// construct state root of initial state
 	b.tmpStateDB.EndBlock(0)
 	genesisStateRoot := b.tmpStateDB.GetStateHash()
-	fmt.Printf("Genesis state root: %x\n", genesisStateRoot)
 
 	// construct the block record for the genesis block
 	blockBuilder := inter.NewBlockBuilder().
@@ -306,25 +305,7 @@ func (f *memFile) Close() error {
 }
 
 func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
-
-	b.carmenStateDb.Flush()
-
-	fmt.Printf("Building genesis:\n")
-	height, empty, err := b.carmenStateDb.GetArchiveBlockHeight()
-	fmt.Printf("Archive Height: %d / %t / %v\n", height, empty, err)
-
-	if err == nil && !empty {
-		for i := uint64(0); i <= height; i++ {
-			db, err := b.carmenStateDb.GetArchiveStateDB(i)
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("Block %d: %x\n", i, db.GetHash())
-			db.Release()
-		}
-	}
-
-	err = b.carmenStateDb.Close()
+	err := b.carmenStateDb.Close()
 	if err != nil {
 		panic(fmt.Errorf("failed to close genesis carmen state; %s", err))
 	}

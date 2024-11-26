@@ -39,7 +39,7 @@ func TestBlockHeader_JsonGenesis_SatisfiesInvariants(t *testing.T) {
 }
 
 func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
-	const numBlocks = 5
+	const numBlocks = 10
 	require := require.New(t)
 
 	// Produce a few blocks on the network.
@@ -130,12 +130,10 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 	}
 
 	runTests()
-	/*
-		require.NoError(net.Restart())
-		runTests()
-		require.NoError(net.RestartWithExportImport())
-		runTests()
-	*/
+	require.NoError(net.Restart())
+	runTests()
+	require.NoError(net.RestartWithExportImport())
+	runTests()
 }
 
 func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
@@ -388,11 +386,6 @@ func getEpochOfBlock(client *ethclient.Client, blockNumber int) (int, error) {
 
 func testHeaders_StateRootsMatchActualStateRoots(t *testing.T, headers []*types.Header, client *ethclient.Client) {
 	require := require.New(t)
-
-	for i, header := range headers {
-		fmt.Printf("Block %d: %x\n", i, header.Root)
-	}
-
 	for i, header := range headers {
 		// The direct way to get the state root of a block would be to request the
 		// block header and extract the state root from it. However, we would like
