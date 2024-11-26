@@ -119,7 +119,7 @@ func (f *txFactory) makeLegacyTransactionWithPrice(
 		GasPrice: big.NewInt(price),
 		To:       &common.Address{},
 		Nonce:    nonce,
-	}), types.NewLondonSigner(f.chainId), f.senderKey)
+	}), types.NewEIP155Signer(f.chainId), f.senderKey)
 	require.NoError(t, err, "failed to sign transaction")
 	return transaction
 }
@@ -135,7 +135,7 @@ func (f *txFactory) makeAccessListTransactionWithPrice(
 		GasPrice: big.NewInt(price),
 		To:       &common.Address{},
 		Nonce:    nonce,
-	}), types.NewLondonSigner(f.chainId), f.senderKey)
+	}), types.NewEIP2930Signer(f.chainId), f.senderKey)
 	require.NoError(t, err, "failed to sign transaction:")
 	return transaction
 }
