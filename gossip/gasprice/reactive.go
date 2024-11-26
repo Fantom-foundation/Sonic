@@ -194,16 +194,6 @@ func addBigI(a, b *big.Int) *big.Int {
 	return a.Add(a, b)
 }
 
-func (c *circularTxpoolStats) totalGas() uint64 {
-	atomic.StoreUint32(&c.activated, 1)
-	avgC := c.avg.Load()
-	if avgC == nil {
-		return 0
-	}
-	avg := avgC.(txpoolStat)
-	return avg.totalGas
-}
-
 // calcTxpoolStat retrieves txpool transactions and calculates statistics
 func (gpo *Oracle) calcTxpoolStat() txpoolStat {
 	txsMap := gpo.backend.PendingTxs()
