@@ -1,7 +1,6 @@
 package gaspricelimits
 
 import (
-	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -9,18 +8,18 @@ import (
 
 func TestAddPercentage_AddsRequestedAmountOfPercent(t *testing.T) {
 	for v := range 10000 {
-		for p := range 20 {
+		for p := range 100 {
 			res := int(addPercentage(big.NewInt(int64(v)), p).Int64())
 			expected := v + v*p/100
-			fmt.Printf("v: %d, p: %d, res: %d, expected: %d\n", v, p, res, expected)
 			if res != expected {
+				t.Log("v: ", v, "p: ", p)
 				t.Errorf("Expected %d, got %d", expected, res)
 			}
 		}
 	}
 }
 
-func TestAddPercentage_TreatesNilLikeZero(t *testing.T) {
+func TestAddPercentage_TreatsNilLikeZero(t *testing.T) {
 	res := addPercentage(nil, 10)
 	if res.Cmp(big.NewInt(0)) != 0 {
 		t.Errorf("Expected 0, got %d", res)
