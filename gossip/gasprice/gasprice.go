@@ -129,42 +129,23 @@ func (gpo *Oracle) Stop() {
 	gpo.wg.Wait()
 }
 
-func (gpo *Oracle) suggestTip(certainty uint64) *big.Int {
-	minPrice := gpo.backend.GetRules().Economy.MinGasPrice
-	pendingMinPrice := gpo.backend.GetPendingRules().Economy.MinGasPrice
-	adjustedMinGasPrice := math.BigMax(minPrice, pendingMinPrice)
-
-	reactive := gpo.reactiveGasPrice(certainty)
-	constructive := gpo.constructiveGasPrice(gpo.c.totalGas(), 0.005*DecimalUnit+certainty/25, adjustedMinGasPrice)
-
-	combined := math.BigMax(reactive, constructive)
-	if combined.Cmp(gpo.cfg.MinGasPrice) < 0 {
-		combined = gpo.cfg.MinGasPrice
+func (gpo *Oracle) suggestTip() *big.Int {
+	maxTip := big.NewInt(0)
+	for _, txs := range gpo.backend.PendingTxs() {
+		for _, tx := range txs {
+			if tx.GasTipCap().Cmp(maxTip) > 0 {
+				maxTip = tx.GasTipCap()
+			}
+		}
 	}
-	if combined.Cmp(gpo.cfg.MaxGasPrice) > 0 {
-		combined = gpo.cfg.MaxGasPrice
-	}
-
-	tip := new(big.Int).Sub(combined, minPrice)
-	minGasTip := gpo.backend.MinGasTip()
-	if tip.Cmp(minGasTip) < 0 {
-		return minGasTip
-	}
-	return tip
+	return maxTip
 }
 
-// SuggestTip returns a tip cap so that newly created transaction can have a
-// very high chance to be included in the following blocks.
-//
-// Note, for legacy transactions and the legacy eth_gasPrice RPC call, it will be
-// necessary to add the basefee to the returned number to fall back to the legacy
-// behavior.
+// SuggestTip returns a tip cap so that newly created transaction has priority
+// to be included in the following blocks.
 func (gpo *Oracle) SuggestTip(certainty uint64) *big.Int {
 	if gpo.backend == nil {
 		return new(big.Int)
-	}
-	if certainty == AsDefaultCertainty {
-		certainty = gpo.cfg.DefaultCertainty
 	}
 
 	const cacheSlack = DecimalUnit * 0.05
@@ -178,7 +159,7 @@ func (gpo *Oracle) SuggestTip(certainty uint64) *big.Int {
 		}
 	}
 
-	tip := gpo.suggestTip(certainty)
+	tip := gpo.suggestTip()
 
 	gpo.tCache.Add(roundedCertainty, tipCache{
 		upd: time.Now(),

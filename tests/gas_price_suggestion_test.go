@@ -92,6 +92,82 @@ func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
 	require.NoError(send(factory.makeBlobTransactionWithPrice(t, nonce+3, feeCap)))
 }
 
+func TestGasPrice_SuggestedGasPriceFeeProvidesPriority(t *testing.T) {
+	net, client := makeNetAndClient(t)
+
+	chainId, err := client.ChainID(context.Background())
+	require.NoError(t, err, "failed to get chain ID:")
+
+	slowAccount := makeAccountWithBalance(t, net, 1e18)
+	priorityAccount := makeAccountWithBalance(t, net, 1e18)
+
+	factories := map[common.Address]*txFactory{
+		slowAccount.Address(): {
+			senderKey: slowAccount.PrivateKey,
+			chainId:   chainId,
+		},
+		priorityAccount.Address(): {
+			senderKey: priorityAccount.PrivateKey,
+			chainId:   chainId,
+		},
+	}
+
+	// This test uses 100 transactions because of at time of writing, the block includes
+	// approximately 32 transactions. This test could start failing if the block size changes.
+	// To restore expected behavior, adjust the number of transactions so that approximately 3
+	// blocks are needed to dispatch the batch of transactions.
+	slowTransactions := make([]*types.Transaction, 100)
+	nonce, err := client.NonceAt(context.Background(), slowAccount.Address(), nil)
+	require.NoError(t, err, "failed to get nonce")
+	for i := range 100 {
+		tx := factories[slowAccount.Address()].makeDynamicFeeTransactionWithPriceAndTip(
+			t,
+			nonce+uint64(i),
+			105e9,
+			int64(i*1000),
+		)
+		slowTransactions[i] = tx
+	}
+	for _, tx := range slowTransactions {
+		err := client.SendTransaction(context.Background(), tx)
+		require.NoError(t, err)
+	}
+
+	// Waiting for the first transaction receipt waits for the first block to be completed.
+	// Because the amount of transactions is large, there will be transactions still in the pool.
+	_, err = net.GetReceipt(slowTransactions[0].Hash())
+	require.NoError(t, err)
+
+	tipCap, err := client.SuggestGasTipCap(context.Background())
+	require.NoError(t, err, "failed to get tip cap suggestion")
+	nonce, err = client.NonceAt(context.Background(), priorityAccount.Address(), nil)
+	require.NoError(t, err, "failed to get nonce")
+	prioritizedTx := factories[priorityAccount.Address()].makeDynamicFeeTransactionWithPriceAndTip(
+		t,
+		nonce,
+		105e9,
+		tipCap.Int64(),
+	)
+	err = client.SendTransaction(context.Background(), prioritizedTx)
+	require.NoError(t, err)
+
+	// get the receipt of the last transaction in transactions (synchronizes the complete batch)
+	lastTxReceipt, err := net.GetReceipt(slowTransactions[len(slowTransactions)-1].Hash())
+	require.NoError(t, err)
+
+	prioritizedTxReceipt, err :=
+		client.TransactionReceipt(context.Background(), prioritizedTx.Hash())
+	require.NoError(t, err, "prioritized transaction was not executed before the last slow transaction")
+
+	// The prioritized transaction shall be included in an earlier block as the last slow transaction.
+	// Because signing transactions is a heavy operation, the actual block may change depending
+	// on the machine load. For this reason, no absolute block number is checked.
+	require.Less(t,
+		prioritizedTxReceipt.BlockNumber.Uint64(),
+		lastTxReceipt.BlockNumber.Uint64(),
+		"the prioritized transaction was not executed with priority")
+}
+
 func makeNetAndClient(t *testing.T) (*IntegrationTestNet, *ethclient.Client) {
 	net, err := StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
@@ -136,6 +212,7 @@ func (f *txFactory) makeAccessListTransactionWithPrice(
 		To:       &common.Address{},
 		Nonce:    nonce,
 	}), types.NewLondonSigner(f.chainId), f.senderKey)
+
 	require.NoError(t, err, "failed to sign transaction:")
 	return transaction
 }
@@ -150,6 +227,24 @@ func (f *txFactory) makeDynamicFeeTransactionWithPrice(
 		Gas:       21_000,
 		GasFeeCap: big.NewInt(price),
 		GasTipCap: big.NewInt(0),
+		To:        &common.Address{},
+		Nonce:     nonce,
+	}), types.NewLondonSigner(f.chainId), f.senderKey)
+	require.NoError(t, err, "failed to sign transaction:")
+	return transaction
+}
+
+func (f *txFactory) makeDynamicFeeTransactionWithPriceAndTip(
+	t *testing.T,
+	nonce uint64,
+	price int64,
+	tip int64,
+) *types.Transaction {
+	transaction, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{
+		ChainID:   f.chainId,
+		Gas:       21_000,
+		GasFeeCap: big.NewInt(price),
+		GasTipCap: big.NewInt(tip),
 		To:        &common.Address{},
 		Nonce:     nonce,
 	}), types.NewLondonSigner(f.chainId), f.senderKey)
