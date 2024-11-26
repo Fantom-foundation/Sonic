@@ -283,8 +283,9 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		Idx:                blockCtx.Idx,
 	})
 
-	// add epoch
-	b.currentEpoch = ier.LlrIdxFullEpochRecord{
+	// add epochs
+	b.epochs = append(b.epochs, b.currentEpoch) // safe epoch 1
+	b.currentEpoch = ier.LlrIdxFullEpochRecord{ // create epoch 2
 		LlrFullEpochRecord: ier.LlrFullEpochRecord{
 			BlockState: bs,
 			EpochState: es,
