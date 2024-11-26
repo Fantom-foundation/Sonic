@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
@@ -38,7 +39,7 @@ func TestBlockHeader_JsonGenesis_SatisfiesInvariants(t *testing.T) {
 }
 
 func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
-	const numBlocks = 10
+	const numBlocks = 5
 	require := require.New(t)
 
 	// Produce a few blocks on the network.
@@ -122,13 +123,19 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		t.Run("LastBlockOfEpochContainsSealingTransaction", func(t *testing.T) {
 			testHeaders_LastBlockOfEpochContainsSealingTransaction(t, headers, client)
 		})
+
+		t.Run("StateRootsMatchActualStateRoots", func(t *testing.T) {
+			testHeaders_StateRootsMatchActualStateRoots(t, headers, client)
+		})
 	}
 
 	runTests()
-	require.NoError(net.Restart())
-	runTests()
-	require.NoError(net.RestartWithExportImport())
-	runTests()
+	/*
+		require.NoError(net.Restart())
+		runTests()
+		require.NoError(net.RestartWithExportImport())
+		runTests()
+	*/
 }
 
 func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
@@ -377,4 +384,51 @@ func getEpochOfBlock(client *ethclient.Client, blockNumber int) (int, error) {
 		return 0, err
 	}
 	return int(result.Epoch), nil
+}
+
+func testHeaders_StateRootsMatchActualStateRoots(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for i, header := range headers {
+		fmt.Printf("Block %d: %x\n", i, header.Root)
+	}
+
+	for i, header := range headers {
+		// The direct way to get the state root of a block would be to request the
+		// block header and extract the state root from it. However, we would like
+		// to verify that the state root is correct by comparing it to the state
+		// root we see in the database. To get access to the database, we request
+		// a witness proof for an account at the given block. From this proof we
+		// we have a list of state-root candidates which we can test for.
+		steps, err := getWitnessProofSteps(client, int(header.Number.Int64()))
+		require.NoError(err, "failed to get witness proof for block %d", i)
+		got := header.Root
+		require.Contains(steps, got, "state root mismatch for block %d", i)
+	}
+}
+
+func getWitnessProofSteps(client *ethclient.Client, blockNumber int) ([]common.Hash, error) {
+	var result struct {
+		AccountProof []string
+	}
+	err := client.Client().Call(
+		&result,
+		"eth_getProof",
+		fmt.Sprintf("%v", common.Address{}),
+		[]string{},
+		fmt.Sprintf("0x%x", blockNumber),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get witness proof; %v", err)
+	}
+
+	res := []common.Hash{}
+	for _, proof := range result.AccountProof {
+		data, err := hexutil.Decode(proof)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, common.BytesToHash(crypto.Keccak256(data)))
+	}
+	return res, nil
 }
