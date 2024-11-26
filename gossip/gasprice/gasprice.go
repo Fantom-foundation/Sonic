@@ -130,15 +130,21 @@ func (gpo *Oracle) Stop() {
 }
 
 func (gpo *Oracle) suggestTip() *big.Int {
-	maxTip := big.NewInt(0)
+	totalTip := big.NewInt(0)
+	txCount := 0
+
 	for _, txs := range gpo.backend.PendingTxs() {
 		for _, tx := range txs {
-			if tx.GasTipCap().Cmp(maxTip) > 0 {
-				maxTip = tx.GasTipCap()
-			}
+			totalTip.Add(totalTip, tx.GasTipCap())
+			txCount++
 		}
 	}
-	return maxTip
+
+	if txCount == 0 {
+		return totalTip
+	}
+
+	return totalTip.Div(totalTip, big.NewInt(int64(txCount)))
 }
 
 // SuggestTip returns a tip cap so that newly created transaction has priority
