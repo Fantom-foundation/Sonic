@@ -169,11 +169,21 @@ func startIntegrationTestNet(directory string, args []string) (*IntegrationTestN
 	// initialize the data directory for the single node on the test network
 	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
 	originalArgs := os.Args
-	os.Args = append([]string{"sonictool", "--datadir", result.stateDir()}, args...)
+	os.Args =  append([]string{
+		"sonictool",
+		"--datadir", result.stateDir(),
+		"genesis",
+		"fake",
+		"--statedb.livecache", "1",
+		"--statedb.archivecache", "1",
+		"1",
+	}, args...)
 	if err := sonictool.Run(); err != nil {
 		os.Args = originalArgs
 		return nil, fmt.Errorf("failed to initialize the test network: %w", err)
 	}
+	os.Args = originalArgs
+
 	os.Args = originalArgs
 
 	if err := result.start(); err != nil {
@@ -200,10 +210,17 @@ func (n *IntegrationTestNet) start() error {
 			"sonicd",
 			"--datadir", n.stateDir(),
 			"--fakenet", "1/1",
-			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
+			"--http",
+			"--http.addr", "0.0.0.0",
+			"--http.port", "18545",
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
-			"--ws", "--ws.addr", "0.0.0.0", "--ws.port", "18546", "--ws.api", "admin,eth,ftm",
+			"--ws",
+			"--ws.addr", "0.0.0.0",
+			"--ws.port", "18546",
+			"--ws.api", "admin,eth,ftm",
 			"--datadir.minfreedisk", "0",
+			"--statedb.livecache", "1",
+			"--statedb.archivecache", "1",
 		}
 		sonicd.Run()
 	}()

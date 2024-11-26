@@ -348,4 +348,14 @@ var (
 		Name:  "lachesis.suppress-frame-panic",
 		Usage: "Suppress frame missmatch error (when testing on historical imported/synced events)",
 	}
+
+	// StateDb
+	LiveDbCacheFlag = cli.Int64Flag{
+		Name:  "statedb.livecache",
+		Usage: "Size of live db cache in bytes.",
+	}
+	ArchiveCacheFlag = cli.IntFlag{
+		Name:  "statedb.archivecache",
+		Usage: "Size of archive cache in bytes.",
+	}
 )

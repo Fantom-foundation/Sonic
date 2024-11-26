@@ -48,7 +48,7 @@ func exportGenesis(ctx *cli.Context) error {
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity, false)
+	gdb, err := db.MakeGossipDb(ctx, dbs, dataDir, false, cachescale.Identity)
 	if err != nil {
 		return err
 	}

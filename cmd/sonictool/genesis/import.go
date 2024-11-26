@@ -10,10 +10,11 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
+	"gopkg.in/urfave/cli.v1"
 	"path/filepath"
 )
 
-func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func, isFakeNet bool) error {
+func ImportGenesisStore(ctx *cli.Context, genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func) error {
 	if err := db.AssertDatabaseNotInitialized(dataDir); err != nil {
 		return fmt.Errorf("database in datadir is already initialized: %w", err)
 	}
@@ -29,7 +30,7 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 	defer dbs.Close()
 	setGenesisProcessing(chaindataDir)
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio, isFakeNet)
+	gdb, err := db.MakeGossipDb(ctx, dbs, dataDir, false, cacheRatio)
 	if err != nil {
 		return err
 	}

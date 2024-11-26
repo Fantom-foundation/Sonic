@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"gopkg.in/urfave/cli.v1"
 	"os"
 	"path/filepath"
 )
@@ -61,19 +63,22 @@ func MakeDbProducer(chaindataDir string, cacheRatio cachescale.Func) (kvdb.FullD
 	})
 }
 
-func MakeGossipDb(dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func, isFakeNet bool) (*gossip.Store, error) {
+func MakeGossipDb(ctx *cli.Context, dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func) (*gossip.Store, error) {
 	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
-	gdbConfig.EVM.StateDb.Directory = filepath.Join(dataDir, "carmen")
 	if validatorMode {
 		gdbConfig.EVM.StateDb.Archive = carmen.NoArchive
 		gdbConfig.EVM.DisableLogsIndexing = true
 		gdbConfig.EVM.DisableTxHashesIndexing = true
 	}
 
-	if isFakeNet {
-		gdbConfig.EVM.StateDb.ArchiveCache = 1
-		gdbConfig.EVM.StateDb.LiveCache = 1
+	if ctx.IsSet(flags.LiveDbCacheFlag.Name) {
+		gdbConfig.EVM.StateDb.LiveCache = ctx.Int64(flags.LiveDbCacheFlag.Name)
 	}
+
+	if ctx.IsSet(flags.ArchiveCacheFlag.Name) {
+		gdbConfig.EVM.StateDb.ArchiveCache = ctx.Int64(flags.ArchiveCacheFlag.Name)
+	}
+	gdbConfig.EVM.StateDb.Directory = filepath.Join(dataDir, "carmen")
 
 	gdb, err := gossip.NewStore(dbs, gdbConfig)
 	if err != nil {

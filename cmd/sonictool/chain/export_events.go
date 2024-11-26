@@ -3,6 +3,7 @@ package chain
 import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
+	"gopkg.in/urfave/cli.v1"
 	"io"
 	"path/filepath"
 	"time"
@@ -24,7 +25,7 @@ var (
 // always print out progress. This avoids the user wondering what's going on.
 const statsReportLimit = 8 * time.Second
 
-func ExportEvents(w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
+func ExportEvents(ctx *cli.Context, w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
 	chaindataDir := filepath.Join(dataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
@@ -32,7 +33,7 @@ func ExportEvents(w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity, false)
+	gdb, err := db.MakeGossipDb(ctx, dbs, dataDir, false, cachescale.Identity)
 	if err != nil {
 		return err
 	}

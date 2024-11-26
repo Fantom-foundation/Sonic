@@ -65,6 +65,8 @@ func initFlags() {
 	}
 	performanceFlags = []cli.Flag{
 		flags.CacheFlag,
+		flags.LiveDbCacheFlag,
+		flags.ArchiveCacheFlag,
 	}
 	networkingFlags = []cli.Flag{
 		flags.BootnodesFlag,
@@ -222,9 +224,12 @@ func lachesisMain(ctx *cli.Context) error {
 	}
 
 	metrics.SetDataDir(cfg.Node.DataDir) // report disk space usage into metrics
-	if ctx.GlobalIsSet(config.FakeNetFlag.Name) {
-		cfg.OperaStore.EVM.StateDb.LiveCache = 1
-		cfg.OperaStore.EVM.StateDb.ArchiveCache = 1
+	if ctx.IsSet(flags.LiveDbCacheFlag.Name) {
+		cfg.OperaStore.EVM.StateDb.LiveCache = ctx.Int64(flags.LiveDbCacheFlag.Name)
+	}
+
+	if ctx.IsSet(flags.ArchiveCacheFlag.Name) {
+		cfg.OperaStore.EVM.StateDb.ArchiveCache = ctx.Int64(flags.ArchiveCacheFlag.Name)
 	}
 
 	node, _, nodeClose, err := config.MakeNode(ctx, cfg)

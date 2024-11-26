@@ -58,7 +58,7 @@ func exportEvents(ctx *cli.Context) error {
 	}
 
 	log.Info("Exporting events to file", "file", fn)
-	err = chain.ExportEvents(writer, dataDir, from, to)
+	err = chain.ExportEvents(ctx, writer, dataDir, from, to)
 	if err != nil {
 		return fmt.Errorf("export error: %w", err)
 	}
