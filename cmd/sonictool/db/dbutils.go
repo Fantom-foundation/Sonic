@@ -4,14 +4,12 @@ import (
 	"errors"
 	"fmt"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
-	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"gopkg.in/urfave/cli.v1"
 	"os"
 	"path/filepath"
 )
@@ -63,24 +61,32 @@ func MakeDbProducer(chaindataDir string, cacheRatio cachescale.Func) (kvdb.FullD
 	})
 }
 
-func MakeGossipDb(ctx *cli.Context, dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func) (*gossip.Store, error) {
-	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
-	if validatorMode {
+// GossipDbParameters are parameters for GossipDb factory func.
+type GossipDbParameters struct {
+	Dbs                       kvdb.FullDBProducer
+	DataDir                   string
+	ValidatorMode             bool
+	CacheRatio                cachescale.Func
+	LiveDbCache, ArchiveCache int64
+}
+
+func MakeGossipDb(params GossipDbParameters) (*gossip.Store, error) {
+	gdbConfig := gossip.DefaultStoreConfig(params.CacheRatio)
+	if params.ValidatorMode {
 		gdbConfig.EVM.StateDb.Archive = carmen.NoArchive
 		gdbConfig.EVM.DisableLogsIndexing = true
 		gdbConfig.EVM.DisableTxHashesIndexing = true
 	}
 
-	if ctx.IsSet(flags.LiveDbCacheFlag.Name) {
-		gdbConfig.EVM.StateDb.LiveCache = ctx.Int64(flags.LiveDbCacheFlag.Name)
+	if params.LiveDbCache > 0 {
+		gdbConfig.EVM.StateDb.LiveCache = params.LiveDbCache
 	}
-
-	if ctx.IsSet(flags.ArchiveCacheFlag.Name) {
-		gdbConfig.EVM.StateDb.ArchiveCache = ctx.Int64(flags.ArchiveCacheFlag.Name)
+	if params.ArchiveCache > 0 {
+		gdbConfig.EVM.StateDb.ArchiveCache = params.ArchiveCache
 	}
-	gdbConfig.EVM.StateDb.Directory = filepath.Join(dataDir, "carmen")
+	gdbConfig.EVM.StateDb.Directory = filepath.Join(params.DataDir, "carmen")
 
-	gdb, err := gossip.NewStore(dbs, gdbConfig)
+	gdb, err := gossip.NewStore(params.Dbs, gdbConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gossip store: %w", err)
 	}

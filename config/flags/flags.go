@@ -17,6 +17,7 @@
 package flags
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -351,11 +352,19 @@ var (
 
 	// StateDb
 	LiveDbCacheFlag = cli.Int64Flag{
-		Name:  "statedb.livecache",
-		Usage: "Size of live db cache in bytes.",
+		Name: "statedb.livecache",
+		Usage: fmt.Sprintf("Size of live db cache in bytes. Leaving this blank (which is generally recommended),"+
+			"or setting this to <1 will automatically allocate cache size depending on how much cache you use with %s."+
+			"Setting this value to <=2000 will result in cache capacity of 2KB (which is the lowest value that Carmen allows)",
+			CacheFlag.Name),
+		Value: 0,
 	}
 	ArchiveCacheFlag = cli.IntFlag{
-		Name:  "statedb.archivecache",
-		Usage: "Size of archive cache in bytes.",
+		Name: "statedb.archivecache",
+		Usage: fmt.Sprintf("Size of archive cache in bytes. Leaving this blank (which is generally recommended),"+
+			"or setting this to <1 will automatically allocate cache size depending on how much cache you use with %s."+
+			"Setting this value to <=2000 will result in cache capacity of 2KB (which is the lowest value that Carmen allows)",
+			CacheFlag.Name),
+		Value: 0,
 	}
 )

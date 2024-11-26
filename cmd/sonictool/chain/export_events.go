@@ -2,6 +2,7 @@ package chain
 
 import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"gopkg.in/urfave/cli.v1"
 	"io"
@@ -33,7 +34,14 @@ func ExportEvents(ctx *cli.Context, w io.Writer, dataDir string, from, to idx.Ep
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(ctx, dbs, dataDir, false, cachescale.Identity)
+	gdb, err := db.MakeGossipDb(db.GossipDbParameters{
+		Dbs:           dbs,
+		DataDir:       dataDir,
+		ValidatorMode: false,
+		CacheRatio:    cachescale.Identity,
+		LiveDbCache:   ctx.Int64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache:  ctx.Int64(flags.ArchiveCacheFlag.Name),
+	})
 	if err != nil {
 		return err
 	}

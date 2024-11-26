@@ -224,12 +224,14 @@ func lachesisMain(ctx *cli.Context) error {
 	}
 
 	metrics.SetDataDir(cfg.Node.DataDir) // report disk space usage into metrics
-	if ctx.IsSet(flags.LiveDbCacheFlag.Name) {
-		cfg.OperaStore.EVM.StateDb.LiveCache = ctx.Int64(flags.LiveDbCacheFlag.Name)
+	liveCache := ctx.Int64(flags.LiveDbCacheFlag.Name)
+	if liveCache > 0 {
+		cfg.OperaStore.EVM.StateDb.LiveCache = liveCache
 	}
 
-	if ctx.IsSet(flags.ArchiveCacheFlag.Name) {
-		cfg.OperaStore.EVM.StateDb.ArchiveCache = ctx.Int64(flags.ArchiveCacheFlag.Name)
+	archiveCache := ctx.Int64(flags.ArchiveCacheFlag.Name)
+	if archiveCache > 0 {
+		cfg.OperaStore.EVM.StateDb.ArchiveCache = archiveCache
 	}
 
 	node, _, nodeClose, err := config.MakeNode(ctx, cfg)

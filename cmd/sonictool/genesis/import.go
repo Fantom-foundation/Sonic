@@ -3,6 +3,7 @@ package genesis
 import (
 	"fmt"
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
+	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/abft"
@@ -30,7 +31,14 @@ func ImportGenesisStore(ctx *cli.Context, genesisStore *genesisstore.Store, data
 	defer dbs.Close()
 	setGenesisProcessing(chaindataDir)
 
-	gdb, err := db.MakeGossipDb(ctx, dbs, dataDir, false, cacheRatio)
+	gdb, err := db.MakeGossipDb(db.GossipDbParameters{
+		Dbs:           dbs,
+		DataDir:       dataDir,
+		ValidatorMode: validatorMode,
+		CacheRatio:    cacheRatio,
+		LiveDbCache:   ctx.Int64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache:  ctx.Int64(flags.ArchiveCacheFlag.Name),
+	})
 	if err != nil {
 		return err
 	}
