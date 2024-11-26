@@ -121,6 +121,7 @@ func NewGenesisBuilder() *GenesisBuilder {
 	carmenState, err := carmen.NewState(carmen.Parameters{
 		Variant:   "go-file",
 		Schema:    carmen.Schema(5),
+		Archive:   carmen.S5Archive,
 		Directory: carmenDir,
 		LiveCache: 1, // use minimum cache (not default)
 	})
@@ -324,6 +325,12 @@ func (b *GenesisBuilder) Build(head genesis.Header) *genesisstore.Store {
 		}
 		if name == genesisstore.FwsLiveSection(0) {
 			err := mptIo.Export(context.Background(), mptIo.NewLog(), filepath.Join(b.carmenDir, "live"), buf)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if name == genesisstore.FwsArchiveSection(0) {
+			err := mptIo.ExportArchive(context.Background(), mptIo.NewLog(), filepath.Join(b.carmenDir, "archive"), buf)
 			if err != nil {
 				return nil, err
 			}
