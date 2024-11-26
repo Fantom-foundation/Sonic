@@ -50,6 +50,7 @@
       "Sonic": true
     }
   },
+  "blockZeroTime": "2024-11-01T00:00:00+01:00",
   "accounts": [
     {
       "name": "Network initializer",
