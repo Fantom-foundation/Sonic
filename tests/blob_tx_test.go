@@ -23,10 +23,12 @@ func TestBobTransaction(t *testing.T) {
 
 	t.Run("blob tx with empty blobs is executed", func(t *testing.T) {
 		testBlobTx_WithEmptyBlobsIsExecuted(t, ctxt)
+		lastBlockSanity(t, ctxt.client)
 	})
 
 	t.Run("blob tx with nil sidecar is executed", func(t *testing.T) {
 		testBlobTx_WithNilSidecarIsExecuted(t, ctxt)
+		lastBlockSanity(t, ctxt.client)
 	})
 }
 
@@ -174,6 +176,15 @@ func createTestBlobTransactionWithNilSidecar(t *testing.T, ctxt *testContext) (*
 	})
 
 	return types.SignTx(tx, types.NewCancunSigner(chainId), ctxt.net.validator.PrivateKey)
+}
+
+func lastBlockSanity(t *testing.T, client *ethclient.Client) {
+	// This check is a regression from an issue found while fetching a block by
+	// number where the last block was not correctly serialized
+	require := require.New(t)
+
+	_, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(err)
 }
 
 type testContext struct {
