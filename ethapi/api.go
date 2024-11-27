@@ -681,6 +681,23 @@ func (s *PublicBlockChainAPI) GetEpochBlock(ctx context.Context, epoch rpc.Block
 	return hexutil.Uint64(bs.LastBlock.Idx), nil
 }
 
+func (s *PublicBlockChainAPI) GetEpochState(ctx context.Context, epoch rpc.BlockNumber) (any, error) {
+	bs, es, err := s.b.GetEpochBlockState(ctx, epoch)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"epoch":              hexutil.Uint64(es.Epoch),
+		"epochStart":         hexutil.Uint64(es.EpochStart),
+		"prevEpochStart":     hexutil.Uint64(es.PrevEpochStart),
+		"epochStateRoot":     es.EpochStateRoot.Hex(),
+		"epochGas":           hexutil.Uint64(bs.EpochGas),
+		"lastBlock":          hexutil.Uint64(bs.LastBlock.Idx),
+		"finalizedStateRoot": bs.FinalizedStateRoot.Hex(),
+		"advanceEpochs":      hexutil.Uint64(bs.AdvanceEpochs),
+	}, nil
+}
+
 // ChainId is the EIP-155 replay-protection chain id for the current ethereum chain config.
 func (api *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 	// if current block is at or past the EIP-155 replay-protection fork block, return chainID from config

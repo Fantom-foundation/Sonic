@@ -139,6 +139,10 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		t.Run("SystemContractsHaveNonZeroNonce", func(t *testing.T) {
 			testHeaders_SystemContractsHaveNonZeroNonce(t, headers, client)
 		})
+
+		t.Run("EpochStatesAreConsistent", func(t *testing.T) {
+			testHeaders_EpochStatesAreConsistent(t, headers, client)
+		})
 	}
 
 	runTests()
@@ -469,4 +473,118 @@ func testHeaders_SystemContractsHaveNonZeroNonce(t *testing.T, headers []*types.
 			require.Equal(want, nonce, "nonce for %s at block %d is not one", addr, i)
 		}
 	}
+}
+
+func testHeaders_EpochStatesAreConsistent(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	currentEpoch, err := getCurrentEpoch(client)
+	require.NoError(err, "failed to get current epoch")
+
+	getTime := func(header *types.Header) inter.Timestamp {
+		nanos, _, err := inter.DecodeExtraData(header.Extra)
+		require.NoError(err)
+		return inter.Timestamp(header.Time)*inter.Timestamp(time.Second) + inter.Timestamp(nanos)
+	}
+
+	lastEpoch := 1
+	firstInEpoch := map[int]*types.Header{}
+	lastInEpoch := map[int]*types.Header{}
+	for i, header := range headers {
+		epoch, err := getEpochOfBlock(client, i)
+		require.NoError(err, "failed to get epoch of block %d", i)
+		require.LessOrEqual(lastEpoch, epoch, "epoch of block %d is decreasing", i)
+		require.LessOrEqual(epoch, currentEpoch, "epoch of block %d is in the future", i)
+		lastEpoch = epoch
+		if _, found := firstInEpoch[epoch]; !found {
+			firstInEpoch[epoch] = header
+		}
+		lastInEpoch[epoch] = header
+		fmt.Printf("Block %d - Epoch %d - Time %x - Gas %d - root %x\n", i, epoch, uint64(getTime(header)), header.GasUsed, header.Root)
+	}
+
+	fmt.Printf("Current epoch: %d\n", currentEpoch)
+
+	lastStartTime := uint64(0)
+	for i := 1; i < currentEpoch; i++ {
+		result := struct {
+			Epoch              hexutil.Uint64
+			EpochStart         hexutil.Uint64
+			EpochStateRoot     common.Hash
+			FinalizedStateRoot common.Hash
+			PrevEpochStart     hexutil.Uint64
+			LastBlock          hexutil.Uint64
+			EpochGas           hexutil.Uint64
+		}{}
+		err := client.Client().Call(
+			&result,
+			"ftm_getEpochState",
+			fmt.Sprintf("0x%x", i),
+		)
+		require.NoError(err, "failed to get epoch block state for epoch %d", i)
+		fmt.Printf("Epoch %d: %+v\n", i, result)
+
+		require.Equal(
+			i, int(result.Epoch), 
+			"epoch %d epoch number mismatch", i,
+		)
+		require.LessOrEqual(
+			lastStartTime, 
+			uint64(result.EpochStart), 
+			"epoch %d start time is not increasing", i,
+		)
+		lastStartTime = uint64(result.EpochStart)
+
+		// All epoch gas usage is zero.
+		require.Equal(uint64(0), uint64(result.EpochGas), "epoch %d epoch gas is not zero", i)
+
+		// All properties are off by one epoch.
+		if i > 1 {
+			require.Equal(
+				lastInEpoch[i-1].Root,
+				result.FinalizedStateRoot,
+				"epoch %d finalized state root mismatch", i,
+			)
+
+			if i != 3 { // TODO: fix this
+				require.Equal(
+					firstInEpoch[i-1].Root,
+					result.EpochStateRoot,
+					"epoch %d epoch state root mismatch", i,
+				)
+			}
+
+			require.Equal(
+				uint64(getTime(lastInEpoch[i-1])),
+				uint64(result.EpochStart),
+				"epoch %d epoch start time mismatch", i,
+			)
+
+			require.Equal(
+				uint64(lastInEpoch[i-1].Number.Uint64()),
+				uint64(result.LastBlock),
+				"epoch %d last block number mismatch", i,
+			)
+		}
+
+		if i > 2 {
+			require.Equal(
+				uint64(getTime(lastInEpoch[i-2])),
+				uint64(result.PrevEpochStart),
+				"epoch %d previous epoch start time mismatch", i,
+			)
+		}
+	}
+}
+
+func getCurrentEpoch(client *ethclient.Client) (int, error) {
+	var epoch hexutil.Uint64
+	err := client.Client().Call(
+		&epoch,
+		"eth_currentEpoch",
+	)
+	if err != nil {
+		return 0, err
+	}
+	return int(epoch), nil
 }

@@ -15,6 +15,7 @@ import (
 	sonictool "github.com/Fantom-foundation/go-opera/cmd/sonictool/app"
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/driver/drivercall"
@@ -75,6 +76,7 @@ func StartIntegrationTestNetFromJsonGenesis(directory string) (*IntegrationTestN
 		Rules:         opera.FakeNetRules(),
 		BlockZeroTime: time.Now(),
 	}
+	jsonGenesis.Rules.Epochs.MaxEpochDuration = inter.Timestamp(2 * time.Second)
 
 	// Create infrastructure contracts.
 	jsonGenesis.Accounts = []makefakegenesis.Account{

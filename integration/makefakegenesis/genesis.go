@@ -53,6 +53,8 @@ func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules
 func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.Int, rules opera.Rules, epoch idx.Epoch, block idx.Block) *genesisstore.Store {
 	builder := makegenesis.NewGenesisBuilder()
 
+	rules.Epochs.MaxEpochDuration = inter.Timestamp(2 * time.Second)
+
 	validators := GetFakeValidators(num)
 
 	// add balances to validators
