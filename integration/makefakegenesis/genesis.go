@@ -75,14 +75,19 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 	// deploy essential contracts
 	// pre deploy NetworkInitializer
 	builder.SetCode(netinit.ContractAddress, netinit.GetContractBin())
+	builder.SetNonce(netinit.ContractAddress, 1)
 	// pre deploy NodeDriver
 	builder.SetCode(driver.ContractAddress, driver.GetContractBin())
+	builder.SetNonce(driver.ContractAddress, 1)
 	// pre deploy NodeDriverAuth
 	builder.SetCode(driverauth.ContractAddress, driverauth.GetContractBin())
+	builder.SetNonce(driverauth.ContractAddress, 1)
 	// pre deploy SFC
 	builder.SetCode(sfc.ContractAddress, sfc.GetContractBin())
+	builder.SetNonce(sfc.ContractAddress, 1)
 	// set non-zero code for pre-compiled contracts
 	builder.SetCode(evmwriter.ContractAddress, []byte{0})
+	builder.SetNonce(evmwriter.ContractAddress, 1)
 
 	_, genesisStateRoot, err := builder.FinalizeBlockZero(rules, FakeGenesisTime)
 	if err != nil {

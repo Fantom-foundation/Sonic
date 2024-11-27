@@ -37,6 +37,7 @@ type Account struct {
 	Address common.Address
 	Balance *big.Int                    `json:",omitempty"`
 	Code    VariableLenCode             `json:",omitempty"`
+	Nonce   uint64                      `json:",omitempty"`
 	Storage map[common.Hash]common.Hash `json:",omitempty"`
 }
 
@@ -75,6 +76,9 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 		}
 		if acc.Code != nil {
 			builder.SetCode(acc.Address, acc.Code)
+		}
+		if acc.Nonce != 0 {
+			builder.SetNonce(acc.Address, acc.Nonce)
 		}
 		if acc.Storage != nil {
 			for key, val := range acc.Storage {

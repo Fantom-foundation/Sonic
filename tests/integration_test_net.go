@@ -82,26 +82,31 @@ func StartIntegrationTestNetFromJsonGenesis(directory string) (*IntegrationTestN
 			Name:    "NetworkInitializer",
 			Address: netinit.ContractAddress,
 			Code:    netinit.GetContractBin(),
+			Nonce:   1,
 		},
 		{
 			Name:    "NodeDriver",
 			Address: driver.ContractAddress,
 			Code:    driver.GetContractBin(),
+			Nonce:   1,
 		},
 		{
 			Name:    "NodeDriverAuth",
 			Address: driverauth.ContractAddress,
 			Code:    driverauth.GetContractBin(),
+			Nonce:   1,
 		},
 		{
 			Name:    "SFC",
 			Address: sfc.ContractAddress,
 			Code:    sfc.GetContractBin(),
+			Nonce:   1,
 		},
 		{
 			Name:    "ContractAddress",
 			Address: evmwriter.ContractAddress,
 			Code:    []byte{0},
+			Nonce:   1,
 		},
 	}
 
