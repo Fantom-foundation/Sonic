@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -23,10 +24,12 @@ func TestBobTransaction(t *testing.T) {
 
 	t.Run("blob tx with empty blobs is executed", func(t *testing.T) {
 		testBlobTx_WithEmptyBlobsIsExecuted(t, ctxt)
+		checkBlocksSanity(t, ctxt.client)
 	})
 
 	t.Run("blob tx with nil sidecar is executed", func(t *testing.T) {
 		testBlobTx_WithNilSidecarIsExecuted(t, ctxt)
+		checkBlocksSanity(t, ctxt.client)
 	})
 }
 
@@ -174,6 +177,20 @@ func createTestBlobTransactionWithNilSidecar(t *testing.T, ctxt *testContext) (*
 	})
 
 	return types.SignTx(tx, types.NewCancunSigner(chainId), ctxt.net.validator.PrivateKey)
+}
+
+func checkBlocksSanity(t *testing.T, client *ethclient.Client) {
+	// This check is a regression from an issue found while fetching a block by
+	// number where the last block was not correctly serialized
+	require := require.New(t)
+
+	lastBlock, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(err)
+
+	for i := uint64(0); i < lastBlock.Number().Uint64(); i++ {
+		_, err := client.BlockByNumber(context.Background(), big.NewInt(int64(i)))
+		require.NoError(err)
+	}
 }
 
 type testContext struct {
