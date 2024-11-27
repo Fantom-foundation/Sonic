@@ -3,6 +3,7 @@ package app
 import (
 	"compress/gzip"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"io"
 	"os"
 	"strconv"
@@ -57,8 +58,14 @@ func exportEvents(ctx *cli.Context) error {
 		to = idx.Epoch(n)
 	}
 
+	gdbParams := db.GossipDbParameters{
+		DataDir:      dataDir,
+		LiveDbCache:  ctx.Int64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache: ctx.Int64(flags.ArchiveCacheFlag.Name),
+	}
+
 	log.Info("Exporting events to file", "file", fn)
-	err = chain.ExportEvents(ctx, writer, dataDir, from, to)
+	err = chain.ExportEvents(gdbParams, writer, dataDir, from, to)
 	if err != nil {
 		return fmt.Errorf("export error: %w", err)
 	}

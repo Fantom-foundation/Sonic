@@ -169,14 +169,11 @@ func startIntegrationTestNet(directory string, args []string) (*IntegrationTestN
 	// initialize the data directory for the single node on the test network
 	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
 	originalArgs := os.Args
-	os.Args =  append([]string{
+	os.Args = append([]string{
 		"sonictool",
 		"--datadir", result.stateDir(),
-		"genesis",
-		"fake",
 		"--statedb.livecache", "1",
 		"--statedb.archivecache", "1",
-		"1",
 	}, args...)
 	if err := sonictool.Run(); err != nil {
 		os.Args = originalArgs

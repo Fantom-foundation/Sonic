@@ -67,7 +67,7 @@ type GossipDbParameters struct {
 	DataDir                   string
 	ValidatorMode             bool
 	CacheRatio                cachescale.Func
-	LiveDbCache, ArchiveCache int64
+	LiveDbCache, ArchiveCache int64 // in bytes
 }
 
 func MakeGossipDb(params GossipDbParameters) (*gossip.Store, error) {

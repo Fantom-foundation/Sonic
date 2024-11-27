@@ -2,9 +2,7 @@ package chain
 
 import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
-	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"gopkg.in/urfave/cli.v1"
 	"io"
 	"path/filepath"
 	"time"
@@ -26,7 +24,7 @@ var (
 // always print out progress. This avoids the user wondering what's going on.
 const statsReportLimit = 8 * time.Second
 
-func ExportEvents(ctx *cli.Context, w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
+func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
 	chaindataDir := filepath.Join(dataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
@@ -34,14 +32,11 @@ func ExportEvents(ctx *cli.Context, w io.Writer, dataDir string, from, to idx.Ep
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(db.GossipDbParameters{
-		Dbs:           dbs,
-		DataDir:       dataDir,
-		ValidatorMode: false,
-		CacheRatio:    cachescale.Identity,
-		LiveDbCache:   ctx.Int64(flags.LiveDbCacheFlag.Name),
-		ArchiveCache:  ctx.Int64(flags.ArchiveCacheFlag.Name),
-	})
+	// Fill the rest of the params
+	gdbParams.Dbs = dbs
+	gdbParams.CacheRatio = cachescale.Identity
+
+	gdb, err := db.MakeGossipDb(gdbParams)
 	if err != nil {
 		return err
 	}
