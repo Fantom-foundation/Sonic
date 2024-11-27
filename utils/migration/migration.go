@@ -88,12 +88,3 @@ func (m *Migration) Exec(curr IDStore, flush func() error) error {
 func (m *Migration) veryFirst() bool {
 	return m.exec == nil
 }
-
-// IDs return list of migrations ids in chain
-// func (m *Migration) IDs() []string {
-// 	if m.prev == nil {
-// 		return []string{m.ID()}
-// 	}
-
-// 	return append(m.prev.IDs(), m.ID())
-// }

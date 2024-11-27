@@ -16,11 +16,6 @@ func (t Timestamp) Bytes() []byte {
 	return bigendian.Uint64ToBytes(uint64(t))
 }
 
-// BytesToTimestamp converts bytes to timestamp.
-func BytesToTimestamp(b []byte) Timestamp {
-	return Timestamp(bigendian.BytesToUint64(b))
-}
-
 func FromUnix(t int64) Timestamp {
 	return Timestamp(int64(t) * int64(time.Second))
 }

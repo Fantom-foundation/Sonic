@@ -10,7 +10,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/diskusage"
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/metrics"
-	"github.com/Fantom-foundation/go-opera/cmd/sonicd/tracing"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/version"
@@ -152,7 +151,6 @@ func initFlags() {
 		metrics.MetricsInfluxDBTokenFlag,
 		metrics.MetricsInfluxDBBucketFlag,
 		metrics.MetricsInfluxDBOrganizationFlag,
-		tracing.EnableFlag,
 	}
 
 	nodeFlags = []cli.Flag{}
