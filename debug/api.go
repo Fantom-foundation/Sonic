@@ -21,19 +21,15 @@
 package debug
 
 import (
-	"bytes"
 	"errors"
 	"io"
-	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"runtime/pprof"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -50,43 +46,6 @@ type HandlerT struct {
 	cpuFile   string
 	traceW    io.WriteCloser
 	traceFile string
-}
-
-// Verbosity sets the log verbosity ceiling. The verbosity of individual packages
-// and source files can be raised using Vmodule.
-func (*HandlerT) Verbosity(level int) {
-	glogger.Verbosity(slog.Level(level))
-}
-
-// Vmodule sets the log verbosity pattern. See package log for details on the
-// pattern syntax.
-func (*HandlerT) Vmodule(pattern string) error {
-	return glogger.Vmodule(pattern)
-}
-
-// MemStats returns detailed runtime memory statistics.
-func (*HandlerT) MemStats() *runtime.MemStats {
-	s := new(runtime.MemStats)
-	runtime.ReadMemStats(s)
-	return s
-}
-
-// GcStats returns GC statistics.
-func (*HandlerT) GcStats() *debug.GCStats {
-	s := new(debug.GCStats)
-	debug.ReadGCStats(s)
-	return s
-}
-
-// CpuProfile turns on CPU profiling for nsec seconds and writes
-// profile data to file.
-func (h *HandlerT) CpuProfile(file string, nsec uint) error {
-	if err := h.StartCPUProfile(file); err != nil {
-		return err
-	}
-	time.Sleep(time.Duration(nsec) * time.Second)
-	h.StopCPUProfile()
-	return nil
 }
 
 // StartCPUProfile turns on CPU profiling, writing to the given file.
@@ -125,92 +84,10 @@ func (h *HandlerT) StopCPUProfile() error {
 	return nil
 }
 
-// GoTrace turns on tracing for nsec seconds and writes
-// trace data to file.
-func (h *HandlerT) GoTrace(file string, nsec uint) error {
-	if err := h.StartGoTrace(file); err != nil {
-		return err
-	}
-	time.Sleep(time.Duration(nsec) * time.Second)
-	h.StopGoTrace()
-	return nil
-}
-
-// BlockProfile turns on goroutine profiling for nsec seconds and writes profile data to
-// file. It uses a profile rate of 1 for most accurate information. If a different rate is
-// desired, set the rate and write the profile manually.
-func (*HandlerT) BlockProfile(file string, nsec uint) error {
-	runtime.SetBlockProfileRate(1)
-	time.Sleep(time.Duration(nsec) * time.Second)
-	defer runtime.SetBlockProfileRate(0)
-	return writeProfile("block", file)
-}
-
 // SetBlockProfileRate sets the rate of goroutine block profile data collection.
 // rate 0 disables block profiling.
 func (*HandlerT) SetBlockProfileRate(rate int) {
 	runtime.SetBlockProfileRate(rate)
-}
-
-// WriteBlockProfile writes a goroutine blocking profile to the given file.
-func (*HandlerT) WriteBlockProfile(file string) error {
-	return writeProfile("block", file)
-}
-
-// MutexProfile turns on mutex profiling for nsec seconds and writes profile data to file.
-// It uses a profile rate of 1 for most accurate information. If a different rate is
-// desired, set the rate and write the profile manually.
-func (*HandlerT) MutexProfile(file string, nsec uint) error {
-	runtime.SetMutexProfileFraction(1)
-	time.Sleep(time.Duration(nsec) * time.Second)
-	defer runtime.SetMutexProfileFraction(0)
-	return writeProfile("mutex", file)
-}
-
-// SetMutexProfileFraction sets the rate of mutex profiling.
-func (*HandlerT) SetMutexProfileFraction(rate int) {
-	runtime.SetMutexProfileFraction(rate)
-}
-
-// WriteMutexProfile writes a goroutine blocking profile to the given file.
-func (*HandlerT) WriteMutexProfile(file string) error {
-	return writeProfile("mutex", file)
-}
-
-// WriteMemProfile writes an allocation profile to the given file.
-// Note that the profiling rate cannot be set through the API,
-// it must be set on the command line.
-func (*HandlerT) WriteMemProfile(file string) error {
-	return writeProfile("heap", file)
-}
-
-// Stacks returns a printed representation of the stacks of all goroutines.
-func (*HandlerT) Stacks() string {
-	buf := new(bytes.Buffer)
-	pprof.Lookup("goroutine").WriteTo(buf, 2)
-	return buf.String()
-}
-
-// FreeOSMemory forces a garbage collection.
-func (*HandlerT) FreeOSMemory() {
-	debug.FreeOSMemory()
-}
-
-// SetGCPercent sets the garbage collection target percentage. It returns the previous
-// setting. A negative value disables GC.
-func (*HandlerT) SetGCPercent(v int) int {
-	return debug.SetGCPercent(v)
-}
-
-func writeProfile(name, file string) error {
-	p := pprof.Lookup(name)
-	log.Info("Writing profile records", "count", p.Count(), "type", name, "dump", file)
-	f, err := os.Create(expandHome(file))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return p.WriteTo(f, 0)
 }
 
 // expands home directory in file paths.
