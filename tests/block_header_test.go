@@ -120,6 +120,10 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 			testHeaders_MixDigestDiffersForAllBlocks(t, headers)
 		})
 
+		t.Run("InitialBlocksHaveCorrectEpochNumbers", func(t *testing.T) {
+			testHeaders_InitialBlocksHaveCorrectEpochNumbers(t, client)
+		})
+
 		t.Run("LastBlockOfEpochContainsSealingTransaction", func(t *testing.T) {
 			testHeaders_LastBlockOfEpochContainsSealingTransaction(t, headers, client)
 		})
@@ -327,6 +331,15 @@ func testHeaders_MixDigestDiffersForAllBlocks(t *testing.T, headers []*types.Hea
 		seen[digest] = struct{}{}
 	}
 	require.NotZero(len(seen), "no non-empty blocks in the chain")
+}
+
+func testHeaders_InitialBlocksHaveCorrectEpochNumbers(t *testing.T, client *ethclient.Client) {
+	require := require.New(t)
+	for block, want := range []int{1, 1, 2} {
+		got, err := getEpochOfBlock(client, block)
+		require.NoError(err, "failed to get epoch of block %d", block)
+		require.Equal(want, got, "block %d", block)
+	}
 }
 
 func testHeaders_LastBlockOfEpochContainsSealingTransaction(t *testing.T, headers []*types.Header, client *ethclient.Client) {

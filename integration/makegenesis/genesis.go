@@ -174,7 +174,7 @@ func (b *GenesisBuilder) FinalizeBlockZero(
 
 	// construct the block record for the genesis block
 	blockBuilder := inter.NewBlockBuilder().
-		WithEpoch(0).
+		WithEpoch(1).
 		WithNumber(0).
 		WithParentHash(common.Hash{}).
 		WithStateRoot(genesisStateRoot).
@@ -258,6 +258,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 
 	// construct the block record for the genesis block
 	blockBuilder := inter.NewBlockBuilder().
+		WithEpoch(1).
 		WithNumber(uint64(blockCtx.Idx)).
 		WithParentHash(common.Hash(b.blocks[len(b.blocks)-1].BlockHash)).
 		WithStateRoot(common.Hash(bs.FinalizedStateRoot)).
@@ -266,8 +267,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		WithGasLimit(evmBlock.GasLimit).
 		WithGasUsed(evmBlock.GasUsed).
 		WithBaseFee(evmBlock.BaseFee).
-		WithPrevRandao(evmBlock.PrevRandao).
-		WithEpoch(evmBlock.Epoch)
+		WithPrevRandao(evmBlock.PrevRandao)
 
 	for txIndex, transaction := range evmBlock.Transactions {
 		if !bytes.Equal(transaction.Hash().Bytes(), receipts[txIndex].TxHash.Bytes()) {
