@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -22,53 +23,57 @@ func TestRejectedTx(t *testing.T) {
 	// create a client
 	client, err := net.GetClient()
 	require.NoError(err, "failed to get client")
+	defer client.Close()
 
-	chainId := getChainId(t, net)
+	chainId := getChainId(t, client)
 
-	testCases := []struct {
-		name    string
-		txMaker func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction
-	}{
-		{name: "LegacyTx",
-			txMaker: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
-				factory := &txFactory{
-					senderKey: account.PrivateKey,
-					chainId:   chainId,
-				}
-				return factory.makeLegacyTransactionWithPrice(t, nonce, price)
-			},
-		}, {name: "AccessListTx",
-			txMaker: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
-				factory := &txFactory{
-					senderKey: account.PrivateKey,
-					chainId:   chainId,
-				}
-				return factory.makeAccessListTransactionWithPrice(t, nonce, price)
-			},
-		}, {name: "DynamicTx",
-			txMaker: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
-				factory := &txFactory{
-					senderKey: account.PrivateKey,
-					chainId:   chainId,
-				}
-				return factory.makeDynamicFeeTransactionWithPrice(t, nonce, price)
-			},
-		}, {name: "BlobTx",
-			txMaker: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
-				factory := &txFactory{
-					senderKey: account.PrivateKey,
-					chainId:   chainId,
-				}
-				return factory.makeBlobTransactionWithPrice(t, nonce, price)
-			},
-		},
+	type testCase struct {
+		makeTx func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+
+	makeTestCaseWithAllTypesOfTx := func(value int64) map[string]testCase {
+		valueStr := fmt.Sprint(value)
+		cases := map[string]testCase{
+			"LegacyTxWithValue" + valueStr: {
+				makeTx: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
+					factory := &txFactory{senderKey: account.PrivateKey, chainId: chainId}
+					return factory.makeLegacyTransactionWithPrice(t, nonce, price, value)
+				},
+			},
+			"AccessListTxWithValue" + valueStr: {
+				makeTx: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
+					factory := &txFactory{senderKey: account.PrivateKey, chainId: chainId}
+					return factory.makeAccessListTransactionWithPrice(t, nonce, price, value)
+				},
+			}, "DynamicTxWithValue" + valueStr: {
+				makeTx: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
+					factory := &txFactory{senderKey: account.PrivateKey, chainId: chainId}
+					return factory.makeDynamicFeeTransactionWithPrice(t, nonce, price, value)
+				},
+			}, "BlobTxWithValue" + valueStr: {
+				makeTx: func(t *testing.T, account *Account, nonce uint64, price int64) *types.Transaction {
+					factory := &txFactory{senderKey: account.PrivateKey, chainId: chainId}
+					return factory.makeBlobTransactionWithPrice(t, nonce, price, value)
+				},
+			},
+		}
+		return cases
+	}
+
+	testCases := map[string]testCase{}
+	for name, test := range makeTestCaseWithAllTypesOfTx(0) {
+		testCases[name] = test
+	}
+	for name, test := range makeTestCaseWithAllTypesOfTx(42) {
+		testCases[name] = test
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
 			maxFeeCap := getMaxFee(t, client)
 			newAccount := NewAccount()
 			nonce := getNonce(t, client, newAccount.Address())
-			testRejectedTx(t, net, newAccount.Address(), tc.txMaker(t, newAccount, nonce, maxFeeCap))
+			testRejectedTx(t, net, newAccount.Address(), tc.makeTx(t, newAccount, nonce, maxFeeCap))
 		})
 	}
 }
@@ -78,7 +83,10 @@ func testRejectedTx(t *testing.T, net *IntegrationTestNet, account common.Addres
 
 	// verify estimated cost
 	estimatedCost := tx.Gas()*tx.GasFeeCap().Uint64() + tx.Value().Uint64()
-	require.Equal(tx.Cost().Uint64(), estimatedCost, "cost of transaction is not equal to balance")
+	if tx.Type() == types.BlobTxType {
+		estimatedCost += tx.BlobGasFeeCap().Uint64() * tx.BlobGas()
+	}
+	require.Equal(tx.Cost().Int64(), int64(estimatedCost), "transaction estimation is not equal to balance")
 
 	// provide just enough balance to NOT cover the cost
 	_, err := net.EndowAccount(account, int64(estimatedCost-1))
@@ -104,10 +112,7 @@ func testRejectedTx(t *testing.T, net *IntegrationTestNet, account common.Addres
 	require.GreaterOrEqual(tx.Cost().Uint64(), receipt.EffectiveGasPrice.Uint64()*receipt.GasUsed)
 }
 
-func getChainId(t *testing.T, net *IntegrationTestNet) *big.Int {
-	client, err := net.GetClient()
-	require.NoError(t, err, "failed to get client")
-
+func getChainId(t *testing.T, client *ethclient.Client) *big.Int {
 	chainId, err := client.ChainID(context.Background())
 	require.NoError(t, err, "failed to get chain ID::")
 	return chainId
@@ -117,7 +122,7 @@ func getMaxFee(t *testing.T, client *ethclient.Client) (maxFeeCap int64) {
 	block, err := client.BlockByNumber(context.Background(), nil)
 	require.NoError(t, err, "failed to get block by number")
 	baseFee := block.BaseFee().Int64()
-	maxFeeCap = int64(float64(baseFee) * 1.06)
+	maxFeeCap = int64(float64(baseFee) * 1.05)
 	return
 }
 
