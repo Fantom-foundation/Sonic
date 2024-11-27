@@ -86,7 +86,7 @@ func testRejectedTx(t *testing.T, net *IntegrationTestNet, account common.Addres
 	if tx.Type() == types.BlobTxType {
 		estimatedCost += tx.BlobGasFeeCap().Uint64() * tx.BlobGas()
 	}
-	require.Equal(tx.Cost().Int64(), int64(estimatedCost), "transaction estimation is not equal to balance")
+	require.Equal(tx.Cost().Uint64(), estimatedCost, "transaction estimation is not equal to test estimation")
 
 	// provide just enough balance to NOT cover the cost
 	_, err := net.EndowAccount(account, int64(estimatedCost-1))
