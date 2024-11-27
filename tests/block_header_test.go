@@ -12,6 +12,10 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/driver"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/driverauth"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/netinit"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -130,6 +134,10 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 
 		t.Run("StateRootsMatchActualStateRoots", func(t *testing.T) {
 			testHeaders_StateRootsMatchActualStateRoots(t, headers, client)
+		})
+
+		t.Run("SystemContractsHaveNonZeroNonce", func(t *testing.T) {
+			testHeaders_SystemContractsHaveNonZeroNonce(t, headers, client)
 		})
 	}
 
@@ -437,4 +445,28 @@ func getWitnessProofSteps(client *ethclient.Client, blockNumber int) ([]common.H
 		res = append(res, common.BytesToHash(crypto.Keccak256(data)))
 	}
 	return res, nil
+}
+
+func testHeaders_SystemContractsHaveNonZeroNonce(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+	ctxt := context.Background()
+	for i := range headers {
+		block := big.NewInt(int64(i))
+		for _, addr := range []common.Address{
+			netinit.ContractAddress,
+			driver.ContractAddress,
+			driverauth.ContractAddress,
+			sfc.ContractAddress,
+			evmwriter.ContractAddress,
+		} {
+			nonce, err := client.NonceAt(ctxt, addr, block)
+			require.NoError(err, "failed to get nonce for %s at block %d", addr, i)
+
+			want := uint64(1)
+			if addr == netinit.ContractAddress && i > 0 {
+				want = 2
+			}
+			require.Equal(want, nonce, "nonce for %s at block %d is not one", addr, i)
+		}
+	}
 }
