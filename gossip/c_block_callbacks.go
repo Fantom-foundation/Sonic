@@ -292,8 +292,9 @@ func consensusCallbackBeginBlockFn(
 					evmBlock.Hash = block.Hash()
 					evmBlock.Duration = blockDuration
 
-					// Update block-hash references in logs.
+					// Update block-hash references in receipts and logs.
 					for i := range allReceipts {
+						allReceipts[i].BlockHash = block.Hash()
 						for j := range allReceipts[i].Logs {
 							allReceipts[i].Logs[j].BlockHash = block.Hash()
 						}
