@@ -63,10 +63,6 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 	}
 	counterAddress := receipt.ContractAddress
 
-	client, err := net.GetClient()
-	require.NoError(err)
-	defer client.Close()
-
 	originalHeaders, err := net.GetHeaders()
 	require.NoError(err)
 	originalHashes := []common.Hash{}
@@ -74,9 +70,13 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		originalHashes = append(originalHashes, header.Hash())
 	}
 
-	runTests := func() {
+	runTests := func(t *testing.T) {
 		headers, err := net.GetHeaders()
 		require.NoError(err)
+
+		client, err := net.GetClient()
+		require.NoError(err)
+		defer client.Close()
 
 		t.Run("CompareHeaderHashes", func(t *testing.T) {
 			testHeaders_CompareHeaderHashes(t, originalHashes, headers)
@@ -159,15 +159,17 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		})
 
 		t.Run("CounterStateIsVerifiable", func(t *testing.T) {
-			testHeaders_CounterStateIsVerifiable(t, headers, client, counter, counterAddress)
+			testHeaders_CounterStateIsVerifiable(t, headers, client, counterAddress)
 		})
 	}
 
-	runTests()
+	t.Run("BeforeRestart", runTests)
+
 	require.NoError(net.Restart())
-	runTests()
+	t.Run("AfterRestart", runTests)
+
 	require.NoError(net.RestartWithExportImport())
-	runTests()
+	t.Run("AfterImport", runTests)
 }
 
 func testHeaders_CompareHeaderHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
@@ -587,10 +589,13 @@ func testHeaders_CounterStateIsVerifiable(
 	t *testing.T,
 	headers []*types.Header,
 	client *ethclient.Client,
-	counter *counter_event_emitter.CounterEventEmitter,
 	counterAddress common.Address,
 ) {
 	require := require.New(t)
+
+	counter, err := counter_event_emitter.NewCounterEventEmitter(counterAddress, client)
+	require.NoError(err, "failed to instantiate contract")
+
 	fromLogs := 0
 	for i, header := range headers {
 
