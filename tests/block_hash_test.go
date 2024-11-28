@@ -20,7 +20,7 @@ func TestBlockHash_CorrectBlockHashesAreAccessibleInContracts(t *testing.T) {
 	}
 	defer net.Stop()
 
-	// Deploy the base fee contract.
+	// Deploy the block hash observer contract.
 	_, receipt, err := DeployContract(net, block_hash.DeployBlockHash)
 	require.NoError(err, "failed to deploy contract; %v", err)
 	contractAddress := receipt.ContractAddress
