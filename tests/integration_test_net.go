@@ -410,10 +410,11 @@ func (n *IntegrationTestNet) RestartWithExportImport() error {
 	originalArgs := os.Args
 
 	// export
+	genesisFile := filepath.Join(n.directory, "testGenesis.g")
 	os.Args = []string{
 		"sonictool",
 		"--datadir", n.stateDir(),
-		"genesis", "export", n.directory + "/testGenesis.g",
+		"genesis", "export", genesisFile,
 	}
 	err := sonictool.Run()
 	if err != nil {
@@ -426,13 +427,13 @@ func (n *IntegrationTestNet) RestartWithExportImport() error {
 		return err
 	}
 
-	fmt.Println("Temp directory cleaned. Importing genesis file...")
+	fmt.Println("State directory cleaned. Importing genesis file...")
 
 	// import genesis file
 	os.Args = []string{
 		"sonictool",
 		"--datadir", n.stateDir(),
-		"genesis", "--experimental", n.directory + "/testGenesis.g",
+		"genesis", "--experimental", genesisFile,
 	}
 	err = sonictool.Run()
 	if err != nil {
@@ -442,7 +443,7 @@ func (n *IntegrationTestNet) RestartWithExportImport() error {
 	// restore original args
 	os.Args = originalArgs
 
-	fmt.Println("Genesis file imported. Starting network...")
+	fmt.Println("Genesis file imported. Restarting network...")
 
 	// start network again
 	return n.start()

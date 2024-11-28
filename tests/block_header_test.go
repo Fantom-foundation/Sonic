@@ -1,9 +1,11 @@
 package tests
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 	"testing"
 	"time"
 
@@ -16,6 +18,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/netinit"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
+	"github.com/Fantom-foundation/go-opera/tests/contracts/counter_event_emitter"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -46,10 +50,13 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 	const numBlocks = 10
 	require := require.New(t)
 
-	// Produce a few blocks on the network.
+	// Produce a few blocks on the network. We use the counter contract since
+	// it is also producing events.
+	counter, _, err := DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
+	require.NoError(err)
 	for range numBlocks {
-		_, err := net.EndowAccount(common.Address{42}, 100)
-		require.NoError(err, "failed to endow account")
+		_, err := net.Apply(counter.Increment)
+		require.NoError(err, "failed to increment counter")
 	}
 
 	client, err := net.GetClient()
@@ -63,13 +70,12 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		originalHashes = append(originalHashes, header.Hash())
 	}
 
-	// Run twice - once before and once after a node restart.
 	runTests := func() {
 		headers, err := net.GetHeaders()
 		require.NoError(err)
 
-		t.Run("CompareHeadersHashes", func(t *testing.T) {
-			testHeaders_CompareHeadersHashes(t, originalHashes, headers)
+		t.Run("CompareHeaderHashes", func(t *testing.T) {
+			testHeaders_CompareHeaderHashes(t, originalHashes, headers)
 		})
 
 		t.Run("BlockNumberEqualsPositionInChain", func(t *testing.T) {
@@ -139,6 +145,14 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 		t.Run("SystemContractsHaveNonZeroNonce", func(t *testing.T) {
 			testHeaders_SystemContractsHaveNonZeroNonce(t, headers, client)
 		})
+
+		t.Run("LogsReferenceTheirContext", func(t *testing.T) {
+			testHeaders_LogsReferenceTheirContext(t, headers, client)
+		})
+
+		t.Run("CanRetrieveLogEvents", func(t *testing.T) {
+			testHeaders_CanRetrieveLogEvents(t, headers, client)
+		})
 	}
 
 	runTests()
@@ -148,12 +162,12 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 	runTests()
 }
 
-func testHeaders_CompareHeadersHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
+func testHeaders_CompareHeaderHashes(t *testing.T, hashes []common.Hash, newHeaders []*types.Header) {
 	require := require.New(t)
 
 	require.GreaterOrEqual(len(newHeaders), len(hashes), "length mismatch")
 	for i, hash := range hashes {
-		require.Equal(hash, newHeaders[i].Hash(), "hash mismatch")
+		require.Equal(hash, newHeaders[i].Hash(), "hash mismatch for block %d", i)
 	}
 }
 
@@ -469,4 +483,94 @@ func testHeaders_SystemContractsHaveNonZeroNonce(t *testing.T, headers []*types.
 			require.Equal(want, nonce, "nonce for %s at block %d is not one", addr, i)
 		}
 	}
+}
+
+func testHeaders_LogsReferenceTheirContext(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	numLogs := 0
+	for _, header := range headers {
+		blockHash := header.Hash()
+		blockNumber := header.Number.Uint64()
+
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithHash(blockHash, false))
+		require.NoError(err, "failed to get block receipts")
+
+		index := 0
+		for txIndex, receipt := range receipts {
+			for _, log := range receipt.Logs {
+				numLogs++
+				require.Equal(blockHash, log.BlockHash, "block hash mismatch")
+				require.Equal(blockNumber, log.BlockNumber, "block number mismatch")
+				require.Equal(receipt.TxHash, log.TxHash, "transaction hash mismatch")
+				require.Equal(uint(txIndex), log.TxIndex, "transaction index mismatch")
+				require.Equal(uint(index), log.Index, "log index mismatch")
+				require.False(log.Removed, "log was removed")
+				index++
+			}
+		}
+	}
+
+	require.NotZero(numLogs, "no logs found in the chain")
+}
+
+func testHeaders_CanRetrieveLogEvents(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	allLogs := []types.Log{}
+	for _, header := range headers {
+		blockHash := header.Hash()
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithHash(blockHash, false))
+		require.NoError(err, "failed to get block receipts")
+
+		for _, receipt := range receipts {
+			for _, log := range receipt.Logs {
+				allLogs = append(allLogs, *log)
+
+				// Check that logs can be retrieved by specifically filtering
+				// for each individual log entry.
+				topicFilter := [][]common.Hash{}
+				for _, topic := range log.Topics {
+					topicFilter = append(topicFilter, []common.Hash{topic})
+				}
+				logs, err := client.FilterLogs(
+					context.Background(),
+					ethereum.FilterQuery{
+						BlockHash: &blockHash,
+						Addresses: []common.Address{log.Address},
+						Topics:    topicFilter,
+					},
+				)
+				require.NoError(err, "failed to get logs")
+				require.Equal([]types.Log{*log}, logs, "log mismatch")
+			}
+		}
+	}
+
+	require.NotZero(len(allLogs), "no logs found in the chain")
+
+	// Fetch all logs from the chain in a single query and see that no extra
+	// log entries are returned.
+	logs, err := client.FilterLogs(
+		context.Background(),
+		ethereum.FilterQuery{
+			FromBlock: big.NewInt(0),
+			ToBlock:   big.NewInt(int64(len(headers) - 1)),
+		},
+	)
+	require.NoError(err, "failed to get logs")
+
+	// Sort logs in chronological order to have a deterministic comparison.
+	logCompare := func(a, b types.Log) int {
+		if res := cmp.Compare(a.BlockNumber, b.BlockNumber); res != 0 {
+			return res
+		}
+		return cmp.Compare(a.Index, b.Index)
+	}
+
+	slices.SortFunc(logs, logCompare)
+	slices.SortFunc(allLogs, logCompare)
+	require.Equal(allLogs, logs, "log mismatch")
 }
