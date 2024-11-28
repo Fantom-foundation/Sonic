@@ -58,10 +58,10 @@ import (
 // integration test networks can also be used for automated integration and
 // regression tests for client code.
 type IntegrationTestNet struct {
-	directory  string
-	done       <-chan struct{}
-	validator  Account
-	clientPort int
+	directory      string
+	done           <-chan struct{}
+	validator      Account
+	httpClientPort int
 }
 
 func isPortFree(host string, port int) bool {
@@ -225,7 +225,8 @@ func (n *IntegrationTestNet) start() error {
 	}
 
 	// find free ports for the http-client, ws-client, and network interfaces
-	httpPort, err := getFreePort()
+	var err error
+	n.httpClientPort, err = getFreePort()
 	if err != nil {
 		return err
 	}
@@ -257,7 +258,7 @@ func (n *IntegrationTestNet) start() error {
 			"--fakenet", "1/1",
 
 			// http-client option
-			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(httpPort),
+			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(n.httpClientPort),
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
 
 			// websocket-client options
@@ -469,7 +470,7 @@ func (n *IntegrationTestNet) GetTransactOptions(account *Account) (*bind.Transac
 // GetClient provides raw access to a fresh connection to the network.
 // The resulting client must be closed after use.
 func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
-	return ethclient.Dial(fmt.Sprintf("http://localhost:%d", n.clientPort))
+	return ethclient.Dial(fmt.Sprintf("http://localhost:%d", n.httpClientPort))
 }
 
 // RestartWithExportImport stops the network, exports the genesis file, cleans the
