@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/Fantom-foundation/go-opera/inter/state"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
@@ -38,7 +37,7 @@ func TestApplyTransaction_InternalTransactionsSkipBaseFeeCharges(t *testing.T) {
 				SkipAccountChecks: internal,
 				GasPrice:          big.NewInt(0),
 				Value:             big.NewInt(0),
-			}, nil, gp, state, nil, common.Hash{}, nil, nil, evm, nil)
+			}, gp, state, nil, nil, nil, evm, nil)
 			if err == nil {
 				t.Errorf("expected transaction to fail")
 			}

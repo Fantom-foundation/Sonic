@@ -583,6 +583,24 @@ func testHeaders_CanRetrieveLogEvents(t *testing.T, headers []*types.Header, cli
 	slices.SortFunc(logs, logCompare)
 	slices.SortFunc(allLogs, logCompare)
 	require.Equal(allLogs, logs, "log mismatch")
+
+	// Fetch by topic index -- this uses a different table in the database.
+	topicZeroOptions := []common.Hash{}
+	for _, log := range allLogs {
+		topicZeroOptions = append(topicZeroOptions, log.Topics[0])
+	}
+	logs, err = client.FilterLogs(
+		context.Background(),
+		ethereum.FilterQuery{
+			ToBlock: big.NewInt(int64(len(headers) - 1)),
+			Topics:  [][]common.Hash{topicZeroOptions},
+		},
+	)
+	require.NoError(err, "failed to get logs")
+
+	slices.SortFunc(logs, logCompare)
+	slices.SortFunc(allLogs, logCompare)
+	require.Equal(allLogs, logs, "log mismatch")
 }
 
 func testHeaders_CounterStateIsVerifiable(
