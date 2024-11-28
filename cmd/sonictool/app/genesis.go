@@ -71,8 +71,8 @@ func gfileGenesisImport(ctx *cli.Context) error {
 		DataDir:       dataDir,
 		ValidatorMode: validatorMode,
 		CacheRatio:    cacheRatio,
-		LiveDbCache:   ctx.Int64(flags.LiveDbCacheFlag.Name),
-		ArchiveCache:  ctx.Int64(flags.ArchiveCacheFlag.Name),
+		LiveDbCache:   ctx.GlobalInt64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache:  ctx.GlobalInt64(flags.ArchiveCacheFlag.Name),
 	})
 }
 
@@ -110,8 +110,8 @@ func jsonGenesisImport(ctx *cli.Context) error {
 		DataDir:       dataDir,
 		ValidatorMode: validatorMode,
 		CacheRatio:    cacheRatio,
-		LiveDbCache:   ctx.Int64(flags.LiveDbCacheFlag.Name),
-		ArchiveCache:  ctx.Int64(flags.ArchiveCacheFlag.Name),
+		LiveDbCache:   ctx.GlobalInt64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache:  ctx.GlobalInt64(flags.ArchiveCacheFlag.Name),
 	})
 }
 
@@ -146,8 +146,8 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		DataDir:       dataDir,
 		ValidatorMode: validatorMode,
 		CacheRatio:    cacheRatio,
-		LiveDbCache:   ctx.Int64(flags.LiveDbCacheFlag.Name),
-		ArchiveCache:  ctx.Int64(flags.ArchiveCacheFlag.Name),
+		LiveDbCache:   ctx.GlobalInt64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache:  ctx.GlobalInt64(flags.ArchiveCacheFlag.Name),
 	})
 }
 

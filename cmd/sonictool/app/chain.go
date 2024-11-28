@@ -60,8 +60,8 @@ func exportEvents(ctx *cli.Context) error {
 
 	gdbParams := db.GossipDbParameters{
 		DataDir:      dataDir,
-		LiveDbCache:  ctx.Int64(flags.LiveDbCacheFlag.Name),
-		ArchiveCache: ctx.Int64(flags.ArchiveCacheFlag.Name),
+		LiveDbCache:  ctx.GlobalInt64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache: ctx.GlobalInt64(flags.ArchiveCacheFlag.Name),
 	}
 
 	log.Info("Exporting events to file", "file", fn)
