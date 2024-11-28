@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Fantom-foundation/Carmen/go/carmen"
+	"github.com/Fantom-foundation/Carmen/go/common/immutable"
 	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -20,6 +22,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/counter_event_emitter"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -52,12 +55,13 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 
 	// Produce a few blocks on the network. We use the counter contract since
 	// it is also producing events.
-	counter, _, err := DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
+	counter, receipt, err := DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
 	require.NoError(err)
 	for range numBlocks {
 		_, err := net.Apply(counter.Increment)
 		require.NoError(err, "failed to increment counter")
 	}
+	counterAddress := receipt.ContractAddress
 
 	client, err := net.GetClient()
 	require.NoError(err)
@@ -152,6 +156,10 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 
 		t.Run("CanRetrieveLogEvents", func(t *testing.T) {
 			testHeaders_CanRetrieveLogEvents(t, headers, client)
+		})
+
+		t.Run("CounterStateIsVerifiable", func(t *testing.T) {
+			testHeaders_CounterStateIsVerifiable(t, headers, client, counter, counterAddress)
 		})
 	}
 
@@ -573,4 +581,102 @@ func testHeaders_CanRetrieveLogEvents(t *testing.T, headers []*types.Header, cli
 	slices.SortFunc(logs, logCompare)
 	slices.SortFunc(allLogs, logCompare)
 	require.Equal(allLogs, logs, "log mismatch")
+}
+
+func testHeaders_CounterStateIsVerifiable(
+	t *testing.T,
+	headers []*types.Header,
+	client *ethclient.Client,
+	counter *counter_event_emitter.CounterEventEmitter,
+	counterAddress common.Address,
+) {
+	require := require.New(t)
+	fromLogs := 0
+	for i, header := range headers {
+
+		// Get counter value according to the reported logs.
+		receipts, err := client.BlockReceipts(context.Background(), rpc.BlockNumberOrHashWithHash(header.Hash(), false))
+		require.NoError(err, "failed to get block receipts")
+		for _, receipt := range receipts {
+			for _, log := range receipt.Logs {
+				event, err := counter.ParseCount(*log)
+				if err != nil {
+					continue
+				}
+				fromLogs = int(event.TotalCount.Int64())
+			}
+		}
+
+		// Get the counter value from the archive.
+		fromArchive := 0
+		fromArchiveAsBig, err := counter.GetTotalCount(&bind.CallOpts{
+			BlockNumber: new(big.Int).SetUint64(header.Number.Uint64()),
+		})
+		if err == nil {
+			fromArchive = int(fromArchiveAsBig.Int64())
+		}
+
+		// Get the counter value from the state directly.
+		fromStateAsHash, err := client.StorageAt(context.Background(), counterAddress, common.Hash{}, big.NewInt(int64(i)))
+		require.NoError(err)
+		fromState := int(new(big.Int).SetBytes(fromStateAsHash).Uint64())
+
+		// Get the counter value from a witness proof.
+		fromProof := getVerifiedCounterState(t, client, header.Root, counterAddress, i)
+
+		require.Equal(fromLogs, fromArchive, "block %d", i)
+		require.Equal(fromLogs, fromState, "block %d", i)
+		require.Equal(fromLogs, fromProof, "block %d", i)
+	}
+}
+
+func getVerifiedCounterState(
+	t *testing.T,
+	client *ethclient.Client,
+	stateRoot common.Hash,
+	counterAddress common.Address,
+	blockNumber int,
+) int {
+	require := require.New(t)
+	var result struct {
+		AccountProof []string
+		StorageProof []struct {
+			Value string
+			Proof []string
+		}
+	}
+	err := client.Client().Call(
+		&result,
+		"eth_getProof",
+		fmt.Sprintf("%v", counterAddress),
+		[]string{fmt.Sprintf("%v", common.Hash{})},
+		fmt.Sprintf("0x%x", blockNumber),
+	)
+	require.NoError(err, "failed to get witness proof")
+	require.Equal(1, len(result.StorageProof), "expected exactly one storage proof")
+
+	// Verify the proof.
+	elements := []carmen.Bytes{}
+	for _, proof := range [][]string{result.AccountProof, result.StorageProof[0].Proof} {
+		for _, element := range proof {
+			data, err := hexutil.Decode(element)
+			require.NoError(err)
+			elements = append(elements, immutable.NewBytes(data))
+		}
+	}
+	proof := carmen.CreateWitnessProofFromNodes(elements...)
+	require.True(proof.IsValid(), "proof is invalid")
+
+	// Extract the storage value from the proof.
+	value, present, err := proof.GetState(carmen.Hash(stateRoot), carmen.Address(counterAddress), carmen.Key{})
+	require.NoError(err, "failed to get state from proof")
+	require.True(present, "slot not found in proof")
+
+	// Compare the proof value with the value in the RPC result.
+	fromProof := int(new(big.Int).SetBytes(value[:]).Uint64())
+	fromResult, err := hexutil.DecodeUint64(result.StorageProof[0].Value)
+	require.NoError(err, "failed to decode counter value")
+	require.Equal(int(fromResult), fromProof, "proof value mismatch")
+
+	return fromProof
 }
