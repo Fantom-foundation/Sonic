@@ -100,7 +100,6 @@ func (p *OperaEVMProcessor) evmBlockWith(txs types.Transactions) *evmcore.EvmBlo
 
 	h := &evmcore.EvmHeader{
 		Number:          p.blockIdx,
-		Hash:            common.Hash(p.block.Atropos),
 		ParentHash:      p.prevBlockHash,
 		Root:            common.Hash{},
 		Time:            p.block.Time,

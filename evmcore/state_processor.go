@@ -70,7 +70,6 @@ func (p *StateProcessor) Process(
 		time         = uint64(block.Time.Unix())
 		blockContext = NewEVMBlockContext(header, p.bc, nil)
 		vmenv        = vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
-		blockHash    = block.Hash
 		blockNumber  = block.Number
 		signer       = gsignercache.Wrap(types.MakeSigner(p.config, header.Number, time))
 	)
@@ -82,7 +81,7 @@ func (p *StateProcessor) Process(
 		}
 
 		statedb.SetTxContext(tx.Hash(), i)
-		receipt, _, skip, err = applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv, onNewLog)
+		receipt, _, skip, err = applyTransaction(msg, gp, statedb, blockNumber, tx, usedGas, vmenv, onNewLog)
 		if skip {
 			skipped = append(skipped, uint32(i))
 			receipts = append(receipts, nil)
@@ -159,11 +158,9 @@ func ApplyTransactionWithEVM(msg *core.Message, config *params.ChainConfig, gp *
 
 func applyTransaction(
 	msg *core.Message,
-	config *params.ChainConfig,
 	gp *core.GasPool,
 	statedb state.StateDB,
 	blockNumber *big.Int,
-	blockHash common.Hash,
 	tx *types.Transaction,
 	usedGas *uint64,
 	evm *vm.EVM,
@@ -195,8 +192,12 @@ func applyTransaction(
 	if err != nil {
 		return nil, 0, result == nil, err
 	}
-	// Notify about logs with potential state changes
-	logs := statedb.GetLogs(tx.Hash(), blockHash)
+	// Notify about logs with potential state changes.
+	// At this point the final block hash is not yet known, so we pass an empty
+	// hash. For the consumers of the log messages, as for instance the driver
+	// contract listener, only the sender, topics, and the data are relevant.
+	// The block hash is not used.
+	logs := statedb.GetLogs(tx.Hash(), common.Hash{})
 	for _, l := range logs {
 		onNewLog(l)
 	}
@@ -224,7 +225,6 @@ func applyTransaction(
 	// Set the receipt logs.
 	receipt.Logs = logs
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 	return receipt, result.UsedGas, false, err
