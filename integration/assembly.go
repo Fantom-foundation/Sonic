@@ -8,7 +8,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -24,12 +23,6 @@ var (
 	FlushIDKey     = append(common.CopyBytes(MetadataPrefix), 0x0c)
 	TablesKey      = append(common.CopyBytes(MetadataPrefix), 0x0d)
 )
-
-// GenesisMismatchError is raised when trying to overwrite an existing
-// genesis block with an incompatible one.
-type GenesisMismatchError struct {
-	Stored, New hash.Hash
-}
 
 type Configs struct {
 	Opera         gossip.Config
