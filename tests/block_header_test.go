@@ -106,6 +106,14 @@ func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
 			testHeaders_TransactionRootMatchesBlockTxsHash(t, headers, client)
 		})
 
+		t.Run("TransactionReceiptReferencesCorrectContext", func(t *testing.T) {
+			testHeaders_TransactionReceiptReferencesCorrectContext(t, headers, client)
+		})
+
+		t.Run("ReceiptBlockHashMatchesBlockHash", func(t *testing.T) {
+			testHeaders_ReceiptBlockHashMatchesBlockHash(t, headers, client)
+		})
+
 		t.Run("ReceiptRootMatchesBlockReceipts", func(t *testing.T) {
 			testHeaders_ReceiptRootMatchesBlockReceipts(t, headers, client)
 		})
@@ -266,12 +274,47 @@ func testHeaders_BaseFeeEvolutionFollowsPricingRules(t *testing.T, headers []*ty
 func testHeaders_TransactionRootMatchesBlockTxsHash(t *testing.T, headers []*types.Header, client *ethclient.Client) {
 	require := require.New(t)
 
-	for _, header := range headers {
+	for i, header := range headers {
 		block, err := client.BlockByNumber(context.Background(), header.Number)
-		require.NoError(err, "failed to get block receipts")
+		require.NoError(err, "failed to get block %d", i)
 
 		txsHash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil))
 		require.Equal(header.TxHash, txsHash, "transaction root hash mismatch")
+	}
+}
+
+func testHeaders_TransactionReceiptReferencesCorrectContext(
+	t *testing.T, headers []*types.Header, client *ethclient.Client,
+) {
+	require := require.New(t)
+
+	for i, header := range headers {
+		block, err := client.BlockByNumber(context.Background(), header.Number)
+		require.NoError(err, "failed to get block %d", i)
+
+		for j, tx := range block.Transactions() {
+			receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
+			require.NoError(err, "failed to get transaction receipt")
+
+			require.Equal(tx.Hash(), receipt.TxHash, "transaction hash mismatch")
+			require.Equal(i, int(receipt.BlockNumber.Uint64()), "block number mismatch")
+			require.Equal(j, int(receipt.TransactionIndex), "transaction index mismatch")
+			require.Equal(header.Hash(), receipt.BlockHash, "block hash mismatch")
+		}
+	}
+}
+
+func testHeaders_ReceiptBlockHashMatchesBlockHash(t *testing.T, headers []*types.Header, client *ethclient.Client) {
+	require := require.New(t)
+
+	for _, header := range headers {
+		receipts, err := client.BlockReceipts(context.Background(),
+			rpc.BlockNumberOrHashWithHash(header.Hash(), false))
+		require.NoError(err, "failed to get block receipts")
+
+		for _, receipt := range receipts {
+			require.Equal(header.Hash(), receipt.BlockHash, "receipt block hash mismatch")
+		}
 	}
 }
 
@@ -536,6 +579,7 @@ func testHeaders_CanRetrieveLogEvents(t *testing.T, headers []*types.Header, cli
 		require.NoError(err, "failed to get block receipts")
 
 		for _, receipt := range receipts {
+			require.Equal(blockHash, receipt.BlockHash, "block hash mismatch")
 			for _, log := range receipt.Logs {
 				allLogs = append(allLogs, *log)
 
@@ -621,6 +665,7 @@ func testHeaders_CounterStateIsVerifiable(
 		receipts, err := client.BlockReceipts(context.Background(), rpc.BlockNumberOrHashWithHash(header.Hash(), false))
 		require.NoError(err, "failed to get block receipts")
 		for _, receipt := range receipts {
+			require.Equal(header.Hash(), receipt.BlockHash, "block hash mismatch")
 			for _, log := range receipt.Logs {
 				event, err := counter.ParseCount(*log)
 				if err != nil {
