@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"os"
 	"strings"
 	"testing"
@@ -11,8 +12,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -26,7 +25,14 @@ func tmpdir(t *testing.T) string {
 func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
 	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
-	if err := genesis.ImportGenesisStore(genesisStore, dataDir, false, cachescale.Identity); err != nil {
+
+	if err := genesis.ImportGenesisStore(genesis.ImportParams{
+		GenesisStore: genesisStore,
+		DataDir:      dataDir,
+		CacheRatio:   cachescale.Identity,
+		LiveDbCache:  1, // Set lowest cache
+		ArchiveCache: 1, // Set lowest cache
+	}); err != nil {
 		panic(err)
 	}
 }

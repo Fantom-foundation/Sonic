@@ -24,15 +24,19 @@ var (
 // always print out progress. This avoids the user wondering what's going on.
 const statsReportLimit = 8 * time.Second
 
-func ExportEvents(w io.Writer, dataDir string, from, to idx.Epoch) (err error) {
-	chaindataDir := filepath.Join(dataDir, "chaindata")
+func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epoch) (err error) {
+	chaindataDir := filepath.Join(gdbParams.DataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
 		return err
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity)
+	// Fill the rest of the params
+	gdbParams.Dbs = dbs
+	gdbParams.CacheRatio = cachescale.Identity
+
+	gdb, err := db.MakeGossipDb(gdbParams)
 	if err != nil {
 		return err
 	}

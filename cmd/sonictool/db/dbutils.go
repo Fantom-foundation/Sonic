@@ -31,7 +31,7 @@ func makeDatabaseHandles() uint64 {
 	if err != nil {
 		panic(fmt.Errorf("failed to raise file descriptor allowance: %v", err))
 	}
-	return raised / 6 + 1
+	return raised/6 + 1
 }
 
 func AssertDatabaseNotInitialized(dataDir string) error {
@@ -61,16 +61,32 @@ func MakeDbProducer(chaindataDir string, cacheRatio cachescale.Func) (kvdb.FullD
 	})
 }
 
-func MakeGossipDb(dbs kvdb.FullDBProducer, dataDir string, validatorMode bool, cacheRatio cachescale.Func) (*gossip.Store, error) {
-	gdbConfig := gossip.DefaultStoreConfig(cacheRatio)
-	gdbConfig.EVM.StateDb.Directory = filepath.Join(dataDir, "carmen")
-	if validatorMode {
+// GossipDbParameters are parameters for GossipDb factory func.
+type GossipDbParameters struct {
+	Dbs                       kvdb.FullDBProducer
+	DataDir                   string
+	ValidatorMode             bool
+	CacheRatio                cachescale.Func
+	LiveDbCache, ArchiveCache int64 // in bytes
+}
+
+func MakeGossipDb(params GossipDbParameters) (*gossip.Store, error) {
+	gdbConfig := gossip.DefaultStoreConfig(params.CacheRatio)
+	if params.ValidatorMode {
 		gdbConfig.EVM.StateDb.Archive = carmen.NoArchive
 		gdbConfig.EVM.DisableLogsIndexing = true
 		gdbConfig.EVM.DisableTxHashesIndexing = true
 	}
 
-	gdb, err := gossip.NewStore(dbs, gdbConfig)
+	if params.LiveDbCache > 0 {
+		gdbConfig.EVM.StateDb.LiveCache = params.LiveDbCache
+	}
+	if params.ArchiveCache > 0 {
+		gdbConfig.EVM.StateDb.ArchiveCache = params.ArchiveCache
+	}
+	gdbConfig.EVM.StateDb.Directory = filepath.Join(params.DataDir, "carmen")
+
+	gdb, err := gossip.NewStore(params.Dbs, gdbConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gossip store: %w", err)
 	}

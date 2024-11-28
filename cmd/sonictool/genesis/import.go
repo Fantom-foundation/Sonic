@@ -13,29 +13,45 @@ import (
 	"path/filepath"
 )
 
-func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, validatorMode bool, cacheRatio cachescale.Func) error {
-	if err := db.AssertDatabaseNotInitialized(dataDir); err != nil {
+// ImportParams are parameters for ImportGenesisStore func.
+type ImportParams struct {
+	GenesisStore              *genesisstore.Store
+	DataDir                   string
+	ValidatorMode             bool
+	CacheRatio                cachescale.Func
+	LiveDbCache, ArchiveCache int64 // in bytes
+}
+
+func ImportGenesisStore(params ImportParams) error {
+	if err := db.AssertDatabaseNotInitialized(params.DataDir); err != nil {
 		return fmt.Errorf("database in datadir is already initialized: %w", err)
 	}
-	if err := db.RemoveDatabase(dataDir); err != nil {
+	if err := db.RemoveDatabase(params.DataDir); err != nil {
 		return fmt.Errorf("failed to remove existing data from the datadir: %w", err)
 	}
 
-	chaindataDir := filepath.Join(dataDir, "chaindata")
-	dbs, err := db.MakeDbProducer(chaindataDir, cacheRatio)
+	chaindataDir := filepath.Join(params.DataDir, "chaindata")
+	dbs, err := db.MakeDbProducer(chaindataDir, params.CacheRatio)
 	if err != nil {
 		return err
 	}
 	defer dbs.Close()
 	setGenesisProcessing(chaindataDir)
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, validatorMode, cacheRatio)
+	gdb, err := db.MakeGossipDb(db.GossipDbParameters{
+		Dbs:           dbs,
+		DataDir:       params.DataDir,
+		ValidatorMode: params.ValidatorMode,
+		CacheRatio:    params.CacheRatio,
+		LiveDbCache:   params.LiveDbCache,
+		ArchiveCache:  params.ArchiveCache,
+	})
 	if err != nil {
 		return err
 	}
 	defer gdb.Close()
 
-	err = gdb.ApplyGenesis(genesisStore.Genesis())
+	err = gdb.ApplyGenesis(params.GenesisStore.Genesis())
 	if err != nil {
 		return fmt.Errorf("failed to write Gossip genesis state: %v", err)
 	}
@@ -54,7 +70,7 @@ func ImportGenesisStore(genesisStore *genesisstore.Store, dataDir string, valida
 	abftCrit := func(err error) {
 		panic(fmt.Errorf("lachesis store error: %w", err))
 	}
-	cdb := abft.NewStore(cMainDb, cGetEpochDB, abftCrit, abft.DefaultStoreConfig(cacheRatio))
+	cdb := abft.NewStore(cMainDb, cGetEpochDB, abftCrit, abft.DefaultStoreConfig(params.CacheRatio))
 	defer cdb.Close()
 
 	err = cdb.ApplyGenesis(&abft.Genesis{
