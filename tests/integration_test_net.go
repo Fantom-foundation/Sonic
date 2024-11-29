@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
+	"math/rand/v2"
+	"net"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -55,9 +58,32 @@ import (
 // integration test networks can also be used for automated integration and
 // regression tests for client code.
 type IntegrationTestNet struct {
-	directory string
-	done      <-chan struct{}
-	validator Account
+	directory      string
+	done           <-chan struct{}
+	validator      Account
+	httpClientPort int
+}
+
+func isPortFree(host string, port int) bool {
+	address := fmt.Sprintf("%s:%d", host, port)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return false
+	}
+	listener.Close()
+	return true
+}
+
+func getFreePort() (int, error) {
+	var port int
+	retries := 10
+	for i := 0; i < retries; i++ {
+		port = 1023 + (rand.Int()%math.MaxUint16 - 1023)
+		if isPortFree("127.0.0.1", port) {
+			return port, nil
+		}
+	}
+	return 0, fmt.Errorf("failed to find a free port after %d retries (last %d)", retries, port)
 }
 
 // StartIntegrationTestNet starts a single-node test network for integration tests.
@@ -169,11 +195,18 @@ func startIntegrationTestNet(directory string, args []string) (*IntegrationTestN
 	// initialize the data directory for the single node on the test network
 	// equivalent to running `sonictool --datadir <dataDir> genesis fake 1`
 	originalArgs := os.Args
-	os.Args = append([]string{"sonictool", "--datadir", result.stateDir()}, args...)
+	os.Args = append([]string{
+		"sonictool",
+		"--datadir", result.stateDir(),
+		"--statedb.livecache", "1",
+		"--statedb.archivecache", "1",
+	}, args...)
 	if err := sonictool.Run(); err != nil {
 		os.Args = originalArgs
 		return nil, fmt.Errorf("failed to initialize the test network: %w", err)
 	}
+	os.Args = originalArgs
+
 	os.Args = originalArgs
 
 	if err := result.start(); err != nil {
@@ -190,22 +223,62 @@ func (n *IntegrationTestNet) start() error {
 	if n.done != nil {
 		return errors.New("network already started")
 	}
+
+	// find free ports for the http-client, ws-client, and network interfaces
+	var err error
+	n.httpClientPort, err = getFreePort()
+	if err != nil {
+		return err
+	}
+	wsPort, err := getFreePort()
+	if err != nil {
+		return err
+	}
+	netPort, err := getFreePort()
+	if err != nil {
+		return err
+	}
+
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
+		originalArgs := os.Args
+		defer func() { os.Args = originalArgs }()
 
 		// start the fakenet sonic node
 		// equivalent to running `sonicd ...` but in this local process
 		os.Args = []string{
 			"sonicd",
+
+			// data storage options
 			"--datadir", n.stateDir(),
-			"--fakenet", "1/1",
-			"--http", "--http.addr", "0.0.0.0", "--http.port", "18545",
-			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
-			"--ws", "--ws.addr", "0.0.0.0", "--ws.port", "18546", "--ws.api", "admin,eth,ftm",
 			"--datadir.minfreedisk", "0",
+
+			// fake network options
+			"--fakenet", "1/1",
+
+			// http-client option
+			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(n.httpClientPort),
+			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
+
+			// websocket-client options
+			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(wsPort),
+			"--ws.api", "admin,eth,ftm",
+
+			//  net options
+			"--port", fmt.Sprint(netPort),
+			"--nat", "none",
+			"--nodiscover",
+
+			// database memory usage options
+			"--statedb.livecache", "1",
+			"--statedb.archivecache", "1",
 		}
-		sonicd.Run()
+
+		err := sonicd.Run()
+		if err != nil {
+			panic(fmt.Sprint("Failed to start the fake network:", err))
+		}
 	}()
 
 	n.done = done
@@ -397,7 +470,7 @@ func (n *IntegrationTestNet) GetTransactOptions(account *Account) (*bind.Transac
 // GetClient provides raw access to a fresh connection to the network.
 // The resulting client must be closed after use.
 func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
-	return ethclient.Dial("http://localhost:18545")
+	return ethclient.Dial(fmt.Sprintf("http://localhost:%d", n.httpClientPort))
 }
 
 // RestartWithExportImport stops the network, exports the genesis file, cleans the

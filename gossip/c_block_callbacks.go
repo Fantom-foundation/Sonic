@@ -287,6 +287,19 @@ func consensusCallbackBeginBlockFn(
 						WithGasUsed(evmBlock.GasUsed).
 						WithBaseFee(evmBlock.BaseFee)
 
+					// Complete the block.
+					block := blockBuilder.Build()
+					evmBlock.Hash = block.Hash()
+					evmBlock.Duration = blockDuration
+
+					// Update block-hash references in receipts and logs.
+					for i := range allReceipts {
+						allReceipts[i].BlockHash = block.Hash()
+						for j := range allReceipts[i].Logs {
+							allReceipts[i].Logs[j].BlockHash = block.Hash()
+						}
+					}
+
 					// memorize event position of each tx
 					txPositions := make(map[common.Hash]ExtendedTxPosition)
 					for _, e := range blockEvents {
@@ -348,10 +361,6 @@ func consensusCallbackBeginBlockFn(
 						store.SetHistoryBlockEpochState(es.Epoch, bs, es)
 						store.SetEpochBlock(blockCtx.Idx+1, es.Epoch)
 					}
-
-					block := blockBuilder.Build()
-					evmBlock.Hash = block.Hash()
-					evmBlock.Duration = blockDuration
 
 					for _, tx := range blockBuilder.GetTransactions() {
 						store.evm.SetTx(tx.Hash(), tx)

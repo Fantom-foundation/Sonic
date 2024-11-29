@@ -18,6 +18,8 @@ func Run() error {
 	app.Flags = []cli.Flag{
 		flags.DataDirFlag,
 		flags.CacheFlag,
+		flags.LiveDbCacheFlag,
+		flags.ArchiveCacheFlag,
 	}
 	app.Commands = []cli.Command{
 		{

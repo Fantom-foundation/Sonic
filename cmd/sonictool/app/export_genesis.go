@@ -7,7 +7,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration"
-	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 	"os"
@@ -48,7 +47,14 @@ func exportGenesis(ctx *cli.Context) error {
 	}
 	defer dbs.Close()
 
-	gdb, err := db.MakeGossipDb(dbs, dataDir, false, cachescale.Identity)
+	gdb, err := db.MakeGossipDb(db.GossipDbParameters{
+		Dbs:           dbs,
+		DataDir:       dataDir,
+		ValidatorMode: false,
+		CacheRatio:    cacheRatio,
+		LiveDbCache:   ctx.GlobalInt64(flags.LiveDbCacheFlag.Name),
+		ArchiveCache:  ctx.GlobalInt64(flags.ArchiveCacheFlag.Name),
+	})
 	if err != nil {
 		return err
 	}
