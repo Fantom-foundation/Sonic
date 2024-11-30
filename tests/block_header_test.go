@@ -481,14 +481,14 @@ func testHeaders_StateRootsMatchActualStateRoots(t *testing.T, headers []*types.
 		// root we see in the database. To get access to the database, we request
 		// a witness proof for an account at the given block. From this proof we
 		// we have a list of state-root candidates which we can test for.
-		steps, err := getWitnessProofSteps(client, int(header.Number.Int64()))
+		want, err := getStateRoot(client, int(header.Number.Int64()))
 		require.NoError(err, "failed to get witness proof for block %d", i)
 		got := header.Root
-		require.Contains(steps, got, "state root mismatch for block %d", i)
+		require.Equal(want, got, "state root mismatch for block %d", i)
 	}
 }
 
-func getWitnessProofSteps(client *ethclient.Client, blockNumber int) ([]common.Hash, error) {
+func getStateRoot(client *ethclient.Client, blockNumber int) (common.Hash, error) {
 	var result struct {
 		AccountProof []string
 	}
@@ -500,18 +500,19 @@ func getWitnessProofSteps(client *ethclient.Client, blockNumber int) ([]common.H
 		fmt.Sprintf("0x%x", blockNumber),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get witness proof; %v", err)
+		return common.Hash{}, fmt.Errorf("failed to get witness proof; %v", err)
 	}
 
-	res := []common.Hash{}
-	for _, proof := range result.AccountProof {
-		data, err := hexutil.Decode(proof)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, common.BytesToHash(crypto.Keccak256(data)))
+	// The hash of the first element of the account proof is the state root.
+	if len(result.AccountProof) == 0 {
+		return common.Hash{}, fmt.Errorf("no account proof found")
 	}
-	return res, nil
+
+	data, err := hexutil.Decode(result.AccountProof[0])
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.BytesToHash(crypto.Keccak256(data)), nil
 }
 
 func testHeaders_SystemContractsHaveNonZeroNonce(t *testing.T, headers []*types.Header, client *ethclient.Client) {
@@ -708,6 +709,7 @@ func getVerifiedCounterState(
 	require := require.New(t)
 	var result struct {
 		AccountProof []string
+		StorageHash  common.Hash
 		StorageProof []struct {
 			Value string
 			Proof []string
@@ -722,6 +724,7 @@ func getVerifiedCounterState(
 	)
 	require.NoError(err, "failed to get witness proof")
 	require.Equal(1, len(result.StorageProof), "expected exactly one storage proof")
+	require.GreaterOrEqual(len(result.StorageProof[0].Proof), 1, "expected at least one proof element")
 
 	// Verify the proof.
 	elements := []carmen.Bytes{}
@@ -733,12 +736,24 @@ func getVerifiedCounterState(
 		}
 	}
 	proof := carmen.CreateWitnessProofFromNodes(elements...)
-	require.True(proof.IsValid(), "proof is invalid")
+	require.True(proof.IsValid())
 
 	// Extract the storage value from the proof.
 	value, present, err := proof.GetState(carmen.Hash(stateRoot), carmen.Address(counterAddress), carmen.Key{})
 	require.NoError(err, "failed to get state from proof")
 	require.True(present, "slot not found in proof")
+
+	// Check that the storage root hash is consistent.
+	_, storageRoot, complete := proof.GetAccountElements(carmen.Hash(stateRoot), carmen.Address(counterAddress))
+	require.True(complete, "proof is not complete")
+	require.Equal(common.Hash(storageRoot), result.StorageHash, "storage root mismatch")
+
+	// Check that the storage proof starts with an element that corresponds to
+	// the storage root.
+	hash := crypto.Keccak256(hexutil.MustDecode(result.StorageProof[0].Proof[0]))
+	firstElementHash := carmen.Hash{}
+	copy(firstElementHash[:], hash)
+	require.Equal(storageRoot, firstElementHash, "storage proof does not start with the storage root")
 
 	// Compare the proof value with the value in the RPC result.
 	fromProof := int(new(big.Int).SetBytes(value[:]).Uint64())

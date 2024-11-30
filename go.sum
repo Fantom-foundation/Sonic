@@ -1,7 +1,7 @@
 github.com/DataDog/zstd v1.5.6 h1:LbEglqepa/ipmmQJUDnSsfvA8e8IStVcGaFWDuxvGOY=
 github.com/DataDog/zstd v1.5.6/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
-github.com/Fantom-foundation/Carmen/go v0.0.0-20241128114701-34dad37b5648 h1:gVmZHEjmw9/JAyaU28MOWkbDzLPZ+Qfu1WTHOuE26UU=
-github.com/Fantom-foundation/Carmen/go v0.0.0-20241128114701-34dad37b5648/go.mod h1:vNRGm/b21hDlF8kYyKHkXq1s+jLMKpV4jGwXHylXIIg=
+github.com/Fantom-foundation/Carmen/go v0.0.0-20241129202153-690bc10fa624 h1:9bFojtY5KoLFUtLYZGc1GNf0oIdBIOarlLr4+a/DA7U=
+github.com/Fantom-foundation/Carmen/go v0.0.0-20241129202153-690bc10fa624/go.mod h1:vNRGm/b21hDlF8kYyKHkXq1s+jLMKpV4jGwXHylXIIg=
 github.com/Fantom-foundation/Tosca v0.0.0-20241028082205-7b33705a4675 h1:Meqtt0eM9UAw1ceQ1tGiD497V0IVfqj8c6UrFJhkFNE=
 github.com/Fantom-foundation/Tosca v0.0.0-20241028082205-7b33705a4675/go.mod h1:8i7r+dUOkXjEC61SaFoRet6JYjRaSoiM/PhviP6K4Y8=
 github.com/Fantom-foundation/go-ethereum-sonic v0.0.0-20241022121122-7063a6b506bd h1:WoAkgzLLlyh3Zpnd/3gW8Ym5sHtugLCA4rQdT5udVF8=
