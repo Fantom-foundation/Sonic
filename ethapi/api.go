@@ -745,7 +745,7 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 
 	storageProof := make([]StorageResult, len(keys))
 	for i, key := range keys {
-		elements, _, _ := proof.GetStorageElements(cc.Hash(header.Root), cc.Address(address), cc.Key(keys[i]))
+		elements, _ := proof.GetStorageElements(cc.Hash(header.Root), cc.Address(address), cc.Key(keys[i]))
 		storageProof[i] = StorageResult{
 			Key:   key.Hex(),
 			Value: (*hexutil.Big)(state.GetState(address, key).Big()),
@@ -753,14 +753,12 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 		}
 	}
 
-	_, storageHash, _ := proof.GetStorageElements(cc.Hash(header.Root), cc.Address(address))
+	accountProof, storageHash, _ := proof.GetAccountElements(cc.Hash(header.Root), cc.Address(address))
 	codeHash := state.GetCodeHash(address)
-
-	accountProof, _ := proof.Extract(cc.Hash(header.Root), cc.Address(address))
 
 	return &AccountResult{
 		Address:      address,
-		AccountProof: toHexSlice(accountProof.GetElements()),
+		AccountProof: toHexSlice(accountProof),
 		Balance:      (*hexutil.U256)(state.GetBalance(address)),
 		CodeHash:     codeHash,
 		Nonce:        hexutil.Uint64(state.GetNonce(address)),
