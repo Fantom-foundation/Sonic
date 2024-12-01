@@ -1,7 +1,6 @@
 package topology
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -144,14 +143,4 @@ func (c *connectionAdvisor[I, T]) UpdatePeers(peer I, peers []T) {
 		peers: peers,
 		time:  time.Now(),
 	}
-
-	counter := 0
-	for peer, peers := range c.neighborhood {
-		counter++
-		fmt.Printf("Peer %d: %v\n", counter, peer)
-		for i, peer := range peers.peers {
-			fmt.Printf("\t%d - %v\n", i+1, peer)
-		}
-	}
-	fmt.Println()
 }

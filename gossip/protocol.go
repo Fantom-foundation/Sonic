@@ -33,7 +33,7 @@ var ProtocolVersions = []uint{
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
 var protocolLengths = map[uint]uint64{
-	_Sonic_65: EnodeUpdateMsg + 1,
+	_Sonic_65: EndPointUpdateMsg + 1,
 	_Sonic_64: PeerInfosMsg + 1,
 	_FTM62:    EventsStreamResponse + 1,
 }
@@ -75,9 +75,9 @@ const (
 	PeerInfosMsg = 11
 
 	// Request the enode of the peer identifying its public end-point.
-	GetEnodeMsg = 12
+	GetEndPointMsg = 12
 	// Contains the enode including the public end-point of the sender.
-	EnodeUpdateMsg = 13
+	EndPointUpdateMsg = 13
 )
 
 type errCode int

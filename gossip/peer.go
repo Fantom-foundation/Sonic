@@ -73,7 +73,12 @@ type peer struct {
 
 	sync.RWMutex
 
-	enode atomic.Pointer[enode.Node]
+	endPoint atomic.Pointer[peerEndPointInfo]
+}
+
+type peerEndPointInfo struct {
+	enode     enode.Node
+	timestamp time.Time
 }
 
 func (p *peer) Useless() bool {
@@ -545,7 +550,7 @@ func (p *peer) SendPeerInfoRequest() error {
 	// If the peer doesn't support the peer info protocol, don't bother
 	// sending the request. This request would lead to a disconnect
 	// if the peer doesn't understand it.
-	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_64}) {
+	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_64, _Sonic_65}) {
 		return nil
 	}
 	return p2p.Send(p.rw, GetPeerInfosMsg, struct{}{})
@@ -560,7 +565,7 @@ func (p *peer) SendEnodeUpdateRequest() error {
 	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_65}) {
 		return nil
 	}
-	return p2p.Send(p.rw, GetEnodeMsg, struct{}{})
+	return p2p.Send(p.rw, GetEndPointMsg, struct{}{})
 }
 
 // String implements fmt.Stringer.

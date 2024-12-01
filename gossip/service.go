@@ -255,6 +255,7 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 			},
 			SwitchEpochTo: svc.SwitchEpochTo,
 		},
+		localEndPointSource: localEndPointSource{svc},
 	})
 	if err != nil {
 		return nil, err
@@ -268,9 +269,15 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	svc.verWatcher = verwatcher.New(netVerStore)
 	svc.tflusher = svc.makePeriodicFlusher()
 
-	svc.p2pServer.LocalNode()
-
 	return svc, nil
+}
+
+type localEndPointSource struct {
+	service *Service
+}
+
+func (s localEndPointSource) GetLocalEndPoint() *enode.Node {
+	return s.service.p2pServer.LocalNode().Node()
 }
 
 // makeCheckers builds event checkers
