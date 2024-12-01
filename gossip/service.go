@@ -268,6 +268,8 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	svc.verWatcher = verwatcher.New(netVerStore)
 	svc.tflusher = svc.makePeriodicFlusher()
 
+	svc.p2pServer.LocalNode()
+
 	return svc, nil
 }
 

@@ -88,6 +88,12 @@ type handlerConfig struct {
 	s        *Store
 	process  processCallback
 	localId  enode.ID
+
+	localNodeAddressSource LocalNodeAddressSource
+}
+
+type LocalNodeAddressSource interface {
+	GetLocalNodeAddress() *enode.Node
 }
 
 type handler struct {
@@ -145,6 +151,8 @@ type handler struct {
 	connectionAdvisor topology.ConnectionAdvisor
 	nextSuggestedPeer chan *enode.Node
 
+	localNodeAddressSource LocalNodeAddressSource
+
 	logger.Instance
 }
 
@@ -173,6 +181,7 @@ func newHandler(
 		quitProgressBradcast: make(chan struct{}),
 		connectionAdvisor:    topology.NewConnectionAdvisor(c.localId),
 		nextSuggestedPeer:    make(chan *enode.Node, 1),
+		localNodeSource:      c.localNodeIdentifierSource,
 
 		Instance: logger.New("PM"),
 	}
@@ -861,14 +870,21 @@ func (h *handler) handleMsg(p *peer) error {
 
 	case msg.Code == GetPeerInfosMsg:
 		infos := []peerInfo{}
+		builder := strings.Builder{}
 		for _, peer := range h.peers.List() {
 			if peer.Useless() {
 				continue
 			}
+			enode := peer.enode.Load()
+			if enode == nil {
+				continue
+			}
+			builder.WriteString(fmt.Sprintf("\t%s\n", enode.String()))
 			infos = append(infos, peerInfo{
-				Enode: peer.Node().String(),
+				Enode: enode.String(),
 			})
 		}
+		//fmt.Printf("My Peers:\n%s\n", builder.String())
 		err := p2p.Send(p.rw, PeerInfosMsg, peerInfoMsg{
 			Peers: infos,
 		})
@@ -893,6 +909,31 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 
 		h.connectionAdvisor.UpdatePeers(p.ID(), reportedPeers)
+
+	case msg.Code == GetEnodeMsg:
+		source := h.localNodeAddressSource
+		if source == nil {
+			return nil
+		}
+		enode := source.GetLocalNodeAddress()
+		if enode == nil {
+			return nil
+		}
+		if err := p2p.Send(p.rw, EnodeUpdateMsg, enode.String()); err != nil {
+			return err
+		}
+
+	case msg.Code == EnodeUpdateMsg:
+		var encoded string
+		if err := msg.Decode(&encoded); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		var enode enode.Node
+		if err := enode.UnmarshalText([]byte(encoded)); err != nil {
+			h.Log.Warn("Failed to unmarshal enode", "enode", encoded, "err", err)
+		} else {
+			p.enode.Store(&enode)
+		}
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -1103,6 +1144,10 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 			// Request updated peer information from current peers.
 			peers := h.peers.List()
 			for _, peer := range peers {
+				// If we do not have the peer's enode, request it.
+				if peer.enode.Load() == nil {
+					peer.SendEnodeUpdateRequest()
+				}
 				peer.SendPeerInfoRequest()
 			}
 
@@ -1178,6 +1223,7 @@ func (i *suggestedPeerIterator) Next() bool {
 }
 
 func (i *suggestedPeerIterator) Node() *enode.Node {
+	fmt.Printf("Suggesting %s\n", i.next)
 	return i.next
 }
 
