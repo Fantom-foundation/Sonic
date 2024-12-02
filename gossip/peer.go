@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
@@ -71,6 +72,13 @@ type peer struct {
 	useless uint32
 
 	sync.RWMutex
+
+	endPoint atomic.Pointer[peerEndPointInfo]
+}
+
+type peerEndPointInfo struct {
+	enode     enode.Node
+	timestamp time.Time
 }
 
 func (p *peer) Useless() bool {
@@ -542,10 +550,22 @@ func (p *peer) SendPeerInfoRequest() error {
 	// If the peer doesn't support the peer info protocol, don't bother
 	// sending the request. This request would lead to a disconnect
 	// if the peer doesn't understand it.
-	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_64}) {
+	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_64, _Sonic_65}) {
 		return nil
 	}
 	return p2p.Send(p.rw, GetPeerInfosMsg, struct{}{})
+}
+
+// SendEndPointUpdateRequest sends a request to the peer asking for the peer's
+// public enode address to be used to establish a connection to this peer.
+func (p *peer) SendEndPointUpdateRequest() error {
+	// If the peer doesn't support version 65 of this protocol, don't bother
+	// sending the request. This request would lead to a disconnect
+	// if the peer doesn't understand it.
+	if !p.Peer.RunningCap(ProtocolName, []uint{_Sonic_65}) {
+		return nil
+	}
+	return p2p.Send(p.rw, GetEndPointMsg, struct{}{})
 }
 
 // String implements fmt.Stringer.
