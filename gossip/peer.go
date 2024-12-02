@@ -556,9 +556,9 @@ func (p *peer) SendPeerInfoRequest() error {
 	return p2p.Send(p.rw, GetPeerInfosMsg, struct{}{})
 }
 
-// SendEnodeUpdateRequest sends a request to the peer asking for the peer's
-// public enode address.
-func (p *peer) SendEnodeUpdateRequest() error {
+// SendEndPointUpdateRequest sends a request to the peer asking for the peer's
+// public enode address to be used to establish a connection to this peer.
+func (p *peer) SendEndPointUpdateRequest() error {
 	// If the peer doesn't support version 65 of this protocol, don't bother
 	// sending the request. This request would lead to a disconnect
 	// if the peer doesn't understand it.

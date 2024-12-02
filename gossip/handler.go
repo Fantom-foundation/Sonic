@@ -151,7 +151,7 @@ type handler struct {
 	connectionAdvisor topology.ConnectionAdvisor
 	nextSuggestedPeer chan *enode.Node
 
-	localNodeAddressSource LocalEndPointSource
+	localEndPointSource LocalEndPointSource
 
 	logger.Instance
 }
@@ -182,7 +182,7 @@ func newHandler(
 		connectionAdvisor:    topology.NewConnectionAdvisor(c.localId),
 		nextSuggestedPeer:    make(chan *enode.Node, 1),
 
-		localNodeAddressSource: c.localEndPointSource,
+		localEndPointSource: c.localEndPointSource,
 
 		Instance: logger.New("PM"),
 	}
@@ -909,7 +909,7 @@ func (h *handler) handleMsg(p *peer) error {
 		h.connectionAdvisor.UpdatePeers(p.ID(), reportedPeers)
 
 	case msg.Code == GetEndPointMsg:
-		source := h.localNodeAddressSource
+		source := h.localEndPointSource
 		if source == nil {
 			return nil
 		}
@@ -1145,9 +1145,9 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 			// Request updated peer information from current peers.
 			peers := h.peers.List()
 			for _, peer := range peers {
-				// If we do not have the peer's enode or it is too old, request it.
+				// If we do not have the peer's end-point or it is too old, request it.
 				if info := peer.endPoint.Load(); info == nil || time.Since(info.timestamp) > h.config.Protocol.PeerEndPointUpdatePeriod {
-					peer.SendEnodeUpdateRequest()
+					peer.SendEndPointUpdateRequest()
 				}
 				peer.SendPeerInfoRequest()
 			}
