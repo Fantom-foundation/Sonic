@@ -49,6 +49,7 @@ type (
 		MaxRandomTxHashesSend    int
 		RandomTxHashesSendPeriod time.Duration
 		PeerInfoCollectionPeriod time.Duration
+		PeerEndPointUpdatePeriod time.Duration
 
 		PeerCache PeerCacheConfig
 	}
@@ -184,6 +185,7 @@ func DefaultConfig(scale cachescale.Func) Config {
 			MaxRandomTxHashesSend:    250, // match softLimitItems to fit into one message
 			RandomTxHashesSendPeriod: 1 * time.Second,
 			PeerInfoCollectionPeriod: 3 * time.Second,
+			PeerEndPointUpdatePeriod: 1 * time.Minute,
 			PeerCache:                DefaultPeerCacheConfig(scale),
 		},
 

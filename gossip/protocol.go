@@ -18,6 +18,7 @@ import (
 const (
 	_FTM62    = 62
 	_Sonic_64 = 64
+	_Sonic_65 = 65
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
@@ -25,12 +26,14 @@ const ProtocolName = "opera"
 
 // ProtocolVersions are the supported versions of the protocol (first is primary).
 var ProtocolVersions = []uint{
+	_Sonic_65,
 	_Sonic_64,
 	_FTM62,
 }
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
 var protocolLengths = map[uint]uint64{
+	_Sonic_65: EndPointUpdateMsg + 1,
 	_Sonic_64: PeerInfosMsg + 1,
 	_FTM62:    EventsStreamResponse + 1,
 }
@@ -70,6 +73,11 @@ const (
 	GetPeerInfosMsg = 10
 	// Contains the list of known peers and their information.
 	PeerInfosMsg = 11
+
+	// Request the enode of the peer identifying its public end-point.
+	GetEndPointMsg = 12
+	// Contains the enode including the public end-point of the sender.
+	EndPointUpdateMsg = 13
 )
 
 type errCode int

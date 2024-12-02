@@ -88,6 +88,12 @@ type handlerConfig struct {
 	s        *Store
 	process  processCallback
 	localId  enode.ID
+
+	localEndPointSource LocalEndPointSource
+}
+
+type LocalEndPointSource interface {
+	GetLocalEndPoint() *enode.Node
 }
 
 type handler struct {
@@ -145,6 +151,8 @@ type handler struct {
 	connectionAdvisor topology.ConnectionAdvisor
 	nextSuggestedPeer chan *enode.Node
 
+	localEndPointSource LocalEndPointSource
+
 	logger.Instance
 }
 
@@ -173,6 +181,8 @@ func newHandler(
 		quitProgressBradcast: make(chan struct{}),
 		connectionAdvisor:    topology.NewConnectionAdvisor(c.localId),
 		nextSuggestedPeer:    make(chan *enode.Node, 1),
+
+		localEndPointSource: c.localEndPointSource,
 
 		Instance: logger.New("PM"),
 	}
@@ -865,8 +875,12 @@ func (h *handler) handleMsg(p *peer) error {
 			if peer.Useless() {
 				continue
 			}
+			info := peer.endPoint.Load()
+			if info == nil {
+				continue
+			}
 			infos = append(infos, peerInfo{
-				Enode: peer.Node().String(),
+				Enode: info.enode.String(),
 			})
 		}
 		err := p2p.Send(p.rw, PeerInfosMsg, peerInfoMsg{
@@ -893,6 +907,34 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 
 		h.connectionAdvisor.UpdatePeers(p.ID(), reportedPeers)
+
+	case msg.Code == GetEndPointMsg:
+		source := h.localEndPointSource
+		if source == nil {
+			return nil
+		}
+		enode := source.GetLocalEndPoint()
+		if enode == nil {
+			return nil
+		}
+		if err := p2p.Send(p.rw, EndPointUpdateMsg, enode.String()); err != nil {
+			return err
+		}
+
+	case msg.Code == EndPointUpdateMsg:
+		var encoded string
+		if err := msg.Decode(&encoded); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		var enode enode.Node
+		if err := enode.UnmarshalText([]byte(encoded)); err != nil {
+			h.Log.Warn("Failed to unmarshal enode", "enode", encoded, "err", err)
+		} else {
+			p.endPoint.Store(&peerEndPointInfo{
+				enode:     enode,
+				timestamp: time.Now(),
+			})
+		}
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -1103,6 +1145,10 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 			// Request updated peer information from current peers.
 			peers := h.peers.List()
 			for _, peer := range peers {
+				// If we do not have the peer's end-point or it is too old, request it.
+				if info := peer.endPoint.Load(); info == nil || time.Since(info.timestamp) > h.config.Protocol.PeerEndPointUpdatePeriod {
+					peer.SendEndPointUpdateRequest()
+				}
 				peer.SendPeerInfoRequest()
 			}
 
