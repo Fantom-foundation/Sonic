@@ -1,4 +1,4 @@
-package tests
+package transaction_order_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/counter_event_emitter"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,18 +21,18 @@ func TestTransactionOrder(t *testing.T) {
 		numBlocks   = uint64(3)
 		numTxs      = numAccounts * numPerAcc
 	)
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
 	defer net.Stop()
 
-	contract, _, err := DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
+	contract, _, err := tests.DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
 	require.NoError(t, err)
 
 	client, err := net.GetClient()
 	require.NoError(t, err)
 	defer client.Close()
 
-	accounts := make([]*Account, 0, numAccounts)
+	accounts := make([]*tests.Account, 0, numAccounts)
 
 	// Only transactions from different accounts can change order.
 	for range numAccounts {
@@ -141,9 +142,9 @@ func TestTransactionOrder(t *testing.T) {
 
 // makeAccountWithMaxBalance creates a new account and endows it with math.MaxInt64 balance.
 // Creating the account this way allows to get access to the private key to sign transactions.
-func makeAccountWithMaxBalance(t *testing.T, net *IntegrationTestNet) *Account {
+func makeAccountWithMaxBalance(t *testing.T, net *tests.IntegrationTestNet) *tests.Account {
 	t.Helper()
-	account := NewAccount()
+	account := tests.NewAccount()
 	receipt, err := net.EndowAccount(account.Address(), math.MaxInt64)
 	require.NoError(t, err)
 	require.Equal(t,

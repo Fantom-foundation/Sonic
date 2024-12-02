@@ -1,4 +1,4 @@
-package tests
+package gas_price_suggestion
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -55,11 +56,11 @@ func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
 	chainId, err := client.ChainID(context.Background())
 	require.NoError(err, "failed to get chain ID::")
 
-	nonce, err := client.NonceAt(context.Background(), net.validator.Address(), nil)
+	nonce, err := client.NonceAt(context.Background(), net.GetValidatorAccount().Address(), nil)
 	require.NoError(err, "failed to get nonce:")
 
 	factory := &txFactory{
-		senderKey: net.validator.PrivateKey,
+		senderKey: net.GetValidatorAccount().PrivateKey,
 		chainId:   chainId,
 	}
 
@@ -92,8 +93,8 @@ func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
 	require.NoError(send(factory.makeBlobTransactionWithPrice(t, nonce+3, feeCap)))
 }
 
-func makeNetAndClient(t *testing.T) (*IntegrationTestNet, *ethclient.Client) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+func makeNetAndClient(t *testing.T) (*tests.IntegrationTestNet, *ethclient.Client) {
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
 	t.Cleanup(func() { net.Stop() })
 

@@ -1,9 +1,10 @@
-package tests
+package genesis_import_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +14,7 @@ func TestGenesis_NetworkCanCreateNewBlocksAfterExportImport(t *testing.T) {
 	require := require.New(t)
 
 	tempDir := t.TempDir()
-	net, err := StartIntegrationTestNet(tempDir)
+	net, err := tests.StartIntegrationTestNet(tempDir)
 	require.NoError(err)
 
 	// Produce a few blocks on the network.

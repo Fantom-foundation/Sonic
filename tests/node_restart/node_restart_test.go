@@ -1,10 +1,11 @@
-package tests
+package node_restart_test
 
 import (
 	"context"
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -15,7 +16,7 @@ func TestNodeRestart_CanRestartAndRestoreItsState(t *testing.T) {
 	const numRestarts = 2
 	require := require.New(t)
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(err)
 	defer net.Stop()
 

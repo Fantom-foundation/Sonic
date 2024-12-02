@@ -1,23 +1,24 @@
-package tests
+package counter_test
 
 import (
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/counter"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
 func TestCounter_CanIncrementAndReadCounterFromHead(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 
 	// Deploy the counter contract.
-	contract, _, err := DeployContract(net, counter.DeployCounter)
+	contract, _, err := tests.DeployContract(net, counter.DeployCounter)
 	if err != nil {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}
@@ -41,14 +42,14 @@ func TestCounter_CanIncrementAndReadCounterFromHead(t *testing.T) {
 }
 
 func TestCounter_CanReadHistoricCounterValues(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 
 	// Deploy the counter contract.
-	contract, receipt, err := DeployContract(net, counter.DeployCounter)
+	contract, receipt, err := tests.DeployContract(net, counter.DeployCounter)
 	if err != nil {
 		t.Fatalf("failed to deploy contract; %v", err)
 	}

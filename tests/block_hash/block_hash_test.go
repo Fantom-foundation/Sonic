@@ -1,10 +1,11 @@
-package tests
+package block_has_test
 
 import (
 	"context"
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/block_hash"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,14 +15,14 @@ import (
 
 func TestBlockHash_CorrectBlockHashesAreAccessibleInContracts(t *testing.T) {
 	require := req.New(t)
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to start the fake network: %v", err)
 	}
 	defer net.Stop()
 
 	// Deploy the block hash observer contract.
-	_, receipt, err := DeployContract(net, block_hash.DeployBlockHash)
+	_, receipt, err := tests.DeployContract(net, block_hash.DeployBlockHash)
 	require.NoError(err, "failed to deploy contract; %v", err)
 	contractAddress := receipt.ContractAddress
 	contractCreationBlock := receipt.BlockNumber.Uint64()
@@ -44,7 +45,7 @@ func TestBlockHash_CorrectBlockHashesAreAccessibleInContracts(t *testing.T) {
 
 func testVisibleBlockHashOnHead(
 	t *testing.T,
-	net *IntegrationTestNet,
+	net *tests.IntegrationTestNet,
 	observerContractAddress common.Address,
 ) {
 	require := req.New(t)
@@ -86,7 +87,7 @@ func testVisibleBlockHashOnHead(
 
 func testVisibleBlockHashesInArchive(
 	t *testing.T,
-	net *IntegrationTestNet,
+	net *tests.IntegrationTestNet,
 	observerContractAddress common.Address,
 	observerCreationBlock uint64,
 ) {

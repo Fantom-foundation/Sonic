@@ -547,6 +547,10 @@ func (n *IntegrationTestNet) GetHeaders() ([]*types.Header, error) {
 	return headers, nil
 }
 
+func (n *IntegrationTestNet) GetValidatorAccount() *Account {
+	return &n.validator
+}
+
 // DeployContract is a utility function handling the deployment of a contract on the network.
 // The contract is deployed with by the network's validator account. The function returns the
 // deployed contract instance and the transaction receipt.

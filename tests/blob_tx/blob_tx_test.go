@@ -1,10 +1,11 @@
-package tests
+package blob_tx_test
 
 import (
 	"context"
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
@@ -106,7 +107,7 @@ func createTestBlobTransaction(t *testing.T, ctxt *testContext, data ...[]byte) 
 	chainId, err := ctxt.client.ChainID(context.Background())
 	require.NoError(err, "failed to get chain ID::")
 
-	nonce, err := ctxt.client.NonceAt(context.Background(), ctxt.net.validator.Address(), nil)
+	nonce, err := ctxt.client.NonceAt(context.Background(), ctxt.net.GetValidatorAccount().Address(), nil)
 	require.NoError(err, "failed to get nonce:")
 
 	var sidecar *types.BlobTxSidecar
@@ -150,7 +151,7 @@ func createTestBlobTransaction(t *testing.T, ctxt *testContext, data ...[]byte) 
 		Sidecar:    sidecar,               // sidecar data in the transaction
 	})
 
-	return types.SignTx(tx, types.NewCancunSigner(chainId), ctxt.net.validator.PrivateKey)
+	return types.SignTx(tx, types.NewCancunSigner(chainId), ctxt.net.GetValidatorAccount().PrivateKey)
 }
 
 func createTestBlobTransactionWithNilSidecar(t *testing.T, ctxt *testContext) (*types.Transaction, error) {
@@ -159,7 +160,7 @@ func createTestBlobTransactionWithNilSidecar(t *testing.T, ctxt *testContext) (*
 	chainId, err := ctxt.client.ChainID(context.Background())
 	require.NoError(err, "failed to get chain ID::")
 
-	nonce, err := ctxt.client.NonceAt(context.Background(), ctxt.net.validator.Address(), nil)
+	nonce, err := ctxt.client.NonceAt(context.Background(), ctxt.net.GetValidatorAccount().Address(), nil)
 	require.NoError(err, "failed to get nonce:")
 
 	// Create and return transaction with the blob data and cryptographic proofs
@@ -176,7 +177,7 @@ func createTestBlobTransactionWithNilSidecar(t *testing.T, ctxt *testContext) (*
 		Sidecar:    nil,                   // sidecar data in the transaction
 	})
 
-	return types.SignTx(tx, types.NewCancunSigner(chainId), ctxt.net.validator.PrivateKey)
+	return types.SignTx(tx, types.NewCancunSigner(chainId), ctxt.net.GetValidatorAccount().PrivateKey)
 }
 
 func checkBlocksSanity(t *testing.T, client *ethclient.Client) {
@@ -194,12 +195,12 @@ func checkBlocksSanity(t *testing.T, client *ethclient.Client) {
 }
 
 type testContext struct {
-	net    *IntegrationTestNet
+	net    *tests.IntegrationTestNet
 	client *ethclient.Client
 }
 
 func MakeTestContext(t *testing.T) *testContext {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
 
 	client, err := net.GetClient()

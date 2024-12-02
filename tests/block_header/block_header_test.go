@@ -1,4 +1,4 @@
-package tests
+package blockheader_test
 
 import (
 	"cmp"
@@ -20,6 +20,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/netinit"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/counter_event_emitter"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -35,7 +36,8 @@ import (
 
 func TestBlockHeader_FakeGenesis_SatisfiesInvariants(t *testing.T) {
 	require := require.New(t)
-	net, err := StartIntegrationTestNet(t.TempDir())
+
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(err)
 	defer net.Stop()
 	testBlockHeadersOnNetwork(t, net)
@@ -43,19 +45,19 @@ func TestBlockHeader_FakeGenesis_SatisfiesInvariants(t *testing.T) {
 
 func TestBlockHeader_JsonGenesis_SatisfiesInvariants(t *testing.T) {
 	require := require.New(t)
-	net, err := StartIntegrationTestNetFromJsonGenesis(t.TempDir())
+	net, err := tests.StartIntegrationTestNetFromJsonGenesis(t.TempDir())
 	require.NoError(err)
 	defer net.Stop()
 	testBlockHeadersOnNetwork(t, net)
 }
 
-func testBlockHeadersOnNetwork(t *testing.T, net *IntegrationTestNet) {
+func testBlockHeadersOnNetwork(t *testing.T, net *tests.IntegrationTestNet) {
 	const numBlocks = 10
 	require := require.New(t)
 
 	// Produce a few blocks on the network. We use the counter contract since
 	// it is also producing events.
-	counter, receipt, err := DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
+	counter, receipt, err := tests.DeployContract(net, counter_event_emitter.DeployCounterEventEmitter)
 	require.NoError(err)
 	for range numBlocks {
 		_, err := net.Apply(counter.Increment)

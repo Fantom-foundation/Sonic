@@ -1,4 +1,4 @@
-package tests
+package selfdestruct_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/tests/contracts/selfdestruct"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,7 +18,7 @@ import (
 func TestSelfDestruct(t *testing.T) {
 	require := require.New(t)
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(err, "failed to start test network")
 	defer net.Stop()
 
@@ -30,10 +31,10 @@ func TestSelfDestruct(t *testing.T) {
 	})
 }
 
-func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
+func testSelfDestruct_Constructor(t *testing.T, net *tests.IntegrationTestNet) {
 	contractInitialBalance := int64(1234)
 
-	tests := map[string]struct {
+	cases := map[string]struct {
 		deployTx  deployTxFunction[selfdestruct.SelfDestruct]
 		executeTx executeTxFunction[selfdestruct.SelfDestruct]
 		effects   map[string]effectFunction
@@ -125,7 +126,7 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
 		},
 	}
 
-	for name, test := range tests {
+	for name, test := range cases {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 
@@ -134,7 +135,7 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
 			rand.Read(beneficiaryAddress[:])
 
 			// First transaction deploys contract
-			contract, deployReceipt, err := DeployContract(net,
+			contract, deployReceipt, err := tests.DeployContract(net,
 				func(to *bind.TransactOpts, cb bind.ContractBackend) (common.Address, *types.Transaction, *selfdestruct.SelfDestruct, error) {
 					return test.deployTx(to, cb, beneficiaryAddress)
 				})
@@ -184,10 +185,10 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
 	}
 }
 
-func testSelfDestruct_NestedCall(t *testing.T, net *IntegrationTestNet) {
+func testSelfDestruct_NestedCall(t *testing.T, net *tests.IntegrationTestNet) {
 	contractInitialBalance := int64(1234)
 
-	tests := map[string]struct {
+	cases := map[string]struct {
 		transactions []executeTxFunction[selfdestruct.SelfDestructFactory]
 		effects      map[string]effectFunction
 	}{
@@ -274,7 +275,7 @@ func testSelfDestruct_NestedCall(t *testing.T, net *IntegrationTestNet) {
 		},
 	}
 
-	for name, test := range tests {
+	for name, test := range cases {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 
@@ -283,7 +284,7 @@ func testSelfDestruct_NestedCall(t *testing.T, net *IntegrationTestNet) {
 			rand.Read(beneficiaryAddress[:])
 
 			// deploy factory contract
-			factory, receipt, err := DeployContract(net, selfdestruct.DeploySelfDestructFactory)
+			factory, receipt, err := tests.DeployContract(net, selfdestruct.DeploySelfDestructFactory)
 			require.NoError(err)
 			require.Equal(
 				types.ReceiptStatusSuccessful,

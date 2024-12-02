@@ -1,10 +1,11 @@
-package tests
+package transaction_gas_price
 
 import (
 	"context"
 	"math/big"
 	"testing"
 
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -17,7 +18,7 @@ const enoughGasPrice = 150_000_000_000
 
 func TestTransactionGasPrice(t *testing.T) {
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
 	defer net.Stop()
 
@@ -265,9 +266,9 @@ func TestTransactionGasPrice(t *testing.T) {
 
 // makeAccountWithBalance creates a new account and endows it with the given balance.
 // Creating the account this way allows to get access to the private key to sign transactions.
-func makeAccountWithBalance(t *testing.T, net *IntegrationTestNet, balance int64) *Account {
+func makeAccountWithBalance(t *testing.T, net *tests.IntegrationTestNet, balance int64) *tests.Account {
 	t.Helper()
-	account := NewAccount()
+	account := tests.NewAccount()
 	receipt, err := net.EndowAccount(account.Address(), balance)
 	require.NoError(t, err)
 	require.Equal(t,
@@ -296,7 +297,7 @@ func getBalance(t *testing.T, client *ethclient.Client, account common.Address) 
 func makeLegacyTx(t *testing.T,
 	client *ethclient.Client,
 	gasPrice int64,
-	sender *Account,
+	sender *tests.Account,
 ) *types.Transaction {
 	t.Helper()
 
@@ -326,7 +327,7 @@ func makeEip1559Transaction(t *testing.T,
 	client *ethclient.Client,
 	maxFeeCap int64,
 	maxGasTip int64,
-	sender *Account,
+	sender *tests.Account,
 ) *types.Transaction {
 	t.Helper()
 
