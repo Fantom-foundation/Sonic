@@ -58,10 +58,11 @@ import (
 // integration test networks can also be used for automated integration and
 // regression tests for client code.
 type IntegrationTestNet struct {
-	directory      string
-	done           <-chan struct{}
-	validator      Account
-	httpClientPort int
+	directory string
+	done      <-chan struct{}
+	validator Account
+	httpPort  int
+	wsPort    int
 }
 
 func isPortFree(host string, port int) bool {
@@ -226,11 +227,11 @@ func (n *IntegrationTestNet) start() error {
 
 	// find free ports for the http-client, ws-client, and network interfaces
 	var err error
-	n.httpClientPort, err = getFreePort()
+	n.httpPort, err = getFreePort()
 	if err != nil {
 		return err
 	}
-	wsPort, err := getFreePort()
+	n.wsPort, err = getFreePort()
 	if err != nil {
 		return err
 	}
@@ -258,11 +259,11 @@ func (n *IntegrationTestNet) start() error {
 			"--fakenet", "1/1",
 
 			// http-client option
-			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(n.httpClientPort),
+			"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprint(n.httpPort),
 			"--http.api", "admin,eth,web3,net,txpool,ftm,trace,debug",
 
 			// websocket-client options
-			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(wsPort),
+			"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprint(n.wsPort),
 			"--ws.api", "admin,eth,ftm",
 
 			//  net options
@@ -470,7 +471,13 @@ func (n *IntegrationTestNet) GetTransactOptions(account *Account) (*bind.Transac
 // GetClient provides raw access to a fresh connection to the network.
 // The resulting client must be closed after use.
 func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
-	return ethclient.Dial(fmt.Sprintf("http://localhost:%d", n.httpClientPort))
+	return ethclient.Dial(fmt.Sprintf("http://localhost:%d", n.httpPort))
+}
+
+// GetWebSocketClient provides raw access to a fresh connection to the network
+// using the WebSocket protocol. The resulting client must be closed after use.
+func (n *IntegrationTestNet) GetWebSocketClient() (*ethclient.Client, error) {
+	return ethclient.Dial(fmt.Sprintf("ws://localhost:%d", n.wsPort))
 }
 
 // RestartWithExportImport stops the network, exports the genesis file, cleans the
