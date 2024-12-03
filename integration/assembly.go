@@ -2,13 +2,12 @@ package integration
 
 import (
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
+
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -24,17 +23,6 @@ var (
 	FlushIDKey     = append(common.CopyBytes(MetadataPrefix), 0x0c)
 	TablesKey      = append(common.CopyBytes(MetadataPrefix), 0x0d)
 )
-
-// GenesisMismatchError is raised when trying to overwrite an existing
-// genesis block with an incompatible one.
-type GenesisMismatchError struct {
-	Stored, New hash.Hash
-}
-
-// Error implements error interface.
-func (e *GenesisMismatchError) Error() string {
-	return fmt.Sprintf("database contains incompatible genesis (have %s, new %s)", e.Stored.String(), e.New.String())
-}
 
 type Configs struct {
 	Opera         gossip.Config
@@ -78,17 +66,6 @@ func rawMakeEngine(gdb *gossip.Store, cdb *abft.Store, cfg Configs) (*abft.Lache
 	vecClock := vecmt.NewIndex(panics("Vector clock"), cfg.VectorClock)
 	engine := abft.NewLachesis(cdb, &GossipStoreAdapter{gdb}, vecmt2dagidx.Wrap(vecClock), panics("Lachesis"), cfg.Lachesis)
 	return engine, vecClock, blockProc, nil
-}
-
-func CheckStateInitialized(chaindataDir string, cfg DBsConfig) error {
-	if isInterrupted(chaindataDir) {
-		return errors.New("genesis processing isn't finished")
-	}
-	dbs, err := GetDbProducer(chaindataDir, cfg.RuntimeCache)
-	if err != nil {
-		return err
-	}
-	return dbs.Close()
 }
 
 func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func() error, error) {

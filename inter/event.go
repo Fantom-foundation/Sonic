@@ -2,6 +2,7 @@ package inter
 
 import (
 	"crypto/sha256"
+
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
@@ -47,13 +48,6 @@ type EventLocator struct {
 type SignedEventLocator struct {
 	Locator EventLocator
 	Sig     Signature
-}
-
-func AsSignedEventLocator(e EventPayloadI) SignedEventLocator {
-	return SignedEventLocator{
-		Locator: e.Locator(),
-		Sig:     e.Sig(),
-	}
 }
 
 type EventPayloadI interface {
@@ -204,12 +198,6 @@ func (e *payloadData) EpochVote() LlrEpochVote { return e.epochVote }
 
 func CalcTxHash(txs types.Transactions) hash.Hash {
 	return hash.Hash(types.DeriveSha(txs, trie.NewStackTrie(nil)))
-}
-
-func CalcReceiptsHash(receipts []*types.ReceiptForStorage) hash.Hash {
-	hasher := sha256.New()
-	_ = rlp.Encode(hasher, receipts)
-	return hash.BytesToHash(hasher.Sum(nil))
 }
 
 func CalcMisbehaviourProofsHash(mps []MisbehaviourProof) hash.Hash {

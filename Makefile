@@ -67,5 +67,10 @@ errorcheck:
 	@go install github.com/kisielk/errcheck@$(ERRCHECK_VERSION)
 	errcheck ./...
 
+.PHONY: deadcode
+deadcode:
+	@go install golang.org/x/tools/cmd/deadcode@latest
+	deadcode -test ./...
+
 .PHONY: lint
-lint: vet staticcheck # errorcheck  
+lint: vet staticcheck deadcode # errorcheck
