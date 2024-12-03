@@ -2,7 +2,7 @@ package tests
 
 import (
 	"github.com/Fantom-foundation/go-opera/ethapi"
-	"github.com/Fantom-foundation/go-opera/tests/contracts/transientstorage"
+	"github.com/Fantom-foundation/go-opera/tests/contracts/counter"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -16,7 +16,7 @@ func TestGetAccount(t *testing.T) {
 	defer net.Stop()
 
 	// Deploy the transient storage contract
-	_, deployReceipt, err := DeployContract(net, transientstorage.DeployTransientstorage)
+	_, deployReceipt, err := DeployContract(net, counter.DeployCounter)
 	require.NoError(t, err, "failed to deploy contract")
 
 	addr := deployReceipt.ContractAddress

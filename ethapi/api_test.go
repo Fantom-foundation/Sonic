@@ -148,29 +148,12 @@ func TestAPI_GetAccount(t *testing.T) {
 	api := NewPublicBlockChainAPI(mockBackend)
 
 	account, err := api.GetAccount(context.Background(), addr, blkNr)
-	if err != nil {
-		t.Fatalf("unexpected err: %v", err)
-	}
+	require.NoError(t, err, "failed to get account")
 
-	if codeHash.Cmp(account.CodeHash) != 0 {
-		t.Errorf("unexpected code hash, got: %s want %s", account.CodeHash, codeHash)
-	}
-
-	if common.Hash(storageRoot).Cmp(account.StorageRoot) != 0 {
-		t.Errorf("unexpected storage root, got: %s want %s", account.StorageRoot, storageRoot)
-	}
-
-	if balance.Cmp((*uint256.Int)(account.Balance)) != 0 {
-		t.Errorf("unexpected balance, got: %s want %s", account.Balance, balance)
-	}
-
-	if balance.Cmp((*uint256.Int)(account.Balance)) != 0 {
-		t.Errorf("unexpected balance, got: %s want %s", account.Balance, balance)
-	}
-
-	if nonce != uint64(account.Nonce) {
-		t.Errorf("unexpected nonce, got: %d want %d", account.Nonce, nonce)
-	}
+	require.Equal(t, codeHash, account.CodeHash)
+	require.Equal(t, common.Hash(storageRoot), account.StorageRoot)
+	require.Equal(t, (*hexutil.U256)(balance), account.Balance)
+	require.Equal(t, hexutil.Uint64(nonce), account.Nonce)
 }
 
 func testGetBlockReceipts(t *testing.T, blockParam rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
