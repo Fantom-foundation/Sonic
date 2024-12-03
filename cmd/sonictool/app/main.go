@@ -20,6 +20,7 @@ func Run() error {
 		flags.CacheFlag,
 		flags.LiveDbCacheFlag,
 		flags.ArchiveCacheFlag,
+		flags.StateDbCacheCapacityFlag,
 	}
 	app.Commands = []cli.Command{
 		{
@@ -62,9 +63,6 @@ Initialize the database using data from the experimental genesis file.
 					ArgsUsage: "<validators>",
 					Action:    fakeGenesisImport,
 					Flags: []cli.Flag{
-						flags.LiveDbCacheFlag,
-						flags.ArchiveCacheFlag,
-						flags.StateDbCacheCapacityFlag,
 						ModeFlag,
 					},
 					Description: `
