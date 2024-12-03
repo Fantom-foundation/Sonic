@@ -2,6 +2,13 @@ package ethapi
 
 import (
 	"context"
+	cc "github.com/Fantom-foundation/Carmen/go/common"
+	"github.com/Fantom-foundation/Carmen/go/common/amount"
+	"github.com/Fantom-foundation/Carmen/go/common/immutable"
+	"github.com/Fantom-foundation/Carmen/go/common/witness"
+	"github.com/Fantom-foundation/go-opera/inter/state"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 
@@ -50,6 +57,64 @@ func TestGetBlockReceipts(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAPI_GetProof(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Input address and keys for witness proof
+	addr := cc.Address{1}
+	keys := []string{"0x1"}
+	hexKeys := []common.Hash{common.HexToHash("0x1")}
+
+	// Return data
+	codeHash := cc.Hash{2}
+	storageHash := cc.Hash{3}
+	balance := amount.New(4)
+	nonce := cc.ToNonce(5)
+	headerRoot := common.Hash{6}
+	storageElements := []immutable.Bytes{immutable.NewBytes([]byte("stElement"))}
+	value := cc.Value{7}
+	storageProof := StorageResult{
+		Key:   hexKeys[0].Hex(),
+		Value: (*hexutil.Big)(new(big.Int).SetBytes(value[:])),
+		Proof: toHexSlice(storageElements),
+	}
+	accountElements := []immutable.Bytes{immutable.NewBytes([]byte("accElement"))}
+
+	// Mocks
+	mockBackend := NewMockBackend(ctrl)
+	mockState := state.NewMockStateDB(ctrl)
+	mockProof := witness.NewMockProof(ctrl)
+	mockHeader := &evmcore.EvmHeader{Root: headerRoot}
+
+	blkNr := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+
+	mockBackend.EXPECT().StateAndHeaderByNumberOrHash(gomock.Any(), blkNr).Return(mockState, mockHeader, nil)
+	mockState.EXPECT().GetProof(common.Address(addr), hexKeys).Return(mockProof, nil)
+	mockProof.EXPECT().GetState(cc.Hash(headerRoot), addr, cc.Key(hexKeys[0])).Return(value, true, nil)
+	mockProof.EXPECT().GetStorageElements(cc.Hash(headerRoot), addr, cc.Key(hexKeys[0])).Return(storageElements, true)
+	mockProof.EXPECT().GetAccountElements(cc.Hash(headerRoot), addr).Return(accountElements, storageHash, true)
+	mockProof.EXPECT().GetCodeHash(cc.Hash(headerRoot), addr).Return(codeHash, true, nil)
+	mockProof.EXPECT().GetBalance(cc.Hash(headerRoot), addr).Return(balance, true, nil)
+	mockProof.EXPECT().GetNonce(cc.Hash(headerRoot), addr).Return(nonce, true, nil)
+	mockState.EXPECT().Error().Return(nil)
+	mockState.EXPECT().Release()
+
+	api := NewPublicBlockChainAPI(mockBackend)
+
+	accountProof, err := api.GetProof(context.Background(), common.Address(addr), keys, blkNr)
+	require.NoError(t, err, "failed to get account")
+
+	u256Balance := balance.Uint256()
+	require.Equal(t, common.Address(addr), accountProof.Address)
+	require.Equal(t, toHexSlice(accountElements), accountProof.AccountProof)
+	require.Equal(t, (*hexutil.U256)(&u256Balance), accountProof.Balance)
+	require.Equal(t, common.Hash(codeHash), accountProof.CodeHash)
+	require.Equal(t, hexutil.Uint64(nonce.ToUint64()), accountProof.Nonce)
+	require.Equal(t, common.Hash(storageHash), accountProof.StorageHash)
+	require.Equal(t, []StorageResult{storageProof}, accountProof.StorageProof)
 }
 
 func testGetBlockReceipts(t *testing.T, blockParam rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
