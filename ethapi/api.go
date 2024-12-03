@@ -728,17 +728,30 @@ func (s *PublicBlockChainAPI) GetAccount(ctx context.Context, address common.Add
 	if err != nil {
 		return nil, err
 	}
+	defer state.Release()
 	proof, err := state.GetProof(address, nil)
 	if err != nil {
 		return nil, err
 	}
+	codeHash, _, err := proof.GetCodeHash(cc.Hash(header.Root), cc.Address(address))
+	if err != nil {
+		return nil, err
+	}
 	_, storageRoot, _ := proof.GetAccountElements(cc.Hash(header.Root), cc.Address(address))
-	defer state.Release()
+	balance, _, err := proof.GetBalance(cc.Hash(header.Root), cc.Address(address))
+	if err != nil {
+		return nil, err
+	}
+	nonce, _, err := proof.GetNonce(cc.Hash(header.Root), cc.Address(address))
+	if err != nil {
+		return nil, err
+	}
+	u256Balance := balance.Uint256()
 	return &GetAccountResult{
-		CodeHash:    state.GetCodeHash(address),
+		CodeHash:    common.Hash(codeHash),
 		StorageRoot: common.Hash(storageRoot),
-		Balance:     (*hexutil.U256)(state.GetBalance(address)),
-		Nonce:       hexutil.Uint64(state.GetNonce(address)),
+		Balance:     (*hexutil.U256)(&u256Balance),
+		Nonce:       hexutil.Uint64(nonce.ToUint64()),
 	}, state.Error()
 }
 
