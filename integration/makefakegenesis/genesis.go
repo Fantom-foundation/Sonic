@@ -42,12 +42,12 @@ func FakeKey(n idx.ValidatorID) *ecdsa.PrivateKey {
 	return evmcore.FakeKey(uint32(n))
 }
 
-func FakeGenesisStore(num idx.Validator, balance, stake *big.Int, stateDbCacheCapacity int) *genesisstore.Store {
-	return FakeGenesisStoreWithRules(num, balance, stake, opera.FakeNetRules(), stateDbCacheCapacity)
+func FakeGenesisStore(num idx.Validator, balance, stake *big.Int) *genesisstore.Store {
+	return FakeGenesisStoreWithRules(num, balance, stake, opera.FakeNetRules())
 }
 
-func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules opera.Rules, stateDbCacheCapacity int) *genesisstore.Store {
-	return FakeGenesisStoreWithRulesAndStart(num, balance, stake, rules, 2, 1, stateDbCacheCapacity)
+func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules opera.Rules) *genesisstore.Store {
+	return FakeGenesisStoreWithRulesAndStart(num, balance, stake, rules, 2, 1)
 }
 
 func FakeGenesisStoreWithRulesAndStart(
@@ -56,9 +56,8 @@ func FakeGenesisStoreWithRulesAndStart(
 	rules opera.Rules,
 	epoch idx.Epoch,
 	block idx.Block,
-	stateDbCacheCapacity int,
 ) *genesisstore.Store {
-	builder := makegenesis.NewGenesisBuilder(stateDbCacheCapacity)
+	builder := makegenesis.NewGenesisBuilder()
 
 	validators := GetFakeValidators(num)
 

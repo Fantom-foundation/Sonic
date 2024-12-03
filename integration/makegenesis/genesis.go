@@ -113,7 +113,7 @@ func (b *GenesisBuilder) CurrentHash() hash.Hash {
 	return er.Hash()
 }
 
-func NewGenesisBuilder(stateDbCacheCapacity int) *GenesisBuilder {
+func NewGenesisBuilder() *GenesisBuilder {
 	carmenDir, err := os.MkdirTemp("", "opera-tmp-genesis")
 	if err != nil {
 		panic(fmt.Errorf("failed to create temporary dir for GenesisBuilder: %v", err))
@@ -128,7 +128,8 @@ func NewGenesisBuilder(stateDbCacheCapacity int) *GenesisBuilder {
 	if err != nil {
 		panic(fmt.Errorf("failed to create carmen state; %s", err))
 	}
-	carmenStateDb := carmen.CreateCustomStateDBUsing(carmenState, stateDbCacheCapacity)
+	// Set cache size to lowest value possible
+	carmenStateDb := carmen.CreateCustomStateDBUsing(carmenState, 1024)
 	tmpStateDB := evmstore.CreateCarmenStateDb(carmenStateDb)
 	return &GenesisBuilder{
 		tmpStateDB:    tmpStateDB,

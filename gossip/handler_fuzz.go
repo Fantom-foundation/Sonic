@@ -72,7 +72,6 @@ func makeFuzzedHandler() (h *handler, err error) {
 		genesisStakers,
 		utils.ToFtm(genesisBalance),
 		utils.ToFtm(genesisStake),
-		0, // 0 sets default value
 	)
 	genesis := genStore.Genesis()
 

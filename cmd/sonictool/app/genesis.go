@@ -101,8 +101,7 @@ func jsonGenesisImport(ctx *cli.Context) error {
 		return fmt.Errorf("failed to load JSON genesis: %w", err)
 	}
 
-	stateDbCacheCapacity := ctx.GlobalInt(flags.StateDbCacheCapacityFlag.Name)
-	genesisStore, err := makefakegenesis.ApplyGenesisJson(genesisJson, stateDbCacheCapacity)
+	genesisStore, err := makefakegenesis.ApplyGenesisJson(genesisJson)
 	if err != nil {
 		return fmt.Errorf("failed to prepare JSON genesis: %w", err)
 	}
@@ -145,7 +144,6 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		idx.Validator(validatorsNumber),
 		futils.ToFtm(1000000000),
 		futils.ToFtm(5000000),
-		ctx.GlobalInt(flags.StateDbCacheCapacityFlag.Name),
 	)
 	defer genesisStore.Close()
 	return genesis.ImportGenesisStore(genesis.ImportParams{

@@ -367,8 +367,9 @@ var (
 	}
 	StateDbCacheCapacityFlag = cli.IntFlag{
 		Name: "statedb.cache",
-		Usage: "Size of StateDb instances cache in bytes. Leaving this blank (which is generally recommended), or setting" +
-			"this to <1 will automatically set the cache capacity a hard-coded constant.",
+		Usage: "The number of cached data elements by each StateDb instance. Since this is an experimental feature " +
+			"used mainly by tests it is generally recommended leaving this blank. In tests no value lower than 1024 " +
+			"is recommended. Setting this to <1 will automatically set the cache capacity to a DB defined default value.",
 		Value: 0,
 	}
 )
