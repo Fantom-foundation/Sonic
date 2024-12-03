@@ -342,7 +342,7 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 	}
 
 	if ctx.IsSet(flags.StateDbCacheCapacityFlag.Name) {
-		cfg.OperaStore.EVM.Cache.StateDbCapacity = ctx.Int(flags.StateDbCacheCapacityFlag.Name)
+		cfg.OperaStore.EVM.Cache.StateDbCapacity = ctx.GlobalInt(flags.StateDbCacheCapacityFlag.Name)
 	}
 
 	return &cfg, nil
