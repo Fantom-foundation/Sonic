@@ -745,23 +745,39 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 
 	storageProof := make([]StorageResult, len(keys))
 	for i, key := range keys {
+		value, _, err := proof.GetState(cc.Hash(header.Root), cc.Address(address), cc.Key(key))
+		if err != nil {
+			return nil, err
+		}
 		elements, _ := proof.GetStorageElements(cc.Hash(header.Root), cc.Address(address), cc.Key(keys[i]))
 		storageProof[i] = StorageResult{
 			Key:   key.Hex(),
-			Value: (*hexutil.Big)(state.GetState(address, key).Big()),
+			Value: (*hexutil.Big)(new(big.Int).SetBytes(value[:])),
 			Proof: toHexSlice(elements),
 		}
 	}
 
 	accountProof, storageHash, _ := proof.GetAccountElements(cc.Hash(header.Root), cc.Address(address))
-	codeHash := state.GetCodeHash(address)
 
+	codeHash, _, err := proof.GetCodeHash(cc.Hash(header.Root), cc.Address(address))
+	if err != nil {
+		return nil, err
+	}
+	balance, _, err := proof.GetBalance(cc.Hash(header.Root), cc.Address(address))
+	if err != nil {
+		return nil, err
+	}
+	nonce, _, err := proof.GetNonce(cc.Hash(header.Root), cc.Address(address))
+	if err != nil {
+		return nil, err
+	}
+	u256Balance := balance.Uint256()
 	return &AccountResult{
 		Address:      address,
 		AccountProof: toHexSlice(accountProof),
-		Balance:      (*hexutil.U256)(state.GetBalance(address)),
-		CodeHash:     codeHash,
-		Nonce:        hexutil.Uint64(state.GetNonce(address)),
+		Balance:      (*hexutil.U256)(&u256Balance),
+		CodeHash:     common.Hash(codeHash),
+		Nonce:        hexutil.Uint64(nonce.ToUint64()),
 		StorageHash:  common.Hash(storageHash),
 		StorageProof: storageProof,
 	}, state.Error()
