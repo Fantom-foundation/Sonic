@@ -71,25 +71,25 @@ func TestGasPrice_UnderpricedTransactionsAreRejected(t *testing.T) {
 	for _, extra := range []int{-10, 0, baseFee / 100, 4 * baseFee / 100} {
 		feeCap := int64(baseFee + extra)
 
-		err = send(factory.makeLegacyTransactionWithPrice(t, nonce, feeCap))
+		err = send(factory.makeLegacyTransactionWithPrice(t, nonce, feeCap, 0))
 		require.ErrorContains(err, "transaction underpriced")
 
-		err = send(factory.makeAccessListTransactionWithPrice(t, nonce, feeCap))
+		err = send(factory.makeAccessListTransactionWithPrice(t, nonce, feeCap, 0))
 		require.ErrorContains(err, "transaction underpriced")
 
-		err = send(factory.makeDynamicFeeTransactionWithPrice(t, nonce, feeCap))
+		err = send(factory.makeDynamicFeeTransactionWithPrice(t, nonce, feeCap, 0))
 		require.ErrorContains(err, "transaction underpriced")
 
-		err = send(factory.makeBlobTransactionWithPrice(t, nonce, feeCap))
+		err = send(factory.makeBlobTransactionWithPrice(t, nonce, feeCap, 0))
 		require.ErrorContains(err, "transaction underpriced")
 	}
 
 	// Everything over ~5% above the base fee should be accepted.
 	feeCap := int64(baseFee + 7*baseFee/100)
-	require.NoError(send(factory.makeLegacyTransactionWithPrice(t, nonce, feeCap)))
-	require.NoError(send(factory.makeAccessListTransactionWithPrice(t, nonce+1, feeCap)))
-	require.NoError(send(factory.makeDynamicFeeTransactionWithPrice(t, nonce+2, feeCap)))
-	require.NoError(send(factory.makeBlobTransactionWithPrice(t, nonce+3, feeCap)))
+	require.NoError(send(factory.makeLegacyTransactionWithPrice(t, nonce, feeCap, 0)))
+	require.NoError(send(factory.makeAccessListTransactionWithPrice(t, nonce+1, feeCap, 0)))
+	require.NoError(send(factory.makeDynamicFeeTransactionWithPrice(t, nonce+2, feeCap, 0)))
+	require.NoError(send(factory.makeBlobTransactionWithPrice(t, nonce+3, feeCap, 0)))
 }
 
 func makeNetAndClient(t *testing.T) (*IntegrationTestNet, *ethclient.Client) {
@@ -113,13 +113,15 @@ func (f *txFactory) makeLegacyTransactionWithPrice(
 	t *testing.T,
 	nonce uint64,
 	price int64,
+	value int64,
 ) *types.Transaction {
 	transaction, err := types.SignTx(types.NewTx(&types.LegacyTx{
 		Gas:      21_000,
 		GasPrice: big.NewInt(price),
 		To:       &common.Address{},
 		Nonce:    nonce,
-	}), types.NewLondonSigner(f.chainId), f.senderKey)
+		Value:    big.NewInt(value),
+	}), types.NewEIP155Signer(f.chainId), f.senderKey)
 	require.NoError(t, err, "failed to sign transaction")
 	return transaction
 }
@@ -128,6 +130,7 @@ func (f *txFactory) makeAccessListTransactionWithPrice(
 	t *testing.T,
 	nonce uint64,
 	price int64,
+	value int64,
 ) *types.Transaction {
 	transaction, err := types.SignTx(types.NewTx(&types.AccessListTx{
 		ChainID:  f.chainId,
@@ -135,7 +138,8 @@ func (f *txFactory) makeAccessListTransactionWithPrice(
 		GasPrice: big.NewInt(price),
 		To:       &common.Address{},
 		Nonce:    nonce,
-	}), types.NewLondonSigner(f.chainId), f.senderKey)
+		Value:    big.NewInt(value),
+	}), types.NewEIP2930Signer(f.chainId), f.senderKey)
 	require.NoError(t, err, "failed to sign transaction:")
 	return transaction
 }
@@ -144,6 +148,7 @@ func (f *txFactory) makeDynamicFeeTransactionWithPrice(
 	t *testing.T,
 	nonce uint64,
 	price int64,
+	value int64,
 ) *types.Transaction {
 	transaction, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{
 		ChainID:   f.chainId,
@@ -152,6 +157,7 @@ func (f *txFactory) makeDynamicFeeTransactionWithPrice(
 		GasTipCap: big.NewInt(0),
 		To:        &common.Address{},
 		Nonce:     nonce,
+		Value:     big.NewInt(value),
 	}), types.NewLondonSigner(f.chainId), f.senderKey)
 	require.NoError(t, err, "failed to sign transaction:")
 	return transaction
@@ -161,6 +167,7 @@ func (f *txFactory) makeBlobTransactionWithPrice(
 	t *testing.T,
 	nonce uint64,
 	price int64,
+	value int64,
 ) *types.Transaction {
 	transaction, err := types.SignTx(types.NewTx(&types.BlobTx{
 		ChainID:    uint256.MustFromBig(f.chainId),
@@ -168,6 +175,7 @@ func (f *txFactory) makeBlobTransactionWithPrice(
 		GasFeeCap:  uint256.MustFromBig(big.NewInt(price)),
 		GasTipCap:  uint256.MustFromBig(big.NewInt(0)),
 		Nonce:      nonce,
+		Value:      uint256.MustFromBig(big.NewInt(value)),
 		BlobFeeCap: uint256.NewInt(3e10), // fee cap for the blob data
 		BlobHashes: nil,                  // blob hashes in the transaction
 		Sidecar:    nil,                  // sidecar data in the transaction
