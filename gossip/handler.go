@@ -3,6 +3,8 @@ package gossip
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"math"
 	"math/rand/v2"
 	"strings"
@@ -553,7 +555,11 @@ func (h *handler) handle(p *peer) error {
 	// Handle incoming messages until the connection is torn down
 	for {
 		if err := h.handleMsg(p); err != nil {
-			p.Log().Debug("Message handling failed", "err", err, "peer", p.ID(), "name", p.Name())
+			level := slog.LevelWarn
+			if errors.Is(err, io.EOF) {
+				level = slog.LevelDebug
+			}
+			p.Log().Log(level, "Message handling failed", "err", err, "peer", p.ID(), "name", p.Name())
 			return err
 		}
 	}

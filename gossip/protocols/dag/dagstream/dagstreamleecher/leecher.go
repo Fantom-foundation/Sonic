@@ -148,10 +148,11 @@ func (d *Leecher) startSession(candidates []string) {
 		}
 	}
 
+	// We only fetch IDs since fetching IDs and events leads to message decoding
+	// issues causing the peer connection the request was send to to be closed.
+	// By requesting IDs only, this issue is avoided. The payloads of events are
+	// then requested independently using the non-streaming P2P protocol.
 	typ := dagstream.RequestIDs
-	if d.callback.PeerEpoch(peer) > d.epoch && d.emptyState && d.session.try == 0 {
-		typ = dagstream.RequestEvents
-	}
 
 	session := dagstream.Session{
 		ID:    getSessionID(d.epoch, d.session.try),
