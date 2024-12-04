@@ -20,6 +20,7 @@ func Run() error {
 		flags.CacheFlag,
 		flags.LiveDbCacheFlag,
 		flags.ArchiveCacheFlag,
+		flags.StateDbCacheCapacityFlag,
 	}
 	app.Commands = []cli.Command{
 		{

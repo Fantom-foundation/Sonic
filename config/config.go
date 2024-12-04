@@ -341,6 +341,10 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 		cfg.Lachesis.SuppressFramePanic = true
 	}
 
+	if ctx.IsSet(flags.StateDbCacheCapacityFlag.Name) {
+		cfg.OperaStore.EVM.Cache.StateDbCapacity = ctx.GlobalInt(flags.StateDbCacheCapacityFlag.Name)
+	}
+
 	return &cfg, nil
 }
 

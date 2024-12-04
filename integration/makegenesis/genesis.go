@@ -128,7 +128,8 @@ func NewGenesisBuilder() *GenesisBuilder {
 	if err != nil {
 		panic(fmt.Errorf("failed to create carmen state; %s", err))
 	}
-	carmenStateDb := carmen.CreateStateDBUsing(carmenState)
+	// Set cache size to lowest value possible
+	carmenStateDb := carmen.CreateCustomStateDBUsing(carmenState, 1024)
 	tmpStateDB := evmstore.CreateCarmenStateDb(carmenStateDb)
 	return &GenesisBuilder{
 		tmpStateDB:    tmpStateDB,

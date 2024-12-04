@@ -19,6 +19,8 @@ type (
 		EvmBlocksNum int
 		// Cache size for EvmBlock (size in bytes).
 		EvmBlocksSize uint
+		// Cache size for StateDb instances (0 for DB-selected default)
+		StateDbCapacity int
 	}
 	// StoreConfig is a config for store db.
 	StoreConfig struct {
@@ -38,11 +40,11 @@ type (
 func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 	return StoreConfig{
 		Cache: StoreCacheConfig{
-			ReceiptsSize:      scale.U(4 * opt.MiB),
-			ReceiptsBlocks:    scale.I(4000),
-			TxPositions:       scale.I(20000),
-			EvmBlocksNum:      scale.I(5000),
-			EvmBlocksSize:     scale.U(6 * opt.MiB),
+			ReceiptsSize:   scale.U(4 * opt.MiB),
+			ReceiptsBlocks: scale.I(4000),
+			TxPositions:    scale.I(20000),
+			EvmBlocksNum:   scale.I(5000),
+			EvmBlocksSize:  scale.U(6 * opt.MiB),
 		},
 		StateDb: carmen.Parameters{
 			Variant:      "go-file",

@@ -100,6 +100,7 @@ func jsonGenesisImport(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to load JSON genesis: %w", err)
 	}
+
 	genesisStore, err := makefakegenesis.ApplyGenesisJson(genesisJson)
 	if err != nil {
 		return fmt.Errorf("failed to prepare JSON genesis: %w", err)
@@ -139,7 +140,11 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		return err
 	}
 
-	genesisStore := makefakegenesis.FakeGenesisStore(idx.Validator(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	genesisStore := makefakegenesis.FakeGenesisStore(
+		idx.Validator(validatorsNumber),
+		futils.ToFtm(1000000000),
+		futils.ToFtm(5000000),
+	)
 	defer genesisStore.Close()
 	return genesis.ImportGenesisStore(genesis.ImportParams{
 		GenesisStore:  genesisStore,

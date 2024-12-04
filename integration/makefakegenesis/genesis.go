@@ -50,7 +50,13 @@ func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules
 	return FakeGenesisStoreWithRulesAndStart(num, balance, stake, rules, 2, 1)
 }
 
-func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.Int, rules opera.Rules, epoch idx.Epoch, block idx.Block) *genesisstore.Store {
+func FakeGenesisStoreWithRulesAndStart(
+	num idx.Validator,
+	balance, stake *big.Int,
+	rules opera.Rules,
+	epoch idx.Epoch,
+	block idx.Block,
+) *genesisstore.Store {
 	builder := makegenesis.NewGenesisBuilder()
 
 	validators := GetFakeValidators(num)

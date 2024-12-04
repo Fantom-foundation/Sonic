@@ -68,7 +68,11 @@ func makeFuzzedHandler() (h *handler, err error) {
 		genesisStake   = 2 * 4e6
 	)
 
-	genStore := makefakegenesis.FakeGenesisStore(genesisStakers, utils.ToFtm(genesisBalance), utils.ToFtm(genesisStake))
+	genStore := makefakegenesis.FakeGenesisStore(
+		genesisStakers,
+		utils.ToFtm(genesisBalance),
+		utils.ToFtm(genesisStake),
+	)
 	genesis := genStore.Genesis()
 
 	config := DefaultConfig(cachescale.Identity)
