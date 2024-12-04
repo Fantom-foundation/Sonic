@@ -77,11 +77,11 @@ func (ew *emitterWorldProc) PeersNum() int {
 	return ew.s.handler.peers.Len()
 }
 
-func (ew *emitterWorldRead) GetHeads(epoch idx.EpochID) hash.Events {
+func (ew *emitterWorldRead) GetHeads(epoch idx.EpochID) hash.EventHashes {
 	return ew.Store.GetHeadsSlice(epoch)
 }
 
-func (ew *emitterWorldRead) GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.Event {
+func (ew *emitterWorldRead) GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.EventHash {
 	return ew.Store.GetLastEvent(epoch, from)
 }
 

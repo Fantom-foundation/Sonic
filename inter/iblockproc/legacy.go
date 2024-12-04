@@ -11,7 +11,7 @@ import (
 
 type ValidatorEpochStateV0 struct {
 	GasRefund      uint64
-	PrevEpochEvent hash.Event
+	PrevEpochEvent hash.EventHash
 }
 
 type EpochStateV0 struct {

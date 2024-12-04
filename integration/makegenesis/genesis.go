@@ -205,7 +205,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	blockCtx := iblockproc.BlockCtx{
 		Idx:     bs.LastBlock.Idx + 1,
 		Time:    bs.LastBlock.Time + 1,
-		Atropos: hash.Event{},
+		Atropos: hash.EventHash{},
 	}
 
 	sealer := blockProc.SealerModule.Start(blockCtx, bs, es)

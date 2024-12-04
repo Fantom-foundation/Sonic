@@ -100,7 +100,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     0,
 					Time:    genesisTime,
-					Atropos: hash.Event{},
+					Atropos: hash.EventHash{},
 				},
 				FinalizedStateRoot:    hash.Hash(genesisStateRoot),
 				EpochGas:              0,

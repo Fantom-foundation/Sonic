@@ -97,7 +97,7 @@ func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, las
 
 	// removing excessive events (event epoch >= closed epoch)
 	log.Info("Removing excessive events")
-	gdb.ForEachEventRLP(epochIdx.Bytes(), func(id hash.Event, _ rlp.RawValue) bool {
+	gdb.ForEachEventRLP(epochIdx.Bytes(), func(id hash.EventHash, _ rlp.RawValue) bool {
 		gdb.DelEvent(id)
 		return true
 	})

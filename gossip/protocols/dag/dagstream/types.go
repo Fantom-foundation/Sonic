@@ -22,7 +22,7 @@ type Request struct {
 type Response struct {
 	SessionID uint32
 	Done      bool
-	IDs       hash.Events
+	IDs       hash.EventHashes
 	Events    []rlp.RawValue
 }
 
@@ -45,18 +45,18 @@ func (l Locator) Inc() basestream.Locator {
 }
 
 type Payload struct {
-	IDs    hash.Events
+	IDs    hash.EventHashes
 	Events []rlp.RawValue
 	Size   uint64
 }
 
-func (p *Payload) AddEvent(id hash.Event, eventB rlp.RawValue) {
+func (p *Payload) AddEvent(id hash.EventHash, eventB rlp.RawValue) {
 	p.IDs = append(p.IDs, id)
 	p.Events = append(p.Events, eventB)
 	p.Size += uint64(len(eventB))
 }
 
-func (p *Payload) AddID(id hash.Event, size int) {
+func (p *Payload) AddID(id hash.EventHash, size int) {
 	p.IDs = append(p.IDs, id)
 	p.Size += uint64(size)
 }

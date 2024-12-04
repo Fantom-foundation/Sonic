@@ -100,7 +100,7 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     block - 1,
 					Time:    FakeGenesisTime,
-					Atropos: hash.Event{},
+					Atropos: hash.EventHash{},
 				},
 				FinalizedStateRoot:    hash.Hash(genesisStateRoot),
 				EpochGas:              0,

@@ -35,7 +35,7 @@ func testLeecherNoDeadlocks(t *testing.T, maxPeers int) {
 	config.Session.RecheckInterval = time.Millisecond
 	epoch := idx.EpochID(1)
 	leecher := New(epoch, rand.IntN(2) == 0, config, Callbacks{
-		IsProcessed: func(id hash.Event) bool {
+		IsProcessed: func(id hash.EventHash) bool {
 			return rand.IntN(2) == 0
 		},
 		RequestChunk: func(peer string, r dagstream.Request) error {

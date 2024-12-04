@@ -66,7 +66,7 @@ func (b *EthAPIBackend) ResolveRpcBlockNumberOrHash(ctx context.Context, blockNr
 		}
 		return idx.BlockID(number), nil
 	} else if h, ok := blockNrOrHash.Hash(); ok {
-		index := b.svc.store.GetBlockIndex(hash.Event(h))
+		index := b.svc.store.GetBlockIndex(hash.EventHash(h))
 		if index == nil {
 			return 0, errors.New("block not found")
 		}
@@ -89,7 +89,7 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 
 // HeaderByHash returns evm block header by its (atropos) hash, or nil if not exists.
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, h common.Hash) (*evmcore.EvmHeader, error) {
-	index := b.svc.store.GetBlockIndex(hash.Event(h))
+	index := b.svc.store.GetBlockIndex(hash.EventHash(h))
 	if index == nil {
 		return nil, nil
 	}
@@ -125,7 +125,7 @@ func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockN
 	} else if number, ok := blockNrOrHash.Number(); ok {
 		header = b.state.GetHeader(common.Hash{}, uint64(number))
 	} else if h, ok := blockNrOrHash.Hash(); ok {
-		index := b.svc.store.GetBlockIndex(hash.Event(h))
+		index := b.svc.store.GetBlockIndex(hash.EventHash(h))
 		if index == nil {
 			return nil, nil, errors.New("header not found")
 		}
@@ -162,28 +162,28 @@ func decodeShortEventID(s []string) (idx.EpochID, idx.Lamport, []byte, error) {
 }
 
 // GetFullEventID "converts" ShortID to full event's hash, by searching in events DB.
-func (b *EthAPIBackend) GetFullEventID(shortEventID string) (hash.Event, error) {
+func (b *EthAPIBackend) GetFullEventID(shortEventID string) (hash.EventHash, error) {
 	s := strings.Split(shortEventID, ":")
 	if len(s) == 1 {
 		// it's a full hash
 		eventHash, err := hexutil.Decode(shortEventID)
 		if err != nil {
-			return hash.Event{}, errors.Wrap(err, "full hash parsing error")
+			return hash.EventHash{}, errors.Wrap(err, "full hash parsing error")
 		}
-		return hash.Event(hash.BytesToHash(eventHash)), nil
+		return hash.EventHash(hash.BytesToHash(eventHash)), nil
 	}
 	// short hash
 	epoch, lamport, prefix, err := decodeShortEventID(s)
 	if err != nil {
-		return hash.Event{}, err
+		return hash.EventHash{}, err
 	}
 
 	options := b.svc.store.FindEventHashes(epoch, lamport, prefix)
 	if len(options) == 0 {
-		return hash.Event{}, errors.New("event not found by short ID")
+		return hash.EventHash{}, errors.New("event not found by short ID")
 	}
 	if len(options) > 1 {
-		return hash.Event{}, errors.New("there're multiple events with the same short ID, please use full ID")
+		return hash.EventHash{}, errors.New("there're multiple events with the same short ID, please use full ID")
 	}
 	return options[0], nil
 }
@@ -209,7 +209,7 @@ func (b *EthAPIBackend) GetEvent(ctx context.Context, shortEventID string) (*int
 // GetHeads returns IDs of all the epoch events with no descendants.
 // * When epoch is -2 the heads for latest epoch are returned.
 // * When epoch is -1 the heads for latest sealed epoch are returned.
-func (b *EthAPIBackend) GetHeads(ctx context.Context, epoch rpc.BlockNumber) (heads hash.Events, err error) {
+func (b *EthAPIBackend) GetHeads(ctx context.Context, epoch rpc.BlockNumber) (heads hash.EventHashes, err error) {
 	current := b.svc.store.GetEpoch()
 
 	requested, err := b.epochWithDefault(ctx, epoch)
@@ -225,7 +225,7 @@ func (b *EthAPIBackend) GetHeads(ctx context.Context, epoch rpc.BlockNumber) (he
 	}
 
 	if heads == nil {
-		heads = hash.Events{}
+		heads = hash.EventHashes{}
 	}
 
 	return
@@ -261,7 +261,7 @@ func (b *EthAPIBackend) ForEachEpochEvent(ctx context.Context, epoch rpc.BlockNu
 }
 
 func (b *EthAPIBackend) BlockByHash(ctx context.Context, h common.Hash) (*evmcore.EvmBlock, error) {
-	index := b.svc.store.GetBlockIndex(hash.Event(h))
+	index := b.svc.store.GetBlockIndex(hash.EventHash(h))
 	if index == nil {
 		return nil, nil
 	}
@@ -305,7 +305,7 @@ func (b *EthAPIBackend) GetReceiptsByNumber(ctx context.Context, number rpc.Bloc
 
 // GetReceipts retrieves the receipts for all transactions in a given block.
 func (b *EthAPIBackend) GetReceipts(ctx context.Context, block common.Hash) (types.Receipts, error) {
-	number := b.svc.store.GetBlockIndex(hash.Event(block))
+	number := b.svc.store.GetBlockIndex(hash.EventHash(block))
 	if number == nil {
 		return nil, nil
 	}

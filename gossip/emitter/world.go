@@ -57,10 +57,10 @@ type (
 type Reader interface {
 	GetLatestBlockIndex() idx.BlockID
 	GetEpochValidators() (*ltypes.Validators, idx.EpochID)
-	GetEvent(hash.Event) *inter.Event
-	GetEventPayload(hash.Event) *inter.EventPayload
-	GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.Event
-	GetHeads(idx.EpochID) hash.Events
+	GetEvent(hash.EventHash) *inter.Event
+	GetEventPayload(hash.EventHash) *inter.EventPayload
+	GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.EventHash
+	GetHeads(idx.EpochID) hash.EventHashes
 	GetGenesisTime() inter.Timestamp
 	GetRules() opera.Rules
 }

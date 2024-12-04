@@ -20,8 +20,8 @@ func (ee *Events) Add(e ...*Event) {
 	*ee = append(*ee, e...)
 }
 
-func (ee Events) IDs() hash.Events {
-	res := make(hash.Events, 0, len(ee))
+func (ee Events) IDs() hash.EventHashes {
+	res := make(hash.EventHashes, 0, len(ee))
 	for _, e := range ee {
 		res.Add(e.ID())
 	}
@@ -63,8 +63,8 @@ func (ee *EventPayloads) Add(e ...*EventPayload) {
 	*ee = append(*ee, e...)
 }
 
-func (ee EventPayloads) IDs() hash.Events {
-	res := make(hash.Events, 0, len(ee))
+func (ee EventPayloads) IDs() hash.EventHashes {
+	res := make(hash.EventHashes, 0, len(ee))
 	for _, e := range ee {
 		res.Add(e.ID())
 	}
@@ -98,8 +98,8 @@ func (ee *EventIs) Add(e ...EventI) {
 	*ee = append(*ee, e...)
 }
 
-func (ee EventIs) IDs() hash.Events {
-	res := make(hash.Events, 0, len(ee))
+func (ee EventIs) IDs() hash.EventHashes {
+	res := make(hash.EventHashes, 0, len(ee))
 	for _, e := range ee {
 		res.Add(e.ID())
 	}

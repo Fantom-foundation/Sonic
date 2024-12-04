@@ -21,7 +21,7 @@ func (es *epochStore) getCachedHeads() (*concurrent.EventsSet, bool) {
 }
 
 func (es *epochStore) loadHeads() *concurrent.EventsSet {
-	res := make(hash.EventsSet, 100)
+	res := make(hash.EventHashSet, 100)
 
 	b, err := es.table.Heads.Get([]byte{})
 	if err != nil {
@@ -81,7 +81,7 @@ func (es *epochStore) FlushHeads() {
 }
 
 // GetHeadsSlice returns IDs of all the epoch events with no descendants
-func (s *Store) GetHeadsSlice(epoch idx.EpochID) hash.Events {
+func (s *Store) GetHeadsSlice(epoch idx.EpochID) hash.EventHashes {
 	heads := s.GetHeads(epoch)
 	heads.RLock()
 	defer heads.RUnlock()

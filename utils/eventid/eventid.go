@@ -8,7 +8,7 @@ import (
 )
 
 type Cache struct {
-	ids     map[hash.Event]bool
+	ids     map[hash.EventHash]bool
 	mu      sync.RWMutex
 	maxSize int
 	epoch   idx.EpochID
@@ -23,11 +23,11 @@ func NewCache(maxSize int) *Cache {
 func (c *Cache) Reset(epoch idx.EpochID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.ids = make(map[hash.Event]bool)
+	c.ids = make(map[hash.EventHash]bool)
 	c.epoch = epoch
 }
 
-func (c *Cache) Has(id hash.Event) (has bool, ok bool) {
+func (c *Cache) Has(id hash.EventHash) (has bool, ok bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -40,7 +40,7 @@ func (c *Cache) Has(id hash.Event) (has bool, ok bool) {
 	return c.ids[id], true
 }
 
-func (c *Cache) Add(id hash.Event) bool {
+func (c *Cache) Add(id hash.EventHash) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -58,7 +58,7 @@ func (c *Cache) Add(id hash.Event) bool {
 	return true
 }
 
-func (c *Cache) Remove(id hash.Event) {
+func (c *Cache) Remove(id hash.EventHash) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

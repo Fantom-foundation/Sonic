@@ -45,7 +45,7 @@ func (b AdapterSeq) Get(i idx.Validator) dagidx.Seq {
 	return &BranchSeq{seq}
 }
 
-func (v *Adapter) GetMergedHighestBefore(id hash.Event) dagidx.HighestBeforeSeq {
+func (v *Adapter) GetMergedHighestBefore(id hash.EventHash) dagidx.HighestBeforeSeq {
 	return AdapterSeq{v.Index.GetMergedHighestBefore(id)}
 }
 

@@ -87,7 +87,7 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 				s.me.SetLamport(idx.Lamport(1))
 
 				s.me.SetSeq(idx.EventID(2))
-				parents := hash.Events{}
+				parents := hash.EventHashes{}
 				s.me.SetParents(parents)
 			},
 			lbasiccheck.ErrNoParents,

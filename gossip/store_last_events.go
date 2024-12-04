@@ -21,7 +21,7 @@ func (es *epochStore) getCachedLastEvents() (*concurrent.ValidatorEventsSet, boo
 }
 
 func (es *epochStore) loadLastEvents() *concurrent.ValidatorEventsSet {
-	res := make(map[idx.ValidatorID]hash.Event, 100)
+	res := make(map[idx.ValidatorID]hash.EventHash, 100)
 
 	b, err := es.table.LastEvents.Get([]byte{})
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *Store) GetLastEvents(epoch idx.EpochID) *concurrent.ValidatorEventsSet 
 }
 
 // GetLastEvent returns latest connected epoch event from specified validator
-func (s *Store) GetLastEvent(epoch idx.EpochID, vid idx.ValidatorID) *hash.Event {
+func (s *Store) GetLastEvent(epoch idx.EpochID, vid idx.ValidatorID) *hash.EventHash {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil

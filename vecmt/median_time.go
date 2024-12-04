@@ -18,7 +18,7 @@ type medianTimeIndex struct {
 }
 
 // MedianTime calculates weighted median of claimed time within highest observed events.
-func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Timestamp {
+func (vi *Index) MedianTime(id hash.EventHash, defaultTime inter.Timestamp) inter.Timestamp {
 	vi.Engine.InitBranchesInfo()
 	// Get event by hash
 	_before := vi.Engine.GetMergedHighestBefore(id)

@@ -22,7 +22,7 @@ func emptyEvent(ver uint8) EventPayload {
 	if ver == 0 {
 		empty.SetEpoch(256)
 	}
-	empty.SetParents(hash.Events{})
+	empty.SetParents(hash.EventHashes{})
 	empty.SetExtra([]byte{})
 	empty.SetTxs(types.Transactions{})
 	empty.SetPayloadHash(EmptyPayloadHash(ver))
@@ -36,7 +36,7 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max.SetSeq(idx.EventID(math.MaxUint32))
 	max.SetLamport(idx.Lamport(math.MaxUint32))
 	h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
-	max.SetParents(hash.Events{hash.Event(h), hash.Event(h), hash.Event(h)})
+	max.SetParents(hash.EventHashes{hash.EventHash(h), hash.EventHash(h), hash.EventHash(h)})
 	max.SetPayloadHash(hash.Hash(h))
 	max.SetSig(BytesToSignature(bytes.Repeat([]byte{math.MaxUint8}, SigSize)))
 	max.SetExtra(bytes.Repeat([]byte{math.MaxUint8}, 100))
@@ -382,7 +382,7 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 	parent.SetVersion(1)
 	parent.SetLamport(random.Lamport() - 500)
 	parent.SetEpoch(random.Epoch())
-	random.SetParents(hash.Events{parent.Build().ID()})
+	random.SetParents(hash.EventHashes{parent.Build().ID()})
 
 	return random.Build()
 }

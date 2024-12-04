@@ -8,7 +8,7 @@ import (
 )
 
 // computePrevRandao computes the prevRandao from event hashes.
-func computePrevRandao(events []hash.Event) common.Hash {
+func computePrevRandao(events []hash.EventHash) common.Hash {
 	bts := [24]byte{}
 	for _, event := range events {
 		for i := 0; i < 24; i++ {

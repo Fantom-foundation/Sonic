@@ -111,7 +111,7 @@ func (ps *peerSet) UselessNum() int {
 
 // PeersWithoutEvent retrieves a list of peers that do not have a given event in
 // their set of known hashes so it might be propagated to them.
-func (ps *peerSet) PeersWithoutEvent(e hash.Event) []*peer {
+func (ps *peerSet) PeersWithoutEvent(e hash.EventHash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

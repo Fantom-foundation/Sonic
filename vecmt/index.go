@@ -35,7 +35,7 @@ type Index struct {
 	validators    *ltypes.Validators
 	validatorIdxs map[idx.ValidatorID]idx.Validator
 
-	getEvent func(hash.Event) ltypes.Event
+	getEvent func(hash.EventHash) ltypes.Event
 
 	vecDb kvdb.Store
 	table struct {
@@ -91,7 +91,7 @@ func (vi *Index) initCaches() {
 }
 
 // Reset resets buffers.
-func (vi *Index) Reset(validators *ltypes.Validators, db kvdb.Store, getEvent func(hash.Event) ltypes.Event) {
+func (vi *Index) Reset(validators *ltypes.Validators, db kvdb.Store, getEvent func(hash.EventHash) ltypes.Event) {
 	fdb := WrapByVecFlushable(db, vi.cfg.Caches.DBCache)
 	vi.vecDb = fdb
 	vi.Base.Reset(validators, fdb, getEvent)
@@ -109,16 +109,16 @@ func (vi *Index) Close() error {
 
 func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
 	return vecengine.Callbacks{
-		GetHighestBefore: func(event hash.Event) vecengine.HighestBeforeI {
+		GetHighestBefore: func(event hash.EventHash) vecengine.HighestBeforeI {
 			return vi.GetHighestBefore(event)
 		},
-		GetLowestAfter: func(event hash.Event) vecengine.LowestAfterI {
+		GetLowestAfter: func(event hash.EventHash) vecengine.LowestAfterI {
 			return vi.baseCallbacks.GetLowestAfter(event)
 		},
-		SetHighestBefore: func(event hash.Event, b vecengine.HighestBeforeI) {
+		SetHighestBefore: func(event hash.EventHash, b vecengine.HighestBeforeI) {
 			vi.SetHighestBefore(event, b.(*HighestBefore))
 		},
-		SetLowestAfter: func(event hash.Event, i vecengine.LowestAfterI) {
+		SetLowestAfter: func(event hash.EventHash, i vecengine.LowestAfterI) {
 			vi.baseCallbacks.SetLowestAfter(event, i)
 		},
 		NewHighestBefore: func(size idx.Validator) vecengine.HighestBeforeI {
@@ -139,6 +139,6 @@ func (vi *Index) onDropNotFlushed() {
 }
 
 // GetMergedHighestBefore returns HighestBefore vector clock without branches, where branches are merged into one
-func (vi *Index) GetMergedHighestBefore(id hash.Event) *HighestBefore {
+func (vi *Index) GetMergedHighestBefore(id hash.EventHash) *HighestBefore {
 	return vi.Engine.GetMergedHighestBefore(id).(*HighestBefore)
 }

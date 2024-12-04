@@ -52,9 +52,9 @@ func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epo
 
 	var (
 		counter int
-		last    hash.Event
+		last    hash.EventHash
 	)
-	gdb.ForEachEventRLP(from.Bytes(), func(id hash.Event, event rlp.RawValue) bool {
+	gdb.ForEachEventRLP(from.Bytes(), func(id hash.EventHash, event rlp.RawValue) bool {
 		if to >= from && id.Epoch() > to {
 			return false
 		}

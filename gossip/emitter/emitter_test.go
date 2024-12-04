@@ -73,7 +73,7 @@ func TestEmitter(t *testing.T) {
 			AnyTimes()
 
 		external.EXPECT().GetLastEvent(idx.EpochID(1), cfg.Validator.ID).
-			Return((*hash.Event)(nil)).
+			Return((*hash.EventHash)(nil)).
 			AnyTimes()
 
 		external.EXPECT().GetGenesisTime().

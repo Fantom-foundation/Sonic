@@ -81,7 +81,7 @@ type testGossipStoreAdapter struct {
 	*Store
 }
 
-func (g *testGossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
+func (g *testGossipStoreAdapter) GetEvent(id hash.EventHash) dag.Event {
 	e := g.Store.GetEvent(id)
 	if e == nil {
 		return nil

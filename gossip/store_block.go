@@ -30,8 +30,8 @@ func (s *Store) GetGenesisID() *hash.Hash {
 	return &val
 }
 
-func (s *Store) fakeGenesisHash() hash.Event {
-	fakeGenesisHash := hash.Event(*s.GetGenesisID())
+func (s *Store) fakeGenesisHash() hash.EventHash {
+	fakeGenesisHash := hash.EventHash(*s.GetGenesisID())
 	for i := range fakeGenesisHash[:8] {
 		fakeGenesisHash[i] = 0
 	}
@@ -99,7 +99,7 @@ func (s *Store) SetBlockIndex(id common.Hash, n idx.BlockID) {
 }
 
 // GetBlockIndex returns stored block index.
-func (s *Store) GetBlockIndex(id hash.Event) *idx.BlockID {
+func (s *Store) GetBlockIndex(id hash.EventHash) *idx.BlockID {
 	nVal, ok := s.cache.BlockHashes.Get(id)
 	if ok {
 		n, ok := nVal.(idx.BlockID)

@@ -59,10 +59,10 @@ func TestChooseParents_NonGenesisEventMustHaveOneSelfParent(t *testing.T) {
 		[]ltypes.Weight{1, 1},
 	), memorydb.New(), nil)
 
-	selfParentHash := hash.Event{1}
+	selfParentHash := hash.EventHash{1}
 
 	external.EXPECT().GetLastEvent(epoch, validatorId).Return(&selfParentHash)
-	external.EXPECT().GetHeads(epoch).Return(hash.Events{{2}, {3}})
+	external.EXPECT().GetHeads(epoch).Return(hash.EventHashes{{2}, {3}})
 	external.EXPECT().DagIndex().Return(validatorIndex)
 
 	selfParent, parents, ok := em.chooseParents(epoch, validatorId)

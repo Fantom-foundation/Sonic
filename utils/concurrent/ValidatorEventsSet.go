@@ -9,10 +9,10 @@ import (
 
 type ValidatorEventsSet struct {
 	sync.RWMutex
-	Val map[idx.ValidatorID]hash.Event
+	Val map[idx.ValidatorID]hash.EventHash
 }
 
-func WrapValidatorEventsSet(v map[idx.ValidatorID]hash.Event) *ValidatorEventsSet {
+func WrapValidatorEventsSet(v map[idx.ValidatorID]hash.EventHash) *ValidatorEventsSet {
 	return &ValidatorEventsSet{
 		RWMutex: sync.RWMutex{},
 		Val:     v,

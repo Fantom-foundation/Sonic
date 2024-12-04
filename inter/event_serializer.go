@@ -121,7 +121,7 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 	if parentsNum > ProtocolMaxMsgSize/24 {
 		return cser.ErrTooLargeAlloc
 	}
-	parents := make(hash.Events, 0, parentsNum)
+	parents := make(hash.EventHashes, 0, parentsNum)
 	for i := uint32(0); i < parentsNum; i++ {
 		// lamport difference
 		lamportDiff := r.U32()
@@ -471,7 +471,7 @@ func RPCMarshalEventPayload(event EventPayloadI, inclTx bool) (map[string]interf
 	return fields, nil
 }
 
-func EventIDsToHex(ids hash.Events) []hexutil.Bytes {
+func EventIDsToHex(ids hash.EventHashes) []hexutil.Bytes {
 	res := make([]hexutil.Bytes, len(ids))
 	for i, id := range ids {
 		res[i] = id.Bytes()

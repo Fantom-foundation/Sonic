@@ -11,7 +11,7 @@ import (
 
 var openPrevActionFile = utils.OpenFile
 
-func (em *Emitter) writeLastEmittedEventID(id hash.Event) {
+func (em *Emitter) writeLastEmittedEventID(id hash.EventHash) {
 	if em.emittedEventFile == nil {
 		return
 	}
@@ -21,7 +21,7 @@ func (em *Emitter) writeLastEmittedEventID(id hash.Event) {
 	}
 }
 
-func (em *Emitter) readLastEmittedEventID() *hash.Event {
+func (em *Emitter) readLastEmittedEventID() *hash.EventHash {
 	if em.emittedEventFile == nil {
 		return nil
 	}

@@ -311,11 +311,11 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 				}
 			},
 
-			Exists: func(id hash.Event) bool {
+			Exists: func(id hash.EventHash) bool {
 				return h.store.HasEvent(id)
 			},
 
-			Get: func(id hash.Event) ltypes.Event {
+			Get: func(id hash.EventHash) ltypes.Event {
 				e := h.store.GetEventPayload(id)
 				if e == nil {
 					return nil
@@ -332,7 +332,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 	return newProcessor
 }
 
-func (h *handler) isEventInterested(id hash.Event, epoch idx.EpochID) bool {
+func (h *handler) isEventInterested(id hash.EventHash, epoch idx.EpochID) bool {
 	if id.Epoch() != epoch {
 		return false
 	}
@@ -350,7 +350,7 @@ func (h *handler) onlyInterestedEventsI(ids []interface{}) []interface{} {
 	epoch := h.store.GetEpoch()
 	interested := make([]interface{}, 0, len(ids))
 	for _, id := range ids {
-		if h.isEventInterested(id.(hash.Event), epoch) {
+		if h.isEventInterested(id.(hash.EventHash), epoch) {
 			interested = append(interested, id)
 		}
 	}
@@ -559,15 +559,15 @@ func (h *handler) handle(p *peer) error {
 	}
 }
 
-func interfacesToEventIDs(ids []interface{}) hash.Events {
-	res := make(hash.Events, len(ids))
+func interfacesToEventIDs(ids []interface{}) hash.EventHashes {
+	res := make(hash.EventHashes, len(ids))
 	for i, id := range ids {
-		res[i] = id.(hash.Event)
+		res[i] = id.(hash.EventHash)
 	}
 	return res
 }
 
-func eventIDsToInterfaces(ids hash.Events) []interface{} {
+func eventIDsToInterfaces(ids hash.EventHashes) []interface{} {
 	res := make([]interface{}, len(ids))
 	for i, id := range ids {
 		res[i] = id
@@ -616,13 +616,13 @@ func (h *handler) handleTxs(p *peer, txs types.Transactions) {
 	h.txpool.AddRemotes(txs)
 }
 
-func (h *handler) handleEventHashes(p *peer, announces hash.Events) {
+func (h *handler) handleEventHashes(p *peer, announces hash.EventHashes) {
 	// Mark the hashes as present at the remote node
 	for _, id := range announces {
 		p.MarkEvent(id)
 	}
 	// filter too high IDs
-	notTooHigh := make(hash.Events, 0, len(announces))
+	notTooHigh := make(hash.EventHashes, 0, len(announces))
 	sessionCfg := h.config.Protocol.DagStreamLeecher.Session
 	for _, id := range announces {
 		maxLamport := h.store.GetHighestLamport() + idx.Lamport(sessionCfg.DefaultChunkItemsNum+1)*idx.Lamport(sessionCfg.ParallelChunksDownload)
@@ -674,7 +674,7 @@ func (h *handler) handleEvents(peer *peer, events ltypes.Events, ordered bool) {
 	requestEvents := func(ids []interface{}) error {
 		return peer.RequestEvents(interfacesToEventIDs(ids))
 	}
-	notifyAnnounces := func(ids hash.Events) {
+	notifyAnnounces := func(ids hash.EventHashes) {
 		_ = h.dagFetcher.NotifyAnnounces(peer.id, eventIDsToInterfaces(ids), now, requestEvents)
 	}
 	_ = h.dagProcessor.Enqueue(peer.id, notTooHigh, ordered, notifyAnnounces, nil)
@@ -784,7 +784,7 @@ func (h *handler) handleMsg(p *peer) error {
 		h.handleEvents(p, events.Bases(), events.Len() > 1)
 
 	case msg.Code == NewEventIDsMsg:
-		var announces hash.Events
+		var announces hash.EventHashes
 		if err := msg.Decode(&announces); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
@@ -794,7 +794,7 @@ func (h *handler) handleMsg(p *peer) error {
 		h.handleEventHashes(p, announces)
 
 	case msg.Code == GetEventsMsg:
-		var requests hash.Events
+		var requests hash.EventHashes
 		if err := msg.Decode(&requests); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
@@ -803,7 +803,7 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 
 		rawEvents := make([]rlp.RawValue, 0, len(requests))
-		ids := make(hash.Events, 0, len(requests))
+		ids := make(hash.EventHashes, 0, len(requests))
 		size := 0
 		for _, id := range requests {
 			if raw := h.store.GetEventPayloadRLP(id); raw != nil {
@@ -857,7 +857,7 @@ func (h *handler) handleMsg(p *peer) error {
 		if (len(chunk.Events) != 0) && (len(chunk.IDs) != 0) {
 			return errors.New("expected either events or event hashes")
 		}
-		var last hash.Event
+		var last hash.EventHash
 		if len(chunk.IDs) != 0 {
 			h.handleEventHashes(p, chunk.IDs)
 			last = chunk.IDs[len(chunk.IDs)-1]
@@ -1008,7 +1008,7 @@ func (h *handler) BroadcastEvent(event *inter.EventPayload, passed time.Duration
 	}
 	// Broadcast of event hash to the rest peers
 	for _, peer := range hashBroadcast {
-		peer.AsyncSendEventIDs(hash.Events{event.ID()}, peer.queue)
+		peer.AsyncSendEventIDs(hash.EventHashes{event.ID()}, peer.queue)
 	}
 	log.Trace("Broadcast event", "hash", id, "fullRecipients", len(fullBroadcast), "hashRecipients", len(hashBroadcast))
 	return len(peers)

@@ -31,7 +31,7 @@ type Logger struct {
 	// latest logged data
 	lastEpoch     idx.EpochID
 	lastBlock     idx.BlockID
-	lastID        hash.Event
+	lastID        hash.EventHash
 	lastEventTime inter.Timestamp
 	lastLlrTime   inter.Timestamp
 

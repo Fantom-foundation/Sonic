@@ -25,7 +25,7 @@ type ValidatorBlockState struct {
 }
 
 type EventInfo struct {
-	ID           hash.Event
+	ID           hash.EventHash
 	GasPowerLeft inter.GasPowerLeft
 	Time         inter.Timestamp
 }
@@ -38,7 +38,7 @@ type ValidatorEpochState struct {
 type BlockCtx struct {
 	Idx     idx.BlockID
 	Time    inter.Timestamp
-	Atropos hash.Event
+	Atropos hash.EventHash
 }
 
 type BlockState struct {

@@ -144,7 +144,7 @@ type handshakeData struct {
 type PeerProgress struct {
 	Epoch            idx.EpochID
 	LastBlockIdx     idx.BlockID
-	LastBlockAtropos hash.Event
+	LastBlockAtropos hash.EventHash
 	// Currently unused
 	HighestLamport idx.Lamport
 }
@@ -152,7 +152,7 @@ type PeerProgress struct {
 type dagChunk struct {
 	SessionID uint32
 	Done      bool
-	IDs       hash.Events
+	IDs       hash.EventHashes
 	Events    inter.EventPayloads
 }
 

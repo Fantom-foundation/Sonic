@@ -128,7 +128,7 @@ func (s *Service) switchEpochTo(newEpoch idx.EpochID) {
 	// reset dag indexer
 	s.store.resetEpochStore(newEpoch)
 	es := s.store.getEpochStore(newEpoch)
-	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id hash.Event) ltypes.Event {
+	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id hash.EventHash) ltypes.Event {
 		return s.store.GetEvent(id)
 	})
 	// notify event checkers about new validation data

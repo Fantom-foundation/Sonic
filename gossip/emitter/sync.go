@@ -15,7 +15,7 @@ type syncStatus struct {
 	startup                   time.Time
 	lastConnected             time.Time
 	p2pSynced                 time.Time
-	prevLocalEmittedID        hash.Event
+	prevLocalEmittedID        hash.EventHash
 	externalSelfEventCreated  time.Time
 	externalSelfEventDetected time.Time
 	becameValidator           time.Time

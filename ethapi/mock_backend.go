@@ -248,10 +248,10 @@ func (mr *MockBackendMockRecorder) GetEventPayload(ctx, shortEventID any) *gomoc
 }
 
 // GetHeads mocks base method.
-func (m *MockBackend) GetHeads(ctx context.Context, epoch rpc.BlockNumber) (hash.Events, error) {
+func (m *MockBackend) GetHeads(ctx context.Context, epoch rpc.BlockNumber) (hash.EventHashes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHeads", ctx, epoch)
-	ret0, _ := ret[0].(hash.Events)
+	ret0, _ := ret[0].(hash.EventHashes)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

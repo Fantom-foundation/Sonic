@@ -12,7 +12,7 @@ import (
 
 type TxPosition struct {
 	Block       idx.BlockID
-	Event       hash.Event
+	Event       hash.EventHash
 	EventOffset uint32
 	BlockOffset uint32
 }

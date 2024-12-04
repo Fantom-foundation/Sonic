@@ -56,7 +56,7 @@ func New(epoch idx.EpochID, emptyState bool, cfg Config, callback Callbacks) *Le
 }
 
 type Callbacks struct {
-	IsProcessed func(hash.Event) bool
+	IsProcessed func(hash.EventHash) bool
 
 	RequestChunk func(peer string, r dagstream.Request) error
 	Suspend      func(peer string) bool
@@ -161,7 +161,7 @@ func (d *Leecher) startSession(candidates []string) {
 
 	d.session.agent = basepeerleecher.New(&d.Wg, d.cfg.Session, basepeerleecher.EpochDownloaderCallbacks{
 		IsProcessed: func(id interface{}) bool {
-			return d.callback.IsProcessed(id.(hash.Event))
+			return d.callback.IsProcessed(id.(hash.EventHash))
 		},
 		RequestChunks: func(maxNum uint32, maxSize uint64, chunks uint32) error {
 			return d.callback.RequestChunk(peer,
@@ -215,7 +215,7 @@ func (d *Leecher) ForceSyncing() {
 	d.forceSyncing = true
 }
 
-func (d *Leecher) NotifyChunkReceived(sessionID uint32, last hash.Event, done bool) error {
+func (d *Leecher) NotifyChunkReceived(sessionID uint32, last hash.EventHash, done bool) error {
 	d.Mu.Lock()
 	defer d.Mu.Unlock()
 	if d.session.agent == nil {

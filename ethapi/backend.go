@@ -43,7 +43,7 @@ import (
 type PeerProgress struct {
 	CurrentEpoch     idx.EpochID
 	CurrentBlock     idx.BlockID
-	CurrentBlockHash hash.Event
+	CurrentBlockHash hash.EventHash
 	CurrentBlockTime inter.Timestamp
 	HighestBlock     idx.BlockID
 	HighestEpoch     idx.EpochID
@@ -94,7 +94,7 @@ type Backend interface {
 	// Lachesis DAG API
 	GetEventPayload(ctx context.Context, shortEventID string) (*inter.EventPayload, error)
 	GetEvent(ctx context.Context, shortEventID string) (*inter.Event, error)
-	GetHeads(ctx context.Context, epoch rpc.BlockNumber) (hash.Events, error)
+	GetHeads(ctx context.Context, epoch rpc.BlockNumber) (hash.EventHashes, error)
 	CurrentEpoch(ctx context.Context) idx.EpochID
 	SealedEpochTiming(ctx context.Context) (start inter.Timestamp, end inter.Timestamp)
 

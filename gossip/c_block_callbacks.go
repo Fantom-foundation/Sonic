@@ -121,7 +121,7 @@ func consensusCallbackBeginBlockFn(
 		atroposTime := bs.LastBlock.Time + 1
 		atroposDegenerate := true
 		// events with txs
-		confirmedEvents := make(hash.OrderedEvents, 0, 3*es.Validators.Len())
+		confirmedEvents := make(hash.OrderedEventHashes, 0, 3*es.Validators.Len())
 
 		return lachesis.BlockCallbacks{
 			ApplyEvent: func(_e ltypes.Event) {
@@ -430,7 +430,7 @@ func consensusCallbackBeginBlockFn(
 }
 
 // spillBlockEvents excludes first events which exceed MaxBlockGas
-func spillBlockEvents(store *Store, events hash.OrderedEvents, maxBlockGas uint64) inter.EventPayloads {
+func spillBlockEvents(store *Store, events hash.OrderedEventHashes, maxBlockGas uint64) inter.EventPayloads {
 	fullEvents := make(inter.EventPayloads, len(events))
 	if len(events) == 0 {
 		return fullEvents

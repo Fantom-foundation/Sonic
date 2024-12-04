@@ -37,16 +37,16 @@ func (em *Emitter) buildSearchStrategies(maxParents idx.EventID) []ancestor.Sear
 }
 
 // chooseParents selects an "optimal" parents set for the validator
-func (em *Emitter) chooseParents(epoch idx.EpochID, myValidatorID idx.ValidatorID) (*hash.Event, hash.Events, bool) {
+func (em *Emitter) chooseParents(epoch idx.EpochID, myValidatorID idx.ValidatorID) (*hash.EventHash, hash.EventHashes, bool) {
 	selfParent := em.world.GetLastEvent(epoch, myValidatorID)
 	if selfParent == nil {
 		return nil, nil, true
 	}
-	if len(em.world.DagIndex().NoCheaters(selfParent, hash.Events{*selfParent})) == 0 {
+	if len(em.world.DagIndex().NoCheaters(selfParent, hash.EventHashes{*selfParent})) == 0 {
 		em.Periodic.Error(time.Second, "Events emitting isn't allowed due to the doublesign", "validator", myValidatorID)
 		return nil, nil, false
 	}
-	parents := hash.Events{*selfParent}
+	parents := hash.EventHashes{*selfParent}
 	heads := em.world.GetHeads(epoch) // events with no descendants
 	parents = ancestor.ChooseParents(parents, heads, em.buildSearchStrategies(em.maxParents-idx.EventID(len(parents))))
 	return selfParent, parents, true

@@ -51,7 +51,7 @@ func (b *GPOBackend) TotalGasPowerLeft() uint64 {
 	bs, es := b.store.GetBlockEpochState()
 	set := b.store.GetLastEvents(es.Epoch)
 	if set == nil {
-		set = concurrent.WrapValidatorEventsSet(map[idx.ValidatorID]hash.Event{})
+		set = concurrent.WrapValidatorEventsSet(map[idx.ValidatorID]hash.EventHash{})
 	}
 	set.RLock()
 	defer set.RUnlock()

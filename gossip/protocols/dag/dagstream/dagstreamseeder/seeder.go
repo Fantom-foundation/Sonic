@@ -22,12 +22,12 @@ type Seeder struct {
 }
 
 type Callbacks struct {
-	ForEachEvent func(start []byte, onEvent func(key hash.Event, eventB rlp.RawValue) bool)
+	ForEachEvent func(start []byte, onEvent func(key hash.EventHash, eventB rlp.RawValue) bool)
 }
 
 type Peer struct {
 	ID           string
-	SendChunk    func(dagstream.Response, hash.Events) error
+	SendChunk    func(dagstream.Response, hash.EventHashes) error
 	Misbehaviour func(error)
 }
 
@@ -36,11 +36,11 @@ func New(cfg Config, callbacks Callbacks) *Seeder {
 		BaseSeeder: basestreamseeder.New(basestreamseeder.Config(cfg), basestreamseeder.Callbacks{
 			ForEachItem: func(start basestream.Locator, rType basestream.RequestType, onKey func(basestream.Locator) bool, onAppended func(basestream.Payload) bool) basestream.Payload {
 				res := &dagstream.Payload{
-					IDs:    hash.Events{},
+					IDs:    hash.EventHashes{},
 					Events: []rlp.RawValue{},
 					Size:   0,
 				}
-				callbacks.ForEachEvent(start.(dagstream.Locator), func(key hash.Event, eventB rlp.RawValue) bool {
+				callbacks.ForEachEvent(start.(dagstream.Locator), func(key hash.EventHash, eventB rlp.RawValue) bool {
 					if !onKey(dagstream.Locator(key.Bytes())) {
 						return false
 					}

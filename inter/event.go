@@ -324,9 +324,9 @@ func (l EventLocator) HashToSign() hash.Hash {
 	return hash.Of(l.BaseHash.Bytes(), bigendian.Uint16ToBytes(l.NetForkID), l.Epoch.Bytes(), l.Seq.Bytes(), l.Lamport.Bytes(), l.Creator.Bytes(), l.PayloadHash.Bytes())
 }
 
-func (l EventLocator) ID() hash.Event {
+func (l EventLocator) ID() hash.EventHash {
 	h := l.HashToSign()
 	copy(h[0:4], l.Epoch.Bytes())
 	copy(h[4:8], l.Lamport.Bytes())
-	return hash.Event(h)
+	return hash.EventHash(h)
 }

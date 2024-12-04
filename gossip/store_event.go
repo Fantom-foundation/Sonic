@@ -16,7 +16,7 @@ import (
 )
 
 // DelEvent deletes event.
-func (s *Store) DelEvent(id hash.Event) {
+func (s *Store) DelEvent(id hash.EventHash) {
 	key := id.Bytes()
 
 	err := s.table.Events.Delete(key)
@@ -44,7 +44,7 @@ func (s *Store) SetEvent(e *inter.EventPayload) {
 }
 
 // GetEventPayload returns stored event.
-func (s *Store) GetEventPayload(id hash.Event) *inter.EventPayload {
+func (s *Store) GetEventPayload(id hash.EventHash) *inter.EventPayload {
 	// Get event from LRU cache first.
 	if ev, ok := s.cache.Events.Get(id); ok {
 		return ev.(*inter.EventPayload)
@@ -64,7 +64,7 @@ func (s *Store) GetEventPayload(id hash.Event) *inter.EventPayload {
 }
 
 // GetEvent returns stored event.
-func (s *Store) GetEvent(id hash.Event) *inter.Event {
+func (s *Store) GetEvent(id hash.EventHash) *inter.Event {
 	// Get event from LRU cache first.
 	if ev, ok := s.cache.EventsHeaders.Get(id); ok {
 		return ev.(*inter.Event)
@@ -111,7 +111,7 @@ func (s *Store) ForEachEvent(start idx.EpochID, onEvent func(event *inter.EventP
 	s.forEachEvent(it, onEvent)
 }
 
-func (s *Store) ForEachEventRLP(start []byte, onEvent func(key hash.Event, event rlp.RawValue) bool) {
+func (s *Store) ForEachEventRLP(start []byte, onEvent func(key hash.EventHash, event rlp.RawValue) bool) {
 	it := s.table.Events.NewIterator(nil, start)
 	defer it.Release()
 	for it.Next() {
@@ -121,11 +121,11 @@ func (s *Store) ForEachEventRLP(start []byte, onEvent func(key hash.Event, event
 	}
 }
 
-func (s *Store) FindEventHashes(epoch idx.EpochID, lamport idx.Lamport, hashPrefix []byte) hash.Events {
+func (s *Store) FindEventHashes(epoch idx.EpochID, lamport idx.Lamport, hashPrefix []byte) hash.EventHashes {
 	prefix := bytes.NewBuffer(epoch.Bytes())
 	prefix.Write(lamport.Bytes())
 	prefix.Write(hashPrefix)
-	res := make(hash.Events, 0, 10)
+	res := make(hash.EventHashes, 0, 10)
 
 	it := s.table.Events.NewIterator(prefix.Bytes(), nil)
 	defer it.Release()
@@ -137,7 +137,7 @@ func (s *Store) FindEventHashes(epoch idx.EpochID, lamport idx.Lamport, hashPref
 }
 
 // GetEventPayloadRLP returns stored event. Serialized.
-func (s *Store) GetEventPayloadRLP(id hash.Event) rlp.RawValue {
+func (s *Store) GetEventPayloadRLP(id hash.EventHash) rlp.RawValue {
 	key := id.Bytes()
 
 	data, err := s.table.Events.Get(key)
@@ -148,7 +148,7 @@ func (s *Store) GetEventPayloadRLP(id hash.Event) rlp.RawValue {
 }
 
 // HasEvent returns true if event exists.
-func (s *Store) HasEvent(h hash.Event) bool {
+func (s *Store) HasEvent(h hash.EventHash) bool {
 	if has, ok := s.cache.EventIDs.Has(h); ok {
 		return has
 	}

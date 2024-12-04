@@ -69,7 +69,7 @@ type GossipStoreAdapter struct {
 	*gossip.Store
 }
 
-func (g *GossipStoreAdapter) GetEvent(id hash.Event) ltypes.Event {
+func (g *GossipStoreAdapter) GetEvent(id hash.EventHash) ltypes.Event {
 	e := g.Store.GetEvent(id)
 	if e == nil {
 		return nil

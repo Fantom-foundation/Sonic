@@ -348,7 +348,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 	var (
 		selfParentSeq  idx.EventID
 		selfParentTime inter.Timestamp
-		parents        hash.Events
+		parents        hash.EventHashes
 		maxLamport     idx.Lamport
 	)
 
@@ -430,7 +430,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
 			metric = kickStartMetric(metric, mutEvent.Seq())
 		} else if em.quorumIndexer != nil {
-			metric = eventMetric(em.quorumIndexer.GetMetricOf(hash.Events{mutEvent.ID()}), mutEvent.Seq())
+			metric = eventMetric(em.quorumIndexer.GetMetricOf(hash.EventHashes{mutEvent.ID()}), mutEvent.Seq())
 			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
 		}
 	})

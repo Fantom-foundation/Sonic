@@ -115,7 +115,7 @@ func importEventsFile(srv *gossip.Service, fn string) error {
 	stream := rlp.NewStream(reader, 0)
 
 	start := time.Now()
-	last := hash.Event{}
+	last := hash.EventHash{}
 
 	batch := make(inter.EventPayloads, 0, 8*1024)
 	batchSize := 0
