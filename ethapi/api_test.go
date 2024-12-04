@@ -9,6 +9,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/state"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"math/big"
 	"testing"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	gomock "go.uber.org/mock/gomock"
 )
 
 func TestGetBlockReceipts(t *testing.T) {
@@ -115,6 +115,45 @@ func TestAPI_GetProof(t *testing.T) {
 	require.Equal(t, hexutil.Uint64(nonce.ToUint64()), accountProof.Nonce)
 	require.Equal(t, common.Hash(storageHash), accountProof.StorageHash)
 	require.Equal(t, []StorageResult{storageProof}, accountProof.StorageProof)
+}
+
+func TestAPI_GetAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	addr := cc.Address{1}
+	codeHash := cc.Hash{2}
+	storageRoot := cc.Hash{3}
+	balance := amount.New(4)
+	nonce := cc.ToNonce(5)
+	headerRoot := common.Hash{123}
+
+	mockBackend := NewMockBackend(ctrl)
+	mockState := state.NewMockStateDB(ctrl)
+	mockProof := witness.NewMockProof(ctrl)
+	mockHeader := &evmcore.EvmHeader{Root: headerRoot}
+
+	blkNr := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+
+	mockBackend.EXPECT().StateAndHeaderByNumberOrHash(gomock.Any(), blkNr).Return(mockState, mockHeader, nil)
+	mockState.EXPECT().GetProof(common.Address(addr), nil).Return(mockProof, nil)
+	mockProof.EXPECT().GetCodeHash(cc.Hash(headerRoot), addr).Return(codeHash, true, nil)
+	mockProof.EXPECT().GetAccountElements(cc.Hash(headerRoot), addr).Return(nil, storageRoot, true)
+	mockProof.EXPECT().GetBalance(cc.Hash(headerRoot), addr).Return(balance, true, nil)
+	mockProof.EXPECT().GetNonce(cc.Hash(headerRoot), addr).Return(nonce, true, nil)
+	mockState.EXPECT().Error().Return(nil)
+	mockState.EXPECT().Release()
+
+	api := NewPublicBlockChainAPI(mockBackend)
+
+	account, err := api.GetAccount(context.Background(), common.Address(addr), blkNr)
+	require.NoError(t, err, "failed to get account")
+
+	u256Balance := balance.Uint256()
+	require.Equal(t, common.Hash(codeHash), account.CodeHash)
+	require.Equal(t, common.Hash(storageRoot), account.StorageRoot)
+	require.Equal(t, (*hexutil.U256)(&u256Balance), account.Balance)
+	require.Equal(t, hexutil.Uint64(nonce.ToUint64()), account.Nonce)
 }
 
 func testGetBlockReceipts(t *testing.T, blockParam rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
