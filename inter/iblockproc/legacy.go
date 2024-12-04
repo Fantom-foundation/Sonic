@@ -1,8 +1,6 @@
 package iblockproc
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -11,15 +9,15 @@ import (
 
 type ValidatorEpochStateV0 struct {
 	GasRefund      uint64
-	PrevEpochEvent hash.EventHash
+	PrevEpochEvent ltypes.EventHash
 }
 
 type EpochStateV0 struct {
-	Epoch          idx.EpochID
+	Epoch          ltypes.EpochID
 	EpochStart     inter.Timestamp
 	PrevEpochStart inter.Timestamp
 
-	EpochStateRoot hash.Hash
+	EpochStateRoot ltypes.Hash
 
 	Validators        *ltypes.Validators
 	ValidatorStates   []ValidatorEpochStateV0

@@ -1,7 +1,6 @@
 package gossip
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/log"
 	ethparams "github.com/ethereum/go-ethereum/params"
@@ -19,7 +18,7 @@ type BlockEpochState struct {
 }
 
 // TODO propose to pass bs, es arguments by pointer
-func (s *Store) SetHistoryBlockEpochState(epoch idx.EpochID, bs iblockproc.BlockState, es iblockproc.EpochState) {
+func (s *Store) SetHistoryBlockEpochState(epoch ltypes.EpochID, bs iblockproc.BlockState, es iblockproc.EpochState) {
 	bs, es = bs.Copy(), es.Copy()
 	bes := &BlockEpochState{
 		BlockState: &bs,
@@ -31,7 +30,7 @@ func (s *Store) SetHistoryBlockEpochState(epoch idx.EpochID, bs iblockproc.Block
 	s.cache.BlockEpochStateHistory.Add(epoch, bes, nominalSize)
 }
 
-func (s *Store) GetHistoryBlockEpochState(epoch idx.EpochID) (*iblockproc.BlockState, *iblockproc.EpochState) {
+func (s *Store) GetHistoryBlockEpochState(epoch ltypes.EpochID) (*iblockproc.BlockState, *iblockproc.EpochState) {
 	// Get HistoryBlockEpochState from LRU cache first.
 	if v, ok := s.cache.BlockEpochStateHistory.Get(epoch); ok {
 		bes := v.(*BlockEpochState)
@@ -68,7 +67,7 @@ func (s *Store) ForEachHistoryBlockEpochState(fn func(iblockproc.BlockState, ibl
 	}
 }
 
-func (s *Store) GetHistoryEpochState(epoch idx.EpochID) *iblockproc.EpochState {
+func (s *Store) GetHistoryEpochState(epoch ltypes.EpochID) *iblockproc.EpochState {
 	// check current BlockEpochState as a cache
 	if v := s.cache.BlockEpochState.Load(); v != nil {
 		bes := v.(*BlockEpochState)
@@ -81,7 +80,7 @@ func (s *Store) GetHistoryEpochState(epoch idx.EpochID) *iblockproc.EpochState {
 	return es
 }
 
-func (s *Store) HasHistoryBlockEpochState(epoch idx.EpochID) bool {
+func (s *Store) HasHistoryBlockEpochState(epoch ltypes.EpochID) bool {
 	has, _ := s.table.BlockEpochStateHistory.Has(epoch.Bytes())
 	return has
 }
@@ -130,7 +129,7 @@ func (s *Store) GetBlockEpochState() (iblockproc.BlockState, iblockproc.EpochSta
 }
 
 // GetEpoch retrieves the current epoch
-func (s *Store) GetEpoch() idx.EpochID {
+func (s *Store) GetEpoch() ltypes.EpochID {
 	return s.GetEpochState().Epoch
 }
 
@@ -140,13 +139,13 @@ func (s *Store) GetValidators() *ltypes.Validators {
 }
 
 // GetEpochValidators retrieves the current epoch and validators atomically
-func (s *Store) GetEpochValidators() (*ltypes.Validators, idx.EpochID) {
+func (s *Store) GetEpochValidators() (*ltypes.Validators, ltypes.EpochID) {
 	es := s.GetEpochState()
 	return es.Validators, es.Epoch
 }
 
 // GetLatestBlockIndex retrieves the current block number
-func (s *Store) GetLatestBlockIndex() idx.BlockID {
+func (s *Store) GetLatestBlockIndex() ltypes.BlockID {
 	return s.GetBlockState().LastBlock.Idx
 }
 
@@ -161,7 +160,7 @@ func (s *Store) GetEvmChainConfig() *ethparams.ChainConfig {
 }
 
 // GetEpochRules retrieves current network rules and epoch atomically
-func (s *Store) GetEpochRules() (opera.Rules, idx.EpochID) {
+func (s *Store) GetEpochRules() (opera.Rules, ltypes.EpochID) {
 	es := s.GetEpochState()
 	return es.Rules, es.Epoch
 }

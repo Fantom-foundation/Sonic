@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/skiperrors"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/logger"
 )
@@ -23,7 +23,7 @@ var (
 
 type (
 	epochStore struct {
-		epoch idx.EpochID
+		epoch ltypes.EpochID
 		db    kvdb.Store
 		table struct {
 			LastEvents kvdb.Store `table:"t"`
@@ -39,7 +39,7 @@ type (
 	}
 )
 
-func newEpochStore(epoch idx.EpochID, db kvdb.Store) *epochStore {
+func newEpochStore(epoch ltypes.EpochID, db kvdb.Store) *epochStore {
 	es := &epochStore{
 		epoch:    epoch,
 		db:       db,
@@ -67,7 +67,7 @@ func (s *Store) getAnyEpochStore() *epochStore {
 }
 
 // getEpochStore is safe for concurrent use.
-func (s *Store) getEpochStore(epoch idx.EpochID) *epochStore {
+func (s *Store) getEpochStore(epoch ltypes.EpochID) *epochStore {
 	es := s.getAnyEpochStore()
 	if es.epoch != epoch {
 		return nil
@@ -75,7 +75,7 @@ func (s *Store) getEpochStore(epoch idx.EpochID) *epochStore {
 	return es
 }
 
-func (s *Store) resetEpochStore(newEpoch idx.EpochID) {
+func (s *Store) resetEpochStore(newEpoch ltypes.EpochID) {
 	oldEs := s.epochStore.Load()
 	// create new DB
 	s.createEpochStore(newEpoch)
@@ -91,7 +91,7 @@ func (s *Store) resetEpochStore(newEpoch idx.EpochID) {
 	}
 }
 
-func (s *Store) loadEpochStore(epoch idx.EpochID) {
+func (s *Store) loadEpochStore(epoch ltypes.EpochID) {
 	if s.epochStore.Load() != nil {
 		return
 	}
@@ -106,7 +106,7 @@ func (s *Store) closeEpochStore() error {
 	return es.db.Close()
 }
 
-func (s *Store) createEpochStore(epoch idx.EpochID) {
+func (s *Store) createEpochStore(epoch ltypes.EpochID) {
 	// create new DB
 	name := fmt.Sprintf("gossip-%d", epoch)
 	db, err := s.dbs.OpenDB(name)

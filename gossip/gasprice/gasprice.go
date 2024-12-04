@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -53,7 +53,7 @@ type Config struct {
 }
 
 type Reader interface {
-	GetLatestBlockIndex() idx.BlockID
+	GetLatestBlockIndex() ltypes.BlockID
 	TotalGasPowerLeft() uint64
 	GetRules() opera.Rules
 	GetPendingRules() opera.Rules

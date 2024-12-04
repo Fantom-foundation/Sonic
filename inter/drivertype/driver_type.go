@@ -3,7 +3,7 @@ package drivertype
 import (
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 )
@@ -22,6 +22,6 @@ type Validator struct {
 
 // ValidatorAndID is pair Validator + ValidatorID
 type ValidatorAndID struct {
-	ValidatorID idx.ValidatorID
+	ValidatorID ltypes.ValidatorID
 	Validator   Validator
 }

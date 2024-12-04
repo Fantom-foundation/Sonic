@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -98,7 +98,7 @@ func OpenGenesisStore(rawReader ReadAtSeekerCloser) (*Store, genesis.Hashes, err
 			}
 		}
 
-		var h hash.Hash
+		var h ltypes.Hash
 		err = ioread.ReadAll(headerReader, h[:])
 		if err != nil {
 			return nil, hashes, err

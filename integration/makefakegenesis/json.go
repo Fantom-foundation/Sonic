@@ -17,8 +17,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
@@ -100,14 +98,14 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     0,
 					Time:    genesisTime,
-					Atropos: hash.EventHash{},
+					Atropos: ltypes.EventHash{},
 				},
-				FinalizedStateRoot:    hash.Hash(genesisStateRoot),
+				FinalizedStateRoot:    ltypes.Hash(genesisStateRoot),
 				EpochGas:              0,
 				EpochCheaters:         lachesis.Cheaters{},
 				CheatersWritten:       0,
 				ValidatorStates:       make([]iblockproc.ValidatorBlockState, 0),
-				NextValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
+				NextValidatorProfiles: make(map[ltypes.ValidatorID]drivertype.Validator),
 				DirtyRules:            nil,
 				AdvanceEpochs:         0,
 			},
@@ -115,10 +113,10 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				Epoch:             1,
 				EpochStart:        genesisTime + 1,
 				PrevEpochStart:    genesisTime,
-				EpochStateRoot:    hash.Hash(genesisStateRoot),
+				EpochStateRoot:    ltypes.Hash(genesisStateRoot),
 				Validators:        ltypes.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
-				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
+				ValidatorProfiles: make(map[ltypes.ValidatorID]drivertype.Validator),
 				Rules:             json.Rules,
 			},
 		},

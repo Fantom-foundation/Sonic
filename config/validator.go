@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 	cli "gopkg.in/urfave/cli.v1"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
@@ -32,7 +32,7 @@ func setValidator(ctx *cli.Context, cfg *emitter.Config) error {
 	}
 
 	if ctx.GlobalIsSet(flags.ValidatorIDFlag.Name) {
-		cfg.Validator.ID = idx.ValidatorID(ctx.GlobalInt(flags.ValidatorIDFlag.Name))
+		cfg.Validator.ID = ltypes.ValidatorID(ctx.GlobalInt(flags.ValidatorIDFlag.Name))
 	}
 
 	if ctx.GlobalIsSet(flags.ValidatorPubkeyFlag.Name) {

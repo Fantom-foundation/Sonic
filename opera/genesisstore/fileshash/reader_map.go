@@ -3,10 +3,10 @@ package fileshash
 import (
 	"io"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
-func Wrap(backend func(string) (io.Reader, error), maxMemoryUsage uint64, roots map[string]hash.Hash) func(string) (io.Reader, error) {
+func Wrap(backend func(string) (io.Reader, error), maxMemoryUsage uint64, roots map[string]ltypes.Hash) func(string) (io.Reader, error) {
 	return func(name string) (io.Reader, error) {
 		root, ok := roots[name]
 		if !ok {

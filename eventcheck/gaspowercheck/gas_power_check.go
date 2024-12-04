@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -26,7 +24,7 @@ type ValidatorState struct {
 
 // ValidationContext for gaspower checking
 type ValidationContext struct {
-	Epoch           idx.EpochID
+	Epoch           ltypes.EpochID
 	Configs         [inter.GasPowerConfigs]Config
 	EpochStart      inter.Timestamp
 	Validators      *ltypes.Validators
@@ -93,7 +91,7 @@ func calcGasPower(e inter.EventI, selfParent inter.EventI, ctx *ValidationContex
 		prevTime = selfParent.MedianTime()
 	} else {
 		validatorState := ctx.ValidatorStates[ctx.Validators.GetIdx(e.Creator())]
-		if validatorState.PrevEpochEvent.ID != hash.ZeroEvent {
+		if validatorState.PrevEpochEvent.ID != ltypes.ZeroEvent {
 			prevGasPowerLeft = validatorState.PrevEpochEvent.GasPowerLeft.Gas[config.Idx]
 			prevTime = validatorState.PrevEpochEvent.Time
 		} else {
@@ -132,7 +130,7 @@ func CalcValidatorGasPower(e inter.EventI, eTime, prevTime inter.Timestamp, prev
 }
 
 func CalcValidatorGasPowerPerSec(
-	validator idx.ValidatorID,
+	validator ltypes.ValidatorID,
 	validators *ltypes.Validators,
 	config Config,
 ) (

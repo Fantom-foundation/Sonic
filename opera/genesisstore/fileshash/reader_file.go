@@ -8,7 +8,7 @@ import (
 	"math"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
@@ -33,15 +33,15 @@ type Reader struct {
 	currentPiecePos uint64
 	currentPiece    []byte
 
-	root   hash.Hash
-	hashes hash.Hashes
+	root   ltypes.Hash
+	hashes ltypes.Hashes
 
 	maxMemUsage uint64
 
 	err error
 }
 
-func WrapReader(backend io.Reader, maxMemUsage uint64, root hash.Hash) *Reader {
+func WrapReader(backend io.Reader, maxMemUsage uint64, root ltypes.Hash) *Reader {
 	return &Reader{
 		backend:         backend,
 		pos:             0,
@@ -51,8 +51,8 @@ func WrapReader(backend io.Reader, maxMemUsage uint64, root hash.Hash) *Reader {
 	}
 }
 
-func (r *Reader) readHashes(n uint64) (hash.Hashes, error) {
-	hashes := make(hash.Hashes, n)
+func (r *Reader) readHashes(n uint64) (ltypes.Hashes, error) {
+	hashes := make(ltypes.Hashes, n)
 	for i := uint64(0); i < n; i++ {
 		err := ioread.ReadAll(r.backend, hashes[i][:])
 		if err != nil {
@@ -62,20 +62,20 @@ func (r *Reader) readHashes(n uint64) (hash.Hashes, error) {
 	return hashes, nil
 }
 
-func calcHash(piece []byte) hash.Hash {
+func calcHash(piece []byte) ltypes.Hash {
 	hasher := sha256.New()
 	hasher.Write(piece)
-	return hash.BytesToHash(hasher.Sum(nil))
+	return ltypes.BytesToHash(hasher.Sum(nil))
 }
 
-func calcHashesRoot(hashes hash.Hashes, pieceSize, size uint64) hash.Hash {
+func calcHashesRoot(hashes ltypes.Hashes, pieceSize, size uint64) ltypes.Hash {
 	hasher := sha256.New()
 	hasher.Write(bigendian.Uint32ToBytes(uint32(pieceSize)))
 	hasher.Write(bigendian.Uint64ToBytes(size))
 	for _, h := range hashes {
 		hasher.Write(h.Bytes())
 	}
-	return hash.BytesToHash(hasher.Sum(nil))
+	return ltypes.BytesToHash(hasher.Sum(nil))
 }
 
 func getPiecesNum(size, pieceSize uint64) uint64 {

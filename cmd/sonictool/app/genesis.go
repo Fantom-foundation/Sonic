@@ -12,7 +12,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -139,7 +139,7 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		return err
 	}
 
-	genesisStore := makefakegenesis.FakeGenesisStore(idx.ValidatorIdx(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	genesisStore := makefakegenesis.FakeGenesisStore(ltypes.ValidatorIdx(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
 	return genesis.ImportGenesisStore(genesis.ImportParams{
 		GenesisStore:  genesisStore,

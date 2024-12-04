@@ -3,7 +3,7 @@ package evmstore
 import (
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
@@ -85,8 +85,8 @@ func benchStoreSetRawReceipts(b *testing.B, store *Store) {
 	}
 }
 
-func fakeReceipts() (idx.BlockID, []*types.ReceiptForStorage) {
-	return idx.BlockID(1),
+func fakeReceipts() (ltypes.BlockID, []*types.ReceiptForStorage) {
+	return ltypes.BlockID(1),
 		[]*types.ReceiptForStorage{
 			{
 				PostState:         nil,

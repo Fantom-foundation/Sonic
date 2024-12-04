@@ -20,7 +20,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/p2p"
 )
@@ -111,7 +111,7 @@ func (ps *peerSet) UselessNum() int {
 
 // PeersWithoutEvent retrieves a list of peers that do not have a given event in
 // their set of known hashes so it might be propagated to them.
-func (ps *peerSet) PeersWithoutEvent(e hash.EventHash) []*peer {
+func (ps *peerSet) PeersWithoutEvent(e ltypes.EventHash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

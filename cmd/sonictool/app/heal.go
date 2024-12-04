@@ -17,7 +17,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -74,7 +74,7 @@ func heal(ctx *cli.Context) error {
 	cancelCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	recoveredBlock, err := db.HealChaindata(chaindataDir, cacheRatio, cfg, idx.BlockID(archiveCheckpointBlock))
+	recoveredBlock, err := db.HealChaindata(chaindataDir, cacheRatio, cfg, ltypes.BlockID(archiveCheckpointBlock))
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func heal(ctx *cli.Context) error {
 	return nil
 }
 
-func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.BlockID) error {
+func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock ltypes.BlockID) error {
 	if err := os.RemoveAll(carmenLiveDir); err != nil {
 		return fmt.Errorf("failed to remove broken live state: %w", err)
 	}

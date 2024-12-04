@@ -8,13 +8,12 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/threads"
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/skipkeys"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/metrics"
 )
 
@@ -69,7 +68,7 @@ type GossipStoreAdapter struct {
 	*gossip.Store
 }
 
-func (g *GossipStoreAdapter) GetEvent(id hash.EventHash) ltypes.Event {
+func (g *GossipStoreAdapter) GetEvent(id ltypes.EventHash) ltypes.Event {
 	e := g.Store.GetEvent(id)
 	if e == nil {
 		return nil

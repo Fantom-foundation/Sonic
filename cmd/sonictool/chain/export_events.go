@@ -7,8 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -24,7 +23,7 @@ var (
 // always print out progress. This avoids the user wondering what's going on.
 const statsReportLimit = 8 * time.Second
 
-func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.EpochID) (err error) {
+func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to ltypes.EpochID) (err error) {
 	chaindataDir := filepath.Join(gdbParams.DataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
@@ -52,9 +51,9 @@ func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epo
 
 	var (
 		counter int
-		last    hash.EventHash
+		last    ltypes.EventHash
 	)
-	gdb.ForEachEventRLP(from.Bytes(), func(id hash.EventHash, event rlp.RawValue) bool {
+	gdb.ForEachEventRLP(from.Bytes(), func(id ltypes.EventHash, event rlp.RawValue) bool {
 		if to >= from && id.Epoch() > to {
 			return false
 		}

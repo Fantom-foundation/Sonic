@@ -29,7 +29,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 type (
@@ -52,7 +52,7 @@ type (
 
 		PrevRandao common.Hash // == mixHash/mixDigest
 
-		Epoch idx.EpochID
+		Epoch ltypes.EpochID
 	}
 
 	EvmBlock struct {

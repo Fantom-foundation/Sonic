@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -24,11 +24,11 @@ var (
 
 type Delegation struct {
 	Address            common.Address
-	ValidatorID        idx.ValidatorID
+	ValidatorID        ltypes.ValidatorID
 	Stake              *big.Int
 	LockedStake        *big.Int
-	LockupFromEpoch    idx.EpochID
-	LockupEndTime      idx.EpochID
+	LockupFromEpoch    ltypes.EpochID
+	LockupEndTime      ltypes.EpochID
 	LockupDuration     uint64
 	EarlyUnlockPenalty *big.Int
 	Rewards            *big.Int
@@ -36,7 +36,7 @@ type Delegation struct {
 
 // Methods
 
-func SealEpochValidators(_validators []idx.ValidatorID) []byte {
+func SealEpochValidators(_validators []ltypes.ValidatorID) []byte {
 	newValidatorsIDs := make([]*big.Int, len(_validators))
 	for i, v := range _validators {
 		newValidatorsIDs[i] = utils.U64toBig(uint64(v))
@@ -77,7 +77,7 @@ func SetGenesisDelegation(d Delegation) []byte {
 	return data
 }
 
-func DeactivateValidator(validatorID idx.ValidatorID, status uint64) []byte {
+func DeactivateValidator(validatorID ltypes.ValidatorID, status uint64) []byte {
 	data, _ := sAbi.Pack("deactivateValidator", utils.U64toBig(uint64(validatorID)), utils.U64toBig(status))
 	return data
 }

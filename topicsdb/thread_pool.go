@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -17,7 +17,7 @@ type withThreadPool struct {
 }
 
 // FindInBlocks returns all log records of block range by pattern. 1st pattern element is an address.
-func (tt *withThreadPool) FindInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error) {
+func (tt *withThreadPool) FindInBlocks(ctx context.Context, from, to ltypes.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error) {
 	err = tt.ForEachInBlocks(
 		ctx,
 		from, to,
@@ -31,7 +31,7 @@ func (tt *withThreadPool) FindInBlocks(ctx context.Context, from, to idx.BlockID
 }
 
 // ForEachInBlocks matches log records of block range by pattern. 1st pattern element is an address.
-func (tt *withThreadPool) ForEachInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash, onLog func(*types.Log) (gonext bool)) error {
+func (tt *withThreadPool) ForEachInBlocks(ctx context.Context, from, to ltypes.BlockID, pattern [][]common.Hash, onLog func(*types.Log) (gonext bool)) error {
 	if 0 < to && to < from {
 		return nil
 	}

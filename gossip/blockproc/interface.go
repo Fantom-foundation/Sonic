@@ -1,7 +1,7 @@
 package blockproc
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
@@ -15,7 +15,7 @@ import (
 
 type TxListener interface {
 	OnNewLog(*types.Log)
-	OnNewReceipt(tx *types.Transaction, r *types.Receipt, originator idx.ValidatorID)
+	OnNewReceipt(tx *types.Transaction, r *types.Receipt, originator ltypes.ValidatorID)
 	Finalize() iblockproc.BlockState
 	Update(bs iblockproc.BlockState, es iblockproc.EpochState)
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -18,7 +17,7 @@ import (
 )
 
 // OnNewEpoch should be called after each epoch change, and on startup
-func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.EpochID) {
+func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch ltypes.EpochID) {
 	em.maxParents = em.config.MaxParents
 	rules := em.world.GetRules()
 	if em.maxParents == 0 {
@@ -41,10 +40,10 @@ func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.Epo
 	em.originatedTxs.Clear()
 	em.pendingGas = 0
 
-	em.offlineValidators = make(map[idx.ValidatorID]bool)
-	em.challenges = make(map[idx.ValidatorID]time.Time)
-	em.expectedEmitIntervals = make(map[idx.ValidatorID]time.Duration)
-	em.stakeRatio = make(map[idx.ValidatorID]uint64)
+	em.offlineValidators = make(map[ltypes.ValidatorID]bool)
+	em.challenges = make(map[ltypes.ValidatorID]time.Time)
+	em.expectedEmitIntervals = make(map[ltypes.ValidatorID]time.Duration)
+	em.stakeRatio = make(map[ltypes.ValidatorID]uint64)
 
 	// get current adjustments from emitterdriver contract
 	statedb := em.world.StateDB()
@@ -76,13 +75,13 @@ func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.Epo
 		em.fcIndexer = ancestor.NewFCIndexer(newValidators, em.world.DagIndex(), em.config.Validator.ID)
 	} else {
 		em.quorumIndexer = ancestor.NewQuorumIndexer(newValidators, vecmt2dagidx.Wrap(em.world.DagIndex()),
-			func(median, current, update idx.EventID, validatorIdx idx.ValidatorIdx) ancestor.Metric {
+			func(median, current, update ltypes.EventID, validatorIdx ltypes.ValidatorIdx) ancestor.Metric {
 				return updMetric(median, current, update, validatorIdx, newValidators)
 			})
 		em.fcIndexer = nil
 	}
 	em.quorumIndexer = ancestor.NewQuorumIndexer(newValidators, vecmt2dagidx.Wrap(em.world.DagIndex()),
-		func(median, current, update idx.EventID, validatorIdx idx.ValidatorIdx) ancestor.Metric {
+		func(median, current, update ltypes.EventID, validatorIdx ltypes.ValidatorIdx) ancestor.Metric {
 			return updMetric(median, current, update, validatorIdx, newValidators)
 		})
 	em.payloadIndexer = ancestor.NewPayloadIndexer(PayloadIndexerSize)

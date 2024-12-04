@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/utils/concurrent"
 )
@@ -21,7 +20,7 @@ func (es *epochStore) getCachedLastEvents() (*concurrent.ValidatorEventsSet, boo
 }
 
 func (es *epochStore) loadLastEvents() *concurrent.ValidatorEventsSet {
-	res := make(map[idx.ValidatorID]hash.EventHash, 100)
+	res := make(map[ltypes.ValidatorID]ltypes.EventHash, 100)
 
 	b, err := es.table.LastEvents.Get([]byte{})
 	if err != nil {
@@ -31,7 +30,7 @@ func (es *epochStore) loadLastEvents() *concurrent.ValidatorEventsSet {
 		return concurrent.WrapValidatorEventsSet(res)
 	}
 	for i := 0; i < len(b); i += 32 + 4 {
-		res[idx.BytesToValidatorID(b[i:i+4])] = hash.BytesToEvent(b[i+4 : i+4+32])
+		res[ltypes.BytesToValidatorID(b[i:i+4])] = ltypes.BytesToEvent(b[i+4 : i+4+32])
 	}
 
 	return concurrent.WrapValidatorEventsSet(res)
@@ -82,7 +81,7 @@ func (es *epochStore) FlushLastEvents() {
 }
 
 // GetLastEvents returns latest connected epoch events from each validator
-func (s *Store) GetLastEvents(epoch idx.EpochID) *concurrent.ValidatorEventsSet {
+func (s *Store) GetLastEvents(epoch ltypes.EpochID) *concurrent.ValidatorEventsSet {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil
@@ -92,7 +91,7 @@ func (s *Store) GetLastEvents(epoch idx.EpochID) *concurrent.ValidatorEventsSet 
 }
 
 // GetLastEvent returns latest connected epoch event from specified validator
-func (s *Store) GetLastEvent(epoch idx.EpochID, vid idx.ValidatorID) *hash.EventHash {
+func (s *Store) GetLastEvent(epoch ltypes.EpochID, vid ltypes.ValidatorID) *ltypes.EventHash {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil
@@ -108,7 +107,7 @@ func (s *Store) GetLastEvent(epoch idx.EpochID, vid idx.ValidatorID) *hash.Event
 	return &last
 }
 
-func (s *Store) SetLastEvents(epoch idx.EpochID, ids *concurrent.ValidatorEventsSet) {
+func (s *Store) SetLastEvents(epoch ltypes.EpochID, ids *concurrent.ValidatorEventsSet) {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return

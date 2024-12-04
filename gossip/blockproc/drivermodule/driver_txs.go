@@ -5,7 +5,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -72,7 +72,7 @@ func InternalTxBuilder(statedb state.StateDB) func(calldata []byte, addr common.
 	}
 }
 
-func maxBlockIdx(a, b idx.BlockID) idx.BlockID {
+func maxBlockIdx(a, b ltypes.BlockID) ltypes.BlockID {
 	if a > b {
 		return a
 	}
@@ -92,7 +92,7 @@ func (p *DriverTxPreTransactor) PopInternalTxs(block iblockproc.BlockCtx, bs ibl
 	// push data into Driver before epoch sealing
 	if sealing {
 		metrics := make([]drivercall.ValidatorEpochMetric, es.Validators.Len())
-		for oldValIdx := idx.ValidatorIdx(0); oldValIdx < es.Validators.Len(); oldValIdx++ {
+		for oldValIdx := ltypes.ValidatorIdx(0); oldValIdx < es.Validators.Len(); oldValIdx++ {
 			info := bs.ValidatorStates[oldValIdx]
 			// forgive downtime if below BlockMissedSlack
 			missed := opera.BlocksMissed{
@@ -128,7 +128,7 @@ func (p *DriverTxTransactor) PopInternalTxs(_ iblockproc.BlockCtx, _ iblockproc.
 	return internalTxs
 }
 
-func (p *DriverTxListener) OnNewReceipt(tx *types.Transaction, r *types.Receipt, originator idx.ValidatorID) {
+func (p *DriverTxListener) OnNewReceipt(tx *types.Transaction, r *types.Receipt, originator ltypes.ValidatorID) {
 	if originator == 0 {
 		return
 	}
@@ -167,7 +167,7 @@ func (p *DriverTxListener) OnNewLog(l *types.Log) {
 	}
 	// Track validator weight changes
 	if l.Topics[0] == driverpos.Topics.UpdateValidatorWeight && len(l.Topics) > 1 && len(l.Data) >= 32 {
-		validatorID := idx.ValidatorID(new(big.Int).SetBytes(l.Topics[1][:]).Uint64())
+		validatorID := ltypes.ValidatorID(new(big.Int).SetBytes(l.Topics[1][:]).Uint64())
 		weight := new(big.Int).SetBytes(l.Data[0:32])
 
 		if weight.Sign() == 0 {
@@ -186,7 +186,7 @@ func (p *DriverTxListener) OnNewLog(l *types.Log) {
 	}
 	// Track validator pubkey changes
 	if l.Topics[0] == driverpos.Topics.UpdateValidatorPubkey && len(l.Topics) > 1 {
-		validatorID := idx.ValidatorID(new(big.Int).SetBytes(l.Topics[1][:]).Uint64())
+		validatorID := ltypes.ValidatorID(new(big.Int).SetBytes(l.Topics[1][:]).Uint64())
 		pubkey, err := decodeDataBytes(l)
 		if err != nil {
 			log.Warn("Malformed UpdatedValidatorPubkey Driver event")
@@ -225,7 +225,7 @@ func (p *DriverTxListener) OnNewLog(l *types.Log) {
 		// epochsNum < 2^24 to avoid overflow
 		epochsNum := new(big.Int).SetBytes(l.Data[29:32]).Uint64()
 
-		p.bs.AdvanceEpochs += idx.EpochID(epochsNum)
+		p.bs.AdvanceEpochs += ltypes.EpochID(epochsNum)
 		if p.bs.AdvanceEpochs > maxAdvanceEpochs {
 			p.bs.AdvanceEpochs = maxAdvanceEpochs
 		}

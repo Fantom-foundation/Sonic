@@ -11,7 +11,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/chain"
 	"github.com/Fantom-foundation/go-opera/config/flags"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -41,21 +41,21 @@ func exportEvents(ctx *cli.Context) error {
 		defer writer.(*gzip.Writer).Close()
 	}
 
-	from := idx.EpochID(1)
+	from := ltypes.EpochID(1)
 	if len(ctx.Args()) > 1 {
 		n, err := strconv.ParseUint(ctx.Args().Get(1), 10, 32)
 		if err != nil {
 			return err
 		}
-		from = idx.EpochID(n)
+		from = ltypes.EpochID(n)
 	}
-	to := idx.EpochID(0)
+	to := ltypes.EpochID(0)
 	if len(ctx.Args()) > 2 {
 		n, err := strconv.ParseUint(ctx.Args().Get(2), 10, 32)
 		if err != nil {
 			return err
 		}
-		to = idx.EpochID(n)
+		to = ltypes.EpochID(n)
 	}
 
 	gdbParams := db.GossipDbParameters{

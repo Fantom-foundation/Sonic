@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -103,7 +101,7 @@ func (em *Emitter) maxGasPowerToUse(e *inter.MutableEventPayload) uint64 {
 	return maxGasToUse
 }
 
-func getTxRoundIndex(now, txTime time.Time, validatorsNum idx.ValidatorIdx) int {
+func getTxRoundIndex(now, txTime time.Time, validatorsNum ltypes.ValidatorIdx) int {
 	passed := now.Sub(txTime)
 	if passed < 0 {
 		passed = 0
@@ -112,7 +110,7 @@ func getTxRoundIndex(now, txTime time.Time, validatorsNum idx.ValidatorIdx) int 
 }
 
 // safe for concurrent use
-func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, accountNonce uint64, now time.Time, validators *ltypes.Validators, me idx.ValidatorID, epoch idx.EpochID) bool {
+func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, accountNonce uint64, now time.Time, validators *ltypes.Validators, me ltypes.ValidatorID, epoch ltypes.EpochID) bool {
 	txTime := txtime.Of(txHash)
 
 	roundIndex := getTxRoundIndex(now, txTime, validators.Len())
@@ -122,14 +120,14 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 	}
 
 	// generate seed for generating the validators sequence for the tx
-	roundsHash := hash.Of(sender.Bytes(), bigendian.Uint64ToBytes(accountNonce/TxTurnNonces), epoch.Bytes())
+	roundsHash := ltypes.Of(sender.Bytes(), bigendian.Uint64ToBytes(accountNonce/TxTurnNonces), epoch.Bytes())
 
 	// generate the validators sequence for the tx
 	rounds := utils.WeightedPermutation(int(validators.Len()), validators.SortedWeights(), roundsHash)
 
 	// take a validator from the sequence, skip offline validators
 	for ; roundIndex < len(rounds); roundIndex++ {
-		chosenValidator := validators.GetID(idx.ValidatorIdx(rounds[roundIndex]))
+		chosenValidator := validators.GetID(ltypes.ValidatorIdx(rounds[roundIndex]))
 		if chosenValidator == me {
 			return true // current validator is the chosen - emit
 		}

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/doublesign"
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/utils/errlock"
@@ -15,7 +15,7 @@ type syncStatus struct {
 	startup                   time.Time
 	lastConnected             time.Time
 	p2pSynced                 time.Time
-	prevLocalEmittedID        hash.EventHash
+	prevLocalEmittedID        ltypes.EventHash
 	externalSelfEventCreated  time.Time
 	externalSelfEventDetected time.Time
 	becameValidator           time.Time

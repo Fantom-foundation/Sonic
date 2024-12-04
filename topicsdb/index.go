@@ -3,10 +3,10 @@ package topicsdb
 import (
 	"context"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -41,7 +41,7 @@ func (tt *index) WrapTablesAsBatched() (unwrap func()) {
 }
 
 // FindInBlocks returns all log records of block range by pattern. 1st pattern element is an address.
-func (tt *index) FindInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error) {
+func (tt *index) FindInBlocks(ctx context.Context, from, to ltypes.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error) {
 	err = tt.ForEachInBlocks(
 		ctx,
 		from, to,
@@ -55,7 +55,7 @@ func (tt *index) FindInBlocks(ctx context.Context, from, to idx.BlockID, pattern
 }
 
 // ForEachInBlocks matches log records of block range by pattern. 1st pattern element is an address.
-func (tt *index) ForEachInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash, onLog func(*types.Log) (gonext bool)) error {
+func (tt *index) ForEachInBlocks(ctx context.Context, from, to ltypes.BlockID, pattern [][]common.Hash, onLog func(*types.Log) (gonext bool)) error {
 	if 0 < to && to < from {
 		return nil
 	}

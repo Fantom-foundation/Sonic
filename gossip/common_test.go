@@ -15,8 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum"
@@ -81,7 +79,7 @@ type testGossipStoreAdapter struct {
 	*Store
 }
 
-func (g *testGossipStoreAdapter) GetEvent(id hash.EventHash) ltypes.Event {
+func (g *testGossipStoreAdapter) GetEvent(id ltypes.EventHash) ltypes.Event {
 	e := g.Store.GetEvent(id)
 	if e == nil {
 		return nil
@@ -137,7 +135,7 @@ func (m testConfirmedEventsModule) Start(bs iblockproc.BlockState, es iblockproc
 	return testConfirmedEventsProcessor{p, m.env}
 }
 
-func newTestEnv(firstEpoch idx.EpochID, validatorsNum idx.ValidatorIdx, tb testing.TB) *testEnv {
+func newTestEnv(firstEpoch ltypes.EpochID, validatorsNum ltypes.ValidatorIdx, tb testing.TB) *testEnv {
 	rules := opera.FakeNetRules()
 	rules.Epochs.MaxEpochDuration = inter.Timestamp(maxEpochDuration)
 	rules.Blocks.MaxEmptyBlockSkipPeriod = 0
@@ -183,7 +181,7 @@ func newTestEnv(firstEpoch idx.EpochID, validatorsNum idx.ValidatorIdx, tb testi
 	env.signer = valkeystore.NewSigner(valKeystore)
 
 	// register emitters
-	for i := idx.ValidatorIdx(0); i < validatorsNum; i++ {
+	for i := ltypes.ValidatorIdx(0); i < validatorsNum; i++ {
 		cfg := emitter.DefaultConfig()
 		vid := store.GetValidators().GetID(i)
 		pubkey := store.GetEpochState().ValidatorProfiles[vid].PubKey
@@ -192,7 +190,7 @@ func newTestEnv(firstEpoch idx.EpochID, validatorsNum idx.ValidatorIdx, tb testi
 			PubKey: pubkey,
 		}
 		cfg.EmitIntervals = emitter.EmitIntervals{}
-		cfg.MaxParents = idx.EventID(validatorsNum/2 + 1)
+		cfg.MaxParents = ltypes.EventID(validatorsNum/2 + 1)
 		cfg.MaxTxsPerAddress = 10000000
 		_ = valKeystore.Add(pubkey, crypto.FromECDSA(makefakegenesis.FakeKey(vid)), validatorpk.FakePassword)
 		_ = valKeystore.Unlock(pubkey, validatorpk.FakePassword)
@@ -243,7 +241,7 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 			baseFee := big.NewInt(0)
 			blobGasPrice := big.NewInt(1)
 
-			receipts := env.store.evm.GetReceipts(idx.BlockID(b.Block.Number.Uint64()), config, b.Block.Hash, time, baseFee, blobGasPrice, b.Block.Transactions)
+			receipts := env.store.evm.GetReceipts(ltypes.BlockID(b.Block.Number.Uint64()), config, b.Block.Hash, time, baseFee, blobGasPrice, b.Block.Transactions)
 			for i, tx := range b.Block.Transactions {
 				if r, _, _ := tx.RawSignatureValues(); r.Sign() != 0 {
 					mu.Lock()
@@ -287,7 +285,7 @@ func (env *testEnv) EmitUntil(stop func() bool) error {
 	return nil
 }
 
-func (env *testEnv) Transfer(from, to idx.ValidatorID, amount *big.Int) *types.Transaction {
+func (env *testEnv) Transfer(from, to ltypes.ValidatorID, amount *big.Int) *types.Transaction {
 	sender := env.Address(from)
 	nonce, _ := env.PendingNonceAt(context.TODO(), sender)
 	env.incNonce(sender)
@@ -303,7 +301,7 @@ func (env *testEnv) Transfer(from, to idx.ValidatorID, amount *big.Int) *types.T
 	return tx
 }
 
-func (env *testEnv) Contract(from idx.ValidatorID, amount *big.Int, hex string) *types.Transaction {
+func (env *testEnv) Contract(from ltypes.ValidatorID, amount *big.Int, hex string) *types.Transaction {
 	sender := env.Address(from)
 	nonce, _ := env.PendingNonceAt(context.TODO(), sender)
 	env.incNonce(sender)
@@ -319,18 +317,18 @@ func (env *testEnv) Contract(from idx.ValidatorID, amount *big.Int, hex string) 
 	return tx
 }
 
-func (env *testEnv) privateKey(n idx.ValidatorID) *ecdsa.PrivateKey {
+func (env *testEnv) privateKey(n ltypes.ValidatorID) *ecdsa.PrivateKey {
 	key := makefakegenesis.FakeKey(n)
 	return key
 }
 
-func (env *testEnv) Address(n idx.ValidatorID) common.Address {
+func (env *testEnv) Address(n ltypes.ValidatorID) common.Address {
 	key := makefakegenesis.FakeKey(n)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	return addr
 }
 
-func (env *testEnv) Payer(n idx.ValidatorID, amounts ...*big.Int) *bind.TransactOpts {
+func (env *testEnv) Payer(n ltypes.ValidatorID, amounts ...*big.Int) *bind.TransactOpts {
 	key := env.privateKey(n)
 	t, _ := bind.NewKeyedTransactorWithChainID(key, new(big.Int).SetUint64(env.store.GetRules().NetworkID))
 	nonce, _ := env.PendingNonceAt(context.TODO(), env.Address(n))
@@ -345,7 +343,7 @@ func (env *testEnv) Payer(n idx.ValidatorID, amounts ...*big.Int) *bind.Transact
 	return t
 }
 
-func (env *testEnv) Pay(n idx.ValidatorID, amounts ...*big.Int) *bind.TransactOpts {
+func (env *testEnv) Pay(n ltypes.ValidatorID, amounts ...*big.Int) *bind.TransactOpts {
 	t := env.Payer(n, amounts...)
 	env.incNonce(t.From)
 
@@ -379,7 +377,7 @@ var (
 // CodeAt returns the code of the given account. This is needed to differentiate
 // between contract internal errors and the local chain being out of sync.
 func (env *testEnv) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
-	if blockNumber != nil && idx.BlockID(blockNumber.Uint64()) != env.store.GetLatestBlockIndex() {
+	if blockNumber != nil && ltypes.BlockID(blockNumber.Uint64()) != env.store.GetLatestBlockIndex() {
 		return nil, errBlockNumberUnsupported
 	}
 
@@ -390,7 +388,7 @@ func (env *testEnv) CodeAt(ctx context.Context, contract common.Address, blockNu
 // ContractCall executes an Ethereum contract call with the specified data as the
 // input.
 func (env *testEnv) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
-	if blockNumber != nil && idx.BlockID(blockNumber.Uint64()) != env.store.GetLatestBlockIndex() {
+	if blockNumber != nil && ltypes.BlockID(blockNumber.Uint64()) != env.store.GetLatestBlockIndex() {
 		return nil, errBlockNumberUnsupported
 	}
 

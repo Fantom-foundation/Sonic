@@ -15,8 +15,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore/fileshash"
 	"github.com/Fantom-foundation/go-opera/utils/devnullfile"
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	gzip "github.com/klauspost/pgzip"
@@ -82,7 +81,7 @@ func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, 
 	return nil
 }
 
-func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, from, to idx.EpochID) error {
+func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, from, to ltypes.EpochID) error {
 	log.Info("Exporting epochs", "from", from, "to", to)
 	for i := to; i >= from; i-- {
 		er := gdb.GetFullEpochRecord(i)
@@ -111,7 +110,7 @@ func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWri
 	return nil
 }
 
-func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to idx.BlockID, maxBlocks int64) error {
+func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to ltypes.BlockID, maxBlocks int64) error {
 	toBlock := int64(to)
 	fromBlock := int64(0)
 	if maxBlocks != 0 && toBlock > 1+maxBlocks {
@@ -119,7 +118,7 @@ func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWri
 	}
 	log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
 	for i := toBlock; i >= fromBlock; i-- {
-		i := idx.BlockID(i)
+		i := ltypes.BlockID(i)
 		br := gdb.GetFullBlockRecord(i)
 		if br == nil {
 			return fmt.Errorf("the block record for block %d is missing in gdb", i)
@@ -177,7 +176,7 @@ func exportFwaSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter
 	return nil
 }
 
-func getEpochBlock(epoch idx.EpochID, store *gossip.Store) idx.BlockID {
+func getEpochBlock(epoch ltypes.EpochID, store *gossip.Store) ltypes.BlockID {
 	bs, _ := store.GetHistoryBlockEpochState(epoch)
 	if bs == nil {
 		return 0
@@ -246,46 +245,46 @@ func (w *unitWriter) Start(header genesis.Header, name, tmpDirPath string) error
 	return nil
 }
 
-func (w *unitWriter) Flush() (hash.Hash, error) {
+func (w *unitWriter) Flush() (ltypes.Hash, error) {
 	if w.plain == nil {
 		return w.fileshasher.Root(), nil
 	}
 	h, err := w.fileshasher.Flush()
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 
 	err = w.gziper.Close()
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 
 	endPos, err := w.plain.Seek(0, io.SeekCurrent)
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 
 	_, err = w.plain.Seek(w.dataStartPos-(8+8+32), io.SeekStart)
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 
 	_, err = w.plain.Write(h.Bytes())
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 	_, err = w.plain.Write(bigendian.Uint64ToBytes(uint64(endPos - w.dataStartPos)))
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 	_, err = w.plain.Write(bigendian.Uint64ToBytes(w.uncompressedSize))
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 
 	_, err = w.plain.Seek(0, io.SeekEnd)
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 	return h, nil
 }

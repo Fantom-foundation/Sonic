@@ -5,14 +5,13 @@ package evmstore
 */
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type TxPosition struct {
-	Block       idx.BlockID
-	Event       hash.EventHash
+	Block       ltypes.BlockID
+	Event       ltypes.EventHash
 	EventOffset uint32
 	BlockOffset uint32
 }

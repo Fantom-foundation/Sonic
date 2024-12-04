@@ -14,8 +14,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 	"github.com/ethereum/go-ethereum/common"
@@ -61,22 +59,22 @@ type Emitter struct {
 
 	prevIdleTime       time.Time
 	prevEmittedAtTime  time.Time
-	prevEmittedAtBlock idx.BlockID
+	prevEmittedAtBlock ltypes.BlockID
 	originatedTxs      *originatedtxs.Buffer
 	pendingGas         uint64
 
 	// note: track validators and epoch internally to avoid referring to
 	// validators of a future epoch inside OnEventConnected of last epoch event
 	validators *ltypes.Validators
-	epoch      idx.EpochID
+	epoch      ltypes.EpochID
 
 	// challenges is deadlines when each validator should emit an event
-	challenges map[idx.ValidatorID]time.Time
+	challenges map[ltypes.ValidatorID]time.Time
 	// offlineValidators is a map of validators which are likely to be offline
 	// This map may be different on different instances
-	offlineValidators     map[idx.ValidatorID]bool
-	expectedEmitIntervals map[idx.ValidatorID]time.Duration
-	stakeRatio            map[idx.ValidatorID]uint64
+	offlineValidators     map[ltypes.ValidatorID]bool
+	expectedEmitIntervals map[ltypes.ValidatorID]time.Duration
+	stakeRatio            map[ltypes.ValidatorID]uint64
 
 	prevRecheckedChallenges time.Time
 
@@ -90,12 +88,12 @@ type Emitter struct {
 	done chan struct{}
 	wg   sync.WaitGroup
 
-	maxParents idx.EventID
+	maxParents ltypes.EventID
 
 	cache struct {
 		sortedTxs *transactionsByPriceAndNonce
 		poolTime  time.Time
-		poolBlock idx.BlockID
+		poolBlock ltypes.BlockID
 		poolCount int
 	}
 
@@ -346,10 +344,10 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 	}
 
 	var (
-		selfParentSeq  idx.EventID
+		selfParentSeq  ltypes.EventID
 		selfParentTime inter.Timestamp
-		parents        hash.EventHashes
-		maxLamport     idx.Lamport
+		parents        ltypes.EventHashes
+		maxLamport     ltypes.Lamport
 	)
 
 	// Find parents
@@ -377,7 +375,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 			em.Periodic.Error(5*time.Second, "I've created a fork, events emitting isn't allowed", "creator", em.config.Validator.ID)
 			return nil, nil
 		}
-		maxLamport = idx.MaxLamport(maxLamport, parent.Lamport())
+		maxLamport = ltypes.MaxLamport(maxLamport, parent.Lamport())
 	}
 
 	selfParentSeq = 0
@@ -430,7 +428,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
 			metric = kickStartMetric(metric, mutEvent.Seq())
 		} else if em.quorumIndexer != nil {
-			metric = eventMetric(em.quorumIndexer.GetMetricOf(hash.EventHashes{mutEvent.ID()}), mutEvent.Seq())
+			metric = eventMetric(em.quorumIndexer.GetMetricOf(ltypes.EventHashes{mutEvent.ID()}), mutEvent.Seq())
 			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
 		}
 	})
@@ -505,13 +503,13 @@ func (em *Emitter) isValidator() bool {
 }
 
 func (em *Emitter) nameEventForDebug(e *inter.EventPayload) {
-	name := []rune(hash.GetNodeName(e.Creator()))
+	name := []rune(ltypes.GetNodeName(e.Creator()))
 	if len(name) < 1 {
 		return
 	}
 
 	name = name[len(name)-1:]
-	hash.SetEventName(e.ID(), fmt.Sprintf("%s%03d",
+	ltypes.SetEventName(e.ID(), fmt.Sprintf("%s%03d",
 		strings.ToLower(string(name)),
 		e.Seq()))
 }

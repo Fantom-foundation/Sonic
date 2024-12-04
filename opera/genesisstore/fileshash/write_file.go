@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
@@ -150,34 +150,34 @@ func (w *Writer) readFromTmpPieceByPiece(destructive bool, fn func([]byte) error
 	return nil
 }
 
-func (w *Writer) Root() hash.Hash {
-	hashes := hash.Hashes{}
+func (w *Writer) Root() ltypes.Hash {
+	hashes := ltypes.Hashes{}
 	for _, tmp := range w.tmps {
-		h := hash.BytesToHash(tmp.h.Sum(nil))
+		h := ltypes.BytesToHash(tmp.h.Sum(nil))
 		hashes = append(hashes, h)
 	}
 	return calcHashesRoot(hashes, w.pieceSize, w.size)
 }
 
-func (w *Writer) Flush() (hash.Hash, error) {
+func (w *Writer) Flush() (ltypes.Hash, error) {
 	// write piece
 	_, err := w.backend.Write(bigendian.Uint32ToBytes(uint32(w.pieceSize)))
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 	// write size
 	_, err = w.backend.Write(bigendian.Uint64ToBytes(w.size))
 	if err != nil {
-		return hash.Hash{}, err
+		return ltypes.Hash{}, err
 	}
 	// write piece hashes
-	hashes := hash.Hashes{}
+	hashes := ltypes.Hashes{}
 	for _, tmp := range w.tmps {
-		h := hash.BytesToHash(tmp.h.Sum(nil))
+		h := ltypes.BytesToHash(tmp.h.Sum(nil))
 		hashes = append(hashes, h)
 		_, err = w.backend.Write(h[:])
 		if err != nil {
-			return hash.Hash{}, err
+			return ltypes.Hash{}, err
 		}
 	}
 	root := calcHashesRoot(hashes, w.pieceSize, w.size)

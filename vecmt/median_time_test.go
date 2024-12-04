@@ -3,15 +3,12 @@ package vecmt
 import (
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/vecfc"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/ltypes/tdag"
-
+	"github.com/Fantom-foundation/lachesis-base/vecfc"
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
@@ -25,9 +22,9 @@ func TestMedianTimeOnIndex(t *testing.T) {
 
 	assertar := assert.New(t)
 	{ // seq=0
-		e := hash.ZeroEvent
+		e := ltypes.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.ValidatorIdx(validators.Len()))
+		before := NewHighestBefore(ltypes.ValidatorIdx(validators.Len()))
 
 		before.VSeq.Set(0, vecfc.BranchSeq{Seq: 0})
 		before.VTime.Set(0, 100)
@@ -49,9 +46,9 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	}
 
 	{ // fork seen = true
-		e := hash.ZeroEvent
+		e := ltypes.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.ValidatorIdx(validators.Len()))
+		before := NewHighestBefore(ltypes.ValidatorIdx(validators.Len()))
 
 		before.SetForkDetected(0)
 		before.VTime.Set(0, 100)
@@ -73,9 +70,9 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	}
 
 	{ // normal
-		e := hash.ZeroEvent
+		e := ltypes.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.ValidatorIdx(validators.Len()))
+		before := NewHighestBefore(ltypes.ValidatorIdx(validators.Len()))
 
 		before.VSeq.Set(0, vecfc.BranchSeq{Seq: 1})
 		before.VTime.Set(0, 11)
@@ -165,8 +162,8 @@ func testMedianTime(t *testing.T, dagAscii string, weights []ltypes.Weight, crea
 
 	validators := ltypes.ArrayToValidators(nodes, weights)
 
-	events := make(map[hash.EventHash]ltypes.Event)
-	getEvent := func(id hash.EventHash) ltypes.Event {
+	events := make(map[ltypes.EventHash]ltypes.Event)
+	getEvent := func(id ltypes.EventHash) ltypes.Event {
 		return events[id]
 	}
 

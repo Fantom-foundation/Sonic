@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Fantom-foundation/lachesis-base/common/littleendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +31,7 @@ func Test_Permutation_distribution(t *testing.T) {
 
 	weightHits := make(map[int]int) // weight -> number of occurrences
 	for roundSeed := 0; roundSeed < 3000; roundSeed++ {
-		seed := hashOf(hash.Hash{}, uint32(roundSeed))
+		seed := hashOf(ltypes.Hash{}, uint32(roundSeed))
 		perm := WeightedPermutation(len(weightsArr)/10, weightsArr, seed)
 		for _, p := range perm {
 			weight := weightsArr[p]
@@ -61,7 +60,7 @@ func Test_Permutation_distribution(t *testing.T) {
 func testCorrectPermutation(t *testing.T, weightsArr []ltypes.Weight) {
 	assertar := assert.New(t)
 
-	perm := WeightedPermutation(len(weightsArr), weightsArr, hash.Hash{})
+	perm := WeightedPermutation(len(weightsArr), weightsArr, ltypes.Hash{})
 	assertar.Equal(len(weightsArr), len(perm))
 
 	met := make(map[int]bool)
@@ -79,11 +78,11 @@ func Test_Permutation_correctness(t *testing.T) {
 	testCorrectPermutation(t, getTestWeightsEqual(1000))
 }
 
-func hashOf(a hash.Hash, b uint32) hash.Hash {
+func hashOf(a ltypes.Hash, b uint32) ltypes.Hash {
 	hasher := sha256.New()
 	hasher.Write(a.Bytes())
 	hasher.Write(littleendian.Uint32ToBytes(uint32(b)))
-	return hash.FromBytes(hasher.Sum(nil))
+	return ltypes.FromBytes(hasher.Sum(nil))
 }
 
 func Test_Permutation_determinism(t *testing.T) {
@@ -91,9 +90,9 @@ func Test_Permutation_determinism(t *testing.T) {
 
 	assertar := assert.New(t)
 
-	assertar.Equal([]int{4, 0, 1, 2, 3}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(hash.Hash{}, 0)))
-	assertar.Equal([]int{2, 4, 3, 1, 0}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(hash.Hash{}, 1)))
-	assertar.Equal([]int{4, 2, 3, 1, 0}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(hash.Hash{}, 2)))
-	assertar.Equal([]int{0, 2, 1, 3, 4}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(hash.Hash{}, 3)))
-	assertar.Equal([]int{1, 2}, WeightedPermutation(len(weightsArr)/2, weightsArr, hashOf(hash.Hash{}, 4)))
+	assertar.Equal([]int{4, 0, 1, 2, 3}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(ltypes.Hash{}, 0)))
+	assertar.Equal([]int{2, 4, 3, 1, 0}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(ltypes.Hash{}, 1)))
+	assertar.Equal([]int{4, 2, 3, 1, 0}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(ltypes.Hash{}, 2)))
+	assertar.Equal([]int{0, 2, 1, 3, 4}, WeightedPermutation(len(weightsArr), weightsArr, hashOf(ltypes.Hash{}, 3)))
+	assertar.Equal([]int{1, 2}, WeightedPermutation(len(weightsArr)/2, weightsArr, hashOf(ltypes.Hash{}, 4)))
 }

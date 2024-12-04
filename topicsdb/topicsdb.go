@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -19,7 +19,7 @@ var (
 )
 
 type Index interface {
-	FindInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error)
+	FindInBlocks(ctx context.Context, from, to ltypes.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error)
 	Push(recs ...*types.Log) error
 	Close()
 

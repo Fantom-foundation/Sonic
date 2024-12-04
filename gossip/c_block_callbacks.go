@@ -10,8 +10,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
@@ -49,7 +47,7 @@ var (
 
 type ExtendedTxPosition struct {
 	evmstore.TxPosition
-	EventCreator idx.ValidatorID
+	EventCreator ltypes.ValidatorID
 }
 
 // GetConsensusCallbacks returns single (for Service) callback instance.
@@ -121,7 +119,7 @@ func consensusCallbackBeginBlockFn(
 		atroposTime := bs.LastBlock.Time + 1
 		atroposDegenerate := true
 		// events with txs
-		confirmedEvents := make(hash.OrderedEventHashes, 0, 3*es.Validators.Len())
+		confirmedEvents := make(ltypes.OrderedEventHashes, 0, 3*es.Validators.Len())
 
 		return lachesis.BlockCallbacks{
 			ApplyEvent: func(_e ltypes.Event) {
@@ -334,7 +332,7 @@ func consensusCallbackBeginBlockFn(
 						txListener.OnNewReceipt(evmBlock.Transactions[i], r, creator)
 					}
 					bs = txListener.Finalize() // TODO: refactor to not mutate the bs
-					bs.FinalizedStateRoot = hash.Hash(evmBlock.Root)
+					bs.FinalizedStateRoot = ltypes.Hash(evmBlock.Root)
 					// At this point, block state is finalized
 
 					// Build index for not skipped txs
@@ -430,7 +428,7 @@ func consensusCallbackBeginBlockFn(
 }
 
 // spillBlockEvents excludes first events which exceed MaxBlockGas
-func spillBlockEvents(store *Store, events hash.OrderedEventHashes, maxBlockGas uint64) inter.EventPayloads {
+func spillBlockEvents(store *Store, events ltypes.OrderedEventHashes, maxBlockGas uint64) inter.EventPayloads {
 	fullEvents := make(inter.EventPayloads, len(events))
 	if len(events) == 0 {
 		return fullEvents

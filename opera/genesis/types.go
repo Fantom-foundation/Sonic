@@ -1,7 +1,7 @@
 package genesis
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"io"
 
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
@@ -9,9 +9,9 @@ import (
 )
 
 type (
-	Hashes map[string]hash.Hash
+	Hashes map[string]ltypes.Hash
 	Header struct {
-		GenesisID   hash.Hash
+		GenesisID   ltypes.Hash
 		NetworkID   uint64
 		NetworkName string
 	}

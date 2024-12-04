@@ -1,8 +1,7 @@
 package ier
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 )
@@ -14,9 +13,9 @@ type LlrFullEpochRecord struct {
 
 type LlrIdxFullEpochRecord struct {
 	LlrFullEpochRecord
-	Idx idx.EpochID
+	Idx ltypes.EpochID
 }
 
-func (er LlrFullEpochRecord) Hash() hash.Hash {
-	return hash.Of(er.BlockState.Hash().Bytes(), er.EpochState.Hash().Bytes())
+func (er LlrFullEpochRecord) Hash() ltypes.Hash {
+	return ltypes.Of(er.BlockState.Hash().Bytes(), er.EpochState.Hash().Bytes())
 }

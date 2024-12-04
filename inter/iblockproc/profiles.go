@@ -4,14 +4,13 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
 )
 
-type ValidatorProfiles map[idx.ValidatorID]drivertype.Validator
+type ValidatorProfiles map[ltypes.ValidatorID]drivertype.Validator
 
 func (vv ValidatorProfiles) Copy() ValidatorProfiles {
 	cp := make(ValidatorProfiles, len(vv))

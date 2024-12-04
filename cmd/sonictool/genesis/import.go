@@ -6,8 +6,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
 	"path/filepath"
@@ -60,7 +60,7 @@ func ImportGenesisStore(params ImportParams) error {
 	if err != nil {
 		return err
 	}
-	cGetEpochDB := func(epoch idx.EpochID) kvdb.Store {
+	cGetEpochDB := func(epoch ltypes.EpochID) kvdb.Store {
 		db, err := dbs.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
 		if err != nil {
 			panic(fmt.Errorf("failed to open epoch db: %w", err))

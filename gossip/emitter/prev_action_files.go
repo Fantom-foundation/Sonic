@@ -3,7 +3,7 @@ package emitter
 import (
 	"io"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/Fantom-foundation/go-opera/utils"
@@ -11,7 +11,7 @@ import (
 
 var openPrevActionFile = utils.OpenFile
 
-func (em *Emitter) writeLastEmittedEventID(id hash.EventHash) {
+func (em *Emitter) writeLastEmittedEventID(id ltypes.EventHash) {
 	if em.emittedEventFile == nil {
 		return
 	}
@@ -21,7 +21,7 @@ func (em *Emitter) writeLastEmittedEventID(id hash.EventHash) {
 	}
 }
 
-func (em *Emitter) readLastEmittedEventID() *hash.EventHash {
+func (em *Emitter) readLastEmittedEventID() *ltypes.EventHash {
 	if em.emittedEventFile == nil {
 		return nil
 	}
@@ -33,6 +33,6 @@ func (em *Emitter) readLastEmittedEventID() *hash.EventHash {
 		}
 		log.Crit("Failed to read event file", "file", em.config.PrevEmittedEventFile.Path, "err", err)
 	}
-	v := hash.BytesToEvent(buf)
+	v := ltypes.BytesToEvent(buf)
 	return &v
 }

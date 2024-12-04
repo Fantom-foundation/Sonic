@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,7 @@ func BenchmarkSearch(b *testing.B) {
 
 	pooled := withThreadPool{index}
 
-	for dsc, method := range map[string]func(context.Context, idx.BlockID, idx.BlockID, [][]common.Hash) ([]*types.Log, error){
+	for dsc, method := range map[string]func(context.Context, ltypes.BlockID, ltypes.BlockID, [][]common.Hash) ([]*types.Log, error){
 		"index":  index.FindInBlocks,
 		"pooled": pooled.FindInBlocks,
 	} {

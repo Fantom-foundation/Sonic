@@ -11,7 +11,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	futils "github.com/Fantom-foundation/go-opera/utils"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -22,7 +22,7 @@ func tmpdir(t *testing.T) string {
 	return t.TempDir()
 }
 
-func initFakenetDatadir(dataDir string, validatorsNum idx.ValidatorIdx) {
+func initFakenetDatadir(dataDir string, validatorsNum ltypes.ValidatorIdx) {
 	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
 

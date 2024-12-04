@@ -3,8 +3,7 @@ package gossip
 import (
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	notify "github.com/ethereum/go-ethereum/event"
@@ -142,17 +141,17 @@ type handshakeData struct {
 
 // PeerProgress is synchronization status of a peer
 type PeerProgress struct {
-	Epoch            idx.EpochID
-	LastBlockIdx     idx.BlockID
-	LastBlockAtropos hash.EventHash
+	Epoch            ltypes.EpochID
+	LastBlockIdx     ltypes.BlockID
+	LastBlockAtropos ltypes.EventHash
 	// Currently unused
-	HighestLamport idx.Lamport
+	HighestLamport ltypes.Lamport
 }
 
 type dagChunk struct {
 	SessionID uint32
 	Done      bool
-	IDs       hash.EventHashes
+	IDs       ltypes.EventHashes
 	Events    inter.EventPayloads
 }
 

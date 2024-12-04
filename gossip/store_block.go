@@ -3,8 +3,7 @@ package gossip
 import (
 	"math"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -13,9 +12,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
-func (s *Store) GetGenesisID() *hash.Hash {
+func (s *Store) GetGenesisID() *ltypes.Hash {
 	if v := s.cache.Genesis.Load(); v != nil {
-		val := v.(hash.Hash)
+		val := v.(ltypes.Hash)
 		return &val
 	}
 	valBytes, err := s.table.Genesis.Get([]byte("g"))
@@ -25,20 +24,20 @@ func (s *Store) GetGenesisID() *hash.Hash {
 	if len(valBytes) == 0 {
 		return nil
 	}
-	val := hash.BytesToHash(valBytes)
+	val := ltypes.BytesToHash(valBytes)
 	s.cache.Genesis.Store(val)
 	return &val
 }
 
-func (s *Store) fakeGenesisHash() hash.EventHash {
-	fakeGenesisHash := hash.EventHash(*s.GetGenesisID())
+func (s *Store) fakeGenesisHash() ltypes.EventHash {
+	fakeGenesisHash := ltypes.EventHash(*s.GetGenesisID())
 	for i := range fakeGenesisHash[:8] {
 		fakeGenesisHash[i] = 0
 	}
 	return fakeGenesisHash
 }
 
-func (s *Store) SetGenesisID(val hash.Hash) {
+func (s *Store) SetGenesisID(val ltypes.Hash) {
 	err := s.table.Genesis.Put([]byte("g"), val.Bytes())
 	if err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
@@ -47,7 +46,7 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 }
 
 // SetBlock stores chain block.
-func (s *Store) SetBlock(n idx.BlockID, b *inter.Block) {
+func (s *Store) SetBlock(n ltypes.BlockID, b *inter.Block) {
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
 
 	// Add to LRU cache.
@@ -55,7 +54,7 @@ func (s *Store) SetBlock(n idx.BlockID, b *inter.Block) {
 }
 
 // GetBlock returns stored block.
-func (s *Store) GetBlock(n idx.BlockID) *inter.Block {
+func (s *Store) GetBlock(n ltypes.BlockID) *inter.Block {
 	// Get block from LRU cache first.
 	if c, ok := s.cache.Blocks.Get(n); ok {
 		return c.(*inter.Block)
@@ -71,12 +70,12 @@ func (s *Store) GetBlock(n idx.BlockID) *inter.Block {
 	return block
 }
 
-func (s *Store) HasBlock(n idx.BlockID) bool {
+func (s *Store) HasBlock(n ltypes.BlockID) bool {
 	has, _ := s.table.Blocks.Has(n.Bytes())
 	return has
 }
 
-func (s *Store) ForEachBlock(fn func(index idx.BlockID, block *inter.Block)) {
+func (s *Store) ForEachBlock(fn func(index ltypes.BlockID, block *inter.Block)) {
 	it := s.table.Blocks.NewIterator(nil, nil)
 	defer it.Release()
 	for it.Next() {
@@ -85,12 +84,12 @@ func (s *Store) ForEachBlock(fn func(index idx.BlockID, block *inter.Block)) {
 		if err != nil {
 			s.Log.Crit("Failed to decode block", "err", err)
 		}
-		fn(idx.BytesToBlock(it.Key()), &block)
+		fn(ltypes.BytesToBlockID(it.Key()), &block)
 	}
 }
 
 // SetBlockIndex stores chain block index.
-func (s *Store) SetBlockIndex(id common.Hash, n idx.BlockID) {
+func (s *Store) SetBlockIndex(id common.Hash, n ltypes.BlockID) {
 	if err := s.table.BlockHashes.Put(id.Bytes(), n.Bytes()); err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
 	}
@@ -99,10 +98,10 @@ func (s *Store) SetBlockIndex(id common.Hash, n idx.BlockID) {
 }
 
 // GetBlockIndex returns stored block index.
-func (s *Store) GetBlockIndex(id hash.EventHash) *idx.BlockID {
+func (s *Store) GetBlockIndex(id ltypes.EventHash) *ltypes.BlockID {
 	nVal, ok := s.cache.BlockHashes.Get(id)
 	if ok {
-		n, ok := nVal.(idx.BlockID)
+		n, ok := nVal.(ltypes.BlockID)
 		if ok {
 			return &n
 		}
@@ -114,12 +113,12 @@ func (s *Store) GetBlockIndex(id hash.EventHash) *idx.BlockID {
 	}
 	if buf == nil {
 		if id == s.fakeGenesisHash() {
-			zero := idx.BlockID(0)
+			zero := ltypes.BlockID(0)
 			return &zero
 		}
 		return nil
 	}
-	n := idx.BytesToBlock(buf)
+	n := ltypes.BytesToBlockID(buf)
 
 	s.cache.BlockHashes.Add(id, n, nominalSize)
 
@@ -127,14 +126,14 @@ func (s *Store) GetBlockIndex(id hash.EventHash) *idx.BlockID {
 }
 
 // SetGenesisBlockIndex stores genesis block index.
-func (s *Store) SetGenesisBlockIndex(n idx.BlockID) {
+func (s *Store) SetGenesisBlockIndex(n ltypes.BlockID) {
 	if err := s.table.Genesis.Put([]byte("i"), n.Bytes()); err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
 	}
 }
 
 // GetGenesisBlockIndex returns stored genesis block index.
-func (s *Store) GetGenesisBlockIndex() *idx.BlockID {
+func (s *Store) GetGenesisBlockIndex() *ltypes.BlockID {
 	buf, err := s.table.Genesis.Get([]byte("i"))
 	if err != nil {
 		s.Log.Crit("Failed to get key-value", "err", err)
@@ -142,7 +141,7 @@ func (s *Store) GetGenesisBlockIndex() *idx.BlockID {
 	if buf == nil {
 		return nil
 	}
-	n := idx.BytesToBlock(buf)
+	n := ltypes.BytesToBlockID(buf)
 
 	return &n
 }
@@ -159,14 +158,14 @@ func (s *Store) GetGenesisTime() inter.Timestamp {
 	return block.Time
 }
 
-func (s *Store) SetEpochBlock(b idx.BlockID, e idx.EpochID) {
+func (s *Store) SetEpochBlock(b ltypes.BlockID, e ltypes.EpochID) {
 	err := s.table.EpochBlocks.Put((math.MaxUint64 - b).Bytes(), e.Bytes())
 	if err != nil {
 		s.Log.Crit("Failed to set key-value", "err", err)
 	}
 }
 
-func (s *Store) FindBlockEpoch(b idx.BlockID) idx.EpochID {
+func (s *Store) FindBlockEpoch(b ltypes.BlockID) ltypes.EpochID {
 	if c, ok := s.cache.Blocks.Get(b); ok {
 		return c.(*inter.Block).Epoch
 	}
@@ -176,10 +175,10 @@ func (s *Store) FindBlockEpoch(b idx.BlockID) idx.EpochID {
 	if !it.Next() {
 		return 0
 	}
-	return idx.BytesToEpoch(it.Value())
+	return ltypes.BytesToEpochID(it.Value())
 }
 
-func (s *Store) GetBlockTxs(n idx.BlockID, block *inter.Block) types.Transactions {
+func (s *Store) GetBlockTxs(n ltypes.BlockID, block *inter.Block) types.Transactions {
 	if cached := s.evm.GetCachedEvmBlock(n); cached != nil {
 		return cached.Transactions
 	}

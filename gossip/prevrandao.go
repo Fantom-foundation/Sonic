@@ -3,12 +3,12 @@ package gossip
 import (
 	"crypto/sha256"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 // computePrevRandao computes the prevRandao from event hashes.
-func computePrevRandao(events []hash.EventHash) common.Hash {
+func computePrevRandao(events []ltypes.EventHash) common.Hash {
 	bts := [24]byte{}
 	for _, event := range events {
 		for i := 0; i < 24; i++ {

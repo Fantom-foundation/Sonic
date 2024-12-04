@@ -3,7 +3,6 @@ package vecmt
 import (
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/ltypes/tdag"
@@ -53,8 +52,8 @@ func BenchmarkIndex_Add(b *testing.B) {
 		validatorsBuilder.Set(peer, 1)
 	}
 	validators := validatorsBuilder.Build()
-	events := make(map[hash.EventHash]ltypes.Event)
-	getEvent := func(id hash.EventHash) ltypes.Event {
+	events := make(map[ltypes.EventHash]ltypes.Event)
+	getEvent := func(id ltypes.EventHash) ltypes.Event {
 		return events[id]
 	}
 	for _, e := range ordered {

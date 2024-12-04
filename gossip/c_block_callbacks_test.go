@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -27,16 +27,16 @@ func TestConsensusCallback(t *testing.T) {
 	// save start balances
 	balances := make([]*uint256.Int, validatorsNum)
 	for i := range balances {
-		balances[i] = env.State().GetBalance(env.Address(idx.ValidatorID(i + 1)))
+		balances[i] = env.State().GetBalance(env.Address(ltypes.ValidatorID(i + 1)))
 	}
 
 	for n := uint64(0); n < rounds; n++ {
 		// transfers
 		txs := make([]*types.Transaction, validatorsNum)
-		for i := idx.ValidatorIdx(0); i < validatorsNum; i++ {
+		for i := ltypes.ValidatorIdx(0); i < validatorsNum; i++ {
 			from := i % validatorsNum
 			to := 0
-			txs[i] = env.Transfer(idx.ValidatorID(from+1), idx.ValidatorID(to+1), utils.ToFtm(100))
+			txs[i] = env.Transfer(ltypes.ValidatorID(from+1), ltypes.ValidatorID(to+1), utils.ToFtm(100))
 		}
 		tm := sameEpoch
 		if n%10 == 0 {
@@ -59,7 +59,7 @@ func TestConsensusCallback(t *testing.T) {
 	for i := range balances {
 		require.Equal(
 			balances[i],
-			env.State().GetBalance(env.Address(idx.ValidatorID(i+1))),
+			env.State().GetBalance(env.Address(ltypes.ValidatorID(i+1))),
 			fmt.Sprintf("account%d", i),
 		)
 	}

@@ -8,8 +8,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -49,7 +49,7 @@ func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open lachesis database: %w", err)
 	}
-	cGetEpochDB := func(epoch idx.EpochID) kvdb.Store {
+	cGetEpochDB := func(epoch ltypes.EpochID) kvdb.Store {
 		cEpochDb, err := producer.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
 		if err != nil {
 			panic(fmt.Errorf("failed to open lachesis-%d database: %w", epoch, err))

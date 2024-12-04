@@ -4,9 +4,7 @@ import (
 	"crypto/sha256"
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
@@ -18,12 +16,12 @@ type EventI interface {
 	NetForkID() uint16
 	CreationTime() Timestamp
 	MedianTime() Timestamp
-	PrevEpochHash() *hash.Hash
+	PrevEpochHash() *ltypes.Hash
 	Extra() []byte
 	GasPowerLeft() GasPowerLeft
 	GasPowerUsed() uint64
 
-	HashToSign() hash.Hash
+	HashToSign() ltypes.Hash
 	Locator() EventLocator
 
 	// Payload-related fields
@@ -32,17 +30,17 @@ type EventI interface {
 	AnyBlockVotes() bool
 	AnyEpochVote() bool
 	AnyMisbehaviourProofs() bool
-	PayloadHash() hash.Hash
+	PayloadHash() ltypes.Hash
 }
 
 type EventLocator struct {
-	BaseHash    hash.Hash
+	BaseHash    ltypes.Hash
 	NetForkID   uint16
-	Epoch       idx.EpochID
-	Seq         idx.EventID
-	Lamport     idx.Lamport
-	Creator     idx.ValidatorID
-	PayloadHash hash.Hash
+	Epoch       ltypes.EpochID
+	Seq         ltypes.EventID
+	Lamport     ltypes.Lamport
+	Creator     ltypes.ValidatorID
+	PayloadHash ltypes.Hash
 }
 
 type SignedEventLocator struct {
@@ -62,11 +60,11 @@ type EventPayloadI interface {
 
 var emptyPayloadHash1 = CalcPayloadHash(&MutableEventPayload{extEventData: extEventData{version: 1}})
 
-func EmptyPayloadHash(version uint8) hash.Hash {
+func EmptyPayloadHash(version uint8) ltypes.Hash {
 	if version == 1 {
 		return emptyPayloadHash1
 	} else {
-		return hash.Hash(types.EmptyRootHash)
+		return ltypes.Hash(types.EmptyRootHash)
 	}
 }
 
@@ -83,7 +81,7 @@ type extEventData struct {
 	netForkID     uint16
 	creationTime  Timestamp
 	medianTime    Timestamp
-	prevEpochHash *hash.Hash
+	prevEpochHash *ltypes.Hash
 	gasPowerLeft  GasPowerLeft
 	gasPowerUsed  uint64
 	extra         []byte
@@ -92,7 +90,7 @@ type extEventData struct {
 	anyBlockVotes         bool
 	anyEpochVote          bool
 	anyMisbehaviourProofs bool
-	payloadHash           hash.Hash
+	payloadHash           ltypes.Hash
 }
 
 type sigData struct {
@@ -112,8 +110,8 @@ type Event struct {
 	extEventData
 
 	// cache
-	_baseHash    *hash.Hash
-	_locatorHash *hash.Hash
+	_baseHash    *ltypes.Hash
+	_locatorHash *ltypes.Hash
 }
 
 type SignedEvent struct {
@@ -136,11 +134,11 @@ type MutableEventPayload struct {
 	payloadData
 }
 
-func (e *Event) HashToSign() hash.Hash {
+func (e *Event) HashToSign() ltypes.Hash {
 	return *e._locatorHash
 }
 
-func asLocator(basehash hash.Hash, e EventI) EventLocator {
+func asLocator(basehash ltypes.Hash, e EventI) EventLocator {
 	return EventLocator{
 		BaseHash:    basehash,
 		NetForkID:   e.NetForkID(),
@@ -168,11 +166,11 @@ func (e *extEventData) CreationTime() Timestamp { return e.creationTime }
 
 func (e *extEventData) MedianTime() Timestamp { return e.medianTime }
 
-func (e *extEventData) PrevEpochHash() *hash.Hash { return e.prevEpochHash }
+func (e *extEventData) PrevEpochHash() *ltypes.Hash { return e.prevEpochHash }
 
 func (e *extEventData) Extra() []byte { return e.extra }
 
-func (e *extEventData) PayloadHash() hash.Hash { return e.payloadHash }
+func (e *extEventData) PayloadHash() ltypes.Hash { return e.payloadHash }
 
 func (e *extEventData) AnyTxs() bool { return e.anyTxs }
 
@@ -196,19 +194,19 @@ func (e *payloadData) BlockVotes() LlrBlockVotes { return e.blockVotes }
 
 func (e *payloadData) EpochVote() LlrEpochVote { return e.epochVote }
 
-func CalcTxHash(txs types.Transactions) hash.Hash {
-	return hash.Hash(types.DeriveSha(txs, trie.NewStackTrie(nil)))
+func CalcTxHash(txs types.Transactions) ltypes.Hash {
+	return ltypes.Hash(types.DeriveSha(txs, trie.NewStackTrie(nil)))
 }
 
-func CalcMisbehaviourProofsHash(mps []MisbehaviourProof) hash.Hash {
+func CalcMisbehaviourProofsHash(mps []MisbehaviourProof) ltypes.Hash {
 	hasher := sha256.New()
 	_ = rlp.Encode(hasher, mps)
-	return hash.BytesToHash(hasher.Sum(nil))
+	return ltypes.BytesToHash(hasher.Sum(nil))
 }
 
-func CalcPayloadHash(e EventPayloadI) hash.Hash {
+func CalcPayloadHash(e EventPayloadI) ltypes.Hash {
 	if e.Version() == 1 {
-		return hash.Of(hash.Of(CalcTxHash(e.Txs()).Bytes(), CalcMisbehaviourProofsHash(e.MisbehaviourProofs()).Bytes()).Bytes(), hash.Of(e.EpochVote().Hash().Bytes(), e.BlockVotes().Hash().Bytes()).Bytes())
+		return ltypes.Of(ltypes.Of(CalcTxHash(e.Txs()).Bytes(), CalcMisbehaviourProofsHash(e.MisbehaviourProofs()).Bytes()).Bytes(), ltypes.Of(e.EpochVote().Hash().Bytes(), e.BlockVotes().Hash().Bytes()).Bytes())
 	} else {
 		return CalcTxHash(e.Txs())
 	}
@@ -222,11 +220,11 @@ func (e *MutableEventPayload) SetCreationTime(v Timestamp) { e.creationTime = v 
 
 func (e *MutableEventPayload) SetMedianTime(v Timestamp) { e.medianTime = v }
 
-func (e *MutableEventPayload) SetPrevEpochHash(v *hash.Hash) { e.prevEpochHash = v }
+func (e *MutableEventPayload) SetPrevEpochHash(v *ltypes.Hash) { e.prevEpochHash = v }
 
 func (e *MutableEventPayload) SetExtra(v []byte) { e.extra = v }
 
-func (e *MutableEventPayload) SetPayloadHash(v hash.Hash) { e.payloadHash = v }
+func (e *MutableEventPayload) SetPayloadHash(v ltypes.Hash) { e.payloadHash = v }
 
 func (e *MutableEventPayload) SetGasPowerLeft(v GasPowerLeft) { e.gasPowerLeft = v }
 
@@ -251,23 +249,23 @@ func (e *MutableEventPayload) SetBlockVotes(v LlrBlockVotes) {
 
 func (e *MutableEventPayload) SetEpochVote(v LlrEpochVote) {
 	e.epochVote = v
-	e.anyEpochVote = v.Epoch != 0 && v.Vote != hash.Zero
+	e.anyEpochVote = v.Epoch != 0 && v.Vote != ltypes.Zero
 }
 
-func calcEventID(h hash.Hash) (id [24]byte) {
+func calcEventID(h ltypes.Hash) (id [24]byte) {
 	copy(id[:], h[:24])
 	return id
 }
 
-func calcEventHashes(ser []byte, e EventI) (locator hash.Hash, base hash.Hash) {
-	base = hash.Of(ser)
+func calcEventHashes(ser []byte, e EventI) (locator ltypes.Hash, base ltypes.Hash) {
+	base = ltypes.Of(ser)
 	if e.Version() < 1 {
 		return base, base
 	}
 	return asLocator(base, e).HashToSign(), base
 }
 
-func (e *MutableEventPayload) calcHashes() (locator hash.Hash, base hash.Hash) {
+func (e *MutableEventPayload) calcHashes() (locator ltypes.Hash, base ltypes.Hash) {
 	b, _ := e.immutable().Event.MarshalBinary()
 	return calcEventHashes(b, e)
 }
@@ -280,7 +278,7 @@ func (e *MutableEventPayload) size() int {
 	return len(b)
 }
 
-func (e *MutableEventPayload) HashToSign() hash.Hash {
+func (e *MutableEventPayload) HashToSign() ltypes.Hash {
 	h, _ := e.calcHashes()
 	return h
 }
@@ -294,7 +292,7 @@ func (e *MutableEventPayload) Size() int {
 	return e.size()
 }
 
-func (e *MutableEventPayload) build(locatorHash hash.Hash, baseHash hash.Hash, size int) *EventPayload {
+func (e *MutableEventPayload) build(locatorHash ltypes.Hash, baseHash ltypes.Hash, size int) *EventPayload {
 	return &EventPayload{
 		SignedEvent: SignedEvent{
 			Event: Event{
@@ -311,7 +309,7 @@ func (e *MutableEventPayload) build(locatorHash hash.Hash, baseHash hash.Hash, s
 }
 
 func (e *MutableEventPayload) immutable() *EventPayload {
-	return e.build(hash.Hash{}, hash.Hash{}, 0)
+	return e.build(ltypes.Hash{}, ltypes.Hash{}, 0)
 }
 
 func (e *MutableEventPayload) Build() *EventPayload {
@@ -320,13 +318,13 @@ func (e *MutableEventPayload) Build() *EventPayload {
 	return e.build(locatorHash, baseHash, len(payloadSer))
 }
 
-func (l EventLocator) HashToSign() hash.Hash {
-	return hash.Of(l.BaseHash.Bytes(), bigendian.Uint16ToBytes(l.NetForkID), l.Epoch.Bytes(), l.Seq.Bytes(), l.Lamport.Bytes(), l.Creator.Bytes(), l.PayloadHash.Bytes())
+func (l EventLocator) HashToSign() ltypes.Hash {
+	return ltypes.Of(l.BaseHash.Bytes(), bigendian.Uint16ToBytes(l.NetForkID), l.Epoch.Bytes(), l.Seq.Bytes(), l.Lamport.Bytes(), l.Creator.Bytes(), l.PayloadHash.Bytes())
 }
 
-func (l EventLocator) ID() hash.EventHash {
+func (l EventLocator) ID() ltypes.EventHash {
 	h := l.HashToSign()
 	copy(h[0:4], l.Epoch.Bytes())
 	copy(h[4:8], l.Lamport.Bytes())
-	return hash.EventHash(h)
+	return ltypes.EventHash(h)
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/utils/errlock"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -118,9 +118,9 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 		}
 		return evmcore.NewTxPool(cfg.TxPool, reader.Config(), reader)
 	}
-	haltCheck := func(oldEpoch, newEpoch idx.EpochID, age time.Time) bool {
+	haltCheck := func(oldEpoch, newEpoch ltypes.EpochID, age time.Time) bool {
 		stop := ctx.GlobalIsSet(flags.ExitWhenAgeFlag.Name) && ctx.GlobalDuration(flags.ExitWhenAgeFlag.Name) >= time.Since(age)
-		stop = stop || ctx.GlobalIsSet(flags.ExitWhenEpochFlag.Name) && idx.EpochID(ctx.GlobalUint64(flags.ExitWhenEpochFlag.Name)) <= newEpoch
+		stop = stop || ctx.GlobalIsSet(flags.ExitWhenEpochFlag.Name) && ltypes.EpochID(ctx.GlobalUint64(flags.ExitWhenEpochFlag.Name)) <= newEpoch
 		if stop {
 			go func() {
 				// do it in a separate thread to avoid deadlock

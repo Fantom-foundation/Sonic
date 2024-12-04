@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 
 	"github.com/Fantom-foundation/lachesis-base/common/littleendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
@@ -15,7 +14,7 @@ type weightedShuffleNode struct {
 }
 
 type weightedShuffleTree struct {
-	seed      hash.Hash
+	seed      ltypes.Hash
 	seedIndex int
 
 	weights []ltypes.Weight
@@ -54,7 +53,7 @@ func (t *weightedShuffleTree) rand32() uint32 {
 	if t.seedIndex == 32 {
 		hasher := sha256.New() // use sha2 instead of sha3 for speed
 		hasher.Write(t.seed.Bytes())
-		t.seed = hash.BytesToHash(hasher.Sum(nil))
+		t.seed = ltypes.BytesToHash(hasher.Sum(nil))
 		t.seedIndex = 0
 	}
 	// use not used parts of old seed, instead of calculating new one
@@ -86,7 +85,7 @@ func (t *weightedShuffleTree) retrieve(i int) int {
 // WeightedPermutation builds weighted random permutation
 // Returns first {size} entries of {weights} permutation.
 // Call with {size} == len(weights) to get the whole permutation.
-func WeightedPermutation(size int, weights []ltypes.Weight, seed hash.Hash) []int {
+func WeightedPermutation(size int, weights []ltypes.Weight, seed ltypes.Hash) []int {
 	if len(weights) < size {
 		panic("the permutation size must be less or equal to weights size")
 	}

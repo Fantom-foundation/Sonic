@@ -3,15 +3,14 @@ package eventid
 import (
 	"sync"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 type Cache struct {
-	ids     map[hash.EventHash]bool
+	ids     map[ltypes.EventHash]bool
 	mu      sync.RWMutex
 	maxSize int
-	epoch   idx.EpochID
+	epoch   ltypes.EpochID
 }
 
 func NewCache(maxSize int) *Cache {
@@ -20,14 +19,14 @@ func NewCache(maxSize int) *Cache {
 	}
 }
 
-func (c *Cache) Reset(epoch idx.EpochID) {
+func (c *Cache) Reset(epoch ltypes.EpochID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.ids = make(map[hash.EventHash]bool)
+	c.ids = make(map[ltypes.EventHash]bool)
 	c.epoch = epoch
 }
 
-func (c *Cache) Has(id hash.EventHash) (has bool, ok bool) {
+func (c *Cache) Has(id ltypes.EventHash) (has bool, ok bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -40,7 +39,7 @@ func (c *Cache) Has(id hash.EventHash) (has bool, ok bool) {
 	return c.ids[id], true
 }
 
-func (c *Cache) Add(id hash.EventHash) bool {
+func (c *Cache) Add(id ltypes.EventHash) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -58,7 +57,7 @@ func (c *Cache) Add(id hash.EventHash) bool {
 	return true
 }
 
-func (c *Cache) Remove(id hash.EventHash) {
+func (c *Cache) Remove(id ltypes.EventHash) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

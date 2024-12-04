@@ -7,9 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -122,13 +120,13 @@ func processLastEvent(lasts *concurrent.ValidatorEventsSet, e *inter.EventPayloa
 	return lasts
 }
 
-func (s *Service) switchEpochTo(newEpoch idx.EpochID) {
+func (s *Service) switchEpochTo(newEpoch ltypes.EpochID) {
 	s.store.cache.EventIDs.Reset(newEpoch)
 	s.store.SetHighestLamport(0)
 	// reset dag indexer
 	s.store.resetEpochStore(newEpoch)
 	es := s.store.getEpochStore(newEpoch)
-	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id hash.EventHash) ltypes.Event {
+	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id ltypes.EventHash) ltypes.Event {
 		return s.store.GetEvent(id)
 	})
 	// notify event checkers about new validation data
@@ -141,7 +139,7 @@ func (s *Service) switchEpochTo(newEpoch idx.EpochID) {
 	s.feed.newEpoch.Send(newEpoch)
 }
 
-func (s *Service) SwitchEpochTo(newEpoch idx.EpochID) error {
+func (s *Service) SwitchEpochTo(newEpoch ltypes.EpochID) error {
 	bs, es := s.store.GetHistoryBlockEpochState(newEpoch)
 	if bs == nil {
 		return errNonExistingEpoch
@@ -162,7 +160,7 @@ func (s *Service) SwitchEpochTo(newEpoch idx.EpochID) error {
 	return nil
 }
 
-func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.EpochID) {
+func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch ltypes.EpochID) {
 	// index DAG heads and last events
 	s.store.SetHeads(oldEpoch, processEventHeads(s.store.GetHeads(oldEpoch), e))
 	s.store.SetLastEvents(oldEpoch, processLastEvent(s.store.GetLastEvents(oldEpoch), e))

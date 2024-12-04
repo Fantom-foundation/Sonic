@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -18,7 +16,7 @@ type medianTimeIndex struct {
 }
 
 // MedianTime calculates weighted median of claimed time within highest observed events.
-func (vi *Index) MedianTime(id hash.EventHash, defaultTime inter.Timestamp) inter.Timestamp {
+func (vi *Index) MedianTime(id ltypes.EventHash, defaultTime inter.Timestamp) inter.Timestamp {
 	vi.Engine.InitBranchesInfo()
 	// Get event by hash
 	_before := vi.Engine.GetMergedHighestBefore(id)
@@ -31,7 +29,7 @@ func (vi *Index) MedianTime(id hash.EventHash, defaultTime inter.Timestamp) inte
 	highests := make([]medianTimeIndex, 0, len(vi.validatorIdxs))
 	// convert []HighestBefore -> []medianTimeIndex
 	for creatorIdxI := range vi.validators.IDs() {
-		creatorIdx := idx.ValidatorIdx(creatorIdxI)
+		creatorIdx := ltypes.ValidatorIdx(creatorIdxI)
 		highest := medianTimeIndex{}
 		highest.weight = vi.validators.GetWeightByIdx(creatorIdx)
 		highest.creationTime = before.VTime.Get(creatorIdx)

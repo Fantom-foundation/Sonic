@@ -8,7 +8,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 // EmitIntervals is the configuration of emit intervals.
@@ -21,7 +21,7 @@ type EmitIntervals struct {
 }
 
 type ValidatorConfig struct {
-	ID     idx.ValidatorID
+	ID     ltypes.ValidatorID
 	PubKey validatorpk.PubKey
 }
 
@@ -40,7 +40,7 @@ type Config struct {
 
 	MaxTxsPerAddress int
 
-	MaxParents idx.EventID
+	MaxParents ltypes.EventID
 
 	// thresholds on GasLeft
 	LimitedTpsThreshold uint64
@@ -94,7 +94,7 @@ func (cfg EmitIntervals) RandomizeEmitTime(rand *rand.Rand) EmitIntervals {
 }
 
 // FakeConfig returns the testing configurations for the events emitter.
-func FakeConfig(num idx.ValidatorIdx) Config {
+func FakeConfig(num ltypes.ValidatorIdx) Config {
 	cfg := DefaultConfig()
 	cfg.EmitIntervals.Max = 10 * time.Second // don't wait long in fakenet
 	cfg.EmitIntervals.DoublesignProtection = cfg.EmitIntervals.Max / 2

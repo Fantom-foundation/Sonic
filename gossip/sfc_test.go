@@ -29,7 +29,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
@@ -65,7 +65,7 @@ func TestSFC(t *testing.T) {
 	rootDriver10, err := driver100.NewContract(driver.ContractAddress, env)
 	require.NoError(t, err)
 
-	admin := idx.ValidatorID(1)
+	admin := ltypes.ValidatorID(1)
 	adminAddr := env.Address(admin)
 
 	_ = true &&
@@ -189,16 +189,16 @@ func circleTransfers(t *testing.T, env *testEnv, count uint64) {
 	// save start balances
 	balances := make([]*uint256.Int, validatorsNum)
 	for i := range balances {
-		balances[i] = env.State().GetBalance(env.Address(idx.ValidatorID(i + 1)))
+		balances[i] = env.State().GetBalance(env.Address(ltypes.ValidatorID(i + 1)))
 	}
 
 	for i := uint64(0); i < count; i++ {
 		// transfers
 		txs := make([]*types.Transaction, validatorsNum)
-		for i := idx.ValidatorIdx(0); i < validatorsNum; i++ {
+		for i := ltypes.ValidatorIdx(0); i < validatorsNum; i++ {
 			from := (i) % validatorsNum
 			to := (i + 1) % validatorsNum
-			txs[i] = env.Transfer(idx.ValidatorID(from+1), idx.ValidatorID(to+1), utils.ToFtm(100))
+			txs[i] = env.Transfer(ltypes.ValidatorID(from+1), ltypes.ValidatorID(to+1), utils.ToFtm(100))
 		}
 
 		rr, err := env.ApplyTxs(sameEpoch, txs...)
@@ -213,7 +213,7 @@ func circleTransfers(t *testing.T, env *testEnv, count uint64) {
 	for i := range balances {
 		require.Equal(
 			balances[i],
-			env.State().GetBalance(env.Address(idx.ValidatorID(i+1))),
+			env.State().GetBalance(env.Address(ltypes.ValidatorID(i+1))),
 			fmt.Sprintf("account%d", i),
 		)
 	}

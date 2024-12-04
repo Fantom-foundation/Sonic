@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/utils/concurrent"
 )
@@ -21,7 +20,7 @@ func (es *epochStore) getCachedHeads() (*concurrent.EventsSet, bool) {
 }
 
 func (es *epochStore) loadHeads() *concurrent.EventsSet {
-	res := make(hash.EventHashSet, 100)
+	res := make(ltypes.EventHashSet, 100)
 
 	b, err := es.table.Heads.Get([]byte{})
 	if err != nil {
@@ -31,7 +30,7 @@ func (es *epochStore) loadHeads() *concurrent.EventsSet {
 		return concurrent.WrapEventsSet(res)
 	}
 	for i := 0; i < len(b); i += 32 {
-		res.Add(hash.BytesToEvent(b[i : i+32]))
+		res.Add(ltypes.BytesToEvent(b[i : i+32]))
 	}
 
 	return concurrent.WrapEventsSet(res)
@@ -81,7 +80,7 @@ func (es *epochStore) FlushHeads() {
 }
 
 // GetHeadsSlice returns IDs of all the epoch events with no descendants
-func (s *Store) GetHeadsSlice(epoch idx.EpochID) hash.EventHashes {
+func (s *Store) GetHeadsSlice(epoch ltypes.EpochID) ltypes.EventHashes {
 	heads := s.GetHeads(epoch)
 	heads.RLock()
 	defer heads.RUnlock()
@@ -89,7 +88,7 @@ func (s *Store) GetHeadsSlice(epoch idx.EpochID) hash.EventHashes {
 }
 
 // GetHeads returns set of all the epoch event IDs with no descendants
-func (s *Store) GetHeads(epoch idx.EpochID) *concurrent.EventsSet {
+func (s *Store) GetHeads(epoch ltypes.EpochID) *concurrent.EventsSet {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil
@@ -98,7 +97,7 @@ func (s *Store) GetHeads(epoch idx.EpochID) *concurrent.EventsSet {
 	return es.GetHeads()
 }
 
-func (s *Store) SetHeads(epoch idx.EpochID, ids *concurrent.EventsSet) {
+func (s *Store) SetHeads(epoch ltypes.EpochID, ids *concurrent.EventsSet) {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return

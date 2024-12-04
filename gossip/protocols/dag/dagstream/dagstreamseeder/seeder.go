@@ -7,7 +7,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream"
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamseeder"
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
 )
@@ -22,12 +22,12 @@ type Seeder struct {
 }
 
 type Callbacks struct {
-	ForEachEvent func(start []byte, onEvent func(key hash.EventHash, eventB rlp.RawValue) bool)
+	ForEachEvent func(start []byte, onEvent func(key ltypes.EventHash, eventB rlp.RawValue) bool)
 }
 
 type Peer struct {
 	ID           string
-	SendChunk    func(dagstream.Response, hash.EventHashes) error
+	SendChunk    func(dagstream.Response, ltypes.EventHashes) error
 	Misbehaviour func(error)
 }
 
@@ -36,11 +36,11 @@ func New(cfg Config, callbacks Callbacks) *Seeder {
 		BaseSeeder: basestreamseeder.New(basestreamseeder.Config(cfg), basestreamseeder.Callbacks{
 			ForEachItem: func(start basestream.Locator, rType basestream.RequestType, onKey func(basestream.Locator) bool, onAppended func(basestream.Payload) bool) basestream.Payload {
 				res := &dagstream.Payload{
-					IDs:    hash.EventHashes{},
+					IDs:    ltypes.EventHashes{},
 					Events: []rlp.RawValue{},
 					Size:   0,
 				}
-				callbacks.ForEachEvent(start.(dagstream.Locator), func(key hash.EventHash, eventB rlp.RawValue) bool {
+				callbacks.ForEachEvent(start.(dagstream.Locator), func(key ltypes.EventHash, eventB rlp.RawValue) bool {
 					if !onKey(dagstream.Locator(key.Bytes())) {
 						return false
 					}
@@ -58,7 +58,7 @@ func New(cfg Config, callbacks Callbacks) *Seeder {
 }
 
 func (s *Seeder) NotifyRequestReceived(peer Peer, r dagstream.Request) (err error, peerErr error) {
-	if len(r.Session.Start) > len(hash.ZeroEvent) || len(r.Session.Stop) > len(hash.ZeroEvent) {
+	if len(r.Session.Start) > len(ltypes.ZeroEvent) || len(r.Session.Stop) > len(ltypes.ZeroEvent) {
 		return nil, ErrWrongSelectorLen
 	}
 	if r.Type != dagstream.RequestIDs && r.Type != dagstream.RequestEvents {

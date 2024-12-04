@@ -37,7 +37,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/signers/internaltx"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -133,8 +133,8 @@ func (s *PublicEthereumAPI) FeeHistory(ctx context.Context, blockCount math.HexO
 		return nil, err
 	}
 	oldest := last
-	if oldest > idx.BlockID(blockCount) {
-		oldest -= idx.BlockID(blockCount - 1)
+	if oldest > ltypes.BlockID(blockCount) {
+		oldest -= ltypes.BlockID(blockCount - 1)
 	} else {
 		oldest = 0
 	}
@@ -1651,7 +1651,7 @@ func (s *PublicTransactionPoolAPI) formatTxReceipt(header *evmcore.EvmHeader, tx
 	return fields
 }
 
-// GetTransactionReceipt returns the transaction receipt for the given transaction hash.
+// GetTransactionReceipt returns the transaction receipt for the given transaction hash. 
 func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
 	tx, blockNumber, index, err := s.b.GetTransaction(ctx, hash)
 	if tx == nil || err != nil {

@@ -13,9 +13,7 @@ import (
 	validatorpk "github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	opera "github.com/Fantom-foundation/go-opera/opera"
 	vecmt "github.com/Fantom-foundation/go-opera/vecmt"
-	hash "github.com/Fantom-foundation/lachesis-base/hash"
-	idx "github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/ltypes"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	common "github.com/ethereum/go-ethereum/common"
 	types "github.com/ethereum/go-ethereum/core/types"
 	gomock "github.com/golang/mock/gomock"
@@ -99,11 +97,11 @@ func (mr *MockExternalMockRecorder) DagIndex() *gomock.Call {
 }
 
 // GetEpochValidators mocks base method.
-func (m *MockExternal) GetEpochValidators() (*ltypes.Validators, idx.EpochID) {
+func (m *MockExternal) GetEpochValidators() (*ltypes.Validators, ltypes.EpochID) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEpochValidators")
 	ret0, _ := ret[0].(*ltypes.Validators)
-	ret1, _ := ret[1].(idx.EpochID)
+	ret1, _ := ret[1].(ltypes.EpochID)
 	return ret0, ret1
 }
 
@@ -114,7 +112,7 @@ func (mr *MockExternalMockRecorder) GetEpochValidators() *gomock.Call {
 }
 
 // GetEvent mocks base method.
-func (m *MockExternal) GetEvent(arg0 hash.EventHash) *inter.Event {
+func (m *MockExternal) GetEvent(arg0 ltypes.EventHash) *inter.Event {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEvent", arg0)
 	ret0, _ := ret[0].(*inter.Event)
@@ -128,7 +126,7 @@ func (mr *MockExternalMockRecorder) GetEvent(arg0 interface{}) *gomock.Call {
 }
 
 // GetEventPayload mocks base method.
-func (m *MockExternal) GetEventPayload(arg0 hash.EventHash) *inter.EventPayload {
+func (m *MockExternal) GetEventPayload(arg0 ltypes.EventHash) *inter.EventPayload {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEventPayload", arg0)
 	ret0, _ := ret[0].(*inter.EventPayload)
@@ -156,10 +154,10 @@ func (mr *MockExternalMockRecorder) GetGenesisTime() *gomock.Call {
 }
 
 // GetHeads mocks base method.
-func (m *MockExternal) GetHeads(arg0 idx.EpochID) hash.EventHashes {
+func (m *MockExternal) GetHeads(arg0 ltypes.EpochID) ltypes.EventHashes {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHeads", arg0)
-	ret0, _ := ret[0].(hash.EventHashes)
+	ret0, _ := ret[0].(ltypes.EventHashes)
 	return ret0
 }
 
@@ -170,10 +168,10 @@ func (mr *MockExternalMockRecorder) GetHeads(arg0 interface{}) *gomock.Call {
 }
 
 // GetLastEvent mocks base method.
-func (m *MockExternal) GetLastEvent(arg0 idx.EpochID, arg1 idx.ValidatorID) *hash.EventHash {
+func (m *MockExternal) GetLastEvent(arg0 ltypes.EpochID, arg1 ltypes.ValidatorID) *ltypes.EventHash {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLastEvent", arg0, arg1)
-	ret0, _ := ret[0].(*hash.EventHash)
+	ret0, _ := ret[0].(*ltypes.EventHash)
 	return ret0
 }
 
@@ -184,10 +182,10 @@ func (mr *MockExternalMockRecorder) GetLastEvent(arg0, arg1 interface{}) *gomock
 }
 
 // GetLatestBlockIndex mocks base method.
-func (m *MockExternal) GetLatestBlockIndex() idx.BlockID {
+func (m *MockExternal) GetLatestBlockIndex() ltypes.BlockID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLatestBlockIndex")
-	ret0, _ := ret[0].(idx.BlockID)
+	ret0, _ := ret[0].(ltypes.BlockID)
 	return ret0
 }
 

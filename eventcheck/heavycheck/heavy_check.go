@@ -5,8 +5,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -26,9 +25,9 @@ var (
 
 // Reader is accessed by the validator to get the current state.
 type Reader interface {
-	GetEpochPubKeys() (map[idx.ValidatorID]validatorpk.PubKey, idx.EpochID)
-	GetEpochPubKeysOf(idx.EpochID) map[idx.ValidatorID]validatorpk.PubKey
-	GetEpochBlockStart(idx.EpochID) idx.BlockID
+	GetEpochPubKeys() (map[ltypes.ValidatorID]validatorpk.PubKey, ltypes.EpochID)
+	GetEpochPubKeysOf(ltypes.EpochID) map[ltypes.ValidatorID]validatorpk.PubKey
+	GetEpochBlockStart(ltypes.EpochID) ltypes.BlockID
 }
 
 // Checker which requires only parents list + current epoch info
@@ -98,14 +97,14 @@ func (v *Checker) EnqueueEvent(e inter.EventPayloadI, onValidated func(error)) e
 }
 
 // verifySignature checks the signature against e.Creator.
-func verifySignature(signedHash hash.Hash, sig inter.Signature, pubkey validatorpk.PubKey) bool {
+func verifySignature(signedHash ltypes.Hash, sig inter.Signature, pubkey validatorpk.PubKey) bool {
 	if pubkey.Type != validatorpk.Types.Secp256k1 {
 		return false
 	}
 	return crypto.VerifySignature(pubkey.Raw, signedHash.Bytes(), sig.Bytes())
 }
 
-func (v *Checker) ValidateEventLocator(e inter.SignedEventLocator, authEpoch idx.EpochID, authErr error, checkPayload func() bool) error {
+func (v *Checker) ValidateEventLocator(e inter.SignedEventLocator, authEpoch ltypes.EpochID, authErr error, checkPayload func() bool) error {
 	pubkeys := v.reader.GetEpochPubKeysOf(authEpoch)
 	if len(pubkeys) == 0 {
 		return authErr

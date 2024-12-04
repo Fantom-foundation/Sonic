@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
@@ -26,7 +26,7 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 	defer env.Close()
 
 	for bi := 0; bi < b.N; bi++ {
-		count := idx.ValidatorID(10)
+		count := ltypes.ValidatorID(10)
 
 		proposals := [][32]byte{
 			ballotOption("Option 1"),
@@ -56,7 +56,7 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 		}
 
 		// Init accounts
-		for vid := idx.ValidatorID(2); vid <= count; vid++ {
+		for vid := ltypes.ValidatorID(2); vid <= count; vid++ {
 			tx := env.Transfer(1, vid, utils.ToFtm(10))
 			txs = append(txs, tx)
 			if len(txs) > 2 {
@@ -66,7 +66,7 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 		flushTxs()
 
 		// GiveRightToVote
-		for vid := idx.ValidatorID(1); vid <= count; vid++ {
+		for vid := ltypes.ValidatorID(1); vid <= count; vid++ {
 			tx, err := cBallot.GiveRightToVote(env.Pay(1), env.Address(vid))
 			require.NoError(err)
 			txs = append(txs, tx)
@@ -77,7 +77,7 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 		flushTxs()
 
 		// Vote
-		for vid := idx.ValidatorID(1); vid <= count; vid++ {
+		for vid := ltypes.ValidatorID(1); vid <= count; vid++ {
 			proposal := big.NewInt(int64(vid) % int64(len(proposals)))
 			tx, err := cBallot.Vote(env.Pay(vid), proposal)
 			require.NoError(err)

@@ -8,7 +8,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
@@ -44,7 +44,7 @@ type Block struct {
 	TransactionHashes []common.Hash
 
 	// Fields required for linking the block internally to a lachesis epoch.
-	Epoch idx.EpochID
+	Epoch ltypes.EpochID
 
 	// The duration of this block, being the difference between the predecessor
 	// block's timestamp and this block's timestamp, in nanoseconds.
@@ -211,7 +211,7 @@ func (b *BlockBuilder) WithPrevRandao(prevRandao common.Hash) *BlockBuilder {
 	return b
 }
 
-func (b *BlockBuilder) WithEpoch(epoch idx.EpochID) *BlockBuilder {
+func (b *BlockBuilder) WithEpoch(epoch ltypes.EpochID) *BlockBuilder {
 	b.block.Epoch = epoch
 	return b
 }

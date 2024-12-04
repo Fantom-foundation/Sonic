@@ -3,7 +3,6 @@ package emitter
 import (
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 )
@@ -17,7 +16,7 @@ func (em *Emitter) recountConfirmingIntervals(validators *ltypes.Validators) {
 	// confirmingEmitInterval = piecefunc(totalStakeBeforeMe / totalStake) * MinEmitInterval
 	totalStakeBefore := ltypes.Weight(0)
 	for i, stake := range validators.SortedWeights() {
-		vid := validators.GetID(idx.ValidatorIdx(i))
+		vid := validators.GetID(ltypes.ValidatorIdx(i))
 		// ltypes.Weight is uint32, so cast to uint64 to avoid an overflow
 		stakeRatio := uint64(totalStakeBefore) * uint64(piecefunc.DecimalUnit) / uint64(validators.TotalWeight())
 		if !em.offlineValidators[vid] {
@@ -49,7 +48,7 @@ func (em *Emitter) recheckChallenges() {
 		}
 	} else {
 		// erase all the challenges if network is idle
-		em.challenges = make(map[idx.ValidatorID]time.Time)
+		em.challenges = make(map[ltypes.ValidatorID]time.Time)
 	}
 	// check challenges
 	recount := false

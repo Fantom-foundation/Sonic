@@ -5,8 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/suite"
 
@@ -20,7 +19,7 @@ type LLRHeavyCheckTestSuite struct {
 
 	env        *testEnv
 	me         *inter.MutableEventPayload
-	startEpoch idx.EpochID
+	startEpoch ltypes.EpochID
 }
 
 func (s *LLRHeavyCheckTestSuite) SetupSuite() {
@@ -40,7 +39,7 @@ func (s *LLRHeavyCheckTestSuite) SetupSuite() {
 
 	s.env = env
 	s.me = mutableEventPayloadFromImmutable(e)
-	s.startEpoch = idx.EpochID(startEpoch)
+	s.startEpoch = ltypes.EpochID(startEpoch)
 }
 
 func (s *LLRHeavyCheckTestSuite) TearDownSuite() {
@@ -78,11 +77,11 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			nil,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.EpochID(s.startEpoch))
+				s.me.SetEpoch(ltypes.EpochID(s.startEpoch))
 				s.me.SetCreator(3)
-				s.me.SetSeq(idx.EventID(1))
-				s.me.SetFrame(idx.FrameID(1))
-				s.me.SetLamport(idx.Lamport(1))
+				s.me.SetSeq(ltypes.EventID(1))
+				s.me.SetFrame(ltypes.FrameID(1))
+				s.me.SetLamport(ltypes.Lamport(1))
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
 				sig, err := s.env.signer.Sign(s.env.pubkeys[2], s.me.HashToSign().Bytes())
@@ -97,7 +96,7 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			epochcheck.ErrNotRelevant,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.EpochID(s.startEpoch + 1))
+				s.me.SetEpoch(ltypes.EpochID(s.startEpoch + 1))
 				s.me.SetCreator(3)
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
@@ -113,11 +112,11 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			epochcheck.ErrAuth,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.EpochID(s.startEpoch))
-				s.me.SetSeq(idx.EventID(1))
-				s.me.SetFrame(idx.FrameID(1))
-				s.me.SetLamport(idx.Lamport(1))
-				invalidCreator := idx.ValidatorID(100)
+				s.me.SetEpoch(ltypes.EpochID(s.startEpoch))
+				s.me.SetSeq(ltypes.EventID(1))
+				s.me.SetFrame(ltypes.FrameID(1))
+				s.me.SetLamport(ltypes.Lamport(1))
+				invalidCreator := ltypes.ValidatorID(100)
 				s.me.SetCreator(invalidCreator)
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
@@ -133,11 +132,11 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			heavycheck.ErrWrongEventSig,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.EpochID(s.startEpoch))
+				s.me.SetEpoch(ltypes.EpochID(s.startEpoch))
 				s.me.SetCreator(3)
-				s.me.SetSeq(idx.EventID(1))
-				s.me.SetFrame(idx.FrameID(1))
-				s.me.SetLamport(idx.Lamport(1))
+				s.me.SetSeq(ltypes.EventID(1))
+				s.me.SetFrame(ltypes.FrameID(1))
+				s.me.SetLamport(ltypes.Lamport(1))
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
 				sig, err := s.env.signer.Sign(s.env.pubkeys[1], s.me.HashToSign().Bytes())
@@ -152,12 +151,12 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			heavycheck.ErrMalformedTxSig,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.EpochID(s.startEpoch))
+				s.me.SetEpoch(ltypes.EpochID(s.startEpoch))
 				s.me.SetCreator(3)
-				s.me.SetSeq(idx.EventID(1))
-				s.me.SetFrame(idx.FrameID(1))
-				s.me.SetLamport(idx.Lamport(1))
-				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
+				s.me.SetSeq(ltypes.EventID(1))
+				s.me.SetFrame(ltypes.FrameID(1))
+				s.me.SetLamport(ltypes.Lamport(1))
+				h := ltypes.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
 				tx1 := types.NewTx(&types.LegacyTx{
 					Nonce:    math.MaxUint64,
 					GasPrice: h.Big(),
@@ -183,13 +182,13 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			heavycheck.ErrWrongPayloadHash,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.EpochID(s.startEpoch))
-				s.me.SetSeq(idx.EventID(1))
-				s.me.SetFrame(idx.FrameID(1))
-				s.me.SetLamport(idx.Lamport(1))
+				s.me.SetEpoch(ltypes.EpochID(s.startEpoch))
+				s.me.SetSeq(ltypes.EventID(1))
+				s.me.SetFrame(ltypes.FrameID(1))
+				s.me.SetLamport(ltypes.Lamport(1))
 				s.me.SetCreator(3)
 
-				invalidPayloadHash := hash.Hash{}
+				invalidPayloadHash := ltypes.Hash{}
 				s.me.SetPayloadHash(invalidPayloadHash)
 
 				sig, err := s.env.signer.Sign(s.env.pubkeys[2], s.me.HashToSign().Bytes())

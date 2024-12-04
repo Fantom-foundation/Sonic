@@ -13,7 +13,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/ethereum/go-ethereum/core/tracing"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -108,7 +108,7 @@ func (b *GenesisBuilder) TotalSupply() *big.Int {
 	return b.totalSupply
 }
 
-func (b *GenesisBuilder) CurrentHash() hash.Hash {
+func (b *GenesisBuilder) CurrentHash() ltypes.Hash {
 	er := b.epochs[len(b.epochs)-1]
 	return er.Hash()
 }
@@ -205,7 +205,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 	blockCtx := iblockproc.BlockCtx{
 		Idx:     bs.LastBlock.Idx + 1,
 		Time:    bs.LastBlock.Time + 1,
-		Atropos: hash.EventHash{},
+		Atropos: ltypes.EventHash{},
 	}
 
 	sealer := blockProc.SealerModule.Start(blockCtx, bs, es)
@@ -247,7 +247,7 @@ func (b *GenesisBuilder) ExecuteGenesisTxs(blockProc BlockProc, genesisTxs types
 		return fmt.Errorf("genesis transaction is skipped (%v)", skippedTxs)
 	}
 	bs = txListener.Finalize()
-	bs.FinalizedStateRoot = hash.Hash(evmBlock.Root)
+	bs.FinalizedStateRoot = ltypes.Hash(evmBlock.Root)
 
 	bs.LastBlock = blockCtx
 

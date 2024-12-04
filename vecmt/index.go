@@ -1,8 +1,6 @@
 package vecmt
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
@@ -33,9 +31,9 @@ type Index struct {
 
 	crit          func(error)
 	validators    *ltypes.Validators
-	validatorIdxs map[idx.ValidatorID]idx.ValidatorIdx
+	validatorIdxs map[ltypes.ValidatorID]ltypes.ValidatorIdx
 
-	getEvent func(hash.EventHash) ltypes.Event
+	getEvent func(ltypes.EventHash) ltypes.Event
 
 	vecDb kvdb.Store
 	table struct {
@@ -91,7 +89,7 @@ func (vi *Index) initCaches() {
 }
 
 // Reset resets buffers.
-func (vi *Index) Reset(validators *ltypes.Validators, db kvdb.Store, getEvent func(hash.EventHash) ltypes.Event) {
+func (vi *Index) Reset(validators *ltypes.Validators, db kvdb.Store, getEvent func(ltypes.EventHash) ltypes.Event) {
 	fdb := WrapByVecFlushable(db, vi.cfg.Caches.DBCache)
 	vi.vecDb = fdb
 	vi.Base.Reset(validators, fdb, getEvent)
@@ -109,22 +107,22 @@ func (vi *Index) Close() error {
 
 func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
 	return vecengine.Callbacks{
-		GetHighestBefore: func(event hash.EventHash) vecengine.HighestBeforeI {
+		GetHighestBefore: func(event ltypes.EventHash) vecengine.HighestBeforeI {
 			return vi.GetHighestBefore(event)
 		},
-		GetLowestAfter: func(event hash.EventHash) vecengine.LowestAfterI {
+		GetLowestAfter: func(event ltypes.EventHash) vecengine.LowestAfterI {
 			return vi.baseCallbacks.GetLowestAfter(event)
 		},
-		SetHighestBefore: func(event hash.EventHash, b vecengine.HighestBeforeI) {
+		SetHighestBefore: func(event ltypes.EventHash, b vecengine.HighestBeforeI) {
 			vi.SetHighestBefore(event, b.(*HighestBefore))
 		},
-		SetLowestAfter: func(event hash.EventHash, i vecengine.LowestAfterI) {
+		SetLowestAfter: func(event ltypes.EventHash, i vecengine.LowestAfterI) {
 			vi.baseCallbacks.SetLowestAfter(event, i)
 		},
-		NewHighestBefore: func(size idx.ValidatorIdx) vecengine.HighestBeforeI {
+		NewHighestBefore: func(size ltypes.ValidatorIdx) vecengine.HighestBeforeI {
 			return NewHighestBefore(size)
 		},
-		NewLowestAfter: func(size idx.ValidatorIdx) vecengine.LowestAfterI {
+		NewLowestAfter: func(size ltypes.ValidatorIdx) vecengine.LowestAfterI {
 			return vi.baseCallbacks.NewLowestAfter(size)
 		},
 		OnDropNotFlushed: func() {
@@ -139,6 +137,6 @@ func (vi *Index) onDropNotFlushed() {
 }
 
 // GetMergedHighestBefore returns HighestBefore vector clock without branches, where branches are merged into one
-func (vi *Index) GetMergedHighestBefore(id hash.EventHash) *HighestBefore {
+func (vi *Index) GetMergedHighestBefore(id ltypes.EventHash) *HighestBefore {
 	return vi.Engine.GetMergedHighestBefore(id).(*HighestBefore)
 }

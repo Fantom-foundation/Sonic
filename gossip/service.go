@@ -9,10 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -61,7 +59,7 @@ type ServiceFeed struct {
 	newLogs         notify.Feed
 }
 
-func (f *ServiceFeed) SubscribeNewEpoch(ch chan<- idx.EpochID) notify.Subscription {
+func (f *ServiceFeed) SubscribeNewEpoch(ch chan<- ltypes.EpochID) notify.Subscription {
 	return f.scope.Track(f.newEpoch.Subscribe(ch))
 }
 
@@ -145,7 +143,7 @@ type Service struct {
 	procLogger *proclogger.Logger
 
 	stopped   bool
-	haltCheck func(oldEpoch, newEpoch idx.EpochID, time time.Time) bool
+	haltCheck func(oldEpoch, newEpoch ltypes.EpochID, time time.Time) bool
 
 	tflusher PeriodicFlusher
 
@@ -156,7 +154,7 @@ type Service struct {
 
 func NewService(stack *node.Node, config Config, store *Store, blockProc BlockProc,
 	engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool,
-	haltCheck func(oldEpoch, newEpoch idx.EpochID, age time.Time) bool) (*Service, error) {
+	haltCheck func(oldEpoch, newEpoch ltypes.EpochID, age time.Time) bool) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -197,7 +195,7 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	// load epoch DB
 	svc.store.loadEpochStore(svc.store.GetEpoch())
 	es := svc.store.getEpochStore(svc.store.GetEpoch())
-	svc.dagIndexer.Reset(svc.store.GetValidators(), es.table.DagIndex, func(id hash.EventHash) ltypes.Event {
+	svc.dagIndexer.Reset(svc.store.GetValidators(), es.table.DagIndex, func(id ltypes.EventHash) ltypes.Event {
 		return svc.store.GetEvent(id)
 	})
 

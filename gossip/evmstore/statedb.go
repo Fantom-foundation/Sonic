@@ -6,14 +6,13 @@ import (
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
 	"github.com/Fantom-foundation/go-opera/inter/state"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 )
 
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
-func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDB, error) {
+func (s *Store) GetLiveStateDb(stateRoot ltypes.Hash) (state.StateDB, error) {
 	if s.liveStateDb == nil {
 		return nil, fmt.Errorf("unable to get live StateDb - EvmStore is not open")
 	}
@@ -59,7 +58,7 @@ func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.S
 }
 
 // CheckLiveStateHash returns if the hash of the current live StateDB hash matches (and fullsync is possible)
-func (s *Store) CheckLiveStateHash(blockNum idx.BlockID, root hash.Hash) error {
+func (s *Store) CheckLiveStateHash(blockNum ltypes.BlockID, root ltypes.Hash) error {
 	if s.liveStateDb == nil {
 		return fmt.Errorf("unable to get live state - EvmStore is not open")
 	}
@@ -71,7 +70,7 @@ func (s *Store) CheckLiveStateHash(blockNum idx.BlockID, root hash.Hash) error {
 }
 
 // CheckArchiveStateHash returns if the hash of the given archive StateDB hash matches
-func (s *Store) CheckArchiveStateHash(blockNum idx.BlockID, root hash.Hash) error {
+func (s *Store) CheckArchiveStateHash(blockNum ltypes.BlockID, root ltypes.Hash) error {
 	if s.carmenState == nil {
 		return fmt.Errorf("unable to get live state - EvmStore is not open")
 	}

@@ -18,8 +18,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -115,12 +114,12 @@ func importEventsFile(srv *gossip.Service, fn string) error {
 	stream := rlp.NewStream(reader, 0)
 
 	start := time.Now()
-	last := hash.EventHash{}
+	last := ltypes.EventHash{}
 
 	batch := make(inter.EventPayloads, 0, 8*1024)
 	batchSize := 0
 	maxBatchSize := 8 * 1024 * 1024
-	epoch := idx.EpochID(0)
+	epoch := ltypes.EpochID(0)
 	txs := 0
 	events := 0
 

@@ -1,7 +1,6 @@
 package vecmt
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/vecengine"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
@@ -13,34 +12,34 @@ type CreationTimer interface {
 	CreationTime() inter.Timestamp
 }
 
-func (b *HighestBefore) InitWithEvent(i idx.ValidatorIdx, e ltypes.Event) {
+func (b *HighestBefore) InitWithEvent(i ltypes.ValidatorIdx, e ltypes.Event) {
 	b.VSeq.InitWithEvent(i, e)
 	b.VTime.Set(i, e.(CreationTimer).CreationTime())
 }
 
-func (b *HighestBefore) IsEmpty(i idx.ValidatorIdx) bool {
+func (b *HighestBefore) IsEmpty(i ltypes.ValidatorIdx) bool {
 	return b.VSeq.IsEmpty(i)
 }
 
-func (b *HighestBefore) IsForkDetected(i idx.ValidatorIdx) bool {
+func (b *HighestBefore) IsForkDetected(i ltypes.ValidatorIdx) bool {
 	return b.VSeq.IsForkDetected(i)
 }
 
-func (b *HighestBefore) Seq(i idx.ValidatorIdx) idx.EventID {
+func (b *HighestBefore) Seq(i ltypes.ValidatorIdx) ltypes.EventID {
 	return b.VSeq.Seq(i)
 }
 
-func (b *HighestBefore) MinSeq(i idx.ValidatorIdx) idx.EventID {
+func (b *HighestBefore) MinSeq(i ltypes.ValidatorIdx) ltypes.EventID {
 	return b.VSeq.MinSeq(i)
 }
 
-func (b *HighestBefore) SetForkDetected(i idx.ValidatorIdx) {
+func (b *HighestBefore) SetForkDetected(i ltypes.ValidatorIdx) {
 	b.VSeq.SetForkDetected(i)
 }
 
-func (hb *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.ValidatorIdx) {
+func (hb *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num ltypes.ValidatorIdx) {
 	other := _other.(*HighestBefore)
-	for branchID := idx.ValidatorIdx(0); branchID < num; branchID++ {
+	for branchID := ltypes.ValidatorIdx(0); branchID < num; branchID++ {
 		hisSeq := other.VSeq.Get(branchID)
 		if hisSeq.Seq == 0 && !hisSeq.IsForkDetected() {
 			// hisSeq doesn't observe anything about this branchID
@@ -71,7 +70,7 @@ func (hb *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.Va
 	}
 }
 
-func (hb *HighestBefore) GatherFrom(to idx.ValidatorIdx, _other vecengine.HighestBeforeI, from []idx.ValidatorIdx) {
+func (hb *HighestBefore) GatherFrom(to ltypes.ValidatorIdx, _other vecengine.HighestBeforeI, from []ltypes.ValidatorIdx) {
 	other := _other.(*HighestBefore)
 	// read all branches to find highest event
 	highestBranchSeq := vecfc.BranchSeq{}

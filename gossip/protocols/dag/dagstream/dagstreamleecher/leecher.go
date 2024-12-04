@@ -7,8 +7,6 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher"
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher/basepeerleecher"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
@@ -25,7 +23,7 @@ type Leecher struct {
 
 	// State
 	session sessionState
-	epoch   idx.EpochID
+	epoch   ltypes.EpochID
 
 	emptyState   bool
 	forceSyncing bool
@@ -33,7 +31,7 @@ type Leecher struct {
 }
 
 // New creates an events downloader to request events based on lexicographic event streams
-func New(epoch idx.EpochID, emptyState bool, cfg Config, callback Callbacks) *Leecher {
+func New(epoch ltypes.EpochID, emptyState bool, cfg Config, callback Callbacks) *Leecher {
 	l := &Leecher{
 		cfg:        cfg,
 		callback:   callback,
@@ -56,11 +54,11 @@ func New(epoch idx.EpochID, emptyState bool, cfg Config, callback Callbacks) *Le
 }
 
 type Callbacks struct {
-	IsProcessed func(hash.EventHash) bool
+	IsProcessed func(ltypes.EventHash) bool
 
 	RequestChunk func(peer string, r dagstream.Request) error
 	Suspend      func(peer string) bool
-	PeerEpoch    func(peer string) idx.EpochID
+	PeerEpoch    func(peer string) ltypes.EpochID
 }
 
 type sessionState struct {
@@ -135,7 +133,7 @@ func (d *Leecher) selectSessionPeerCandidates() []string {
 	return selected
 }
 
-func getSessionID(epoch idx.EpochID, try uint32) uint32 {
+func getSessionID(epoch ltypes.EpochID, try uint32) uint32 {
 	return (uint32(epoch) << 12) ^ try
 }
 
@@ -161,13 +159,13 @@ func (d *Leecher) startSession(candidates []string) {
 
 	d.session.agent = basepeerleecher.New(&d.Wg, d.cfg.Session, basepeerleecher.EpochDownloaderCallbacks{
 		IsProcessed: func(id interface{}) bool {
-			return d.callback.IsProcessed(id.(hash.EventHash))
+			return d.callback.IsProcessed(id.(ltypes.EventHash))
 		},
 		RequestChunks: func(maxNum uint32, maxSize uint64, chunks uint32) error {
 			return d.callback.RequestChunk(peer,
 				dagstream.Request{
 					Session:   session,
-					Limit:     ltypes.Metric{Num: idx.EventID(maxNum), Size: maxSize},
+					Limit:     ltypes.Metric{Num: ltypes.EventID(maxNum), Size: maxSize},
 					Type:      typ,
 					MaxChunks: chunks,
 				})
@@ -192,7 +190,7 @@ func (d *Leecher) startSession(candidates []string) {
 	d.forceSyncing = false
 }
 
-func (d *Leecher) OnNewEpoch(myEpoch idx.EpochID) {
+func (d *Leecher) OnNewEpoch(myEpoch ltypes.EpochID) {
 	d.Mu.Lock()
 	defer d.Mu.Unlock()
 
@@ -215,7 +213,7 @@ func (d *Leecher) ForceSyncing() {
 	d.forceSyncing = true
 }
 
-func (d *Leecher) NotifyChunkReceived(sessionID uint32, last hash.EventHash, done bool) error {
+func (d *Leecher) NotifyChunkReceived(sessionID uint32, last ltypes.EventHash, done bool) error {
 	d.Mu.Lock()
 	defer d.Mu.Unlock()
 	if d.session.agent == nil {

@@ -3,7 +3,7 @@ package vecmt
 import (
 	"encoding/binary"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
 
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -24,7 +24,7 @@ type (
 )
 
 // NewHighestBefore creates new HighestBefore vector.
-func NewHighestBefore(size idx.ValidatorIdx) *HighestBefore {
+func NewHighestBefore(size ltypes.ValidatorIdx) *HighestBefore {
 	return &HighestBefore{
 		VSeq:  vecfc.NewHighestBeforeSeq(size),
 		VTime: NewHighestBeforeTime(size),
@@ -32,13 +32,13 @@ func NewHighestBefore(size idx.ValidatorIdx) *HighestBefore {
 }
 
 // NewHighestBeforeTime creates new HighestBeforeTime vector.
-func NewHighestBeforeTime(size idx.ValidatorIdx) *HighestBeforeTime {
+func NewHighestBeforeTime(size ltypes.ValidatorIdx) *HighestBeforeTime {
 	b := make(HighestBeforeTime, size*8)
 	return &b
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeTime) Get(i idx.ValidatorIdx) inter.Timestamp {
+func (b HighestBeforeTime) Get(i ltypes.ValidatorIdx) inter.Timestamp {
 	for i >= b.Size() {
 		return 0
 	}
@@ -46,7 +46,7 @@ func (b HighestBeforeTime) Get(i idx.ValidatorIdx) inter.Timestamp {
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeTime) Set(i idx.ValidatorIdx, time inter.Timestamp) {
+func (b *HighestBeforeTime) Set(i ltypes.ValidatorIdx, time inter.Timestamp) {
 	for i >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
@@ -55,6 +55,6 @@ func (b *HighestBeforeTime) Set(i idx.ValidatorIdx, time inter.Timestamp) {
 }
 
 // Size of the vector clock
-func (b HighestBeforeTime) Size() idx.ValidatorIdx {
-	return idx.ValidatorIdx(len(b) / 8)
+func (b HighestBeforeTime) Size() ltypes.ValidatorIdx {
+	return ltypes.ValidatorIdx(len(b) / 8)
 }

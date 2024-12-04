@@ -6,8 +6,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/emitter/mock"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/golang/mock/gomock"
@@ -22,8 +20,8 @@ func TestChooseParents_NoParentsForGenesisEvent(t *testing.T) {
 		fixedPriceBaseFeeSource{},
 	)
 
-	epoch := idx.EpochID(1)
-	validatorId := idx.ValidatorID(1)
+	epoch := ltypes.EpochID(1)
+	validatorId := ltypes.ValidatorID(1)
 
 	external.EXPECT().GetLastEvent(epoch, validatorId)
 
@@ -50,19 +48,19 @@ func TestChooseParents_NonGenesisEventMustHaveOneSelfParent(t *testing.T) {
 	em.maxParents = 3
 	em.payloadIndexer = ancestor.NewPayloadIndexer(3)
 
-	epoch := idx.EpochID(1)
-	validatorId := idx.ValidatorID(1)
+	epoch := ltypes.EpochID(1)
+	validatorId := ltypes.ValidatorID(1)
 
 	validatorIndex := vecmt.NewIndex(nil, vecmt.LiteConfig())
 	validatorIndex.Reset(ltypes.ArrayToValidators(
-		[]idx.ValidatorID{1, 2},
+		[]ltypes.ValidatorID{1, 2},
 		[]ltypes.Weight{1, 1},
 	), memorydb.New(), nil)
 
-	selfParentHash := hash.EventHash{1}
+	selfParentHash := ltypes.EventHash{1}
 
 	external.EXPECT().GetLastEvent(epoch, validatorId).Return(&selfParentHash)
-	external.EXPECT().GetHeads(epoch).Return(hash.EventHashes{{2}, {3}})
+	external.EXPECT().GetHeads(epoch).Return(ltypes.EventHashes{{2}, {3}})
 	external.EXPECT().DagIndex().Return(validatorIndex)
 
 	selfParent, parents, ok := em.chooseParents(epoch, validatorId)

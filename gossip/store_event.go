@@ -7,8 +7,7 @@ package gossip
 import (
 	"bytes"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -16,7 +15,7 @@ import (
 )
 
 // DelEvent deletes event.
-func (s *Store) DelEvent(id hash.EventHash) {
+func (s *Store) DelEvent(id ltypes.EventHash) {
 	key := id.Bytes()
 
 	err := s.table.Events.Delete(key)
@@ -44,7 +43,7 @@ func (s *Store) SetEvent(e *inter.EventPayload) {
 }
 
 // GetEventPayload returns stored event.
-func (s *Store) GetEventPayload(id hash.EventHash) *inter.EventPayload {
+func (s *Store) GetEventPayload(id ltypes.EventHash) *inter.EventPayload {
 	// Get event from LRU cache first.
 	if ev, ok := s.cache.Events.Get(id); ok {
 		return ev.(*inter.EventPayload)
@@ -64,7 +63,7 @@ func (s *Store) GetEventPayload(id hash.EventHash) *inter.EventPayload {
 }
 
 // GetEvent returns stored event.
-func (s *Store) GetEvent(id hash.EventHash) *inter.Event {
+func (s *Store) GetEvent(id ltypes.EventHash) *inter.Event {
 	// Get event from LRU cache first.
 	if ev, ok := s.cache.EventsHeaders.Get(id); ok {
 		return ev.(*inter.Event)
@@ -99,45 +98,45 @@ func (s *Store) forEachEvent(it ethdb.Iterator, onEvent func(event *inter.EventP
 	}
 }
 
-func (s *Store) ForEachEpochEvent(epoch idx.EpochID, onEvent func(event *inter.EventPayload) bool) {
+func (s *Store) ForEachEpochEvent(epoch ltypes.EpochID, onEvent func(event *inter.EventPayload) bool) {
 	it := s.table.Events.NewIterator(epoch.Bytes(), nil)
 	defer it.Release()
 	s.forEachEvent(it, onEvent)
 }
 
-func (s *Store) ForEachEvent(start idx.EpochID, onEvent func(event *inter.EventPayload) bool) {
+func (s *Store) ForEachEvent(start ltypes.EpochID, onEvent func(event *inter.EventPayload) bool) {
 	it := s.table.Events.NewIterator(nil, start.Bytes())
 	defer it.Release()
 	s.forEachEvent(it, onEvent)
 }
 
-func (s *Store) ForEachEventRLP(start []byte, onEvent func(key hash.EventHash, event rlp.RawValue) bool) {
+func (s *Store) ForEachEventRLP(start []byte, onEvent func(key ltypes.EventHash, event rlp.RawValue) bool) {
 	it := s.table.Events.NewIterator(nil, start)
 	defer it.Release()
 	for it.Next() {
-		if !onEvent(hash.BytesToEvent(it.Key()), it.Value()) {
+		if !onEvent(ltypes.BytesToEvent(it.Key()), it.Value()) {
 			return
 		}
 	}
 }
 
-func (s *Store) FindEventHashes(epoch idx.EpochID, lamport idx.Lamport, hashPrefix []byte) hash.EventHashes {
+func (s *Store) FindEventHashes(epoch ltypes.EpochID, lamport ltypes.Lamport, hashPrefix []byte) ltypes.EventHashes {
 	prefix := bytes.NewBuffer(epoch.Bytes())
 	prefix.Write(lamport.Bytes())
 	prefix.Write(hashPrefix)
-	res := make(hash.EventHashes, 0, 10)
+	res := make(ltypes.EventHashes, 0, 10)
 
 	it := s.table.Events.NewIterator(prefix.Bytes(), nil)
 	defer it.Release()
 	for it.Next() {
-		res = append(res, hash.BytesToEvent(it.Key()))
+		res = append(res, ltypes.BytesToEvent(it.Key()))
 	}
 
 	return res
 }
 
 // GetEventPayloadRLP returns stored event. Serialized.
-func (s *Store) GetEventPayloadRLP(id hash.EventHash) rlp.RawValue {
+func (s *Store) GetEventPayloadRLP(id ltypes.EventHash) rlp.RawValue {
 	key := id.Bytes()
 
 	data, err := s.table.Events.Get(key)
@@ -148,7 +147,7 @@ func (s *Store) GetEventPayloadRLP(id hash.EventHash) rlp.RawValue {
 }
 
 // HasEvent returns true if event exists.
-func (s *Store) HasEvent(h hash.EventHash) bool {
+func (s *Store) HasEvent(h ltypes.EventHash) bool {
 	if has, ok := s.cache.EventIDs.Has(h); ok {
 		return has
 	}
@@ -156,7 +155,7 @@ func (s *Store) HasEvent(h hash.EventHash) bool {
 	return has
 }
 
-func (s *Store) loadHighestLamport() idx.Lamport {
+func (s *Store) loadHighestLamport() ltypes.Lamport {
 	lamportBytes, err := s.table.HighestLamport.Get([]byte("k"))
 	if err != nil {
 		s.Log.Crit("Failed to get key-value", "err", err)
@@ -164,18 +163,18 @@ func (s *Store) loadHighestLamport() idx.Lamport {
 	if lamportBytes == nil {
 		return 0
 	}
-	return idx.BytesToLamport(lamportBytes)
+	return ltypes.BytesToLamport(lamportBytes)
 }
 
-func (s *Store) getCachedHighestLamport() (idx.Lamport, bool) {
+func (s *Store) getCachedHighestLamport() (ltypes.Lamport, bool) {
 	cache := s.cache.HighestLamport.Load()
 	if cache != nil {
-		return cache.(idx.Lamport), true
+		return cache.(ltypes.Lamport), true
 	}
 	return 0, false
 }
 
-func (s *Store) GetHighestLamport() idx.Lamport {
+func (s *Store) GetHighestLamport() ltypes.Lamport {
 	cached, ok := s.getCachedHighestLamport()
 	if ok {
 		return cached
@@ -185,7 +184,7 @@ func (s *Store) GetHighestLamport() idx.Lamport {
 	return lamport
 }
 
-func (s *Store) SetHighestLamport(lamport idx.Lamport) {
+func (s *Store) SetHighestLamport(lamport ltypes.Lamport) {
 	s.cache.HighestLamport.Store(lamport)
 }
 

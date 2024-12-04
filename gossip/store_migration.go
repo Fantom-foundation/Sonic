@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/utils/migration"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
@@ -50,7 +50,7 @@ func unsupportedMigration() error {
 
 type legacyUpgradeHeight struct {
 	Upgrades opera.Upgrades
-	Height   idx.BlockID
+	Height   ltypes.BlockID
 }
 
 func (s *Store) addTimeIntoUpgradeHeights() error {

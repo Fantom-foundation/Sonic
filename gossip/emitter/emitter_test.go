@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -69,11 +67,11 @@ func TestEmitter(t *testing.T) {
 			AnyTimes()
 
 		external.EXPECT().GetEpochValidators().
-			Return(validators, idx.EpochID(1)).
+			Return(validators, ltypes.EpochID(1)).
 			AnyTimes()
 
-		external.EXPECT().GetLastEvent(idx.EpochID(1), cfg.Validator.ID).
-			Return((*hash.EventHash)(nil)).
+		external.EXPECT().GetLastEvent(ltypes.EpochID(1), cfg.Validator.ID).
+			Return((*ltypes.EventHash)(nil)).
 			AnyTimes()
 
 		external.EXPECT().GetGenesisTime().

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,14 +20,14 @@ type fakeTx struct {
 }
 
 type TestBackend struct {
-	block             idx.BlockID
+	block             ltypes.BlockID
 	totalGasPowerLeft uint64
 	rules             opera.Rules
 	pendingRules      opera.Rules
 	pendingTxs        []fakeTx
 }
 
-func (t TestBackend) GetLatestBlockIndex() idx.BlockID {
+func (t TestBackend) GetLatestBlockIndex() ltypes.BlockID {
 	return t.block
 }
 

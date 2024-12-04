@@ -8,10 +8,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -20,7 +19,7 @@ import (
 	"time"
 )
 
-func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.Config, lastCarmenBlock idx.BlockID) (idx.BlockID, error) {
+func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.Config, lastCarmenBlock ltypes.BlockID) (ltypes.BlockID, error) {
 	producer := &DummyScopedProducer{integration.GetRawDbProducer(chaindataDir, integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
 		Fdlimit: makeDatabaseHandles(),
@@ -43,7 +42,7 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 	if err != nil {
 		return 0, fmt.Errorf("failed to open 'lachesis' database: %w", err)
 	}
-	cGetEpochDB := func(epoch idx.EpochID) kvdb.Store {
+	cGetEpochDB := func(epoch ltypes.EpochID) kvdb.Store {
 		name := fmt.Sprintf("lachesis-%d", epoch)
 		cEpochDB, err := producer.OpenDB(name)
 		if err != nil {
@@ -71,8 +70,8 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 }
 
 // healGossipDb reverts the gossip database into state, into which can be reverted carmen
-func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, lastCarmenBlock idx.BlockID) (
-	epochState *iblockproc.EpochState, lastBlock idx.BlockID, err error) {
+func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, lastCarmenBlock ltypes.BlockID) (
+	epochState *iblockproc.EpochState, lastBlock ltypes.BlockID, err error) {
 
 	gdb, err := gossip.NewStore(producer, cfg) // requires FlushIDKey present (not clean) in all dbs
 	if err != nil {
@@ -97,7 +96,7 @@ func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, las
 
 	// removing excessive events (event epoch >= closed epoch)
 	log.Info("Removing excessive events")
-	gdb.ForEachEventRLP(epochIdx.Bytes(), func(id hash.EventHash, _ rlp.RawValue) bool {
+	gdb.ForEachEventRLP(epochIdx.Bytes(), func(id ltypes.EventHash, _ rlp.RawValue) bool {
 		gdb.DelEvent(id)
 		return true
 	})
@@ -106,10 +105,10 @@ func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, las
 }
 
 // getLastEpochWithState finds the last closed epoch with the state available
-func getLastEpochWithState(gdb *gossip.Store, lastCarmenBlock idx.BlockID) (epochIdx idx.EpochID, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
+func getLastEpochWithState(gdb *gossip.Store, lastCarmenBlock ltypes.BlockID) (epochIdx ltypes.EpochID, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
 	currentEpoch := gdb.GetEpoch()
-	epochsToTry := idx.EpochID(10000)
-	endEpoch := idx.EpochID(1)
+	epochsToTry := ltypes.EpochID(10000)
+	endEpoch := ltypes.EpochID(1)
 	if currentEpoch > epochsToTry {
 		endEpoch = currentEpoch - epochsToTry
 	}

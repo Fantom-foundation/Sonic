@@ -3,8 +3,7 @@ package proclogger
 import (
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
@@ -12,15 +11,15 @@ import (
 )
 
 type dagSum struct {
-	connected       idx.EventID
+	connected       ltypes.EventID
 	totalProcessing time.Duration
 }
 
 type llrSum struct {
-	bvs idx.BlockID
-	brs idx.BlockID
-	evs idx.EpochID
-	ers idx.EpochID
+	bvs ltypes.BlockID
+	brs ltypes.BlockID
+	evs ltypes.EpochID
+	ers ltypes.EpochID
 }
 
 type Logger struct {
@@ -29,9 +28,9 @@ type Logger struct {
 	llrSum llrSum
 
 	// latest logged data
-	lastEpoch     idx.EpochID
-	lastBlock     idx.BlockID
-	lastID        hash.EventHash
+	lastEpoch     ltypes.EpochID
+	lastBlock     ltypes.BlockID
+	lastID        ltypes.EventHash
 	lastEventTime inter.Timestamp
 	lastLlrTime   inter.Timestamp
 

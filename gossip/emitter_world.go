@@ -3,8 +3,7 @@ package gossip
 import (
 	"sync/atomic"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
@@ -77,14 +76,14 @@ func (ew *emitterWorldProc) PeersNum() int {
 	return ew.s.handler.peers.Len()
 }
 
-func (ew *emitterWorldRead) GetHeads(epoch idx.EpochID) hash.EventHashes {
+func (ew *emitterWorldRead) GetHeads(epoch ltypes.EpochID) ltypes.EventHashes {
 	return ew.Store.GetHeadsSlice(epoch)
 }
 
-func (ew *emitterWorldRead) GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.EventHash {
+func (ew *emitterWorldRead) GetLastEvent(epoch ltypes.EpochID, from ltypes.ValidatorID) *ltypes.EventHash {
 	return ew.Store.GetLastEvent(epoch, from)
 }
 
-func (ew *emitterWorldRead) GetBlockEpoch(block idx.BlockID) idx.EpochID {
+func (ew *emitterWorldRead) GetBlockEpoch(block ltypes.BlockID) ltypes.EpochID {
 	return ew.Store.FindBlockEpoch(block)
 }

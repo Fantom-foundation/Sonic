@@ -4,8 +4,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -55,19 +53,19 @@ type (
 
 // Reader is a callback for getting events from an external storage.
 type Reader interface {
-	GetLatestBlockIndex() idx.BlockID
-	GetEpochValidators() (*ltypes.Validators, idx.EpochID)
-	GetEvent(hash.EventHash) *inter.Event
-	GetEventPayload(hash.EventHash) *inter.EventPayload
-	GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.EventHash
-	GetHeads(idx.EpochID) hash.EventHashes
+	GetLatestBlockIndex() ltypes.BlockID
+	GetEpochValidators() (*ltypes.Validators, ltypes.EpochID)
+	GetEvent(ltypes.EventHash) *inter.Event
+	GetEventPayload(ltypes.EventHash) *inter.EventPayload
+	GetLastEvent(epoch ltypes.EpochID, from ltypes.ValidatorID) *ltypes.EventHash
+	GetHeads(ltypes.EpochID) ltypes.EventHashes
 	GetGenesisTime() inter.Timestamp
 	GetRules() opera.Rules
 }
 
 type TxPool interface {
 	// Has returns an indicator whether txpool has a transaction cached with the
-	// given hash.
+	// given ltypes.
 	Has(hash common.Hash) bool
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.

@@ -5,19 +5,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 type (
 	// Validator is a helper structure to define genesis validators
 	Validator struct {
-		ID               idx.ValidatorID
+		ID               ltypes.ValidatorID
 		Address          common.Address
 		PubKey           validatorpk.PubKey
 		CreationTime     inter.Timestamp
-		CreationEpoch    idx.EpochID
+		CreationEpoch    ltypes.EpochID
 		DeactivatedTime  inter.Timestamp
-		DeactivatedEpoch idx.EpochID
+		DeactivatedEpoch ltypes.EpochID
 		Status           uint64
 	}
 
@@ -25,8 +25,8 @@ type (
 )
 
 // Map converts Validators to map
-func (gv Validators) Map() map[idx.ValidatorID]Validator {
-	validators := map[idx.ValidatorID]Validator{}
+func (gv Validators) Map() map[ltypes.ValidatorID]Validator {
+	validators := map[ltypes.ValidatorID]Validator{}
 	for _, val := range gv {
 		validators[val.ID] = val
 	}

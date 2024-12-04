@@ -8,8 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
 )
@@ -33,9 +32,9 @@ func testLeecherNoDeadlocks(t *testing.T, maxPeers int) {
 	config.MaxSessionRestart = 5 * time.Millisecond * 5
 	config.BaseProgressWatchdog = 3 * time.Millisecond * 5
 	config.Session.RecheckInterval = time.Millisecond
-	epoch := idx.EpochID(1)
+	epoch := ltypes.EpochID(1)
 	leecher := New(epoch, rand.IntN(2) == 0, config, Callbacks{
-		IsProcessed: func(id hash.EventHash) bool {
+		IsProcessed: func(id ltypes.EventHash) bool {
 			return rand.IntN(2) == 0
 		},
 		RequestChunk: func(peer string, r dagstream.Request) error {
@@ -45,8 +44,8 @@ func testLeecherNoDeadlocks(t *testing.T, maxPeers int) {
 		Suspend: func(peer string) bool {
 			return rand.IntN(10) == 0
 		},
-		PeerEpoch: func(peer string) idx.EpochID {
-			return 1 + epoch/2 + idx.EpochID(rand.IntN(int(epoch*2)))
+		PeerEpoch: func(peer string) ltypes.EpochID {
+			return 1 + epoch/2 + ltypes.EpochID(rand.IntN(int(epoch*2)))
 		},
 	})
 	terminated := false
@@ -74,7 +73,7 @@ func testLeecherNoDeadlocks(t *testing.T, maxPeers int) {
 		select {
 		case req := <-requests:
 			if rand.IntN(10) != 0 {
-				err := leecher.NotifyChunkReceived(req.request.Session.ID, hash.FakeEvent(), rand.IntN(5) == 0)
+				err := leecher.NotifyChunkReceived(req.request.Session.ID, ltypes.FakeEvent(), rand.IntN(5) == 0)
 				if !terminated {
 					require.NoError(t, err)
 				}

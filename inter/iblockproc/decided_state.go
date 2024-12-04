@@ -4,8 +4,6 @@ import (
 	"crypto/sha256"
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -19,13 +17,13 @@ type ValidatorBlockState struct {
 	Uptime           inter.Timestamp
 	LastOnlineTime   inter.Timestamp
 	LastGasPowerLeft inter.GasPowerLeft
-	LastBlock        idx.BlockID
+	LastBlock        ltypes.BlockID
 	DirtyGasRefund   uint64
 	Originated       *big.Int
 }
 
 type EventInfo struct {
-	ID           hash.EventHash
+	ID           ltypes.EventHash
 	GasPowerLeft inter.GasPowerLeft
 	Time         inter.Timestamp
 }
@@ -36,14 +34,14 @@ type ValidatorEpochState struct {
 }
 
 type BlockCtx struct {
-	Idx     idx.BlockID
+	Idx     ltypes.BlockID
 	Time    inter.Timestamp
-	Atropos hash.EventHash
+	Atropos ltypes.EventHash
 }
 
 type BlockState struct {
 	LastBlock          BlockCtx
-	FinalizedStateRoot hash.Hash
+	FinalizedStateRoot ltypes.Hash
 
 	EpochGas        uint64
 	EpochCheaters   lachesis.Cheaters
@@ -54,7 +52,7 @@ type BlockState struct {
 
 	DirtyRules *opera.Rules `rlp:"nil"` // nil means that there's no changes compared to epoch rules
 
-	AdvanceEpochs idx.EpochID
+	AdvanceEpochs ltypes.EpochID
 }
 
 func (bs BlockState) Copy() BlockState {
@@ -74,26 +72,26 @@ func (bs BlockState) Copy() BlockState {
 	return cp
 }
 
-func (bs *BlockState) GetValidatorState(id idx.ValidatorID, validators *ltypes.Validators) *ValidatorBlockState {
+func (bs *BlockState) GetValidatorState(id ltypes.ValidatorID, validators *ltypes.Validators) *ValidatorBlockState {
 	validatorIdx := validators.GetIdx(id)
 	return &bs.ValidatorStates[validatorIdx]
 }
 
-func (bs BlockState) Hash() hash.Hash {
+func (bs BlockState) Hash() ltypes.Hash {
 	hasher := sha256.New()
 	err := rlp.Encode(hasher, &bs)
 	if err != nil {
 		panic("can't hash: " + err.Error())
 	}
-	return hash.BytesToHash(hasher.Sum(nil))
+	return ltypes.BytesToHash(hasher.Sum(nil))
 }
 
 type EpochStateV1 struct {
-	Epoch          idx.EpochID
+	Epoch          ltypes.EpochID
 	EpochStart     inter.Timestamp
 	PrevEpochStart inter.Timestamp
 
-	EpochStateRoot hash.Hash
+	EpochStateRoot ltypes.Hash
 
 	Validators        *ltypes.Validators
 	ValidatorStates   []ValidatorEpochState
@@ -104,7 +102,7 @@ type EpochStateV1 struct {
 
 type EpochState EpochStateV1
 
-func (es *EpochState) GetValidatorState(id idx.ValidatorID, validators *ltypes.Validators) *ValidatorEpochState {
+func (es *EpochState) GetValidatorState(id ltypes.ValidatorID, validators *ltypes.Validators) *ValidatorEpochState {
 	validatorIdx := validators.GetIdx(id)
 	return &es.ValidatorStates[validatorIdx]
 }
@@ -113,7 +111,7 @@ func (es EpochState) Duration() inter.Timestamp {
 	return es.EpochStart - es.PrevEpochStart
 }
 
-func (es EpochState) Hash() hash.Hash {
+func (es EpochState) Hash() ltypes.Hash {
 	var hashed interface{}
 	if es.Rules.Upgrades.London {
 		hashed = &es
@@ -139,7 +137,7 @@ func (es EpochState) Hash() hash.Hash {
 	if err != nil {
 		panic("can't hash: " + err.Error())
 	}
-	return hash.BytesToHash(hasher.Sum(nil))
+	return ltypes.BytesToHash(hasher.Sum(nil))
 }
 
 func (es EpochState) Copy() EpochState {

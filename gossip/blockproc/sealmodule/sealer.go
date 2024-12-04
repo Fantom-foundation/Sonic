@@ -3,7 +3,6 @@ package sealmodule
 import (
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
@@ -57,7 +56,7 @@ func (s *OperaEpochsSealer) SealEpoch() (iblockproc.BlockState, iblockproc.Epoch
 	// Build new []ValidatorEpochState and []ValidatorBlockState
 	newValidatorEpochStates := make([]iblockproc.ValidatorEpochState, newValidators.Len())
 	newValidatorBlockStates := make([]iblockproc.ValidatorBlockState, newValidators.Len())
-	for newValIdx := idx.ValidatorIdx(0); newValIdx < newValidators.Len(); newValIdx++ {
+	for newValIdx := ltypes.ValidatorIdx(0); newValIdx < newValidators.Len(); newValIdx++ {
 		// default values
 		newValidatorBlockStates[newValIdx] = iblockproc.ValidatorBlockState{
 			Originated: new(big.Int),

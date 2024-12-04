@@ -26,9 +26,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/txtime"
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/gossip/itemsfetcher"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -68,13 +66,13 @@ func checkLenLimits(size int, v interface{}) error {
 }
 
 type dagNotifier interface {
-	SubscribeNewEpoch(ch chan<- idx.EpochID) notify.Subscription
+	SubscribeNewEpoch(ch chan<- ltypes.EpochID) notify.Subscription
 	SubscribeNewEmitted(ch chan<- *inter.EventPayload) notify.Subscription
 }
 
 type processCallback struct {
 	Event         func(*inter.EventPayload) error
-	SwitchEpochTo func(idx.EpochID) error
+	SwitchEpochTo func(ltypes.EpochID) error
 }
 
 // handlerConfig is the collection of initialization parameters to create a full
@@ -129,7 +127,7 @@ type handler struct {
 	notifier             dagNotifier
 	emittedEventsCh      chan *inter.EventPayload
 	emittedEventsSub     notify.Subscription
-	newEpochsCh          chan idx.EpochID
+	newEpochsCh          chan ltypes.EpochID
 	newEpochsSub         notify.Subscription
 	quitProgressBradcast chan struct{}
 
@@ -218,7 +216,7 @@ func newHandler(
 		Suspend: func(_ string) bool {
 			return h.dagFetcher.Overloaded() || h.dagProcessor.Overloaded()
 		},
-		PeerEpoch: func(peer string) idx.EpochID {
+		PeerEpoch: func(peer string) ltypes.EpochID {
 			p := h.peers.Peer(peer)
 			if p == nil || p.Useless() {
 				return 0
@@ -311,11 +309,11 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 				}
 			},
 
-			Exists: func(id hash.EventHash) bool {
+			Exists: func(id ltypes.EventHash) bool {
 				return h.store.HasEvent(id)
 			},
 
-			Get: func(id hash.EventHash) ltypes.Event {
+			Get: func(id ltypes.EventHash) ltypes.Event {
 				e := h.store.GetEventPayload(id)
 				if e == nil {
 					return nil
@@ -332,7 +330,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 	return newProcessor
 }
 
-func (h *handler) isEventInterested(id hash.EventHash, epoch idx.EpochID) bool {
+func (h *handler) isEventInterested(id ltypes.EventHash, epoch ltypes.EpochID) bool {
 	if id.Epoch() != epoch {
 		return false
 	}
@@ -350,7 +348,7 @@ func (h *handler) onlyInterestedEventsI(ids []interface{}) []interface{} {
 	epoch := h.store.GetEpoch()
 	interested := make([]interface{}, 0, len(ids))
 	for _, id := range ids {
-		if h.isEventInterested(id.(hash.EventHash), epoch) {
+		if h.isEventInterested(id.(ltypes.EventHash), epoch) {
 			interested = append(interested, id)
 		}
 	}
@@ -400,7 +398,7 @@ func (h *handler) Start(maxPeers int) {
 		h.emittedEventsCh = make(chan *inter.EventPayload, 4)
 		h.emittedEventsSub = h.notifier.SubscribeNewEmitted(h.emittedEventsCh)
 		// epoch changes
-		h.newEpochsCh = make(chan idx.EpochID, 4)
+		h.newEpochsCh = make(chan ltypes.EpochID, 4)
 		h.newEpochsSub = h.notifier.SubscribeNewEpoch(h.newEpochsCh)
 
 		h.loopsWg.Add(3)
@@ -559,15 +557,15 @@ func (h *handler) handle(p *peer) error {
 	}
 }
 
-func interfacesToEventIDs(ids []interface{}) hash.EventHashes {
-	res := make(hash.EventHashes, len(ids))
+func interfacesToEventIDs(ids []interface{}) ltypes.EventHashes {
+	res := make(ltypes.EventHashes, len(ids))
 	for i, id := range ids {
-		res[i] = id.(hash.EventHash)
+		res[i] = id.(ltypes.EventHash)
 	}
 	return res
 }
 
-func eventIDsToInterfaces(ids hash.EventHashes) []interface{} {
+func eventIDsToInterfaces(ids ltypes.EventHashes) []interface{} {
 	res := make([]interface{}, len(ids))
 	for i, id := range ids {
 		res[i] = id
@@ -616,16 +614,16 @@ func (h *handler) handleTxs(p *peer, txs types.Transactions) {
 	h.txpool.AddRemotes(txs)
 }
 
-func (h *handler) handleEventHashes(p *peer, announces hash.EventHashes) {
+func (h *handler) handleEventHashes(p *peer, announces ltypes.EventHashes) {
 	// Mark the hashes as present at the remote node
 	for _, id := range announces {
 		p.MarkEvent(id)
 	}
 	// filter too high IDs
-	notTooHigh := make(hash.EventHashes, 0, len(announces))
+	notTooHigh := make(ltypes.EventHashes, 0, len(announces))
 	sessionCfg := h.config.Protocol.DagStreamLeecher.Session
 	for _, id := range announces {
-		maxLamport := h.store.GetHighestLamport() + idx.Lamport(sessionCfg.DefaultChunkItemsNum+1)*idx.Lamport(sessionCfg.ParallelChunksDownload)
+		maxLamport := h.store.GetHighestLamport() + ltypes.Lamport(sessionCfg.DefaultChunkItemsNum+1)*ltypes.Lamport(sessionCfg.ParallelChunksDownload)
 		if id.Lamport() <= maxLamport {
 			notTooHigh = append(notTooHigh, id)
 		}
@@ -656,7 +654,7 @@ func (h *handler) handleEvents(peer *peer, events ltypes.Events, ordered bool) {
 	notTooHigh := make(ltypes.Events, 0, len(events))
 	sessionCfg := h.config.Protocol.DagStreamLeecher.Session
 	for _, e := range events {
-		maxLamport := h.store.GetHighestLamport() + idx.Lamport(sessionCfg.DefaultChunkItemsNum+1)*idx.Lamport(sessionCfg.ParallelChunksDownload)
+		maxLamport := h.store.GetHighestLamport() + ltypes.Lamport(sessionCfg.DefaultChunkItemsNum+1)*ltypes.Lamport(sessionCfg.ParallelChunksDownload)
 		if e.Lamport() <= maxLamport {
 			notTooHigh = append(notTooHigh, e)
 		}
@@ -674,7 +672,7 @@ func (h *handler) handleEvents(peer *peer, events ltypes.Events, ordered bool) {
 	requestEvents := func(ids []interface{}) error {
 		return peer.RequestEvents(interfacesToEventIDs(ids))
 	}
-	notifyAnnounces := func(ids hash.EventHashes) {
+	notifyAnnounces := func(ids ltypes.EventHashes) {
 		_ = h.dagFetcher.NotifyAnnounces(peer.id, eventIDsToInterfaces(ids), now, requestEvents)
 	}
 	_ = h.dagProcessor.Enqueue(peer.id, notTooHigh, ordered, notifyAnnounces, nil)
@@ -784,7 +782,7 @@ func (h *handler) handleMsg(p *peer) error {
 		h.handleEvents(p, events.Bases(), events.Len() > 1)
 
 	case msg.Code == NewEventIDsMsg:
-		var announces hash.EventHashes
+		var announces ltypes.EventHashes
 		if err := msg.Decode(&announces); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
@@ -794,7 +792,7 @@ func (h *handler) handleMsg(p *peer) error {
 		h.handleEventHashes(p, announces)
 
 	case msg.Code == GetEventsMsg:
-		var requests hash.EventHashes
+		var requests ltypes.EventHashes
 		if err := msg.Decode(&requests); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
@@ -803,7 +801,7 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 
 		rawEvents := make([]rlp.RawValue, 0, len(requests))
-		ids := make(hash.EventHashes, 0, len(requests))
+		ids := make(ltypes.EventHashes, 0, len(requests))
 		size := 0
 		for _, id := range requests {
 			if raw := h.store.GetEventPayloadRLP(id); raw != nil {
@@ -857,7 +855,7 @@ func (h *handler) handleMsg(p *peer) error {
 		if (len(chunk.Events) != 0) && (len(chunk.IDs) != 0) {
 			return errors.New("expected either events or event hashes")
 		}
-		var last hash.EventHash
+		var last ltypes.EventHash
 		if len(chunk.IDs) != 0 {
 			h.handleEventHashes(p, chunk.IDs)
 			last = chunk.IDs[len(chunk.IDs)-1]
@@ -1008,7 +1006,7 @@ func (h *handler) BroadcastEvent(event *inter.EventPayload, passed time.Duration
 	}
 	// Broadcast of event hash to the rest peers
 	for _, peer := range hashBroadcast {
-		peer.AsyncSendEventIDs(hash.EventHashes{event.ID()}, peer.queue)
+		peer.AsyncSendEventIDs(ltypes.EventHashes{event.ID()}, peer.queue)
 	}
 	log.Trace("Broadcast event", "hash", id, "fullRecipients", len(fullBroadcast), "hashRecipients", len(hashBroadcast))
 	return len(peers)
@@ -1176,8 +1174,8 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 type NodeInfo struct {
 	Network     uint64      `json:"network"` // network ID
 	Genesis     common.Hash `json:"genesis"` // SHA3 hash of the host's genesis object
-	Epoch       idx.EpochID   `json:"epoch"`
-	NumOfBlocks idx.BlockID   `json:"blocks"`
+	Epoch       ltypes.EpochID `json:"epoch"`
+	NumOfBlocks ltypes.BlockID `json:"blocks"`
 	//Config  *params.ChainConfig `json:"config"`  // Chain configuration for the fork rules
 }
 

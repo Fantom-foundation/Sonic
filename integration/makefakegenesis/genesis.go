@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
@@ -38,19 +36,19 @@ var (
 )
 
 // FakeKey gets n-th fake private key.
-func FakeKey(n idx.ValidatorID) *ecdsa.PrivateKey {
+func FakeKey(n ltypes.ValidatorID) *ecdsa.PrivateKey {
 	return evmcore.FakeKey(uint32(n))
 }
 
-func FakeGenesisStore(num idx.ValidatorIdx, balance, stake *big.Int) *genesisstore.Store {
+func FakeGenesisStore(num ltypes.ValidatorIdx, balance, stake *big.Int) *genesisstore.Store {
 	return FakeGenesisStoreWithRules(num, balance, stake, opera.FakeNetRules())
 }
 
-func FakeGenesisStoreWithRules(num idx.ValidatorIdx, balance, stake *big.Int, rules opera.Rules) *genesisstore.Store {
+func FakeGenesisStoreWithRules(num ltypes.ValidatorIdx, balance, stake *big.Int, rules opera.Rules) *genesisstore.Store {
 	return FakeGenesisStoreWithRulesAndStart(num, balance, stake, rules, 2, 1)
 }
 
-func FakeGenesisStoreWithRulesAndStart(num idx.ValidatorIdx, balance, stake *big.Int, rules opera.Rules, epoch idx.EpochID, block idx.BlockID) *genesisstore.Store {
+func FakeGenesisStoreWithRulesAndStart(num ltypes.ValidatorIdx, balance, stake *big.Int, rules opera.Rules, epoch ltypes.EpochID, block ltypes.BlockID) *genesisstore.Store {
 	builder := makegenesis.NewGenesisBuilder()
 
 	validators := GetFakeValidators(num)
@@ -100,14 +98,14 @@ func FakeGenesisStoreWithRulesAndStart(num idx.ValidatorIdx, balance, stake *big
 				LastBlock: iblockproc.BlockCtx{
 					Idx:     block - 1,
 					Time:    FakeGenesisTime,
-					Atropos: hash.EventHash{},
+					Atropos: ltypes.EventHash{},
 				},
-				FinalizedStateRoot:    hash.Hash(genesisStateRoot),
+				FinalizedStateRoot:    ltypes.Hash(genesisStateRoot),
 				EpochGas:              0,
 				EpochCheaters:         lachesis.Cheaters{},
 				CheatersWritten:       0,
 				ValidatorStates:       make([]iblockproc.ValidatorBlockState, 0),
-				NextValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
+				NextValidatorProfiles: make(map[ltypes.ValidatorID]drivertype.Validator),
 				DirtyRules:            nil,
 				AdvanceEpochs:         0,
 			},
@@ -115,10 +113,10 @@ func FakeGenesisStoreWithRulesAndStart(num idx.ValidatorIdx, balance, stake *big
 				Epoch:             epoch - 1,
 				EpochStart:        FakeGenesisTime,
 				PrevEpochStart:    FakeGenesisTime - 1,
-				EpochStateRoot:    hash.Hash(genesisStateRoot),
+				EpochStateRoot:    ltypes.Hash(genesisStateRoot),
 				Validators:        ltypes.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
-				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
+				ValidatorProfiles: make(map[ltypes.ValidatorID]drivertype.Validator),
 				Rules:             rules,
 			},
 		},
@@ -153,7 +151,7 @@ func txBuilder() func(calldata []byte, addr common.Address) *types.Transaction {
 	}
 }
 
-func GetGenesisTxs(sealedEpoch idx.EpochID, validators gpos.Validators, totalSupply *big.Int, delegations []drivercall.Delegation, driverOwner common.Address) types.Transactions {
+func GetGenesisTxs(sealedEpoch ltypes.EpochID, validators gpos.Validators, totalSupply *big.Int, delegations []drivercall.Delegation, driverOwner common.Address) types.Transactions {
 	buildTx := txBuilder()
 	internalTxs := make(types.Transactions, 0, 15)
 	// initialization
@@ -172,10 +170,10 @@ func GetGenesisTxs(sealedEpoch idx.EpochID, validators gpos.Validators, totalSup
 	return internalTxs
 }
 
-func GetFakeValidators(num idx.ValidatorIdx) gpos.Validators {
+func GetFakeValidators(num ltypes.ValidatorIdx) gpos.Validators {
 	validators := make(gpos.Validators, 0, num)
 
-	for i := idx.ValidatorID(1); i <= idx.ValidatorID(num); i++ {
+	for i := ltypes.ValidatorID(1); i <= ltypes.ValidatorID(num); i++ {
 		key := FakeKey(i)
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 		pubkeyraw := crypto.FromECDSAPub(&key.PublicKey)

@@ -3,11 +3,11 @@ package gossip
 import (
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
 	"github.com/Fantom-foundation/go-opera/inter/ier"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func (s *Store) GetFullBlockRecord(n idx.BlockID) *ibr.LlrFullBlockRecord {
+func (s *Store) GetFullBlockRecord(n ltypes.BlockID) *ibr.LlrFullBlockRecord {
 	block := s.GetBlock(n)
 	if block == nil {
 		return nil
@@ -20,7 +20,7 @@ func (s *Store) GetFullBlockRecord(n idx.BlockID) *ibr.LlrFullBlockRecord {
 	return ibr.FullBlockRecordFor(block, txs, receipts)
 }
 
-func (s *Store) GetFullEpochRecord(epoch idx.EpochID) *ier.LlrFullEpochRecord {
+func (s *Store) GetFullEpochRecord(epoch ltypes.EpochID) *ier.LlrFullEpochRecord {
 	// Use current state if current epoch is requested.
 	if epoch == s.GetEpoch() {
 		state := s.getBlockEpochState()
