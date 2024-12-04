@@ -35,13 +35,13 @@ type (
 
 func (s *Store) Genesis() genesis.Genesis {
 	return genesis.Genesis{
-		Header:      s.head,
-		Blocks:      s.Blocks(),
-		Epochs:      s.Epochs(),
-		RawEvmItems: s.RawEvmItems(),
-		FwsLiveSection:  s.FwsLiveSection(),
+		Header:            s.head,
+		Blocks:            s.Blocks(),
+		Epochs:            s.Epochs(),
+		RawEvmItems:       s.RawEvmItems(),
+		FwsLiveSection:    s.FwsLiveSection(),
 		FwsArchiveSection: s.FwsArchiveSection(),
-		SignatureSection: s.SignatureSection(),
+		SignatureSection:  s.SignatureSection(),
 	}
 }
 

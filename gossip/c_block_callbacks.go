@@ -11,10 +11,9 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -90,7 +89,7 @@ func consensusCallbackBeginBlockFn(
 			// ignore block processing during bootstrapping
 			return lachesis.BlockCallbacks{
 				ApplyEvent: func(ltypes.Event) {},
-				EndBlock: func() *pos.Validators {
+				EndBlock: func() *ltypes.Validators {
 					return nil
 				},
 			}
@@ -140,7 +139,7 @@ func consensusCallbackBeginBlockFn(
 				}
 				confirmedEventsMeter.Mark(1)
 			},
-			EndBlock: func() (newValidators *pos.Validators) {
+			EndBlock: func() (newValidators *ltypes.Validators) {
 				if atroposTime <= bs.LastBlock.Time {
 					atroposTime = bs.LastBlock.Time + 1
 				}

@@ -8,8 +8,8 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher"
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher/basepeerleecher"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
 )

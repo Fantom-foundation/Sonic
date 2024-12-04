@@ -6,7 +6,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -56,7 +56,7 @@ type (
 // Reader is a callback for getting events from an external storage.
 type Reader interface {
 	GetLatestBlockIndex() idx.Block
-	GetEpochValidators() (*pos.Validators, idx.Epoch)
+	GetEpochValidators() (*ltypes.Validators, idx.Epoch)
 	GetEvent(hash.Event) *inter.Event
 	GetEventPayload(hash.Event) *inter.EventPayload
 	GetLastEvent(epoch idx.Epoch, from idx.ValidatorID) *hash.Event

@@ -42,7 +42,7 @@ var (
 // peerSet represents the collection of active peers currently participating in
 // the `eth` protocol.
 type peerSet struct {
-	peers     map[string]*peer // Peers connected on the `eth` protocol
+	peers  map[string]*peer // Peers connected on the `eth` protocol
 	lock   sync.RWMutex
 	closed bool
 }
@@ -50,7 +50,7 @@ type peerSet struct {
 // newPeerSet creates a new peer set to track the active participants.
 func newPeerSet() *peerSet {
 	return &peerSet{
-		peers:    make(map[string]*peer),
+		peers: make(map[string]*peer),
 	}
 }
 

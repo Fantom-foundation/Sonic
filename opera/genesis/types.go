@@ -35,7 +35,7 @@ type (
 	}
 	SignedMetadata struct {
 		Signature []byte
-		Hashes []byte
+		Hashes    []byte
 	}
 	Genesis struct {
 		Header

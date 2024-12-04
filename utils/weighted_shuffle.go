@@ -5,20 +5,20 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/common/littleendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 type weightedShuffleNode struct {
-	thisWeight  pos.Weight
-	leftWeight  pos.Weight
-	rightWeight pos.Weight
+	thisWeight  ltypes.Weight
+	leftWeight  ltypes.Weight
+	rightWeight ltypes.Weight
 }
 
 type weightedShuffleTree struct {
 	seed      hash.Hash
 	seedIndex int
 
-	weights []pos.Weight
+	weights []ltypes.Weight
 	nodes   []weightedShuffleNode
 }
 
@@ -30,7 +30,7 @@ func (t *weightedShuffleTree) rightIndex(i int) int {
 	return i*2 + 2
 }
 
-func (t *weightedShuffleTree) build(i int) pos.Weight {
+func (t *weightedShuffleTree) build(i int) ltypes.Weight {
 	if i >= len(t.weights) {
 		return 0
 	}
@@ -67,7 +67,7 @@ func (t *weightedShuffleTree) retrieve(i int) int {
 	node := t.nodes[i]
 	total := node.rightWeight + node.leftWeight + node.thisWeight
 
-	r := pos.Weight(t.rand32()) % total
+	r := ltypes.Weight(t.rand32()) % total
 
 	if r < node.thisWeight {
 		t.nodes[i].thisWeight = 0
@@ -86,7 +86,7 @@ func (t *weightedShuffleTree) retrieve(i int) int {
 // WeightedPermutation builds weighted random permutation
 // Returns first {size} entries of {weights} permutation.
 // Call with {size} == len(weights) to get the whole permutation.
-func WeightedPermutation(size int, weights []pos.Weight, seed hash.Hash) []int {
+func WeightedPermutation(size int, weights []ltypes.Weight, seed hash.Hash) []int {
 	if len(weights) < size {
 		panic("the permutation size must be less or equal to weights size")
 	}

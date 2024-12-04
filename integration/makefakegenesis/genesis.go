@@ -7,8 +7,8 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -116,7 +116,7 @@ func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.In
 				EpochStart:        FakeGenesisTime,
 				PrevEpochStart:    FakeGenesisTime - 1,
 				EpochStateRoot:    hash.Hash(genesisStateRoot),
-				Validators:        pos.NewBuilder().Build(),
+				Validators:        ltypes.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
 				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
 				Rules:             rules,

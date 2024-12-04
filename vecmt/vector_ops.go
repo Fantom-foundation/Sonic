@@ -1,8 +1,8 @@
 package vecmt
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/vecengine"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
 

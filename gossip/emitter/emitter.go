@@ -16,7 +16,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/txpool"
@@ -67,7 +67,7 @@ type Emitter struct {
 
 	// note: track validators and epoch internally to avoid referring to
 	// validators of a future epoch inside OnEventConnected of last epoch event
-	validators *pos.Validators
+	validators *ltypes.Validators
 	epoch      idx.Epoch
 
 	// challenges is deadlines when each validator should emit an event

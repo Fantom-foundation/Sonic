@@ -9,12 +9,12 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/threads"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/skipkeys"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/metrics"
 )
 

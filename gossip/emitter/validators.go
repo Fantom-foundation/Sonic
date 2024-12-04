@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 )
 
@@ -12,13 +12,13 @@ const (
 	validatorChallenge = 4 * time.Second
 )
 
-func (em *Emitter) recountConfirmingIntervals(validators *pos.Validators) {
+func (em *Emitter) recountConfirmingIntervals(validators *ltypes.Validators) {
 	// validators with lower stake should emit fewer events to reduce network load
 	// confirmingEmitInterval = piecefunc(totalStakeBeforeMe / totalStake) * MinEmitInterval
-	totalStakeBefore := pos.Weight(0)
+	totalStakeBefore := ltypes.Weight(0)
 	for i, stake := range validators.SortedWeights() {
 		vid := validators.GetID(idx.Validator(i))
-		// pos.Weight is uint32, so cast to uint64 to avoid an overflow
+		// ltypes.Weight is uint32, so cast to uint64 to avoid an overflow
 		stakeRatio := uint64(totalStakeBefore) * uint64(piecefunc.DecimalUnit) / uint64(validators.TotalWeight())
 		if !em.offlineValidators[vid] {
 			totalStakeBefore += stake

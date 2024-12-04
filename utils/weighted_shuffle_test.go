@@ -6,20 +6,20 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/common/littleendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/stretchr/testify/assert"
 )
 
-func getTestWeightsIncreasing(num int) []pos.Weight {
-	weights := make([]pos.Weight, num)
+func getTestWeightsIncreasing(num int) []ltypes.Weight {
+	weights := make([]ltypes.Weight, num)
 	for i := 0; i < num; i++ {
-		weights[i] = pos.Weight(i+1) * 1000
+		weights[i] = ltypes.Weight(i+1) * 1000
 	}
 	return weights
 }
 
-func getTestWeightsEqual(num int) []pos.Weight {
-	weights := make([]pos.Weight, num)
+func getTestWeightsEqual(num int) []ltypes.Weight {
+	weights := make([]ltypes.Weight, num)
 	for i := 0; i < num; i++ {
 		weights[i] = 1000
 	}
@@ -58,7 +58,7 @@ func Test_Permutation_distribution(t *testing.T) {
 }
 
 // test that WeightedPermutation provides a correct permaition
-func testCorrectPermutation(t *testing.T, weightsArr []pos.Weight) {
+func testCorrectPermutation(t *testing.T, weightsArr []ltypes.Weight) {
 	assertar := assert.New(t)
 
 	perm := WeightedPermutation(len(weightsArr), weightsArr, hash.Hash{})

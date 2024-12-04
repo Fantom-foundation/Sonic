@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/common"

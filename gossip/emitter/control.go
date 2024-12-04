@@ -5,18 +5,18 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
-func scalarUpdMetric(diff idx.Event, weight pos.Weight, totalWeight pos.Weight) ancestor.Metric {
+func scalarUpdMetric(diff idx.Event, weight ltypes.Weight, totalWeight ltypes.Weight) ancestor.Metric {
 	return ancestor.Metric(scalarUpdMetricF(uint64(diff)*piecefunc.DecimalUnit)) * ancestor.Metric(weight) / ancestor.Metric(totalWeight)
 }
 
-func updMetric(median, cur, upd idx.Event, validatorIdx idx.Validator, validators *pos.Validators) ancestor.Metric {
+func updMetric(median, cur, upd idx.Event, validatorIdx idx.Validator, validators *ltypes.Validators) ancestor.Metric {
 	if upd <= median || upd <= cur {
 		return 0
 	}

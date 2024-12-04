@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/Fantom-foundation/go-opera/inter/drivertype"
@@ -25,7 +25,7 @@ func (vv ValidatorProfiles) Copy() ValidatorProfiles {
 }
 
 func (vv ValidatorProfiles) SortedArray() []drivertype.ValidatorAndID {
-	builder := pos.NewBigBuilder()
+	builder := ltypes.NewBigBuilder()
 	for id, profile := range vv {
 		builder.Set(id, profile.Weight)
 	}

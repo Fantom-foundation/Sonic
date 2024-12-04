@@ -8,18 +8,17 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/ltypes/tdag"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
 func TestMedianTimeOnIndex(t *testing.T) {
 	nodes := tdag.GenNodes(5)
-	weights := []pos.Weight{5, 4, 3, 2, 1}
-	validators := pos.ArrayToValidators(nodes, weights)
+	weights := []ltypes.Weight{5, 4, 3, 2, 1}
+	validators := ltypes.ArrayToValidators(nodes, weights)
 
 	vi := NewIndex(func(err error) { panic(err) }, LiteConfig())
 	vi.Reset(validators, memorydb.New(), nil)
@@ -123,7 +122,7 @@ func TestMedianTimeOnDAG(t *testing.T) {
  ╠════════════╫═══════════ nodeC002
 `
 
-	weights := []pos.Weight{3, 4, 2, 1}
+	weights := []ltypes.Weight{3, 4, 2, 1}
 	genesisTime := inter.Timestamp(1)
 	creationTimes := map[string]inter.Timestamp{
 		"nodeA001": inter.Timestamp(111),
@@ -154,7 +153,7 @@ func TestMedianTimeOnDAG(t *testing.T) {
 	})
 }
 
-func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp) {
+func testMedianTime(t *testing.T, dagAscii string, weights []ltypes.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp) {
 	assertar := assert.New(t)
 
 	var ordered dag.Events
@@ -164,7 +163,7 @@ func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creatio
 		},
 	})
 
-	validators := pos.ArrayToValidators(nodes, weights)
+	validators := ltypes.ArrayToValidators(nodes, weights)
 
 	events := make(map[hash.Event]dag.Event)
 	getEvent := func(id hash.Event) dag.Event {

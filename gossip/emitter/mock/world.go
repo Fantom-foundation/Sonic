@@ -9,16 +9,16 @@ import (
 	reflect "reflect"
 
 	inter "github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/inter/state"
 	validatorpk "github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	opera "github.com/Fantom-foundation/go-opera/opera"
 	vecmt "github.com/Fantom-foundation/go-opera/vecmt"
 	hash "github.com/Fantom-foundation/lachesis-base/hash"
 	idx "github.com/Fantom-foundation/lachesis-base/inter/idx"
-	pos "github.com/Fantom-foundation/lachesis-base/inter/pos"
+	pos "github.com/Fantom-foundation/lachesis-base/ltypes"
 	common "github.com/ethereum/go-ethereum/common"
 	types "github.com/ethereum/go-ethereum/core/types"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/Fantom-foundation/go-opera/inter/state"
 )
 
 // MockExternal is a mock of External interface.
@@ -99,10 +99,10 @@ func (mr *MockExternalMockRecorder) DagIndex() *gomock.Call {
 }
 
 // GetEpochValidators mocks base method.
-func (m *MockExternal) GetEpochValidators() (*pos.Validators, idx.Epoch) {
+func (m *MockExternal) GetEpochValidators() (*ltypes.Validators, idx.Epoch) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEpochValidators")
-	ret0, _ := ret[0].(*pos.Validators)
+	ret0, _ := ret[0].(*ltypes.Validators)
 	ret1, _ := ret[1].(idx.Epoch)
 	return ret0, ret1
 }

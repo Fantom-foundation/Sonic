@@ -38,11 +38,11 @@ type (
 func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 	return StoreConfig{
 		Cache: StoreCacheConfig{
-			ReceiptsSize:      scale.U(4 * opt.MiB),
-			ReceiptsBlocks:    scale.I(4000),
-			TxPositions:       scale.I(20000),
-			EvmBlocksNum:      scale.I(5000),
-			EvmBlocksSize:     scale.U(6 * opt.MiB),
+			ReceiptsSize:   scale.U(4 * opt.MiB),
+			ReceiptsBlocks: scale.I(4000),
+			TxPositions:    scale.I(20000),
+			EvmBlocksNum:   scale.I(5000),
+			EvmBlocksSize:  scale.U(6 * opt.MiB),
 		},
 		StateDb: carmen.Parameters{
 			Variant:      "go-file",

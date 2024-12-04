@@ -7,7 +7,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -18,7 +18,7 @@ import (
 )
 
 // OnNewEpoch should be called after each epoch change, and on startup
-func (em *Emitter) OnNewEpoch(newValidators *pos.Validators, newEpoch idx.Epoch) {
+func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.Epoch) {
 	em.maxParents = em.config.MaxParents
 	rules := em.world.GetRules()
 	if em.maxParents == 0 {

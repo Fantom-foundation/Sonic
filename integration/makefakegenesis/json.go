@@ -19,8 +19,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -116,7 +116,7 @@ func ApplyGenesisJson(json *GenesisJson) (*genesisstore.Store, error) {
 				EpochStart:        genesisTime + 1,
 				PrevEpochStart:    genesisTime,
 				EpochStateRoot:    hash.Hash(genesisStateRoot),
-				Validators:        pos.NewBuilder().Build(),
+				Validators:        ltypes.NewBuilder().Build(),
 				ValidatorStates:   make([]iblockproc.ValidatorEpochState, 0),
 				ValidatorProfiles: make(map[idx.ValidatorID]drivertype.Validator),
 				Rules:             json.Rules,

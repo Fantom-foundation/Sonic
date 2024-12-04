@@ -12,8 +12,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 )
 
-
-
 // setValidatorID retrieves the validator ID either from the directly specified
 // command line flags or from the keystore if CLI indexed.
 func setValidator(ctx *cli.Context, cfg *emitter.Config) error {

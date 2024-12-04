@@ -4,10 +4,9 @@ import (
 	"testing"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/ltypes/tdag"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 )
@@ -49,7 +48,7 @@ func BenchmarkIndex_Add(b *testing.B) {
 			ordered = append(ordered, e)
 		},
 	})
-	validatorsBuilder := pos.NewBuilder()
+	validatorsBuilder := ltypes.NewBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, 1)
 	}

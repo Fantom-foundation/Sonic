@@ -8,7 +8,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -29,7 +29,7 @@ type ValidationContext struct {
 	Epoch           idx.Epoch
 	Configs         [inter.GasPowerConfigs]Config
 	EpochStart      inter.Timestamp
-	Validators      *pos.Validators
+	Validators      *ltypes.Validators
 	ValidatorStates []ValidatorState
 }
 
@@ -106,7 +106,7 @@ func calcGasPower(e inter.EventI, selfParent inter.EventI, ctx *ValidationContex
 	return CalcValidatorGasPower(e, e.MedianTime(), prevTime, prevGasPowerLeft, ctx.Validators, config)
 }
 
-func CalcValidatorGasPower(e inter.EventI, eTime, prevTime inter.Timestamp, prevGasPowerLeft uint64, validators *pos.Validators, config Config) uint64 {
+func CalcValidatorGasPower(e inter.EventI, eTime, prevTime inter.Timestamp, prevGasPowerLeft uint64, validators *ltypes.Validators, config Config) uint64 {
 	gasPowerPerSec, maxGasPower, startup := CalcValidatorGasPowerPerSec(e.Creator(), validators, config)
 
 	if e.SelfParent() == nil {
@@ -133,7 +133,7 @@ func CalcValidatorGasPower(e inter.EventI, eTime, prevTime inter.Timestamp, prev
 
 func CalcValidatorGasPowerPerSec(
 	validator idx.ValidatorID,
-	validators *pos.Validators,
+	validators *ltypes.Validators,
 	config Config,
 ) (
 	perSec uint64,

@@ -48,7 +48,6 @@ func (s *LLRHeavyCheckTestSuite) TearDownSuite() {
 	s.env.Close()
 }
 
-
 func mutableEventPayloadFromImmutable(e *inter.EventPayload) *inter.MutableEventPayload {
 	me := &inter.MutableEventPayload{}
 	me.SetVersion(e.Version())

@@ -19,7 +19,7 @@ func WrapStateDbWithLogger(stateDb state.StateDB, logger *tracing.Hooks) state.S
 
 type LoggingStateDB struct {
 	state.StateDB
-	logger *tracing.Hooks
+	logger         *tracing.Hooks
 	selfDestructed map[common.Address]struct{}
 }
 

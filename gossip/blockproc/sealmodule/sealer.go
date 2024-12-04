@@ -4,8 +4,8 @@ import (
 	"math/big"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
@@ -46,7 +46,7 @@ func (p *OperaEpochsSealer) Update(bs iblockproc.BlockState, es iblockproc.Epoch
 func (s *OperaEpochsSealer) SealEpoch() (iblockproc.BlockState, iblockproc.EpochState) {
 	// Select new validators
 	oldValidators := s.es.Validators
-	builder := pos.NewBigBuilder()
+	builder := ltypes.NewBigBuilder()
 	for v, profile := range s.bs.NextValidatorProfiles {
 		builder.Set(v, profile.Weight)
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ipcAPIs  = "abft:1.0 admin:1.0 dag:1.0 debug:1.0 ftm:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
+	ipcAPIs = "abft:1.0 admin:1.0 dag:1.0 debug:1.0 ftm:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
 )
 
 func TestFakeNetFlag_NonValidator(t *testing.T) {

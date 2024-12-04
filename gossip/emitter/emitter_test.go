@@ -7,7 +7,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/golang/mock/gomock"
@@ -26,9 +26,9 @@ import (
 func TestEmitter(t *testing.T) {
 	cfg := DefaultConfig()
 	gValidators := makefakegenesis.GetFakeValidators(3)
-	vv := pos.NewBuilder()
+	vv := ltypes.NewBuilder()
 	for _, v := range gValidators {
-		vv.Set(v.ID, pos.Weight(1))
+		vv.Set(v.ID, ltypes.Weight(1))
 	}
 	validators := vv.Build()
 	cfg.Validator.ID = gValidators[0].ID

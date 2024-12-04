@@ -2,7 +2,7 @@ package gossip
 
 import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/log"
 	ethparams "github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -135,12 +135,12 @@ func (s *Store) GetEpoch() idx.Epoch {
 }
 
 // GetValidators retrieves current validators
-func (s *Store) GetValidators() *pos.Validators {
+func (s *Store) GetValidators() *ltypes.Validators {
 	return s.GetEpochState().Validators
 }
 
 // GetEpochValidators retrieves the current epoch and validators atomically
-func (s *Store) GetEpochValidators() (*pos.Validators, idx.Epoch) {
+func (s *Store) GetEpochValidators() (*ltypes.Validators, idx.Epoch) {
 	es := s.GetEpochState()
 	return es.Validators, es.Epoch
 }

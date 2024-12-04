@@ -6,7 +6,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
@@ -112,7 +112,7 @@ func getTxRoundIndex(now, txTime time.Time, validatorsNum idx.Validator) int {
 }
 
 // safe for concurrent use
-func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, accountNonce uint64, now time.Time, validators *pos.Validators, me idx.ValidatorID, epoch idx.Epoch) bool {
+func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, accountNonce uint64, now time.Time, validators *ltypes.Validators, me idx.ValidatorID, epoch idx.Epoch) bool {
 	txTime := txtime.Of(txHash)
 
 	roundIndex := getTxRoundIndex(now, txTime, validators.Len())

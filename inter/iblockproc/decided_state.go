@@ -6,8 +6,8 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/Fantom-foundation/go-opera/inter"
@@ -74,7 +74,7 @@ func (bs BlockState) Copy() BlockState {
 	return cp
 }
 
-func (bs *BlockState) GetValidatorState(id idx.ValidatorID, validators *pos.Validators) *ValidatorBlockState {
+func (bs *BlockState) GetValidatorState(id idx.ValidatorID, validators *ltypes.Validators) *ValidatorBlockState {
 	validatorIdx := validators.GetIdx(id)
 	return &bs.ValidatorStates[validatorIdx]
 }
@@ -95,7 +95,7 @@ type EpochStateV1 struct {
 
 	EpochStateRoot hash.Hash
 
-	Validators        *pos.Validators
+	Validators        *ltypes.Validators
 	ValidatorStates   []ValidatorEpochState
 	ValidatorProfiles ValidatorProfiles
 
@@ -104,7 +104,7 @@ type EpochStateV1 struct {
 
 type EpochState EpochStateV1
 
-func (es *EpochState) GetValidatorState(id idx.ValidatorID, validators *pos.Validators) *ValidatorEpochState {
+func (es *EpochState) GetValidatorState(id idx.ValidatorID, validators *ltypes.Validators) *ValidatorEpochState {
 	validatorIdx := validators.GetIdx(id)
 	return &es.ValidatorStates[validatorIdx]
 }

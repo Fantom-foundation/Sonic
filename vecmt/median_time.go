@@ -6,14 +6,14 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
 // medianTimeIndex is a handy index for the MedianTime() func
 type medianTimeIndex struct {
-	weight       pos.Weight
+	weight       ltypes.Weight
 	creationTime inter.Timestamp
 }
 
@@ -27,7 +27,7 @@ func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Ti
 	}
 	before := _before.(*HighestBefore)
 
-	honestTotalWeight := pos.Weight(0) // isn't equal to validators.TotalWeight(), because doesn't count cheaters
+	honestTotalWeight := ltypes.Weight(0) // isn't equal to validators.TotalWeight(), because doesn't count cheaters
 	highests := make([]medianTimeIndex, 0, len(vi.validatorIdxs))
 	// convert []HighestBefore -> []medianTimeIndex
 	for creatorIdxI := range vi.validators.IDs() {
@@ -59,7 +59,7 @@ func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Ti
 
 	// Calculate weighted median
 	halfWeight := honestTotalWeight / 2
-	var currWeight pos.Weight
+	var currWeight ltypes.Weight
 	var median inter.Timestamp
 	for _, highest := range highests {
 		currWeight += highest.weight

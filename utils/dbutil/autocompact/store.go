@@ -30,7 +30,7 @@ func Wrap(s kvdb.Store, limit uint64, strategy func() ContainerI, name string) *
 		limit:   limit,
 		newCont: strategy,
 		cont:    strategy(),
-		name: name,
+		name:    name,
 	}
 }
 

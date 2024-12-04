@@ -3,7 +3,7 @@ package iblockproc
 import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
@@ -21,7 +21,7 @@ type EpochStateV0 struct {
 
 	EpochStateRoot hash.Hash
 
-	Validators        *pos.Validators
+	Validators        *ltypes.Validators
 	ValidatorStates   []ValidatorEpochStateV0
 	ValidatorProfiles ValidatorProfiles
 

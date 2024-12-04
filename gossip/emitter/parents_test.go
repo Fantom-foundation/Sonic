@@ -8,8 +8,8 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/golang/mock/gomock"
 )
 
@@ -54,9 +54,9 @@ func TestChooseParents_NonGenesisEventMustHaveOneSelfParent(t *testing.T) {
 	validatorId := idx.ValidatorID(1)
 
 	validatorIndex := vecmt.NewIndex(nil, vecmt.LiteConfig())
-	validatorIndex.Reset(pos.ArrayToValidators(
+	validatorIndex.Reset(ltypes.ArrayToValidators(
 		[]idx.ValidatorID{1, 2},
-		[]pos.Weight{1, 1},
+		[]ltypes.Weight{1, 1},
 	), memorydb.New(), nil)
 
 	selfParentHash := hash.Event{1}
