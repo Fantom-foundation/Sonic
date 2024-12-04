@@ -47,7 +47,7 @@ func (s *Store) SetGenesisID(val hash.Hash) {
 }
 
 // SetBlock stores chain block.
-func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
+func (s *Store) SetBlock(n idx.BlockID, b *inter.Block) {
 	s.rlp.Set(s.table.Blocks, n.Bytes(), b)
 
 	// Add to LRU cache.
@@ -55,7 +55,7 @@ func (s *Store) SetBlock(n idx.Block, b *inter.Block) {
 }
 
 // GetBlock returns stored block.
-func (s *Store) GetBlock(n idx.Block) *inter.Block {
+func (s *Store) GetBlock(n idx.BlockID) *inter.Block {
 	// Get block from LRU cache first.
 	if c, ok := s.cache.Blocks.Get(n); ok {
 		return c.(*inter.Block)
@@ -71,12 +71,12 @@ func (s *Store) GetBlock(n idx.Block) *inter.Block {
 	return block
 }
 
-func (s *Store) HasBlock(n idx.Block) bool {
+func (s *Store) HasBlock(n idx.BlockID) bool {
 	has, _ := s.table.Blocks.Has(n.Bytes())
 	return has
 }
 
-func (s *Store) ForEachBlock(fn func(index idx.Block, block *inter.Block)) {
+func (s *Store) ForEachBlock(fn func(index idx.BlockID, block *inter.Block)) {
 	it := s.table.Blocks.NewIterator(nil, nil)
 	defer it.Release()
 	for it.Next() {
@@ -90,7 +90,7 @@ func (s *Store) ForEachBlock(fn func(index idx.Block, block *inter.Block)) {
 }
 
 // SetBlockIndex stores chain block index.
-func (s *Store) SetBlockIndex(id common.Hash, n idx.Block) {
+func (s *Store) SetBlockIndex(id common.Hash, n idx.BlockID) {
 	if err := s.table.BlockHashes.Put(id.Bytes(), n.Bytes()); err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
 	}
@@ -99,10 +99,10 @@ func (s *Store) SetBlockIndex(id common.Hash, n idx.Block) {
 }
 
 // GetBlockIndex returns stored block index.
-func (s *Store) GetBlockIndex(id hash.Event) *idx.Block {
+func (s *Store) GetBlockIndex(id hash.Event) *idx.BlockID {
 	nVal, ok := s.cache.BlockHashes.Get(id)
 	if ok {
-		n, ok := nVal.(idx.Block)
+		n, ok := nVal.(idx.BlockID)
 		if ok {
 			return &n
 		}
@@ -114,7 +114,7 @@ func (s *Store) GetBlockIndex(id hash.Event) *idx.Block {
 	}
 	if buf == nil {
 		if id == s.fakeGenesisHash() {
-			zero := idx.Block(0)
+			zero := idx.BlockID(0)
 			return &zero
 		}
 		return nil
@@ -127,14 +127,14 @@ func (s *Store) GetBlockIndex(id hash.Event) *idx.Block {
 }
 
 // SetGenesisBlockIndex stores genesis block index.
-func (s *Store) SetGenesisBlockIndex(n idx.Block) {
+func (s *Store) SetGenesisBlockIndex(n idx.BlockID) {
 	if err := s.table.Genesis.Put([]byte("i"), n.Bytes()); err != nil {
 		s.Log.Crit("Failed to put key-value", "err", err)
 	}
 }
 
 // GetGenesisBlockIndex returns stored genesis block index.
-func (s *Store) GetGenesisBlockIndex() *idx.Block {
+func (s *Store) GetGenesisBlockIndex() *idx.BlockID {
 	buf, err := s.table.Genesis.Get([]byte("i"))
 	if err != nil {
 		s.Log.Crit("Failed to get key-value", "err", err)
@@ -159,14 +159,14 @@ func (s *Store) GetGenesisTime() inter.Timestamp {
 	return block.Time
 }
 
-func (s *Store) SetEpochBlock(b idx.Block, e idx.Epoch) {
+func (s *Store) SetEpochBlock(b idx.BlockID, e idx.EpochID) {
 	err := s.table.EpochBlocks.Put((math.MaxUint64 - b).Bytes(), e.Bytes())
 	if err != nil {
 		s.Log.Crit("Failed to set key-value", "err", err)
 	}
 }
 
-func (s *Store) FindBlockEpoch(b idx.Block) idx.Epoch {
+func (s *Store) FindBlockEpoch(b idx.BlockID) idx.EpochID {
 	if c, ok := s.cache.Blocks.Get(b); ok {
 		return c.(*inter.Block).Epoch
 	}
@@ -179,7 +179,7 @@ func (s *Store) FindBlockEpoch(b idx.Block) idx.Epoch {
 	return idx.BytesToEpoch(it.Value())
 }
 
-func (s *Store) GetBlockTxs(n idx.Block, block *inter.Block) types.Transactions {
+func (s *Store) GetBlockTxs(n idx.BlockID, block *inter.Block) types.Transactions {
 	if cached := s.evm.GetCachedEvmBlock(n); cached != nil {
 		return cached.Transactions
 	}

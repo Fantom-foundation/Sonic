@@ -129,7 +129,7 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 		h := [24]byte{}
 		r.FixedBytes(h[:])
 		eID := ltypes.MutableBaseEvent{}
-		eID.SetEpoch(idx.Epoch(epoch))
+		eID.SetEpoch(idx.EpochID(epoch))
 		eID.SetLamport(idx.Lamport(lamport - lamportDiff))
 		eID.SetID(h)
 		parents.Add(eID.ID())
@@ -163,11 +163,11 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 
 	e.SetVersion(version)
 	e.SetNetForkID(netForkID)
-	e.SetEpoch(idx.Epoch(epoch))
+	e.SetEpoch(idx.EpochID(epoch))
 	e.SetLamport(idx.Lamport(lamport))
 	e.SetCreator(idx.ValidatorID(creator))
-	e.SetSeq(idx.Event(seq))
-	e.SetFrame(idx.Frame(frame))
+	e.SetSeq(idx.EventID(seq))
+	e.SetFrame(idx.FrameID(frame))
 	e.SetCreationTime(Timestamp(creationTime))
 	e.SetMedianTime(Timestamp(int64(creationTime) - medianTimeDiff))
 	e.SetGasPowerUsed(gasPowerUsed)
@@ -217,8 +217,8 @@ func (bvs *LlrBlockVotes) UnmarshalCSER(r *cser.Reader) error {
 	for i := range records {
 		r.FixedBytes(records[i][:])
 	}
-	bvs.Start = idx.Block(start)
-	bvs.Epoch = idx.Epoch(epoch)
+	bvs.Start = idx.BlockID(start)
+	bvs.Epoch = idx.EpochID(epoch)
 	bvs.Votes = records
 	return nil
 }
@@ -233,7 +233,7 @@ func (ers *LlrEpochVote) UnmarshalCSER(r *cser.Reader) error {
 	epoch := r.U32()
 	record := hash.Hash{}
 	r.FixedBytes(record[:])
-	ers.Epoch = idx.Epoch(epoch)
+	ers.Epoch = idx.EpochID(epoch)
 	ers.Vote = record
 	return nil
 }

@@ -18,7 +18,7 @@ type GPOBackend struct {
 	txpool TxPool
 }
 
-func (b *GPOBackend) GetLatestBlockIndex() idx.Block {
+func (b *GPOBackend) GetLatestBlockIndex() idx.BlockID {
 	return b.store.GetLatestBlockIndex()
 }
 

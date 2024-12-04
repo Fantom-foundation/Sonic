@@ -33,7 +33,7 @@ func testLeecherNoDeadlocks(t *testing.T, maxPeers int) {
 	config.MaxSessionRestart = 5 * time.Millisecond * 5
 	config.BaseProgressWatchdog = 3 * time.Millisecond * 5
 	config.Session.RecheckInterval = time.Millisecond
-	epoch := idx.Epoch(1)
+	epoch := idx.EpochID(1)
 	leecher := New(epoch, rand.IntN(2) == 0, config, Callbacks{
 		IsProcessed: func(id hash.Event) bool {
 			return rand.IntN(2) == 0
@@ -45,8 +45,8 @@ func testLeecherNoDeadlocks(t *testing.T, maxPeers int) {
 		Suspend: func(peer string) bool {
 			return rand.IntN(10) == 0
 		},
-		PeerEpoch: func(peer string) idx.Epoch {
-			return 1 + epoch/2 + idx.Epoch(rand.IntN(int(epoch*2)))
+		PeerEpoch: func(peer string) idx.EpochID {
+			return 1 + epoch/2 + idx.EpochID(rand.IntN(int(epoch*2)))
 		},
 	})
 	terminated := false

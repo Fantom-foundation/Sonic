@@ -61,14 +61,14 @@ type Emitter struct {
 
 	prevIdleTime       time.Time
 	prevEmittedAtTime  time.Time
-	prevEmittedAtBlock idx.Block
+	prevEmittedAtBlock idx.BlockID
 	originatedTxs      *originatedtxs.Buffer
 	pendingGas         uint64
 
 	// note: track validators and epoch internally to avoid referring to
 	// validators of a future epoch inside OnEventConnected of last epoch event
 	validators *ltypes.Validators
-	epoch      idx.Epoch
+	epoch      idx.EpochID
 
 	// challenges is deadlines when each validator should emit an event
 	challenges map[idx.ValidatorID]time.Time
@@ -90,12 +90,12 @@ type Emitter struct {
 	done chan struct{}
 	wg   sync.WaitGroup
 
-	maxParents idx.Event
+	maxParents idx.EventID
 
 	cache struct {
 		sortedTxs *transactionsByPriceAndNonce
 		poolTime  time.Time
-		poolBlock idx.Block
+		poolBlock idx.BlockID
 		poolCount int
 	}
 
@@ -346,7 +346,7 @@ func (em *Emitter) createEvent(sortedTxs *transactionsByPriceAndNonce) (*inter.E
 	}
 
 	var (
-		selfParentSeq  idx.Event
+		selfParentSeq  idx.EventID
 		selfParentTime inter.Timestamp
 		parents        hash.Events
 		maxLamport     idx.Lamport

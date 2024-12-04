@@ -15,7 +15,7 @@ type ValidatorEpochStateV0 struct {
 }
 
 type EpochStateV0 struct {
-	Epoch          idx.Epoch
+	Epoch          idx.EpochID
 	EpochStart     inter.Timestamp
 	PrevEpochStart inter.Timestamp
 

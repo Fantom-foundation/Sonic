@@ -11,7 +11,7 @@ import (
 )
 
 type TxPosition struct {
-	Block       idx.Block
+	Block       idx.BlockID
 	Event       hash.Event
 	EventOffset uint32
 	BlockOffset uint32

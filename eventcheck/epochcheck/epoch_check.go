@@ -26,7 +26,7 @@ var (
 // Reader returns currents epoch and its validators group.
 type Reader interface {
 	base.Reader
-	GetEpochRules() (opera.Rules, idx.Epoch)
+	GetEpochRules() (opera.Rules, idx.EpochID)
 }
 
 // Checker which require only current epoch info
@@ -51,8 +51,8 @@ func CalcGasPowerUsed(e inter.EventPayloadI, rules opera.Rules) uint64 {
 	gasCfg := rules.Economy.Gas
 
 	parentsGas := uint64(0)
-	if idx.Event(len(e.Parents())) > rules.Dag.MaxFreeParents {
-		parentsGas = uint64(idx.Event(len(e.Parents()))-rules.Dag.MaxFreeParents) * gasCfg.ParentGas
+	if idx.EventID(len(e.Parents())) > rules.Dag.MaxFreeParents {
+		parentsGas = uint64(idx.EventID(len(e.Parents()))-rules.Dag.MaxFreeParents) * gasCfg.ParentGas
 	}
 	extraGas := uint64(len(e.Extra())) * gasCfg.ExtraDataGas
 
@@ -110,7 +110,7 @@ func (v *Checker) Validate(e inter.EventPayloadI) error {
 	if e.Epoch() != epoch {
 		return base.ErrNotRelevant
 	}
-	if idx.Event(len(e.Parents())) > rules.Dag.MaxParents {
+	if idx.EventID(len(e.Parents())) > rules.Dag.MaxParents {
 		return ErrTooManyParents
 	}
 	if uint32(len(e.Extra())) > rules.Dag.MaxExtraData {

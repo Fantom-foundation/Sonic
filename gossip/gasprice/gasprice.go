@@ -53,7 +53,7 @@ type Config struct {
 }
 
 type Reader interface {
-	GetLatestBlockIndex() idx.Block
+	GetLatestBlockIndex() idx.BlockID
 	TotalGasPowerLeft() uint64
 	GetRules() opera.Rules
 	GetPendingRules() opera.Rules

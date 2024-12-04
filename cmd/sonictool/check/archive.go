@@ -43,7 +43,7 @@ func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
 
 	invalidBlocks := 0
 	lastBlockIdx := gdb.GetLatestBlockIndex()
-	for i := idx.Block(1); i <= lastBlockIdx; i++ {
+	for i := idx.BlockID(1); i <= lastBlockIdx; i++ {
 		block := gdb.GetBlock(i)
 		if block == nil {
 			return fmt.Errorf("verification failed - unable to get block %d from gdb", i)

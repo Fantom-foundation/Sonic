@@ -120,7 +120,7 @@ func importEventsFile(srv *gossip.Service, fn string) error {
 	batch := make(inter.EventPayloads, 0, 8*1024)
 	batchSize := 0
 	maxBatchSize := 8 * 1024 * 1024
-	epoch := idx.Epoch(0)
+	epoch := idx.EpochID(0)
 	txs := 0
 	events := 0
 

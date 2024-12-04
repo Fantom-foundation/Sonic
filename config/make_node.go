@@ -118,9 +118,9 @@ func MakeNode(ctx *cli.Context, cfg *Config) (*node.Node, *gossip.Service, func(
 		}
 		return evmcore.NewTxPool(cfg.TxPool, reader.Config(), reader)
 	}
-	haltCheck := func(oldEpoch, newEpoch idx.Epoch, age time.Time) bool {
+	haltCheck := func(oldEpoch, newEpoch idx.EpochID, age time.Time) bool {
 		stop := ctx.GlobalIsSet(flags.ExitWhenAgeFlag.Name) && ctx.GlobalDuration(flags.ExitWhenAgeFlag.Name) >= time.Since(age)
-		stop = stop || ctx.GlobalIsSet(flags.ExitWhenEpochFlag.Name) && idx.Epoch(ctx.GlobalUint64(flags.ExitWhenEpochFlag.Name)) <= newEpoch
+		stop = stop || ctx.GlobalIsSet(flags.ExitWhenEpochFlag.Name) && idx.EpochID(ctx.GlobalUint64(flags.ExitWhenEpochFlag.Name)) <= newEpoch
 		if stop {
 			go func() {
 				// do it in a separate thread to avoid deadlock

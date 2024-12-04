@@ -20,14 +20,14 @@ type fakeTx struct {
 }
 
 type TestBackend struct {
-	block             idx.Block
+	block             idx.BlockID
 	totalGasPowerLeft uint64
 	rules             opera.Rules
 	pendingRules      opera.Rules
 	pendingTxs        []fakeTx
 }
 
-func (t TestBackend) GetLatestBlockIndex() idx.Block {
+func (t TestBackend) GetLatestBlockIndex() idx.BlockID {
 	return t.block
 }
 

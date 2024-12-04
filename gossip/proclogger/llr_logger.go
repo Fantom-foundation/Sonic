@@ -12,15 +12,15 @@ import (
 )
 
 type dagSum struct {
-	connected       idx.Event
+	connected       idx.EventID
 	totalProcessing time.Duration
 }
 
 type llrSum struct {
-	bvs idx.Block
-	brs idx.Block
-	evs idx.Epoch
-	ers idx.Epoch
+	bvs idx.BlockID
+	brs idx.BlockID
+	evs idx.EpochID
+	ers idx.EpochID
 }
 
 type Logger struct {
@@ -29,8 +29,8 @@ type Logger struct {
 	llrSum llrSum
 
 	// latest logged data
-	lastEpoch     idx.Epoch
-	lastBlock     idx.Block
+	lastEpoch     idx.EpochID
+	lastBlock     idx.BlockID
 	lastID        hash.Event
 	lastEventTime inter.Timestamp
 	lastLlrTime   inter.Timestamp

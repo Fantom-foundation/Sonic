@@ -38,8 +38,8 @@ type EventI interface {
 type EventLocator struct {
 	BaseHash    hash.Hash
 	NetForkID   uint16
-	Epoch       idx.Epoch
-	Seq         idx.Event
+	Epoch       idx.EpochID
+	Seq         idx.EventID
 	Lamport     idx.Lamport
 	Creator     idx.ValidatorID
 	PayloadHash hash.Hash

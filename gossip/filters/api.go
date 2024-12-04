@@ -52,9 +52,9 @@ type filter struct {
 // Config is a provided API params.
 type Config struct {
 	// Block range limit for logs search (indexed).
-	IndexedLogsBlockRangeLimit idx.Block
+	IndexedLogsBlockRangeLimit idx.BlockID
 	// Block range limit for logs search (unindexed).
-	UnindexedLogsBlockRangeLimit idx.Block
+	UnindexedLogsBlockRangeLimit idx.BlockID
 }
 
 func DefaultConfig() Config {

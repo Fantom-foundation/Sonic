@@ -25,7 +25,7 @@ type Leecher struct {
 
 	// State
 	session sessionState
-	epoch   idx.Epoch
+	epoch   idx.EpochID
 
 	emptyState   bool
 	forceSyncing bool
@@ -33,7 +33,7 @@ type Leecher struct {
 }
 
 // New creates an events downloader to request events based on lexicographic event streams
-func New(epoch idx.Epoch, emptyState bool, cfg Config, callback Callbacks) *Leecher {
+func New(epoch idx.EpochID, emptyState bool, cfg Config, callback Callbacks) *Leecher {
 	l := &Leecher{
 		cfg:        cfg,
 		callback:   callback,
@@ -60,7 +60,7 @@ type Callbacks struct {
 
 	RequestChunk func(peer string, r dagstream.Request) error
 	Suspend      func(peer string) bool
-	PeerEpoch    func(peer string) idx.Epoch
+	PeerEpoch    func(peer string) idx.EpochID
 }
 
 type sessionState struct {
@@ -135,7 +135,7 @@ func (d *Leecher) selectSessionPeerCandidates() []string {
 	return selected
 }
 
-func getSessionID(epoch idx.Epoch, try uint32) uint32 {
+func getSessionID(epoch idx.EpochID, try uint32) uint32 {
 	return (uint32(epoch) << 12) ^ try
 }
 
@@ -167,7 +167,7 @@ func (d *Leecher) startSession(candidates []string) {
 			return d.callback.RequestChunk(peer,
 				dagstream.Request{
 					Session:   session,
-					Limit:     ltypes.Metric{Num: idx.Event(maxNum), Size: maxSize},
+					Limit:     ltypes.Metric{Num: idx.EventID(maxNum), Size: maxSize},
 					Type:      typ,
 					MaxChunks: chunks,
 				})
@@ -192,7 +192,7 @@ func (d *Leecher) startSession(candidates []string) {
 	d.forceSyncing = false
 }
 
-func (d *Leecher) OnNewEpoch(myEpoch idx.Epoch) {
+func (d *Leecher) OnNewEpoch(myEpoch idx.EpochID) {
 	d.Mu.Lock()
 	defer d.Mu.Unlock()
 

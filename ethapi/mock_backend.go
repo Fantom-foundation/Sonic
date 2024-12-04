@@ -142,10 +142,10 @@ func (mr *MockBackendMockRecorder) CurrentBlock() *gomock.Call {
 }
 
 // CurrentEpoch mocks base method.
-func (m *MockBackend) CurrentEpoch(ctx context.Context) idx.Epoch {
+func (m *MockBackend) CurrentEpoch(ctx context.Context) idx.EpochID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CurrentEpoch", ctx)
-	ret0, _ := ret[0].(idx.Epoch)
+	ret0, _ := ret[0].(idx.EpochID)
 	return ret0
 }
 
@@ -170,10 +170,10 @@ func (mr *MockBackendMockRecorder) ExtRPCEnabled() *gomock.Call {
 }
 
 // GetDowntime mocks base method.
-func (m *MockBackend) GetDowntime(ctx context.Context, vid idx.ValidatorID) (idx.Block, inter.Timestamp, error) {
+func (m *MockBackend) GetDowntime(ctx context.Context, vid idx.ValidatorID) (idx.BlockID, inter.Timestamp, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDowntime", ctx, vid)
-	ret0, _ := ret[0].(idx.Block)
+	ret0, _ := ret[0].(idx.BlockID)
 	ret1, _ := ret[1].(inter.Timestamp)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
@@ -483,10 +483,10 @@ func (mr *MockBackendMockRecorder) RPCTxFeeCap() *gomock.Call {
 }
 
 // ResolveRpcBlockNumberOrHash mocks base method.
-func (m *MockBackend) ResolveRpcBlockNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (idx.Block, error) {
+func (m *MockBackend) ResolveRpcBlockNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (idx.BlockID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveRpcBlockNumberOrHash", ctx, blockNrOrHash)
-	ret0, _ := ret[0].(idx.Block)
+	ret0, _ := ret[0].(idx.BlockID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

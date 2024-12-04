@@ -55,12 +55,12 @@ type (
 
 // Reader is a callback for getting events from an external storage.
 type Reader interface {
-	GetLatestBlockIndex() idx.Block
-	GetEpochValidators() (*ltypes.Validators, idx.Epoch)
+	GetLatestBlockIndex() idx.BlockID
+	GetEpochValidators() (*ltypes.Validators, idx.EpochID)
 	GetEvent(hash.Event) *inter.Event
 	GetEventPayload(hash.Event) *inter.EventPayload
-	GetLastEvent(epoch idx.Epoch, from idx.ValidatorID) *hash.Event
-	GetHeads(idx.Epoch) hash.Events
+	GetLastEvent(epoch idx.EpochID, from idx.ValidatorID) *hash.Event
+	GetHeads(idx.EpochID) hash.Events
 	GetGenesisTime() inter.Timestamp
 	GetRules() opera.Rules
 }

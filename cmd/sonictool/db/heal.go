@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.Config, lastCarmenBlock idx.Block) (idx.Block, error) {
+func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.Config, lastCarmenBlock idx.BlockID) (idx.BlockID, error) {
 	producer := &DummyScopedProducer{integration.GetRawDbProducer(chaindataDir, integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
 		Fdlimit: makeDatabaseHandles(),
@@ -43,7 +43,7 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 	if err != nil {
 		return 0, fmt.Errorf("failed to open 'lachesis' database: %w", err)
 	}
-	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
+	cGetEpochDB := func(epoch idx.EpochID) kvdb.Store {
 		name := fmt.Sprintf("lachesis-%d", epoch)
 		cEpochDB, err := producer.OpenDB(name)
 		if err != nil {
@@ -71,8 +71,8 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 }
 
 // healGossipDb reverts the gossip database into state, into which can be reverted carmen
-func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, lastCarmenBlock idx.Block) (
-	epochState *iblockproc.EpochState, lastBlock idx.Block, err error) {
+func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, lastCarmenBlock idx.BlockID) (
+	epochState *iblockproc.EpochState, lastBlock idx.BlockID, err error) {
 
 	gdb, err := gossip.NewStore(producer, cfg) // requires FlushIDKey present (not clean) in all dbs
 	if err != nil {
@@ -106,10 +106,10 @@ func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, las
 }
 
 // getLastEpochWithState finds the last closed epoch with the state available
-func getLastEpochWithState(gdb *gossip.Store, lastCarmenBlock idx.Block) (epochIdx idx.Epoch, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
+func getLastEpochWithState(gdb *gossip.Store, lastCarmenBlock idx.BlockID) (epochIdx idx.EpochID, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
 	currentEpoch := gdb.GetEpoch()
-	epochsToTry := idx.Epoch(10000)
-	endEpoch := idx.Epoch(1)
+	epochsToTry := idx.EpochID(10000)
+	endEpoch := idx.EpochID(1)
 	if currentEpoch > epochsToTry {
 		endEpoch = currentEpoch - epochsToTry
 	}

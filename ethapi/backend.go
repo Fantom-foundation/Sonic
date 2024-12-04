@@ -41,12 +41,12 @@ import (
 
 // PeerProgress is synchronization status of a peer
 type PeerProgress struct {
-	CurrentEpoch     idx.Epoch
-	CurrentBlock     idx.Block
+	CurrentEpoch     idx.EpochID
+	CurrentBlock     idx.BlockID
 	CurrentBlockHash hash.Event
 	CurrentBlockTime inter.Timestamp
-	HighestBlock     idx.Block
-	HighestEpoch     idx.Epoch
+	HighestBlock     idx.BlockID
+	HighestEpoch     idx.EpochID
 }
 
 // Backend interface provides the common API services (that are provided by
@@ -70,7 +70,7 @@ type Backend interface {
 	HeaderByHash(ctx context.Context, hash common.Hash) (*evmcore.EvmHeader, error)
 	BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*evmcore.EvmBlock, error)
 	StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (state.StateDB, *evmcore.EvmHeader, error)
-	ResolveRpcBlockNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (idx.Block, error)
+	ResolveRpcBlockNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (idx.BlockID, error)
 	BlockByHash(ctx context.Context, hash common.Hash) (*evmcore.EvmBlock, error)
 	GetReceiptsByNumber(ctx context.Context, number rpc.BlockNumber) (types.Receipts, error)
 	GetEVM(ctx context.Context, msg *core.Message, state vm.StateDB, header *evmcore.EvmHeader, vmConfig *vm.Config) (*vm.EVM, func() error, error)
@@ -95,12 +95,12 @@ type Backend interface {
 	GetEventPayload(ctx context.Context, shortEventID string) (*inter.EventPayload, error)
 	GetEvent(ctx context.Context, shortEventID string) (*inter.Event, error)
 	GetHeads(ctx context.Context, epoch rpc.BlockNumber) (hash.Events, error)
-	CurrentEpoch(ctx context.Context) idx.Epoch
+	CurrentEpoch(ctx context.Context) idx.EpochID
 	SealedEpochTiming(ctx context.Context) (start inter.Timestamp, end inter.Timestamp)
 
 	// Lachesis aBFT API
 	GetEpochBlockState(ctx context.Context, epoch rpc.BlockNumber) (*iblockproc.BlockState, *iblockproc.EpochState, error)
-	GetDowntime(ctx context.Context, vid idx.ValidatorID) (idx.Block, inter.Timestamp, error)
+	GetDowntime(ctx context.Context, vid idx.ValidatorID) (idx.BlockID, inter.Timestamp, error)
 	GetUptime(ctx context.Context, vid idx.ValidatorID) (*big.Int, error)
 	GetOriginatedFee(ctx context.Context, vid idx.ValidatorID) (*big.Int, error)
 }

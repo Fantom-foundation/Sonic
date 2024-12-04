@@ -20,14 +20,14 @@ type LlrFullBlockRecord struct {
 	GasUsed    uint64
 	BaseFee    *big.Int
 	PrevRandao hash.Hash
-	Epoch      idx.Epoch
+	Epoch      idx.EpochID
 	Txs        types.Transactions
 	Receipts   []*types.ReceiptForStorage
 }
 
 type LlrIdxFullBlockRecord struct {
 	LlrFullBlockRecord
-	Idx idx.Block
+	Idx idx.BlockID
 }
 
 // FullBlockRecordFor returns the full block record used in Genesis processing

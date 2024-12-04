@@ -52,7 +52,7 @@ type (
 
 		PrevRandao common.Hash // == mixHash/mixDigest
 
-		Epoch idx.Epoch
+		Epoch idx.EpochID
 	}
 
 	EvmBlock struct {

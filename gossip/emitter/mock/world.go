@@ -99,11 +99,11 @@ func (mr *MockExternalMockRecorder) DagIndex() *gomock.Call {
 }
 
 // GetEpochValidators mocks base method.
-func (m *MockExternal) GetEpochValidators() (*ltypes.Validators, idx.Epoch) {
+func (m *MockExternal) GetEpochValidators() (*ltypes.Validators, idx.EpochID) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEpochValidators")
 	ret0, _ := ret[0].(*ltypes.Validators)
-	ret1, _ := ret[1].(idx.Epoch)
+	ret1, _ := ret[1].(idx.EpochID)
 	return ret0, ret1
 }
 
@@ -156,7 +156,7 @@ func (mr *MockExternalMockRecorder) GetGenesisTime() *gomock.Call {
 }
 
 // GetHeads mocks base method.
-func (m *MockExternal) GetHeads(arg0 idx.Epoch) hash.Events {
+func (m *MockExternal) GetHeads(arg0 idx.EpochID) hash.Events {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHeads", arg0)
 	ret0, _ := ret[0].(hash.Events)
@@ -170,7 +170,7 @@ func (mr *MockExternalMockRecorder) GetHeads(arg0 interface{}) *gomock.Call {
 }
 
 // GetLastEvent mocks base method.
-func (m *MockExternal) GetLastEvent(arg0 idx.Epoch, arg1 idx.ValidatorID) *hash.Event {
+func (m *MockExternal) GetLastEvent(arg0 idx.EpochID, arg1 idx.ValidatorID) *hash.Event {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLastEvent", arg0, arg1)
 	ret0, _ := ret[0].(*hash.Event)
@@ -184,10 +184,10 @@ func (mr *MockExternalMockRecorder) GetLastEvent(arg0, arg1 interface{}) *gomock
 }
 
 // GetLatestBlockIndex mocks base method.
-func (m *MockExternal) GetLatestBlockIndex() idx.Block {
+func (m *MockExternal) GetLatestBlockIndex() idx.BlockID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLatestBlockIndex")
-	ret0, _ := ret[0].(idx.Block)
+	ret0, _ := ret[0].(idx.BlockID)
 	return ret0
 }
 

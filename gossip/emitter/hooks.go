@@ -18,7 +18,7 @@ import (
 )
 
 // OnNewEpoch should be called after each epoch change, and on startup
-func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.Epoch) {
+func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.EpochID) {
 	em.maxParents = em.config.MaxParents
 	rules := em.world.GetRules()
 	if em.maxParents == 0 {
@@ -76,13 +76,13 @@ func (em *Emitter) OnNewEpoch(newValidators *ltypes.Validators, newEpoch idx.Epo
 		em.fcIndexer = ancestor.NewFCIndexer(newValidators, em.world.DagIndex(), em.config.Validator.ID)
 	} else {
 		em.quorumIndexer = ancestor.NewQuorumIndexer(newValidators, vecmt2dagidx.Wrap(em.world.DagIndex()),
-			func(median, current, update idx.Event, validatorIdx idx.Validator) ancestor.Metric {
+			func(median, current, update idx.EventID, validatorIdx idx.Validator) ancestor.Metric {
 				return updMetric(median, current, update, validatorIdx, newValidators)
 			})
 		em.fcIndexer = nil
 	}
 	em.quorumIndexer = ancestor.NewQuorumIndexer(newValidators, vecmt2dagidx.Wrap(em.world.DagIndex()),
-		func(median, current, update idx.Event, validatorIdx idx.Validator) ancestor.Metric {
+		func(median, current, update idx.EventID, validatorIdx idx.Validator) ancestor.Metric {
 			return updMetric(median, current, update, validatorIdx, newValidators)
 		})
 	em.payloadIndexer = ancestor.NewPayloadIndexer(PayloadIndexerSize)

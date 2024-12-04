@@ -44,7 +44,7 @@ type Block struct {
 	TransactionHashes []common.Hash
 
 	// Fields required for linking the block internally to a lachesis epoch.
-	Epoch idx.Epoch
+	Epoch idx.EpochID
 
 	// The duration of this block, being the difference between the predecessor
 	// block's timestamp and this block's timestamp, in nanoseconds.
@@ -211,7 +211,7 @@ func (b *BlockBuilder) WithPrevRandao(prevRandao common.Hash) *BlockBuilder {
 	return b
 }
 
-func (b *BlockBuilder) WithEpoch(epoch idx.Epoch) *BlockBuilder {
+func (b *BlockBuilder) WithEpoch(epoch idx.EpochID) *BlockBuilder {
 	b.block.Epoch = epoch
 	return b
 }

@@ -50,7 +50,7 @@ func unsupportedMigration() error {
 
 type legacyUpgradeHeight struct {
 	Upgrades opera.Upgrades
-	Height   idx.Block
+	Height   idx.BlockID
 }
 
 func (s *Store) addTimeIntoUpgradeHeights() error {

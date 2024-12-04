@@ -74,7 +74,7 @@ func heal(ctx *cli.Context) error {
 	cancelCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	recoveredBlock, err := db.HealChaindata(chaindataDir, cacheRatio, cfg, idx.Block(archiveCheckpointBlock))
+	recoveredBlock, err := db.HealChaindata(chaindataDir, cacheRatio, cfg, idx.BlockID(archiveCheckpointBlock))
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func heal(ctx *cli.Context) error {
 	return nil
 }
 
-func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.Block) error {
+func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.BlockID) error {
 	if err := os.RemoveAll(carmenLiveDir); err != nil {
 		return fmt.Errorf("failed to remove broken live state: %w", err)
 	}

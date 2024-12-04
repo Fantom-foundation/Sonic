@@ -26,9 +26,9 @@ var (
 
 // Reader is accessed by the validator to get the current state.
 type Reader interface {
-	GetEpochPubKeys() (map[idx.ValidatorID]validatorpk.PubKey, idx.Epoch)
-	GetEpochPubKeysOf(idx.Epoch) map[idx.ValidatorID]validatorpk.PubKey
-	GetEpochBlockStart(idx.Epoch) idx.Block
+	GetEpochPubKeys() (map[idx.ValidatorID]validatorpk.PubKey, idx.EpochID)
+	GetEpochPubKeysOf(idx.EpochID) map[idx.ValidatorID]validatorpk.PubKey
+	GetEpochBlockStart(idx.EpochID) idx.BlockID
 }
 
 // Checker which requires only parents list + current epoch info
@@ -105,7 +105,7 @@ func verifySignature(signedHash hash.Hash, sig inter.Signature, pubkey validator
 	return crypto.VerifySignature(pubkey.Raw, signedHash.Bytes(), sig.Bytes())
 }
 
-func (v *Checker) ValidateEventLocator(e inter.SignedEventLocator, authEpoch idx.Epoch, authErr error, checkPayload func() bool) error {
+func (v *Checker) ValidateEventLocator(e inter.SignedEventLocator, authEpoch idx.EpochID, authErr error, checkPayload func() bool) error {
 	pubkeys := v.reader.GetEpochPubKeysOf(authEpoch)
 	if len(pubkeys) == 0 {
 		return authErr

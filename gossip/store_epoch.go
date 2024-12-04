@@ -23,7 +23,7 @@ var (
 
 type (
 	epochStore struct {
-		epoch idx.Epoch
+		epoch idx.EpochID
 		db    kvdb.Store
 		table struct {
 			LastEvents kvdb.Store `table:"t"`
@@ -39,7 +39,7 @@ type (
 	}
 )
 
-func newEpochStore(epoch idx.Epoch, db kvdb.Store) *epochStore {
+func newEpochStore(epoch idx.EpochID, db kvdb.Store) *epochStore {
 	es := &epochStore{
 		epoch:    epoch,
 		db:       db,
@@ -67,7 +67,7 @@ func (s *Store) getAnyEpochStore() *epochStore {
 }
 
 // getEpochStore is safe for concurrent use.
-func (s *Store) getEpochStore(epoch idx.Epoch) *epochStore {
+func (s *Store) getEpochStore(epoch idx.EpochID) *epochStore {
 	es := s.getAnyEpochStore()
 	if es.epoch != epoch {
 		return nil
@@ -75,7 +75,7 @@ func (s *Store) getEpochStore(epoch idx.Epoch) *epochStore {
 	return es
 }
 
-func (s *Store) resetEpochStore(newEpoch idx.Epoch) {
+func (s *Store) resetEpochStore(newEpoch idx.EpochID) {
 	oldEs := s.epochStore.Load()
 	// create new DB
 	s.createEpochStore(newEpoch)
@@ -91,7 +91,7 @@ func (s *Store) resetEpochStore(newEpoch idx.Epoch) {
 	}
 }
 
-func (s *Store) loadEpochStore(epoch idx.Epoch) {
+func (s *Store) loadEpochStore(epoch idx.EpochID) {
 	if s.epochStore.Load() != nil {
 		return
 	}
@@ -106,7 +106,7 @@ func (s *Store) closeEpochStore() error {
 	return es.db.Close()
 }
 
-func (s *Store) createEpochStore(epoch idx.Epoch) {
+func (s *Store) createEpochStore(epoch idx.EpochID) {
 	// create new DB
 	name := fmt.Sprintf("gossip-%d", epoch)
 	db, err := s.dbs.OpenDB(name)

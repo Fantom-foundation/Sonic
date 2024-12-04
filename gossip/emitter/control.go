@@ -12,11 +12,11 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera"
 )
 
-func scalarUpdMetric(diff idx.Event, weight ltypes.Weight, totalWeight ltypes.Weight) ancestor.Metric {
+func scalarUpdMetric(diff idx.EventID, weight ltypes.Weight, totalWeight ltypes.Weight) ancestor.Metric {
 	return ancestor.Metric(scalarUpdMetricF(uint64(diff)*piecefunc.DecimalUnit)) * ancestor.Metric(weight) / ancestor.Metric(totalWeight)
 }
 
-func updMetric(median, cur, upd idx.Event, validatorIdx idx.Validator, validators *ltypes.Validators) ancestor.Metric {
+func updMetric(median, cur, upd idx.EventID, validatorIdx idx.Validator, validators *ltypes.Validators) ancestor.Metric {
 	if upd <= median || upd <= cur {
 		return 0
 	}
@@ -27,7 +27,7 @@ func updMetric(median, cur, upd idx.Event, validatorIdx idx.Validator, validator
 	return scalarUpdMetric(upd-median, weight, validators.TotalWeight())
 }
 
-func kickStartMetric(metric ancestor.Metric, seq idx.Event) ancestor.Metric {
+func kickStartMetric(metric ancestor.Metric, seq idx.EventID) ancestor.Metric {
 	// kickstart metric in a beginning of epoch, when there's nothing to observe yet
 	if seq <= 2 && metric < 0.9*piecefunc.DecimalUnit {
 		metric += 0.1 * piecefunc.DecimalUnit
@@ -38,7 +38,7 @@ func kickStartMetric(metric ancestor.Metric, seq idx.Event) ancestor.Metric {
 	return metric
 }
 
-func eventMetric(orig ancestor.Metric, seq idx.Event) ancestor.Metric {
+func eventMetric(orig ancestor.Metric, seq idx.EventID) ancestor.Metric {
 	return kickStartMetric(ancestor.Metric(eventMetricF(uint64(orig))), seq)
 }
 

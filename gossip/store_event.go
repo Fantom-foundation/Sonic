@@ -99,13 +99,13 @@ func (s *Store) forEachEvent(it ethdb.Iterator, onEvent func(event *inter.EventP
 	}
 }
 
-func (s *Store) ForEachEpochEvent(epoch idx.Epoch, onEvent func(event *inter.EventPayload) bool) {
+func (s *Store) ForEachEpochEvent(epoch idx.EpochID, onEvent func(event *inter.EventPayload) bool) {
 	it := s.table.Events.NewIterator(epoch.Bytes(), nil)
 	defer it.Release()
 	s.forEachEvent(it, onEvent)
 }
 
-func (s *Store) ForEachEvent(start idx.Epoch, onEvent func(event *inter.EventPayload) bool) {
+func (s *Store) ForEachEvent(start idx.EpochID, onEvent func(event *inter.EventPayload) bool) {
 	it := s.table.Events.NewIterator(nil, start.Bytes())
 	defer it.Release()
 	s.forEachEvent(it, onEvent)
@@ -121,7 +121,7 @@ func (s *Store) ForEachEventRLP(start []byte, onEvent func(key hash.Event, event
 	}
 }
 
-func (s *Store) FindEventHashes(epoch idx.Epoch, lamport idx.Lamport, hashPrefix []byte) hash.Events {
+func (s *Store) FindEventHashes(epoch idx.EpochID, lamport idx.Lamport, hashPrefix []byte) hash.Events {
 	prefix := bytes.NewBuffer(epoch.Bytes())
 	prefix.Write(lamport.Bytes())
 	prefix.Write(hashPrefix)

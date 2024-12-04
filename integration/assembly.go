@@ -49,7 +49,7 @@ func getStores(producer kvdb.FlushableDBProducer, cfg Configs) (*gossip.Store, *
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open lachesis database: %w", err)
 	}
-	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
+	cGetEpochDB := func(epoch idx.EpochID) kvdb.Store {
 		cEpochDb, err := producer.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
 		if err != nil {
 			panic(fmt.Errorf("failed to open lachesis-%d database: %w", epoch, err))

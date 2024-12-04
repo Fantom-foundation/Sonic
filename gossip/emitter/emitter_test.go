@@ -69,10 +69,10 @@ func TestEmitter(t *testing.T) {
 			AnyTimes()
 
 		external.EXPECT().GetEpochValidators().
-			Return(validators, idx.Epoch(1)).
+			Return(validators, idx.EpochID(1)).
 			AnyTimes()
 
-		external.EXPECT().GetLastEvent(idx.Epoch(1), cfg.Validator.ID).
+		external.EXPECT().GetLastEvent(idx.EpochID(1), cfg.Validator.ID).
 			Return((*hash.Event)(nil)).
 			AnyTimes()
 

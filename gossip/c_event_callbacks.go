@@ -122,7 +122,7 @@ func processLastEvent(lasts *concurrent.ValidatorEventsSet, e *inter.EventPayloa
 	return lasts
 }
 
-func (s *Service) switchEpochTo(newEpoch idx.Epoch) {
+func (s *Service) switchEpochTo(newEpoch idx.EpochID) {
 	s.store.cache.EventIDs.Reset(newEpoch)
 	s.store.SetHighestLamport(0)
 	// reset dag indexer
@@ -141,7 +141,7 @@ func (s *Service) switchEpochTo(newEpoch idx.Epoch) {
 	s.feed.newEpoch.Send(newEpoch)
 }
 
-func (s *Service) SwitchEpochTo(newEpoch idx.Epoch) error {
+func (s *Service) SwitchEpochTo(newEpoch idx.EpochID) error {
 	bs, es := s.store.GetHistoryBlockEpochState(newEpoch)
 	if bs == nil {
 		return errNonExistingEpoch
@@ -162,7 +162,7 @@ func (s *Service) SwitchEpochTo(newEpoch idx.Epoch) error {
 	return nil
 }
 
-func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.Epoch) {
+func (s *Service) processEventEpochIndex(e *inter.EventPayload, oldEpoch, newEpoch idx.EpochID) {
 	// index DAG heads and last events
 	s.store.SetHeads(oldEpoch, processEventHeads(s.store.GetHeads(oldEpoch), e))
 	s.store.SetLastEvents(oldEpoch, processLastEvent(s.store.GetLastEvents(oldEpoch), e))

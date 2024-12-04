@@ -26,11 +26,11 @@ func (b *HighestBefore) IsForkDetected(i idx.Validator) bool {
 	return b.VSeq.IsForkDetected(i)
 }
 
-func (b *HighestBefore) Seq(i idx.Validator) idx.Event {
+func (b *HighestBefore) Seq(i idx.Validator) idx.EventID {
 	return b.VSeq.Seq(i)
 }
 
-func (b *HighestBefore) MinSeq(i idx.Validator) idx.Event {
+func (b *HighestBefore) MinSeq(i idx.Validator) idx.EventID {
 	return b.VSeq.MinSeq(i)
 }
 

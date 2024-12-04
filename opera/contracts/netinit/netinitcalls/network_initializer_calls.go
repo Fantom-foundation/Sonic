@@ -21,7 +21,7 @@ var (
 
 // Methods
 
-func InitializeAll(sealedEpoch idx.Epoch, totalSupply *big.Int, sfcAddr common.Address, driverAuthAddr common.Address, driverAddr common.Address, evmWriterAddr common.Address, owner common.Address) []byte {
+func InitializeAll(sealedEpoch idx.EpochID, totalSupply *big.Int, sfcAddr common.Address, driverAuthAddr common.Address, driverAddr common.Address, evmWriterAddr common.Address, owner common.Address) []byte {
 	data, _ := sAbi.Pack("initializeAll", utils.U64toBig(uint64(sealedEpoch)), totalSupply, sfcAddr, driverAuthAddr, driverAddr, evmWriterAddr, owner)
 	return data
 }

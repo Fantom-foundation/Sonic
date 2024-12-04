@@ -14,7 +14,7 @@ type LlrFullEpochRecord struct {
 
 type LlrIdxFullEpochRecord struct {
 	LlrFullEpochRecord
-	Idx idx.Epoch
+	Idx idx.EpochID
 }
 
 func (er LlrFullEpochRecord) Hash() hash.Hash {

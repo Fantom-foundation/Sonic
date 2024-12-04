@@ -27,8 +27,8 @@ type Delegation struct {
 	ValidatorID        idx.ValidatorID
 	Stake              *big.Int
 	LockedStake        *big.Int
-	LockupFromEpoch    idx.Epoch
-	LockupEndTime      idx.Epoch
+	LockupFromEpoch    idx.EpochID
+	LockupEndTime      idx.EpochID
 	LockupDuration     uint64
 	EarlyUnlockPenalty *big.Int
 	Rewards            *big.Int

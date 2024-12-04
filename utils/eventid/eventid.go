@@ -11,7 +11,7 @@ type Cache struct {
 	ids     map[hash.Event]bool
 	mu      sync.RWMutex
 	maxSize int
-	epoch   idx.Epoch
+	epoch   idx.EpochID
 }
 
 func NewCache(maxSize int) *Cache {
@@ -20,7 +20,7 @@ func NewCache(maxSize int) *Cache {
 	}
 }
 
-func (c *Cache) Reset(epoch idx.Epoch) {
+func (c *Cache) Reset(epoch idx.EpochID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.ids = make(map[hash.Event]bool)

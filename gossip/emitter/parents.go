@@ -9,27 +9,27 @@ import (
 )
 
 // buildSearchStrategies returns a strategy for each parent search
-func (em *Emitter) buildSearchStrategies(maxParents idx.Event) []ancestor.SearchStrategy {
+func (em *Emitter) buildSearchStrategies(maxParents idx.EventID) []ancestor.SearchStrategy {
 	strategies := make([]ancestor.SearchStrategy, 0, maxParents)
 	if maxParents == 0 {
 		return strategies
 	}
 	payloadStrategy := em.payloadIndexer.SearchStrategy()
-	for idx.Event(len(strategies)) < 1 {
+	for idx.EventID(len(strategies)) < 1 {
 		strategies = append(strategies, payloadStrategy)
 	}
 	randStrategy := ancestor.NewRandomStrategy(nil)
-	for idx.Event(len(strategies)) < maxParents/2 {
+	for idx.EventID(len(strategies)) < maxParents/2 {
 		strategies = append(strategies, randStrategy)
 	}
 	if em.fcIndexer != nil {
 		quorumStrategy := em.fcIndexer.SearchStrategy()
-		for idx.Event(len(strategies)) < maxParents {
+		for idx.EventID(len(strategies)) < maxParents {
 			strategies = append(strategies, quorumStrategy)
 		}
 	} else if em.quorumIndexer != nil {
 		quorumStrategy := em.quorumIndexer.SearchStrategy()
-		for idx.Event(len(strategies)) < maxParents {
+		for idx.EventID(len(strategies)) < maxParents {
 			strategies = append(strategies, quorumStrategy)
 		}
 	}
@@ -37,7 +37,7 @@ func (em *Emitter) buildSearchStrategies(maxParents idx.Event) []ancestor.Search
 }
 
 // chooseParents selects an "optimal" parents set for the validator
-func (em *Emitter) chooseParents(epoch idx.Epoch, myValidatorID idx.ValidatorID) (*hash.Event, hash.Events, bool) {
+func (em *Emitter) chooseParents(epoch idx.EpochID, myValidatorID idx.ValidatorID) (*hash.Event, hash.Events, bool) {
 	selfParent := em.world.GetLastEvent(epoch, myValidatorID)
 	if selfParent == nil {
 		return nil, nil, true
@@ -48,6 +48,6 @@ func (em *Emitter) chooseParents(epoch idx.Epoch, myValidatorID idx.ValidatorID)
 	}
 	parents := hash.Events{*selfParent}
 	heads := em.world.GetHeads(epoch) // events with no descendants
-	parents = ancestor.ChooseParents(parents, heads, em.buildSearchStrategies(em.maxParents-idx.Event(len(parents))))
+	parents = ancestor.ChooseParents(parents, heads, em.buildSearchStrategies(em.maxParents-idx.EventID(len(parents))))
 	return selfParent, parents, true
 }

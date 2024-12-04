@@ -16,7 +16,7 @@ type EventsDoublesign struct {
 }
 
 type BlockVoteDoublesign struct {
-	Block idx.Block
+	Block idx.BlockID
 	Pair  [2]LlrSignedBlockVotes
 }
 
@@ -25,7 +25,7 @@ func (p BlockVoteDoublesign) GetVote(i int) hash.Hash {
 }
 
 type WrongBlockVote struct {
-	Block      idx.Block
+	Block      idx.BlockID
 	Pals       [MinAccomplicesForProof]LlrSignedBlockVotes
 	WrongEpoch bool
 }

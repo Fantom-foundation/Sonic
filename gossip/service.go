@@ -61,7 +61,7 @@ type ServiceFeed struct {
 	newLogs         notify.Feed
 }
 
-func (f *ServiceFeed) SubscribeNewEpoch(ch chan<- idx.Epoch) notify.Subscription {
+func (f *ServiceFeed) SubscribeNewEpoch(ch chan<- idx.EpochID) notify.Subscription {
 	return f.scope.Track(f.newEpoch.Subscribe(ch))
 }
 
@@ -145,7 +145,7 @@ type Service struct {
 	procLogger *proclogger.Logger
 
 	stopped   bool
-	haltCheck func(oldEpoch, newEpoch idx.Epoch, time time.Time) bool
+	haltCheck func(oldEpoch, newEpoch idx.EpochID, time time.Time) bool
 
 	tflusher PeriodicFlusher
 
@@ -156,7 +156,7 @@ type Service struct {
 
 func NewService(stack *node.Node, config Config, store *Store, blockProc BlockProc,
 	engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool,
-	haltCheck func(oldEpoch, newEpoch idx.Epoch, age time.Time) bool) (*Service, error) {
+	haltCheck func(oldEpoch, newEpoch idx.EpochID, age time.Time) bool) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}

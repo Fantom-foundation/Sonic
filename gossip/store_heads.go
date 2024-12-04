@@ -81,7 +81,7 @@ func (es *epochStore) FlushHeads() {
 }
 
 // GetHeadsSlice returns IDs of all the epoch events with no descendants
-func (s *Store) GetHeadsSlice(epoch idx.Epoch) hash.Events {
+func (s *Store) GetHeadsSlice(epoch idx.EpochID) hash.Events {
 	heads := s.GetHeads(epoch)
 	heads.RLock()
 	defer heads.RUnlock()
@@ -89,7 +89,7 @@ func (s *Store) GetHeadsSlice(epoch idx.Epoch) hash.Events {
 }
 
 // GetHeads returns set of all the epoch event IDs with no descendants
-func (s *Store) GetHeads(epoch idx.Epoch) *concurrent.EventsSet {
+func (s *Store) GetHeads(epoch idx.EpochID) *concurrent.EventsSet {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil
@@ -98,7 +98,7 @@ func (s *Store) GetHeads(epoch idx.Epoch) *concurrent.EventsSet {
 	return es.GetHeads()
 }
 
-func (s *Store) SetHeads(epoch idx.Epoch, ids *concurrent.EventsSet) {
+func (s *Store) SetHeads(epoch idx.EpochID, ids *concurrent.EventsSet) {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return

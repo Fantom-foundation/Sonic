@@ -20,7 +20,7 @@ type LLRHeavyCheckTestSuite struct {
 
 	env        *testEnv
 	me         *inter.MutableEventPayload
-	startEpoch idx.Epoch
+	startEpoch idx.EpochID
 }
 
 func (s *LLRHeavyCheckTestSuite) SetupSuite() {
@@ -40,7 +40,7 @@ func (s *LLRHeavyCheckTestSuite) SetupSuite() {
 
 	s.env = env
 	s.me = mutableEventPayloadFromImmutable(e)
-	s.startEpoch = idx.Epoch(startEpoch)
+	s.startEpoch = idx.EpochID(startEpoch)
 }
 
 func (s *LLRHeavyCheckTestSuite) TearDownSuite() {
@@ -78,10 +78,10 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			nil,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.Epoch(s.startEpoch))
+				s.me.SetEpoch(idx.EpochID(s.startEpoch))
 				s.me.SetCreator(3)
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
@@ -97,7 +97,7 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			epochcheck.ErrNotRelevant,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.Epoch(s.startEpoch + 1))
+				s.me.SetEpoch(idx.EpochID(s.startEpoch + 1))
 				s.me.SetCreator(3)
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
@@ -113,9 +113,9 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			epochcheck.ErrAuth,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.Epoch(s.startEpoch))
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetEpoch(idx.EpochID(s.startEpoch))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 				invalidCreator := idx.ValidatorID(100)
 				s.me.SetCreator(invalidCreator)
@@ -133,10 +133,10 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			heavycheck.ErrWrongEventSig,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.Epoch(s.startEpoch))
+				s.me.SetEpoch(idx.EpochID(s.startEpoch))
 				s.me.SetCreator(3)
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 				s.me.SetPayloadHash(inter.CalcPayloadHash(s.me))
 
@@ -152,10 +152,10 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			heavycheck.ErrMalformedTxSig,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.Epoch(s.startEpoch))
+				s.me.SetEpoch(idx.EpochID(s.startEpoch))
 				s.me.SetCreator(3)
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
 				tx1 := types.NewTx(&types.LegacyTx{
@@ -183,9 +183,9 @@ func (s *LLRHeavyCheckTestSuite) TestHeavyCheckValidateEvent() {
 			heavycheck.ErrWrongPayloadHash,
 			func() {
 				s.me.SetVersion(1)
-				s.me.SetEpoch(idx.Epoch(s.startEpoch))
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetEpoch(idx.EpochID(s.startEpoch))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 				s.me.SetCreator(3)
 

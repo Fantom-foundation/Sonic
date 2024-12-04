@@ -59,7 +59,7 @@ func (s *Store) GetRpcStateDb(blockNum *big.Int, stateRoot common.Hash) (state.S
 }
 
 // CheckLiveStateHash returns if the hash of the current live StateDB hash matches (and fullsync is possible)
-func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
+func (s *Store) CheckLiveStateHash(blockNum idx.BlockID, root hash.Hash) error {
 	if s.liveStateDb == nil {
 		return fmt.Errorf("unable to get live state - EvmStore is not open")
 	}
@@ -71,7 +71,7 @@ func (s *Store) CheckLiveStateHash(blockNum idx.Block, root hash.Hash) error {
 }
 
 // CheckArchiveStateHash returns if the hash of the given archive StateDB hash matches
-func (s *Store) CheckArchiveStateHash(blockNum idx.Block, root hash.Hash) error {
+func (s *Store) CheckArchiveStateHash(blockNum idx.BlockID, root hash.Hash) error {
 	if s.carmenState == nil {
 		return fmt.Errorf("unable to get live state - EvmStore is not open")
 	}

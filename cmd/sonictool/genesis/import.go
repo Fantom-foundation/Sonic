@@ -60,7 +60,7 @@ func ImportGenesisStore(params ImportParams) error {
 	if err != nil {
 		return err
 	}
-	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
+	cGetEpochDB := func(epoch idx.EpochID) kvdb.Store {
 		db, err := dbs.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
 		if err != nil {
 			panic(fmt.Errorf("failed to open epoch db: %w", err))

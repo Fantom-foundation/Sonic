@@ -133,8 +133,8 @@ func (s *PublicEthereumAPI) FeeHistory(ctx context.Context, blockCount math.HexO
 		return nil, err
 	}
 	oldest := last
-	if oldest > idx.Block(blockCount) {
-		oldest -= idx.Block(blockCount - 1)
+	if oldest > idx.BlockID(blockCount) {
+		oldest -= idx.BlockID(blockCount - 1)
 	} else {
 		oldest = 0
 	}

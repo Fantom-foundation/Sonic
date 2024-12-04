@@ -26,7 +26,7 @@ type ValidatorState struct {
 
 // ValidationContext for gaspower checking
 type ValidationContext struct {
-	Epoch           idx.Epoch
+	Epoch           idx.EpochID
 	Configs         [inter.GasPowerConfigs]Config
 	EpochStart      inter.Timestamp
 	Validators      *ltypes.Validators

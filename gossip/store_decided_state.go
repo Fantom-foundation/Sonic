@@ -19,7 +19,7 @@ type BlockEpochState struct {
 }
 
 // TODO propose to pass bs, es arguments by pointer
-func (s *Store) SetHistoryBlockEpochState(epoch idx.Epoch, bs iblockproc.BlockState, es iblockproc.EpochState) {
+func (s *Store) SetHistoryBlockEpochState(epoch idx.EpochID, bs iblockproc.BlockState, es iblockproc.EpochState) {
 	bs, es = bs.Copy(), es.Copy()
 	bes := &BlockEpochState{
 		BlockState: &bs,
@@ -31,7 +31,7 @@ func (s *Store) SetHistoryBlockEpochState(epoch idx.Epoch, bs iblockproc.BlockSt
 	s.cache.BlockEpochStateHistory.Add(epoch, bes, nominalSize)
 }
 
-func (s *Store) GetHistoryBlockEpochState(epoch idx.Epoch) (*iblockproc.BlockState, *iblockproc.EpochState) {
+func (s *Store) GetHistoryBlockEpochState(epoch idx.EpochID) (*iblockproc.BlockState, *iblockproc.EpochState) {
 	// Get HistoryBlockEpochState from LRU cache first.
 	if v, ok := s.cache.BlockEpochStateHistory.Get(epoch); ok {
 		bes := v.(*BlockEpochState)
@@ -68,7 +68,7 @@ func (s *Store) ForEachHistoryBlockEpochState(fn func(iblockproc.BlockState, ibl
 	}
 }
 
-func (s *Store) GetHistoryEpochState(epoch idx.Epoch) *iblockproc.EpochState {
+func (s *Store) GetHistoryEpochState(epoch idx.EpochID) *iblockproc.EpochState {
 	// check current BlockEpochState as a cache
 	if v := s.cache.BlockEpochState.Load(); v != nil {
 		bes := v.(*BlockEpochState)
@@ -81,7 +81,7 @@ func (s *Store) GetHistoryEpochState(epoch idx.Epoch) *iblockproc.EpochState {
 	return es
 }
 
-func (s *Store) HasHistoryBlockEpochState(epoch idx.Epoch) bool {
+func (s *Store) HasHistoryBlockEpochState(epoch idx.EpochID) bool {
 	has, _ := s.table.BlockEpochStateHistory.Has(epoch.Bytes())
 	return has
 }
@@ -130,7 +130,7 @@ func (s *Store) GetBlockEpochState() (iblockproc.BlockState, iblockproc.EpochSta
 }
 
 // GetEpoch retrieves the current epoch
-func (s *Store) GetEpoch() idx.Epoch {
+func (s *Store) GetEpoch() idx.EpochID {
 	return s.GetEpochState().Epoch
 }
 
@@ -140,13 +140,13 @@ func (s *Store) GetValidators() *ltypes.Validators {
 }
 
 // GetEpochValidators retrieves the current epoch and validators atomically
-func (s *Store) GetEpochValidators() (*ltypes.Validators, idx.Epoch) {
+func (s *Store) GetEpochValidators() (*ltypes.Validators, idx.EpochID) {
 	es := s.GetEpochState()
 	return es.Validators, es.Epoch
 }
 
 // GetLatestBlockIndex retrieves the current block number
-func (s *Store) GetLatestBlockIndex() idx.Block {
+func (s *Store) GetLatestBlockIndex() idx.BlockID {
 	return s.GetBlockState().LastBlock.Idx
 }
 
@@ -161,7 +161,7 @@ func (s *Store) GetEvmChainConfig() *ethparams.ChainConfig {
 }
 
 // GetEpochRules retrieves current network rules and epoch atomically
-func (s *Store) GetEpochRules() (opera.Rules, idx.Epoch) {
+func (s *Store) GetEpochRules() (opera.Rules, idx.EpochID) {
 	es := s.GetEpochState()
 	return es.Rules, es.Epoch
 }

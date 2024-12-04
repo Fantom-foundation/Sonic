@@ -82,7 +82,7 @@ func (es *epochStore) FlushLastEvents() {
 }
 
 // GetLastEvents returns latest connected epoch events from each validator
-func (s *Store) GetLastEvents(epoch idx.Epoch) *concurrent.ValidatorEventsSet {
+func (s *Store) GetLastEvents(epoch idx.EpochID) *concurrent.ValidatorEventsSet {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil
@@ -92,7 +92,7 @@ func (s *Store) GetLastEvents(epoch idx.Epoch) *concurrent.ValidatorEventsSet {
 }
 
 // GetLastEvent returns latest connected epoch event from specified validator
-func (s *Store) GetLastEvent(epoch idx.Epoch, vid idx.ValidatorID) *hash.Event {
+func (s *Store) GetLastEvent(epoch idx.EpochID, vid idx.ValidatorID) *hash.Event {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return nil
@@ -108,7 +108,7 @@ func (s *Store) GetLastEvent(epoch idx.Epoch, vid idx.ValidatorID) *hash.Event {
 	return &last
 }
 
-func (s *Store) SetLastEvents(epoch idx.Epoch, ids *concurrent.ValidatorEventsSet) {
+func (s *Store) SetLastEvents(epoch idx.EpochID, ids *concurrent.ValidatorEventsSet) {
 	es := s.getEpochStore(epoch)
 	if es == nil {
 		return

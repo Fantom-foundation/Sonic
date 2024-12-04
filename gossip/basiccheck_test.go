@@ -21,7 +21,7 @@ type LLRBasicCheckTestSuite struct {
 
 	env        *testEnv
 	me         *inter.MutableEventPayload
-	startEpoch idx.Epoch
+	startEpoch idx.EpochID
 }
 
 func (s *LLRBasicCheckTestSuite) SetupSuite() {
@@ -41,7 +41,7 @@ func (s *LLRBasicCheckTestSuite) SetupSuite() {
 
 	s.env = env
 	s.me = mutableEventPayloadFromImmutable(e)
-	s.startEpoch = idx.Epoch(startEpoch)
+	s.startEpoch = idx.EpochID(startEpoch)
 }
 
 func (s *LLRBasicCheckTestSuite) TearDownSuite() {
@@ -82,11 +82,11 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate checkInited ErrNoParents",
 			func() {
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
-				s.me.SetSeq(idx.Event(2))
+				s.me.SetSeq(idx.EventID(2))
 				parents := hash.Events{}
 				s.me.SetParents(parents)
 			},
@@ -95,9 +95,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate ErrHugeValue-1",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				s.me.SetGasPowerUsed(math.MaxInt64 - 1)
@@ -107,9 +107,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate ErrHugeValue-2",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				s.me.SetGasPowerLeft(inter.GasPowerLeft{Gas: [2]uint64{math.MaxInt64 - 1, math.MaxInt64}})
@@ -119,9 +119,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate ErrZeroTime-1",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				s.me.SetCreationTime(0)
@@ -131,9 +131,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate ErrZeroTime-2",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				s.me.SetMedianTime(0)
@@ -143,9 +143,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate checkTxs validateTx ErrNegativeValue-1",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
@@ -169,9 +169,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate checkTxs validateTx ErrNegativeValue-2",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
@@ -195,9 +195,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate checkTxs validateTx ErrIntrinsicGas",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
@@ -222,9 +222,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate checkTxs validateTx ErrTipAboveFeeCap",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
@@ -252,9 +252,9 @@ func (s *LLRBasicCheckTestSuite) TestBasicCheckValidate() {
 		{
 			"Validate returns nil",
 			func() {
-				s.me.SetSeq(idx.Event(1))
-				s.me.SetEpoch(idx.Epoch(1))
-				s.me.SetFrame(idx.Frame(1))
+				s.me.SetSeq(idx.EventID(1))
+				s.me.SetEpoch(idx.EpochID(1))
+				s.me.SetFrame(idx.FrameID(1))
 				s.me.SetLamport(idx.Lamport(1))
 
 				h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))

@@ -23,7 +23,7 @@ func (r *GasPowerCheckReader) GetValidationContext() *gaspowercheck.ValidationCo
 }
 
 // NewGasPowerContext reads current validation context for gaspowercheck
-func NewGasPowerContext(s *Store, validators *ltypes.Validators, epoch idx.Epoch, cfg opera.EconomyRules) *gaspowercheck.ValidationContext {
+func NewGasPowerContext(s *Store, validators *ltypes.Validators, epoch idx.EpochID, cfg opera.EconomyRules) *gaspowercheck.ValidationContext {
 	// engineMu is locked here
 
 	short := cfg.ShortGasPower
@@ -67,7 +67,7 @@ func NewGasPowerContext(s *Store, validators *ltypes.Validators, epoch idx.Epoch
 
 // ValidatorsPubKeys stores info to authenticate validators
 type ValidatorsPubKeys struct {
-	Epoch   idx.Epoch
+	Epoch   idx.EpochID
 	PubKeys map[idx.ValidatorID]validatorpk.PubKey
 }
 
@@ -78,14 +78,14 @@ type HeavyCheckReader struct {
 }
 
 // GetEpochPubKeys is safe for concurrent use
-func (r *HeavyCheckReader) GetEpochPubKeys() (map[idx.ValidatorID]validatorpk.PubKey, idx.Epoch) {
+func (r *HeavyCheckReader) GetEpochPubKeys() (map[idx.ValidatorID]validatorpk.PubKey, idx.EpochID) {
 	auth := r.Pubkeys.Load().(*ValidatorsPubKeys)
 
 	return auth.PubKeys, auth.Epoch
 }
 
 // GetEpochPubKeysOf is safe for concurrent use
-func (r *HeavyCheckReader) GetEpochPubKeysOf(epoch idx.Epoch) map[idx.ValidatorID]validatorpk.PubKey {
+func (r *HeavyCheckReader) GetEpochPubKeysOf(epoch idx.EpochID) map[idx.ValidatorID]validatorpk.PubKey {
 	auth := readEpochPubKeys(r.Store, epoch)
 	if auth == nil {
 		return nil
@@ -94,7 +94,7 @@ func (r *HeavyCheckReader) GetEpochPubKeysOf(epoch idx.Epoch) map[idx.ValidatorI
 }
 
 // GetEpochBlockStart is safe for concurrent use
-func (r *HeavyCheckReader) GetEpochBlockStart(epoch idx.Epoch) idx.Block {
+func (r *HeavyCheckReader) GetEpochBlockStart(epoch idx.EpochID) idx.BlockID {
 	bs, _ := r.Store.GetHistoryBlockEpochState(epoch)
 	if bs == nil {
 		return 0
@@ -103,7 +103,7 @@ func (r *HeavyCheckReader) GetEpochBlockStart(epoch idx.Epoch) idx.Block {
 }
 
 // readEpochPubKeys reads epoch pubkeys
-func readEpochPubKeys(s *Store, epoch idx.Epoch) *ValidatorsPubKeys {
+func readEpochPubKeys(s *Store, epoch idx.EpochID) *ValidatorsPubKeys {
 	es := s.GetHistoryEpochState(epoch)
 	if es == nil {
 		return nil

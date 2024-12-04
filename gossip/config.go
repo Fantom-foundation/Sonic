@@ -129,7 +129,7 @@ type PeerCacheConfig struct {
 	// MaxQueuedItems is the maximum number of items to queue up before
 	// dropping broadcasts. This is a sensitive number as a transaction list might
 	// contain a single transaction, or thousands.
-	MaxQueuedItems idx.Event
+	MaxQueuedItems idx.EventID
 	MaxQueuedSize  uint64
 }
 
@@ -207,8 +207,8 @@ func DefaultConfig(scale cachescale.Func) Config {
 		StructLogLimit:  2000,
 	}
 	sessionCfg := cfg.Protocol.DagStreamLeecher.Session
-	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.Event(sessionCfg.ParallelChunksDownload)*
-		idx.Event(sessionCfg.DefaultChunkItemsNum) + softLimitItems
+	cfg.Protocol.DagProcessor.EventsBufferLimit.Num = idx.EventID(sessionCfg.ParallelChunksDownload)*
+		idx.EventID(sessionCfg.DefaultChunkItemsNum) + softLimitItems
 	cfg.Protocol.DagProcessor.EventsBufferLimit.Size = uint64(sessionCfg.ParallelChunksDownload)*sessionCfg.DefaultChunkItemsSize + 8*opt.MiB
 	cfg.Protocol.DagStreamLeecher.MaxSessionRestart = 4 * time.Minute
 	cfg.Protocol.DagFetcher.ArriveTimeout = 4 * time.Second
@@ -221,7 +221,7 @@ func DefaultConfig(scale cachescale.Func) Config {
 func (c *Config) Validate() error {
 	p := c.Protocol
 	defaultChunkSize := ltypes.Metric{
-		Num:  idx.Event(p.DagStreamLeecher.Session.DefaultChunkItemsNum),
+		Num:  idx.EventID(p.DagStreamLeecher.Session.DefaultChunkItemsNum),
 		Size: p.DagStreamLeecher.Session.DefaultChunkItemsSize,
 	}
 	if defaultChunkSize.Num > hardLimitItems-1 {

@@ -82,7 +82,7 @@ func ExportGenesis(ctx context.Context, gdb *gossip.Store, includeArchive bool, 
 	return nil
 }
 
-func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, from, to idx.Epoch) error {
+func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, from, to idx.EpochID) error {
 	log.Info("Exporting epochs", "from", from, "to", to)
 	for i := to; i >= from; i-- {
 		er := gdb.GetFullEpochRecord(i)
@@ -111,7 +111,7 @@ func exportEpochsSection(ctx context.Context, gdb *gossip.Store, writer *unitWri
 	return nil
 }
 
-func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to idx.Block, maxBlocks int64) error {
+func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter, to idx.BlockID, maxBlocks int64) error {
 	toBlock := int64(to)
 	fromBlock := int64(0)
 	if maxBlocks != 0 && toBlock > 1+maxBlocks {
@@ -119,7 +119,7 @@ func exportBlocksSection(ctx context.Context, gdb *gossip.Store, writer *unitWri
 	}
 	log.Info("Exporting blocks", "from", fromBlock, "to", toBlock)
 	for i := toBlock; i >= fromBlock; i-- {
-		i := idx.Block(i)
+		i := idx.BlockID(i)
 		br := gdb.GetFullBlockRecord(i)
 		if br == nil {
 			return fmt.Errorf("the block record for block %d is missing in gdb", i)
@@ -177,7 +177,7 @@ func exportFwaSection(ctx context.Context, gdb *gossip.Store, writer *unitWriter
 	return nil
 }
 
-func getEpochBlock(epoch idx.Epoch, store *gossip.Store) idx.Block {
+func getEpochBlock(epoch idx.EpochID, store *gossip.Store) idx.BlockID {
 	bs, _ := store.GetHistoryBlockEpochState(epoch)
 	if bs == nil {
 		return 0

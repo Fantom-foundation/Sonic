@@ -50,7 +50,7 @@ func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules
 	return FakeGenesisStoreWithRulesAndStart(num, balance, stake, rules, 2, 1)
 }
 
-func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.Int, rules opera.Rules, epoch idx.Epoch, block idx.Block) *genesisstore.Store {
+func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.Int, rules opera.Rules, epoch idx.EpochID, block idx.BlockID) *genesisstore.Store {
 	builder := makegenesis.NewGenesisBuilder()
 
 	validators := GetFakeValidators(num)
@@ -153,7 +153,7 @@ func txBuilder() func(calldata []byte, addr common.Address) *types.Transaction {
 	}
 }
 
-func GetGenesisTxs(sealedEpoch idx.Epoch, validators gpos.Validators, totalSupply *big.Int, delegations []drivercall.Delegation, driverOwner common.Address) types.Transactions {
+func GetGenesisTxs(sealedEpoch idx.EpochID, validators gpos.Validators, totalSupply *big.Int, delegations []drivercall.Delegation, driverOwner common.Address) types.Transactions {
 	buildTx := txBuilder()
 	internalTxs := make(types.Transactions, 0, 15)
 	// initialization

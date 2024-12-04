@@ -7,7 +7,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/evmcore"
 )
 
-func (s *Store) GetCachedEvmBlock(n idx.Block) *evmcore.EvmBlock {
+func (s *Store) GetCachedEvmBlock(n idx.BlockID) *evmcore.EvmBlock {
 	c, ok := s.cache.EvmBlocks.Get(n)
 	if !ok {
 		return nil
@@ -16,7 +16,7 @@ func (s *Store) GetCachedEvmBlock(n idx.Block) *evmcore.EvmBlock {
 	return c.(*evmcore.EvmBlock)
 }
 
-func (s *Store) SetCachedEvmBlock(n idx.Block, b *evmcore.EvmBlock) {
+func (s *Store) SetCachedEvmBlock(n idx.BlockID, b *evmcore.EvmBlock) {
 	var empty = common.Hash{}
 	if b.EvmHeader.TxHash == empty {
 		panic("You have to cache only completed blocks (with txs)")

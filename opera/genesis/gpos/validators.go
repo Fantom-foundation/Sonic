@@ -15,9 +15,9 @@ type (
 		Address          common.Address
 		PubKey           validatorpk.PubKey
 		CreationTime     inter.Timestamp
-		CreationEpoch    idx.Epoch
+		CreationEpoch    idx.EpochID
 		DeactivatedTime  inter.Timestamp
-		DeactivatedEpoch idx.Epoch
+		DeactivatedEpoch idx.EpochID
 		Status           uint64
 	}
 

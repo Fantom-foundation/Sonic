@@ -42,8 +42,8 @@ const (
 // about a connected peer.
 type PeerInfo struct {
 	Version     uint      `json:"version"` // protocol version negotiated
-	Epoch       idx.Epoch `json:"epoch"`
-	NumOfBlocks idx.Block `json:"blocks"`
+	Epoch       idx.EpochID `json:"epoch"`
+	NumOfBlocks idx.BlockID `json:"blocks"`
 }
 
 type broadcastItem struct {

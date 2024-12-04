@@ -115,8 +115,8 @@ type EpochsRules struct {
 
 // DagRules of Lachesis DAG (directed acyclic graph).
 type DagRules struct {
-	MaxParents     idx.Event
-	MaxFreeParents idx.Event // maximum number of parents with no gas cost
+	MaxParents     idx.EventID
+	MaxFreeParents idx.EventID // maximum number of parents with no gas cost
 	MaxExtraData   uint32
 }
 
@@ -160,13 +160,13 @@ type EmitterRules struct {
 
 // BlocksMissed is information about missed blocks from a staker
 type BlocksMissed struct {
-	BlocksNum idx.Block
+	BlocksNum idx.BlockID
 	Period    inter.Timestamp
 }
 
 // EconomyRules contains economy constants
 type EconomyRules struct {
-	BlockMissedSlack idx.Block
+	BlockMissedSlack idx.BlockID
 
 	Gas GasRules
 
@@ -216,7 +216,7 @@ type Upgrades struct {
 
 type UpgradeHeight struct {
 	Upgrades Upgrades
-	Height   idx.Block
+	Height   idx.BlockID
 	Time     inter.Timestamp
 }
 

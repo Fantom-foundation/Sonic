@@ -41,21 +41,21 @@ func exportEvents(ctx *cli.Context) error {
 		defer writer.(*gzip.Writer).Close()
 	}
 
-	from := idx.Epoch(1)
+	from := idx.EpochID(1)
 	if len(ctx.Args()) > 1 {
 		n, err := strconv.ParseUint(ctx.Args().Get(1), 10, 32)
 		if err != nil {
 			return err
 		}
-		from = idx.Epoch(n)
+		from = idx.EpochID(n)
 	}
-	to := idx.Epoch(0)
+	to := idx.EpochID(0)
 	if len(ctx.Args()) > 2 {
 		n, err := strconv.ParseUint(ctx.Args().Get(2), 10, 32)
 		if err != nil {
 			return err
 		}
-		to = idx.Epoch(n)
+		to = idx.EpochID(n)
 	}
 
 	gdbParams := db.GossipDbParameters{

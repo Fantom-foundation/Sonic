@@ -25,12 +25,12 @@ type BranchSeq struct {
 }
 
 // Seq is a maximum observed e.Seq in the branch
-func (b *BranchSeq) Seq() idx.Event {
+func (b *BranchSeq) Seq() idx.EventID {
 	return b.BranchSeq.Seq
 }
 
 // MinSeq is a minimum observed e.Seq in the branch
-func (b *BranchSeq) MinSeq() idx.Event {
+func (b *BranchSeq) MinSeq() idx.EventID {
 	return b.BranchSeq.MinSeq
 }
 

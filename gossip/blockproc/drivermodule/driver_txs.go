@@ -72,7 +72,7 @@ func InternalTxBuilder(statedb state.StateDB) func(calldata []byte, addr common.
 	}
 }
 
-func maxBlockIdx(a, b idx.Block) idx.Block {
+func maxBlockIdx(a, b idx.BlockID) idx.BlockID {
 	if a > b {
 		return a
 	}
@@ -225,7 +225,7 @@ func (p *DriverTxListener) OnNewLog(l *types.Log) {
 		// epochsNum < 2^24 to avoid overflow
 		epochsNum := new(big.Int).SetBytes(l.Data[29:32]).Uint64()
 
-		p.bs.AdvanceEpochs += idx.Epoch(epochsNum)
+		p.bs.AdvanceEpochs += idx.EpochID(epochsNum)
 		if p.bs.AdvanceEpochs > maxAdvanceEpochs {
 			p.bs.AdvanceEpochs = maxAdvanceEpochs
 		}

@@ -19,7 +19,7 @@ var (
 )
 
 type Index interface {
-	FindInBlocks(ctx context.Context, from, to idx.Block, pattern [][]common.Hash) (logs []*types.Log, err error)
+	FindInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error)
 	Push(recs ...*types.Log) error
 	Close()
 

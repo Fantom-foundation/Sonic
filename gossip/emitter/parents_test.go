@@ -22,7 +22,7 @@ func TestChooseParents_NoParentsForGenesisEvent(t *testing.T) {
 		fixedPriceBaseFeeSource{},
 	)
 
-	epoch := idx.Epoch(1)
+	epoch := idx.EpochID(1)
 	validatorId := idx.ValidatorID(1)
 
 	external.EXPECT().GetLastEvent(epoch, validatorId)
@@ -50,7 +50,7 @@ func TestChooseParents_NonGenesisEventMustHaveOneSelfParent(t *testing.T) {
 	em.maxParents = 3
 	em.payloadIndexer = ancestor.NewPayloadIndexer(3)
 
-	epoch := idx.Epoch(1)
+	epoch := idx.EpochID(1)
 	validatorId := idx.ValidatorID(1)
 
 	validatorIndex := vecmt.NewIndex(nil, vecmt.LiteConfig())

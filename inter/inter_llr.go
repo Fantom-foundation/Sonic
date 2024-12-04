@@ -9,17 +9,17 @@ import (
 )
 
 type LlrBlockVotes struct {
-	Start idx.Block
-	Epoch idx.Epoch
+	Start idx.BlockID
+	Epoch idx.EpochID
 	Votes []hash.Hash
 }
 
-func (bvs LlrBlockVotes) LastBlock() idx.Block {
-	return bvs.Start + idx.Block(len(bvs.Votes)) - 1
+func (bvs LlrBlockVotes) LastBlock() idx.BlockID {
+	return bvs.Start + idx.BlockID(len(bvs.Votes)) - 1
 }
 
 type LlrEpochVote struct {
-	Epoch idx.Epoch
+	Epoch idx.EpochID
 	Vote  hash.Hash
 }
 

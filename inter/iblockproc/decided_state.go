@@ -19,7 +19,7 @@ type ValidatorBlockState struct {
 	Uptime           inter.Timestamp
 	LastOnlineTime   inter.Timestamp
 	LastGasPowerLeft inter.GasPowerLeft
-	LastBlock        idx.Block
+	LastBlock        idx.BlockID
 	DirtyGasRefund   uint64
 	Originated       *big.Int
 }
@@ -36,7 +36,7 @@ type ValidatorEpochState struct {
 }
 
 type BlockCtx struct {
-	Idx     idx.Block
+	Idx     idx.BlockID
 	Time    inter.Timestamp
 	Atropos hash.Event
 }
@@ -54,7 +54,7 @@ type BlockState struct {
 
 	DirtyRules *opera.Rules `rlp:"nil"` // nil means that there's no changes compared to epoch rules
 
-	AdvanceEpochs idx.Epoch
+	AdvanceEpochs idx.EpochID
 }
 
 func (bs BlockState) Copy() BlockState {
@@ -89,7 +89,7 @@ func (bs BlockState) Hash() hash.Hash {
 }
 
 type EpochStateV1 struct {
-	Epoch          idx.Epoch
+	Epoch          idx.EpochID
 	EpochStart     inter.Timestamp
 	PrevEpochStart inter.Timestamp
 

@@ -68,13 +68,13 @@ func checkLenLimits(size int, v interface{}) error {
 }
 
 type dagNotifier interface {
-	SubscribeNewEpoch(ch chan<- idx.Epoch) notify.Subscription
+	SubscribeNewEpoch(ch chan<- idx.EpochID) notify.Subscription
 	SubscribeNewEmitted(ch chan<- *inter.EventPayload) notify.Subscription
 }
 
 type processCallback struct {
 	Event         func(*inter.EventPayload) error
-	SwitchEpochTo func(idx.Epoch) error
+	SwitchEpochTo func(idx.EpochID) error
 }
 
 // handlerConfig is the collection of initialization parameters to create a full
@@ -129,7 +129,7 @@ type handler struct {
 	notifier             dagNotifier
 	emittedEventsCh      chan *inter.EventPayload
 	emittedEventsSub     notify.Subscription
-	newEpochsCh          chan idx.Epoch
+	newEpochsCh          chan idx.EpochID
 	newEpochsSub         notify.Subscription
 	quitProgressBradcast chan struct{}
 
@@ -218,7 +218,7 @@ func newHandler(
 		Suspend: func(_ string) bool {
 			return h.dagFetcher.Overloaded() || h.dagProcessor.Overloaded()
 		},
-		PeerEpoch: func(peer string) idx.Epoch {
+		PeerEpoch: func(peer string) idx.EpochID {
 			p := h.peers.Peer(peer)
 			if p == nil || p.Useless() {
 				return 0
@@ -332,7 +332,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 	return newProcessor
 }
 
-func (h *handler) isEventInterested(id hash.Event, epoch idx.Epoch) bool {
+func (h *handler) isEventInterested(id hash.Event, epoch idx.EpochID) bool {
 	if id.Epoch() != epoch {
 		return false
 	}
@@ -400,7 +400,7 @@ func (h *handler) Start(maxPeers int) {
 		h.emittedEventsCh = make(chan *inter.EventPayload, 4)
 		h.emittedEventsSub = h.notifier.SubscribeNewEmitted(h.emittedEventsCh)
 		// epoch changes
-		h.newEpochsCh = make(chan idx.Epoch, 4)
+		h.newEpochsCh = make(chan idx.EpochID, 4)
 		h.newEpochsSub = h.notifier.SubscribeNewEpoch(h.newEpochsCh)
 
 		h.loopsWg.Add(3)
@@ -1176,8 +1176,8 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 type NodeInfo struct {
 	Network     uint64      `json:"network"` // network ID
 	Genesis     common.Hash `json:"genesis"` // SHA3 hash of the host's genesis object
-	Epoch       idx.Epoch   `json:"epoch"`
-	NumOfBlocks idx.Block   `json:"blocks"`
+	Epoch       idx.EpochID   `json:"epoch"`
+	NumOfBlocks idx.BlockID   `json:"blocks"`
 	//Config  *params.ChainConfig `json:"config"`  // Chain configuration for the fork rules
 }
 

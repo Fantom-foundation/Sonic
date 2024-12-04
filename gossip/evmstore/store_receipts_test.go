@@ -85,8 +85,8 @@ func benchStoreSetRawReceipts(b *testing.B, store *Store) {
 	}
 }
 
-func fakeReceipts() (idx.Block, []*types.ReceiptForStorage) {
-	return idx.Block(1),
+func fakeReceipts() (idx.BlockID, []*types.ReceiptForStorage) {
+	return idx.BlockID(1),
 		[]*types.ReceiptForStorage{
 			{
 				PostState:         nil,

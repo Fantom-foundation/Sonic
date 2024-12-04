@@ -40,7 +40,7 @@ type Config struct {
 
 	MaxTxsPerAddress int
 
-	MaxParents idx.Event
+	MaxParents idx.EventID
 
 	// thresholds on GasLeft
 	LimitedTpsThreshold uint64

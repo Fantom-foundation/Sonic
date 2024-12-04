@@ -10,7 +10,7 @@ import (
 // dummyIndex is empty implementation of Index
 type dummyIndex struct{}
 
-func (n dummyIndex) FindInBlocks(ctx context.Context, from, to idx.Block, pattern [][]common.Hash) (logs []*types.Log, err error) {
+func (n dummyIndex) FindInBlocks(ctx context.Context, from, to idx.BlockID, pattern [][]common.Hash) (logs []*types.Log, err error) {
 	return nil, ErrLogsNotRecorded
 }
 

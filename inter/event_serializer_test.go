@@ -33,7 +33,7 @@ func TestEventPayloadSerialization(t *testing.T) {
 	max := MutableEventPayload{}
 	max.SetVersion(2)
 	max.SetEpoch(math.MaxUint32)
-	max.SetSeq(idx.Event(math.MaxUint32))
+	max.SetSeq(idx.EventID(math.MaxUint32))
 	max.SetLamport(idx.Lamport(math.MaxUint32))
 	h := hash.BytesToEvent(bytes.Repeat([]byte{math.MaxUint8}, 32))
 	max.SetParents(hash.Events{hash.Event(h), hash.Event(h), hash.Event(h)})
@@ -280,10 +280,10 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 	random.SetNetForkID(uint16(r.Uint32() >> 16))
 	random.SetLamport(1000)
 	random.SetExtra([]byte{byte(r.Uint32())})
-	random.SetSeq(idx.Event(r.Uint32() >> 8))
-	random.SetEpoch(idx.Epoch(1234))
+	random.SetSeq(idx.EventID(r.Uint32() >> 8))
+	random.SetEpoch(idx.EpochID(1234))
 	random.SetCreator(idx.ValidatorID(r.Uint32()))
-	random.SetFrame(idx.Frame(r.Uint32() >> 16))
+	random.SetFrame(idx.FrameID(r.Uint32() >> 16))
 	random.SetCreationTime(Timestamp(r.Uint64()))
 	random.SetMedianTime(Timestamp(r.Uint64()))
 	random.SetGasPowerUsed(r.Uint64())
@@ -360,8 +360,8 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 
 		bvs := LlrBlockVotes{}
 		if bvsNum > 0 {
-			bvs.Start = 1 + idx.Block(rand.IntN(1000))
-			bvs.Epoch = 1 + idx.Epoch(rand.IntN(1000))
+			bvs.Start = 1 + idx.BlockID(rand.IntN(1000))
+			bvs.Epoch = 1 + idx.EpochID(rand.IntN(1000))
 		}
 		for i := 0; i < bvsNum; i++ {
 			bvs.Votes = append(bvs.Votes, randHash(r))
@@ -370,7 +370,7 @@ func FakeEvent(version uint8, txsNum, mpsNum, bvsNum int, ersNum bool) *EventPay
 
 		ers := LlrEpochVote{}
 		if ersNum {
-			ers.Epoch = 1 + idx.Epoch(rand.IntN(1000))
+			ers.Epoch = 1 + idx.EpochID(rand.IntN(1000))
 			ers.Vote = randHash(r)
 		}
 		random.SetEpochVote(ers)
