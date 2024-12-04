@@ -32,7 +32,7 @@ a2.1 ──╣      ║      ║      ║
 )
 
 type eventWithCreationTime struct {
-	dag.Event
+	ltypes.Event
 	creationTime inter.Timestamp
 }
 
@@ -42,9 +42,9 @@ func (e *eventWithCreationTime) CreationTime() inter.Timestamp {
 
 func BenchmarkIndex_Add(b *testing.B) {
 	b.StopTimer()
-	ordered := make(dag.Events, 0)
+	ordered := make(ltypes.Events, 0)
 	nodes, _, _ := tdag.ASCIIschemeForEach(testASCIIScheme, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+		Process: func(e ltypes.Event, name string) {
 			ordered = append(ordered, e)
 		},
 	})
@@ -53,8 +53,8 @@ func BenchmarkIndex_Add(b *testing.B) {
 		validatorsBuilder.Set(peer, 1)
 	}
 	validators := validatorsBuilder.Build()
-	events := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	events := make(map[hash.EventHash]ltypes.Event)
+	getEvent := func(id hash.EventHash) ltypes.Event {
 		return events[id]
 	}
 	for _, e := range ordered {

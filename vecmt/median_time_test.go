@@ -156,17 +156,17 @@ func TestMedianTimeOnDAG(t *testing.T) {
 func testMedianTime(t *testing.T, dagAscii string, weights []ltypes.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp) {
 	assertar := assert.New(t)
 
-	var ordered dag.Events
+	var ordered ltypes.Events
 	nodes, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+		Process: func(e ltypes.Event, name string) {
 			ordered = append(ordered, &eventWithCreationTime{e, creationTimes[name]})
 		},
 	})
 
 	validators := ltypes.ArrayToValidators(nodes, weights)
 
-	events := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	events := make(map[hash.EventHash]ltypes.Event)
+	getEvent := func(id hash.EventHash) ltypes.Event {
 		return events[id]
 	}
 
