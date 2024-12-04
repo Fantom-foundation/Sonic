@@ -103,7 +103,7 @@ func (em *Emitter) maxGasPowerToUse(e *inter.MutableEventPayload) uint64 {
 	return maxGasToUse
 }
 
-func getTxRoundIndex(now, txTime time.Time, validatorsNum idx.Validator) int {
+func getTxRoundIndex(now, txTime time.Time, validatorsNum idx.ValidatorIdx) int {
 	passed := now.Sub(txTime)
 	if passed < 0 {
 		passed = 0
@@ -129,7 +129,7 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 
 	// take a validator from the sequence, skip offline validators
 	for ; roundIndex < len(rounds); roundIndex++ {
-		chosenValidator := validators.GetID(idx.Validator(rounds[roundIndex]))
+		chosenValidator := validators.GetID(idx.ValidatorIdx(rounds[roundIndex]))
 		if chosenValidator == me {
 			return true // current validator is the chosen - emit
 		}

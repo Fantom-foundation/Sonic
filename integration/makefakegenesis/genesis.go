@@ -42,15 +42,15 @@ func FakeKey(n idx.ValidatorID) *ecdsa.PrivateKey {
 	return evmcore.FakeKey(uint32(n))
 }
 
-func FakeGenesisStore(num idx.Validator, balance, stake *big.Int) *genesisstore.Store {
+func FakeGenesisStore(num idx.ValidatorIdx, balance, stake *big.Int) *genesisstore.Store {
 	return FakeGenesisStoreWithRules(num, balance, stake, opera.FakeNetRules())
 }
 
-func FakeGenesisStoreWithRules(num idx.Validator, balance, stake *big.Int, rules opera.Rules) *genesisstore.Store {
+func FakeGenesisStoreWithRules(num idx.ValidatorIdx, balance, stake *big.Int, rules opera.Rules) *genesisstore.Store {
 	return FakeGenesisStoreWithRulesAndStart(num, balance, stake, rules, 2, 1)
 }
 
-func FakeGenesisStoreWithRulesAndStart(num idx.Validator, balance, stake *big.Int, rules opera.Rules, epoch idx.EpochID, block idx.BlockID) *genesisstore.Store {
+func FakeGenesisStoreWithRulesAndStart(num idx.ValidatorIdx, balance, stake *big.Int, rules opera.Rules, epoch idx.EpochID, block idx.BlockID) *genesisstore.Store {
 	builder := makegenesis.NewGenesisBuilder()
 
 	validators := GetFakeValidators(num)
@@ -172,7 +172,7 @@ func GetGenesisTxs(sealedEpoch idx.EpochID, validators gpos.Validators, totalSup
 	return internalTxs
 }
 
-func GetFakeValidators(num idx.Validator) gpos.Validators {
+func GetFakeValidators(num idx.ValidatorIdx) gpos.Validators {
 	validators := make(gpos.Validators, 0, num)
 
 	for i := idx.ValidatorID(1); i <= idx.ValidatorID(num); i++ {

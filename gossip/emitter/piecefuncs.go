@@ -118,13 +118,13 @@ var (
 			Y: 1.0 * piecefunc.DecimalUnit,
 		},
 	})
-	overheadF = func(validatorsNum idx.Validator, busyRate uint64) uint64 {
+	overheadF = func(validatorsNum idx.ValidatorIdx, busyRate uint64) uint64 {
 		if busyRate > piecefunc.DecimalUnit {
 			busyRate = piecefunc.DecimalUnit
 		}
 		return validatorsToOverheadF(uint64(validatorsNum)) * busyRate / piecefunc.DecimalUnit
 	}
-	overheadAdjustedEventMetricF = func(validatorsNum idx.Validator, busyRate uint64, eventMetric ancestor.Metric) ancestor.Metric {
+	overheadAdjustedEventMetricF = func(validatorsNum idx.ValidatorIdx, busyRate uint64, eventMetric ancestor.Metric) ancestor.Metric {
 		return ancestor.Metric(piecefunc.DecimalUnit-overheadF(validatorsNum, busyRate)) * eventMetric / piecefunc.DecimalUnit
 	}
 )

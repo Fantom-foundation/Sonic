@@ -31,7 +31,7 @@ func (vi *Index) MedianTime(id hash.EventHash, defaultTime inter.Timestamp) inte
 	highests := make([]medianTimeIndex, 0, len(vi.validatorIdxs))
 	// convert []HighestBefore -> []medianTimeIndex
 	for creatorIdxI := range vi.validators.IDs() {
-		creatorIdx := idx.Validator(creatorIdxI)
+		creatorIdx := idx.ValidatorIdx(creatorIdxI)
 		highest := medianTimeIndex{}
 		highest.weight = vi.validators.GetWeightByIdx(creatorIdx)
 		highest.creationTime = before.VTime.Get(creatorIdx)

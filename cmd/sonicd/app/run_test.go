@@ -22,7 +22,7 @@ func tmpdir(t *testing.T) string {
 	return t.TempDir()
 }
 
-func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
+func initFakenetDatadir(dataDir string, validatorsNum idx.ValidatorIdx) {
 	genesisStore := makefakegenesis.FakeGenesisStore(validatorsNum, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
 

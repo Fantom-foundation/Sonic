@@ -80,7 +80,7 @@ func (b *GPOBackend) TotalGasPowerLeft() uint64 {
 		metValidators[e.Creator()] = true
 	}
 	// count GasPowerLeft from last events of prev epoch if no event in current epoch is present
-	for i := idx.Validator(0); i < es.Validators.Len(); i++ {
+	for i := idx.ValidatorIdx(0); i < es.Validators.Len(); i++ {
 		vid := es.Validators.GetID(i)
 		if !metValidators[vid] {
 			left := es.ValidatorStates[i].PrevEpochEvent.GasPowerLeft.Gas[inter.LongTermGas]

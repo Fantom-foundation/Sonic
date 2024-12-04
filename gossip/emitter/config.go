@@ -94,7 +94,7 @@ func (cfg EmitIntervals) RandomizeEmitTime(rand *rand.Rand) EmitIntervals {
 }
 
 // FakeConfig returns the testing configurations for the events emitter.
-func FakeConfig(num idx.Validator) Config {
+func FakeConfig(num idx.ValidatorIdx) Config {
 	cfg := DefaultConfig()
 	cfg.EmitIntervals.Max = 10 * time.Second // don't wait long in fakenet
 	cfg.EmitIntervals.DoublesignProtection = cfg.EmitIntervals.Max / 2

@@ -17,7 +17,7 @@ func (em *Emitter) recountConfirmingIntervals(validators *ltypes.Validators) {
 	// confirmingEmitInterval = piecefunc(totalStakeBeforeMe / totalStake) * MinEmitInterval
 	totalStakeBefore := ltypes.Weight(0)
 	for i, stake := range validators.SortedWeights() {
-		vid := validators.GetID(idx.Validator(i))
+		vid := validators.GetID(idx.ValidatorIdx(i))
 		// ltypes.Weight is uint32, so cast to uint64 to avoid an overflow
 		stakeRatio := uint64(totalStakeBefore) * uint64(piecefunc.DecimalUnit) / uint64(validators.TotalWeight())
 		if !em.offlineValidators[vid] {

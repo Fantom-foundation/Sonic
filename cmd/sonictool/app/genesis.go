@@ -139,7 +139,7 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		return err
 	}
 
-	genesisStore := makefakegenesis.FakeGenesisStore(idx.Validator(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	genesisStore := makefakegenesis.FakeGenesisStore(idx.ValidatorIdx(validatorsNumber), futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	defer genesisStore.Close()
 	return genesis.ImportGenesisStore(genesis.ImportParams{
 		GenesisStore:  genesisStore,

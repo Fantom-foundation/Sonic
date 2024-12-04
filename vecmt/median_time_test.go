@@ -27,7 +27,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	{ // seq=0
 		e := hash.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := NewHighestBefore(idx.ValidatorIdx(validators.Len()))
 
 		before.VSeq.Set(0, vecfc.BranchSeq{Seq: 0})
 		before.VTime.Set(0, 100)
@@ -51,7 +51,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	{ // fork seen = true
 		e := hash.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := NewHighestBefore(idx.ValidatorIdx(validators.Len()))
 
 		before.SetForkDetected(0)
 		before.VTime.Set(0, 100)
@@ -75,7 +75,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	{ // normal
 		e := hash.ZeroEvent
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := NewHighestBefore(idx.ValidatorIdx(validators.Len()))
 
 		before.VSeq.Set(0, vecfc.BranchSeq{Seq: 1})
 		before.VTime.Set(0, 11)

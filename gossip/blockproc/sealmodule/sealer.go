@@ -57,7 +57,7 @@ func (s *OperaEpochsSealer) SealEpoch() (iblockproc.BlockState, iblockproc.Epoch
 	// Build new []ValidatorEpochState and []ValidatorBlockState
 	newValidatorEpochStates := make([]iblockproc.ValidatorEpochState, newValidators.Len())
 	newValidatorBlockStates := make([]iblockproc.ValidatorBlockState, newValidators.Len())
-	for newValIdx := idx.Validator(0); newValIdx < newValidators.Len(); newValIdx++ {
+	for newValIdx := idx.ValidatorIdx(0); newValIdx < newValidators.Len(); newValIdx++ {
 		// default values
 		newValidatorBlockStates[newValIdx] = iblockproc.ValidatorBlockState{
 			Originated: new(big.Int),

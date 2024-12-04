@@ -33,7 +33,7 @@ type Index struct {
 
 	crit          func(error)
 	validators    *ltypes.Validators
-	validatorIdxs map[idx.ValidatorID]idx.Validator
+	validatorIdxs map[idx.ValidatorID]idx.ValidatorIdx
 
 	getEvent func(hash.EventHash) ltypes.Event
 
@@ -121,10 +121,10 @@ func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
 		SetLowestAfter: func(event hash.EventHash, i vecengine.LowestAfterI) {
 			vi.baseCallbacks.SetLowestAfter(event, i)
 		},
-		NewHighestBefore: func(size idx.Validator) vecengine.HighestBeforeI {
+		NewHighestBefore: func(size idx.ValidatorIdx) vecengine.HighestBeforeI {
 			return NewHighestBefore(size)
 		},
-		NewLowestAfter: func(size idx.Validator) vecengine.LowestAfterI {
+		NewLowestAfter: func(size idx.ValidatorIdx) vecengine.LowestAfterI {
 			return vi.baseCallbacks.NewLowestAfter(size)
 		},
 		OnDropNotFlushed: func() {

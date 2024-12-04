@@ -137,7 +137,7 @@ func (m testConfirmedEventsModule) Start(bs iblockproc.BlockState, es iblockproc
 	return testConfirmedEventsProcessor{p, m.env}
 }
 
-func newTestEnv(firstEpoch idx.EpochID, validatorsNum idx.Validator, tb testing.TB) *testEnv {
+func newTestEnv(firstEpoch idx.EpochID, validatorsNum idx.ValidatorIdx, tb testing.TB) *testEnv {
 	rules := opera.FakeNetRules()
 	rules.Epochs.MaxEpochDuration = inter.Timestamp(maxEpochDuration)
 	rules.Blocks.MaxEmptyBlockSkipPeriod = 0
@@ -183,7 +183,7 @@ func newTestEnv(firstEpoch idx.EpochID, validatorsNum idx.Validator, tb testing.
 	env.signer = valkeystore.NewSigner(valKeystore)
 
 	// register emitters
-	for i := idx.Validator(0); i < validatorsNum; i++ {
+	for i := idx.ValidatorIdx(0); i < validatorsNum; i++ {
 		cfg := emitter.DefaultConfig()
 		vid := store.GetValidators().GetID(i)
 		pubkey := store.GetEpochState().ValidatorProfiles[vid].PubKey

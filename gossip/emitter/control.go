@@ -16,7 +16,7 @@ func scalarUpdMetric(diff idx.EventID, weight ltypes.Weight, totalWeight ltypes.
 	return ancestor.Metric(scalarUpdMetricF(uint64(diff)*piecefunc.DecimalUnit)) * ancestor.Metric(weight) / ancestor.Metric(totalWeight)
 }
 
-func updMetric(median, cur, upd idx.EventID, validatorIdx idx.Validator, validators *ltypes.Validators) ancestor.Metric {
+func updMetric(median, cur, upd idx.EventID, validatorIdx idx.ValidatorIdx, validators *ltypes.Validators) ancestor.Metric {
 	if upd <= median || upd <= cur {
 		return 0
 	}

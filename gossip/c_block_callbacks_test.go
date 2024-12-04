@@ -33,7 +33,7 @@ func TestConsensusCallback(t *testing.T) {
 	for n := uint64(0); n < rounds; n++ {
 		// transfers
 		txs := make([]*types.Transaction, validatorsNum)
-		for i := idx.Validator(0); i < validatorsNum; i++ {
+		for i := idx.ValidatorIdx(0); i < validatorsNum; i++ {
 			from := i % validatorsNum
 			to := 0
 			txs[i] = env.Transfer(idx.ValidatorID(from+1), idx.ValidatorID(to+1), utils.ToFtm(100))

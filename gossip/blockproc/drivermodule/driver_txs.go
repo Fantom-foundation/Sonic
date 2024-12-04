@@ -92,7 +92,7 @@ func (p *DriverTxPreTransactor) PopInternalTxs(block iblockproc.BlockCtx, bs ibl
 	// push data into Driver before epoch sealing
 	if sealing {
 		metrics := make([]drivercall.ValidatorEpochMetric, es.Validators.Len())
-		for oldValIdx := idx.Validator(0); oldValIdx < es.Validators.Len(); oldValIdx++ {
+		for oldValIdx := idx.ValidatorIdx(0); oldValIdx < es.Validators.Len(); oldValIdx++ {
 			info := bs.ValidatorStates[oldValIdx]
 			// forgive downtime if below BlockMissedSlack
 			missed := opera.BlocksMissed{
