@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -128,7 +128,7 @@ func eventUnmarshalCSER(r *cser.Reader, e *MutableEventPayload) (err error) {
 		// hash
 		h := [24]byte{}
 		r.FixedBytes(h[:])
-		eID := dag.MutableBaseEvent{}
+		eID := ltypes.MutableBaseEvent{}
 		eID.SetEpoch(idx.Epoch(epoch))
 		eID.SetLamport(idx.Lamport(lamport - lamportDiff))
 		eID.SetID(h)

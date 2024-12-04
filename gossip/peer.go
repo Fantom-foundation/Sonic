@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
 	mapset "github.com/deckarep/golang-set"
@@ -132,7 +132,7 @@ func newPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, cfg PeerCacheConfi
 		knownTxs:            mapset.NewSet(),
 		knownEvents:         mapset.NewSet(),
 		queue:               make(chan broadcastItem, cfg.MaxQueuedItems),
-		queuedDataSemaphore: datasemaphore.New(dag.Metric{Num: cfg.MaxQueuedItems, Size: cfg.MaxQueuedSize}, getSemaphoreWarningFn("Peers queue")),
+		queuedDataSemaphore: datasemaphore.New(ltypes.Metric{Num: cfg.MaxQueuedItems, Size: cfg.MaxQueuedSize}, getSemaphoreWarningFn("Peers queue")),
 		term:                make(chan struct{}),
 	}
 
@@ -209,8 +209,8 @@ func (p *peer) SendTransactionHashes(txids []common.Hash) error {
 	return p2p.Send(p.rw, NewEvmTxHashesMsg, txids)
 }
 
-func memSize(v rlp.RawValue) dag.Metric {
-	return dag.Metric{Num: 1, Size: uint64(len(v) + 1024)}
+func memSize(v rlp.RawValue) ltypes.Metric {
+	return ltypes.Metric{Num: 1, Size: uint64(len(v) + 1024)}
 }
 
 func (p *peer) asyncSendEncodedItem(raw rlp.RawValue, code uint64, queue chan broadcastItem) bool {

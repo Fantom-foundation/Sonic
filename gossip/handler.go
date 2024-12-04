@@ -27,7 +27,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/gossip/itemsfetcher"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
 	"github.com/ethereum/go-ethereum/common"
@@ -244,7 +244,7 @@ func (h *handler) peerMisbehaviour(peer string, err error) bool {
 
 func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.Processor {
 	// checkers
-	lightCheck := func(e dag.Event) error {
+	lightCheck := func(e ltypes.Event) error {
 		if h.store.GetEpoch() != e.ID().Epoch() {
 			return epochcheck.ErrNotRelevant
 		}
@@ -262,7 +262,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 		}
 		return nil
 	}
-	bufferedCheck := func(_e dag.Event, _parents dag.Events) error {
+	bufferedCheck := func(_e ltypes.Event, _parents ltypes.Events) error {
 		e := _e.(inter.EventI)
 		parents := make(inter.EventIs, len(_parents))
 		for i := range _parents {
@@ -287,7 +287,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 	newProcessor := dagprocessor.New(datasemaphore.New(h.config.Protocol.EventsSemaphoreLimit, getSemaphoreWarningFn("DAG events")), h.config.Protocol.DagProcessor, dagprocessor.Callback{
 		// DAG callbacks
 		Event: dagprocessor.EventCallback{
-			Process: func(_e dag.Event) error {
+			Process: func(_e ltypes.Event) error {
 				e := _e.(*inter.EventPayload)
 				preStart := time.Now()
 				h.engineMu.Lock()
@@ -304,7 +304,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 
 				return nil
 			},
-			Released: func(e dag.Event, peer string, err error) {
+			Released: func(e ltypes.Event, peer string, err error) {
 				if eventcheck.IsBan(err) {
 					log.Warn("Incoming event rejected", "event", e.ID().String(), "creator", e.Creator(), "err", err)
 					h.removePeer(peer)
@@ -315,7 +315,7 @@ func (h *handler) makeDagProcessor(checkers *eventcheck.Checkers) *dagprocessor.
 				return h.store.HasEvent(id)
 			},
 
-			Get: func(id hash.Event) dag.Event {
+			Get: func(id hash.Event) ltypes.Event {
 				e := h.store.GetEventPayload(id)
 				if e == nil {
 					return nil
@@ -643,7 +643,7 @@ func (h *handler) handleEventHashes(p *peer, announces hash.Events) {
 	_ = h.dagFetcher.NotifyAnnounces(p.id, eventIDsToInterfaces(notTooHigh), time.Now(), requestEvents)
 }
 
-func (h *handler) handleEvents(peer *peer, events dag.Events, ordered bool) {
+func (h *handler) handleEvents(peer *peer, events ltypes.Events, ordered bool) {
 	// Mark the hashes as present at the remote node
 	now := time.Now()
 	for _, e := range events {
@@ -653,7 +653,7 @@ func (h *handler) handleEvents(peer *peer, events dag.Events, ordered bool) {
 		peer.MarkEvent(e.ID())
 	}
 	// filter too high events
-	notTooHigh := make(dag.Events, 0, len(events))
+	notTooHigh := make(ltypes.Events, 0, len(events))
 	sessionCfg := h.config.Protocol.DagStreamLeecher.Session
 	for _, e := range events {
 		maxLamport := h.store.GetHighestLamport() + idx.Lamport(sessionCfg.DefaultChunkItemsNum+1)*idx.Lamport(sessionCfg.ParallelChunksDownload)
@@ -693,7 +693,7 @@ func (h *handler) handleMsg(p *peer) error {
 	}
 	defer msg.Discard()
 	// Acquire semaphore for serialized messages
-	eventsSizeEst := dag.Metric{
+	eventsSizeEst := ltypes.Metric{
 		Num:  1,
 		Size: uint64(msg.Size),
 	}
@@ -1192,8 +1192,8 @@ func (h *handler) NodeInfo() *NodeInfo {
 	}
 }
 
-func getSemaphoreWarningFn(name string) func(dag.Metric, dag.Metric, dag.Metric) {
-	return func(received dag.Metric, processing dag.Metric, releasing dag.Metric) {
+func getSemaphoreWarningFn(name string) func(ltypes.Metric, ltypes.Metric, ltypes.Metric) {
+	return func(received ltypes.Metric, processing ltypes.Metric, releasing ltypes.Metric) {
 		log.Warn(fmt.Sprintf("%s semaphore inconsistency", name),
 			"receivedNum", received.Num, "receivedSize", received.Size,
 			"processingNum", processing.Num, "processingSize", processing.Size,

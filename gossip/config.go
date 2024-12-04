@@ -8,7 +8,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/gossip/itemsfetcher"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -31,9 +31,9 @@ type (
 		LatencyImportance    int
 		ThroughputImportance int
 
-		EventsSemaphoreLimit dag.Metric
-		BVsSemaphoreLimit    dag.Metric
-		MsgsSemaphoreLimit   dag.Metric
+		EventsSemaphoreLimit ltypes.Metric
+		BVsSemaphoreLimit    ltypes.Metric
+		MsgsSemaphoreLimit   ltypes.Metric
 		MsgsSemaphoreTimeout time.Duration
 
 		ProgressBroadcastPeriod time.Duration
@@ -145,15 +145,15 @@ func DefaultConfig(scale cachescale.Func) Config {
 		Protocol: ProtocolConfig{
 			LatencyImportance:    60,
 			ThroughputImportance: 40,
-			MsgsSemaphoreLimit: dag.Metric{
+			MsgsSemaphoreLimit: ltypes.Metric{
 				Num:  scale.Events(1000),
 				Size: scale.U64(30 * opt.MiB),
 			},
-			EventsSemaphoreLimit: dag.Metric{
+			EventsSemaphoreLimit: ltypes.Metric{
 				Num:  scale.Events(10000),
 				Size: scale.U64(30 * opt.MiB),
 			},
-			BVsSemaphoreLimit: dag.Metric{
+			BVsSemaphoreLimit: ltypes.Metric{
 				Num:  scale.Events(5000),
 				Size: scale.U64(15 * opt.MiB),
 			},
@@ -220,7 +220,7 @@ func DefaultConfig(scale cachescale.Func) Config {
 
 func (c *Config) Validate() error {
 	p := c.Protocol
-	defaultChunkSize := dag.Metric{
+	defaultChunkSize := ltypes.Metric{
 		Num:  idx.Event(p.DagStreamLeecher.Session.DefaultChunkItemsNum),
 		Size: p.DagStreamLeecher.Session.DefaultChunkItemsSize,
 	}

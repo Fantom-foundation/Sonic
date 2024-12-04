@@ -11,7 +11,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
@@ -89,7 +89,7 @@ func consensusCallbackBeginBlockFn(
 		if *bootstrapping {
 			// ignore block processing during bootstrapping
 			return lachesis.BlockCallbacks{
-				ApplyEvent: func(dag.Event) {},
+				ApplyEvent: func(ltypes.Event) {},
 				EndBlock: func() *pos.Validators {
 					return nil
 				},
@@ -125,7 +125,7 @@ func consensusCallbackBeginBlockFn(
 		confirmedEvents := make(hash.OrderedEvents, 0, 3*es.Validators.Len())
 
 		return lachesis.BlockCallbacks{
-			ApplyEvent: func(_e dag.Event) {
+			ApplyEvent: func(_e ltypes.Event) {
 				e := _e.(inter.EventI)
 				if cBlock.Atropos == e.ID() {
 					atroposTime = e.MedianTime()

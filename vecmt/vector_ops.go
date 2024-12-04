@@ -1,7 +1,7 @@
 package vecmt
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/vecengine"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
@@ -13,7 +13,7 @@ type CreationTimer interface {
 	CreationTime() inter.Timestamp
 }
 
-func (b *HighestBefore) InitWithEvent(i idx.Validator, e dag.Event) {
+func (b *HighestBefore) InitWithEvent(i idx.Validator, e ltypes.Event) {
 	b.VSeq.InitWithEvent(i, e)
 	b.VTime.Set(i, e.(CreationTimer).CreationTime())
 }

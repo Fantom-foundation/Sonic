@@ -8,7 +8,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -128,7 +128,7 @@ func (s *Service) switchEpochTo(newEpoch idx.Epoch) {
 	// reset dag indexer
 	s.store.resetEpochStore(newEpoch)
 	es := s.store.getEpochStore(newEpoch)
-	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id hash.Event) dag.Event {
+	s.dagIndexer.Reset(s.store.GetValidators(), es.table.DagIndex, func(id hash.Event) ltypes.Event {
 		return s.store.GetEvent(id)
 	})
 	// notify event checkers about new validation data

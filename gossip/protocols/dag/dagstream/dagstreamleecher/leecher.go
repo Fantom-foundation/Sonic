@@ -8,7 +8,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher"
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream/basestreamleecher/basepeerleecher"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 
 	"github.com/Fantom-foundation/go-opera/gossip/protocols/dag/dagstream"
@@ -167,7 +167,7 @@ func (d *Leecher) startSession(candidates []string) {
 			return d.callback.RequestChunk(peer,
 				dagstream.Request{
 					Session:   session,
-					Limit:     dag.Metric{Num: idx.Event(maxNum), Size: maxSize},
+					Limit:     ltypes.Metric{Num: idx.Event(maxNum), Size: maxSize},
 					Type:      typ,
 					MaxChunks: chunks,
 				})

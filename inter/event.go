@@ -5,7 +5,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -13,7 +13,7 @@ import (
 )
 
 type EventI interface {
-	dag.Event
+	ltypes.Event
 	Version() uint8
 	NetForkID() uint16
 	CreationTime() Timestamp
@@ -71,11 +71,11 @@ func EmptyPayloadHash(version uint8) hash.Hash {
 }
 
 type baseEvent struct {
-	dag.BaseEvent
+	ltypes.BaseEvent
 }
 
 type mutableBaseEvent struct {
-	dag.MutableBaseEvent
+	ltypes.MutableBaseEvent
 }
 
 type extEventData struct {

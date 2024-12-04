@@ -9,12 +9,12 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/basestream"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 type Request struct {
 	Session   Session
-	Limit     dag.Metric
+	Limit     ltypes.Metric
 	Type      basestream.RequestType
 	MaxChunks uint32
 }

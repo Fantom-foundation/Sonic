@@ -9,7 +9,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/threads"
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	ltypes "github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
@@ -69,7 +69,7 @@ type GossipStoreAdapter struct {
 	*gossip.Store
 }
 
-func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
+func (g *GossipStoreAdapter) GetEvent(id hash.Event) ltypes.Event {
 	e := g.Store.GetEvent(id)
 	if e == nil {
 		return nil

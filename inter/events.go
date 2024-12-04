@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/Fantom-foundation/lachesis-base/ltypes"
 )
 
 // Events is a ordered slice of events.
@@ -28,8 +28,8 @@ func (ee Events) IDs() hash.Events {
 	return res
 }
 
-func (ee Events) Bases() dag.Events {
-	res := make(dag.Events, 0, ee.Len())
+func (ee Events) Bases() ltypes.Events {
+	res := make(ltypes.Events, 0, ee.Len())
 	for _, e := range ee {
 		res = append(res, e)
 	}
@@ -71,8 +71,8 @@ func (ee EventPayloads) IDs() hash.Events {
 	return res
 }
 
-func (ee EventPayloads) Bases() dag.Events {
-	res := make(dag.Events, 0, ee.Len())
+func (ee EventPayloads) Bases() ltypes.Events {
+	res := make(ltypes.Events, 0, ee.Len())
 	for _, e := range ee {
 		res = append(res, e)
 	}
@@ -106,8 +106,8 @@ func (ee EventIs) IDs() hash.Events {
 	return res
 }
 
-func (ee EventIs) Bases() dag.Events {
-	res := make(dag.Events, 0, ee.Len())
+func (ee EventIs) Bases() ltypes.Events {
+	res := make(ltypes.Events, 0, ee.Len())
 	for _, e := range ee {
 		res = append(res, e)
 	}
