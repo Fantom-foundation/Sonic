@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/ltypes/tdag"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
-	"github.com/Fantom-foundation/go-opera/inter"
 )
 
 func TestMedianTimeOnIndex(t *testing.T) {

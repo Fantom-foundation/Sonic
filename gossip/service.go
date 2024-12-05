@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -107,7 +106,7 @@ type Service struct {
 
 	// application
 	store               *Store
-	engine              lachesis.Consensus
+	engine              ltypes.Consensus
 	dagIndexer          *vecmt.Index
 	engineMu            *sync.RWMutex
 	emitters            []*emitter.Emitter
@@ -153,7 +152,7 @@ type Service struct {
 }
 
 func NewService(stack *node.Node, config Config, store *Store, blockProc BlockProc,
-	engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool,
+	engine ltypes.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool,
 	haltCheck func(oldEpoch, newEpoch ltypes.EpochID, age time.Time) bool) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
@@ -175,7 +174,7 @@ func NewService(stack *node.Node, config Config, store *Store, blockProc BlockPr
 	return svc, nil
 }
 
-func newService(config Config, store *Store, blockProc BlockProc, engine lachesis.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool, localId enode.ID) (*Service, error) {
+func newService(config Config, store *Store, blockProc BlockProc, engine ltypes.Consensus, dagIndexer *vecmt.Index, newTxPool func(evmcore.StateReader) TxPool, localId enode.ID) (*Service, error) {
 	svc := &Service{
 		config:             config,
 		blockProcTasksDone: make(chan struct{}),

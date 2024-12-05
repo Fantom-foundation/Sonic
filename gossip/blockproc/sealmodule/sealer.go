@@ -3,7 +3,6 @@ package sealmodule
 import (
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc"
@@ -90,7 +89,7 @@ func (s *OperaEpochsSealer) SealEpoch() (iblockproc.BlockState, iblockproc.Epoch
 	s.es.EpochStateRoot = s.bs.FinalizedStateRoot
 
 	s.bs.EpochGas = 0
-	s.bs.EpochCheaters = lachesis.Cheaters{}
+	s.bs.EpochCheaters = ltypes.Cheaters{}
 	s.bs.CheatersWritten = 0
 	newEpoch := s.es.Epoch + 1
 	s.es.Epoch = newEpoch

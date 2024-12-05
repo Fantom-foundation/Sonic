@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -102,7 +101,7 @@ func FakeGenesisStoreWithRulesAndStart(num ltypes.ValidatorIdx, balance, stake *
 				},
 				FinalizedStateRoot:    ltypes.Hash(genesisStateRoot),
 				EpochGas:              0,
-				EpochCheaters:         lachesis.Cheaters{},
+				EpochCheaters:         ltypes.Cheaters{},
 				CheatersWritten:       0,
 				ValidatorStates:       make([]iblockproc.ValidatorBlockState, 0),
 				NextValidatorProfiles: make(map[ltypes.ValidatorID]drivertype.Validator),

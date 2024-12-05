@@ -39,7 +39,7 @@ const (
 // PeerInfo represents a short summary of the sub-protocol metadata known
 // about a connected peer.
 type PeerInfo struct {
-	Version     uint        `json:"version"` // protocol version negotiated
+	Version     uint           `json:"version"` // protocol version negotiated
 	Epoch       ltypes.EpochID `json:"epoch"`
 	NumOfBlocks ltypes.BlockID `json:"blocks"`
 }

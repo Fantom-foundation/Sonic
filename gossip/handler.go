@@ -1172,8 +1172,8 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 // NodeInfo represents a short summary of the sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network     uint64      `json:"network"` // network ID
-	Genesis     common.Hash `json:"genesis"` // SHA3 hash of the host's genesis object
+	Network     uint64         `json:"network"` // network ID
+	Genesis     common.Hash    `json:"genesis"` // SHA3 hash of the host's genesis object
 	Epoch       ltypes.EpochID `json:"epoch"`
 	NumOfBlocks ltypes.BlockID `json:"blocks"`
 	//Config  *params.ChainConfig `json:"config"`  // Chain configuration for the fork rules

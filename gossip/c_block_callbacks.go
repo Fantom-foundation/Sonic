@@ -10,7 +10,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 
-	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/common"
@@ -51,8 +50,8 @@ type ExtendedTxPosition struct {
 }
 
 // GetConsensusCallbacks returns single (for Service) callback instance.
-func (s *Service) GetConsensusCallbacks() lachesis.ConsensusCallbacks {
-	return lachesis.ConsensusCallbacks{
+func (s *Service) GetConsensusCallbacks() ltypes.ConsensusCallbacks {
+	return ltypes.ConsensusCallbacks{
 		BeginBlock: consensusCallbackBeginBlockFn(
 			s.blockProcTasks,
 			&s.blockProcWg,
@@ -69,7 +68,7 @@ func (s *Service) GetConsensusCallbacks() lachesis.ConsensusCallbacks {
 }
 
 // consensusCallbackBeginBlockFn takes only necessaries for block processing and
-// makes lachesis.BeginBlockFn.
+// makes ltypes.BeginBlockFn.
 func consensusCallbackBeginBlockFn(
 	parallelTasks *workers.Workers,
 	wg *sync.WaitGroup,
@@ -81,11 +80,11 @@ func consensusCallbackBeginBlockFn(
 	emitters *[]*emitter.Emitter,
 	verWatcher *verwatcher.VerWarcher,
 	bootstrapping *bool,
-) lachesis.BeginBlockFn {
-	return func(cBlock *lachesis.Block) lachesis.BlockCallbacks {
+) ltypes.BeginBlockFn {
+	return func(cBlock *ltypes.Block) ltypes.BlockCallbacks {
 		if *bootstrapping {
 			// ignore block processing during bootstrapping
-			return lachesis.BlockCallbacks{
+			return ltypes.BlockCallbacks{
 				ApplyEvent: func(ltypes.Event) {},
 				EndBlock: func() *ltypes.Validators {
 					return nil
@@ -121,7 +120,7 @@ func consensusCallbackBeginBlockFn(
 		// events with txs
 		confirmedEvents := make(ltypes.OrderedEventHashes, 0, 3*es.Validators.Len())
 
-		return lachesis.BlockCallbacks{
+		return ltypes.BlockCallbacks{
 			ApplyEvent: func(_e ltypes.Event) {
 				e := _e.(inter.EventI)
 				if cBlock.Atropos == e.ID() {
@@ -458,7 +457,7 @@ func spillBlockEvents(store *Store, events ltypes.OrderedEventHashes, maxBlockGa
 	return fullEvents
 }
 
-func mergeCheaters(a, b lachesis.Cheaters) lachesis.Cheaters {
+func mergeCheaters(a, b ltypes.Cheaters) ltypes.Cheaters {
 	if len(b) == 0 {
 		return a
 	}
@@ -466,7 +465,7 @@ func mergeCheaters(a, b lachesis.Cheaters) lachesis.Cheaters {
 		return b
 	}
 	aSet := a.Set()
-	merged := make(lachesis.Cheaters, 0, len(b)+len(a))
+	merged := make(ltypes.Cheaters, 0, len(b)+len(a))
 	merged = append(merged, a...)
 	for _, v := range b {
 		if _, ok := aSet[v]; !ok {

@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/ltypes"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -44,7 +43,7 @@ type BlockState struct {
 	FinalizedStateRoot ltypes.Hash
 
 	EpochGas        uint64
-	EpochCheaters   lachesis.Cheaters
+	EpochCheaters   ltypes.Cheaters
 	CheatersWritten uint32
 
 	ValidatorStates       []ValidatorBlockState
@@ -57,7 +56,7 @@ type BlockState struct {
 
 func (bs BlockState) Copy() BlockState {
 	cp := bs
-	cp.EpochCheaters = make(lachesis.Cheaters, len(bs.EpochCheaters))
+	cp.EpochCheaters = make(ltypes.Cheaters, len(bs.EpochCheaters))
 	copy(cp.EpochCheaters, bs.EpochCheaters)
 	cp.ValidatorStates = make([]ValidatorBlockState, len(bs.ValidatorStates))
 	copy(cp.ValidatorStates, bs.ValidatorStates)

@@ -1651,7 +1651,7 @@ func (s *PublicTransactionPoolAPI) formatTxReceipt(header *evmcore.EvmHeader, tx
 	return fields
 }
 
-// GetTransactionReceipt returns the transaction receipt for the given transaction hash. 
+// GetTransactionReceipt returns the transaction receipt for the given transaction hash.
 func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
 	tx, blockNumber, index, err := s.b.GetTransaction(ctx, hash)
 	if tx == nil || err != nil {
