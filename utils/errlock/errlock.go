@@ -69,5 +69,5 @@ func read(dir string) (bool, string, string, error) {
 func write(dir string, eLockStr string) (string, error) {
 	eLockPath := path.Join(dir, "errlock")
 
-	return eLockPath, os.WriteFile(eLockPath, []byte(eLockStr), 0666) // assume no custom encoding needed
+	return eLockPath, os.WriteFile(eLockPath, []byte(eLockStr), 0600) // assume no custom encoding needed
 }
