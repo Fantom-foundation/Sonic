@@ -131,7 +131,8 @@ func testSelfDestruct_Constructor(t *testing.T, net *IntegrationTestNet) {
 
 			// New beneficiary address for each test
 			beneficiaryAddress := common.Address{}
-			rand.Read(beneficiaryAddress[:])
+			_, err := rand.Read(beneficiaryAddress[:])
+			require.NoError(err)
 
 			// First transaction deploys contract
 			contract, deployReceipt, err := DeployContract(net,
@@ -280,7 +281,8 @@ func testSelfDestruct_NestedCall(t *testing.T, net *IntegrationTestNet) {
 
 			// generate a new beneficiary address for each test
 			beneficiaryAddress := common.Address{}
-			rand.Read(beneficiaryAddress[:])
+			_, err := rand.Read(beneficiaryAddress[:])
+			require.NoError(err)
 
 			// deploy factory contract
 			factory, receipt, err := DeployContract(net, selfdestruct.DeploySelfDestructFactory)
