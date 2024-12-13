@@ -71,10 +71,12 @@ func isPortFree(host string, port int) bool {
 	if err != nil {
 		return false
 	}
-	if err = listener.Close(); err != nil {
-		fmt.Print("failed to close listener:", err)
+	err = listener.Close()
+	if err != nil {
+		fmt.Printf("failed to close port %d: %v\n", port, err)
 	}
-	return true
+	// if the port reports errors while closing, do not consider it free
+	return err == nil
 }
 
 func getFreePort() (int, error) {
@@ -317,7 +319,8 @@ func (n *IntegrationTestNet) start() error {
 
 // Stop shuts the underlying network down.
 func (n *IntegrationTestNet) Stop() {
-	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	// best effort to stop the test environment, ignore error
+	_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 	<-n.done
 	n.done = nil
 }

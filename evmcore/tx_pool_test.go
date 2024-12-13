@@ -497,7 +497,9 @@ func TestTransactionQueue(t *testing.T) {
 	testAddBalance(pool, from, big.NewInt(1000))
 	<-pool.requestReset(nil, nil)
 
-	pool.enqueueTx(tx.Hash(), tx, false, true)
+	if _, err := pool.enqueueTx(tx.Hash(), tx, false, true); err != nil {
+		t.Error("failed to enqueue tx", err)
+	}
 	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 	if len(pool.pending) != 1 {
 		t.Error("expected valid txs to be 1 is", len(pool.pending))
@@ -506,7 +508,9 @@ func TestTransactionQueue(t *testing.T) {
 	tx = transaction(1, 100, key)
 	from, _ = deriveSender(tx)
 	testSetNonce(pool, from, 2)
-	pool.enqueueTx(tx.Hash(), tx, false, true)
+	if _, err := pool.enqueueTx(tx.Hash(), tx, false, true); err != nil {
+		t.Error("failed to enqueue tx", err)
+	}
 
 	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 	if _, ok := pool.pending[from].txs.items[tx.Nonce()]; ok {
@@ -530,9 +534,15 @@ func TestTransactionQueue2(t *testing.T) {
 	testAddBalance(pool, from, big.NewInt(1000))
 	pool.reset(nil, nil)
 
-	pool.enqueueTx(tx1.Hash(), tx1, false, true)
-	pool.enqueueTx(tx2.Hash(), tx2, false, true)
-	pool.enqueueTx(tx3.Hash(), tx3, false, true)
+	if _, err := pool.enqueueTx(tx1.Hash(), tx1, false, true); err != nil {
+		t.Error("failed to enqueue tx1", err)
+	}
+	if _, err := pool.enqueueTx(tx2.Hash(), tx2, false, true); err != nil {
+		t.Error("failed to enqueue tx2", err)
+	}
+	if _, err := pool.enqueueTx(tx3.Hash(), tx3, false, true); err != nil {
+		t.Error("failed to enqueue tx3", err)
+	}
 
 	pool.promoteExecutables([]common.Address{from})
 	if len(pool.pending) != 1 {
@@ -653,7 +663,10 @@ func TestTransactionDoubleNonce(t *testing.T) {
 	}
 
 	// Add the third transaction and ensure it's not saved (smaller price)
-	pool.add(tx3, false)
+	if _, err := pool.add(tx3, false); err == nil {
+		t.Error("expected transaction to be rejected, it was not")
+	}
+
 	<-pool.requestPromoteExecutables(newAccountSet(signer, addr))
 	if pool.pending[addr].Len() != 1 {
 		t.Error("expected 1 pending transactions, got", pool.pending[addr].Len())
@@ -747,9 +760,15 @@ func TestTransactionDropping(t *testing.T) {
 	pool.priced.Put(tx2, false)
 	pool.promoteTx(account, tx2.Hash(), tx2)
 
-	pool.enqueueTx(tx10.Hash(), tx10, false, true)
-	pool.enqueueTx(tx11.Hash(), tx11, false, true)
-	pool.enqueueTx(tx12.Hash(), tx12, false, true)
+	if _, err := pool.enqueueTx(tx10.Hash(), tx10, false, true); err != nil {
+		t.Fatalf("failed to enqueue tx10: %v", err)
+	}
+	if _, err := pool.enqueueTx(tx11.Hash(), tx11, false, true); err != nil {
+		t.Fatalf("failed to enqueue tx11: %v", err)
+	}
+	if _, err := pool.enqueueTx(tx12.Hash(), tx12, false, true); err != nil {
+		t.Fatalf("failed to enqueue tx12: %v", err)
+	}
 
 	// Check that pre and post validations leave the pool as is
 	if pool.pending[account].Len() != 3 {
@@ -1589,8 +1608,12 @@ func TestTransactionPoolRepricing(t *testing.T) {
 	ltx := pricedTransaction(0, 100000, big.NewInt(1), keys[3])
 
 	// Import the batch and that both pending and queued transactions match up
-	pool.AddRemotesSync(txs)
-	pool.AddLocal(ltx)
+	if errs := pool.AddRemotesSync(txs); errors.Join(errs...) != nil {
+		t.Fatalf("failed to add remote transactions: %v", errors.Join(errs...))
+	}
+	if err := pool.AddLocal(ltx); err != nil {
+		t.Fatalf("failed to add local transaction: %v", err)
+	}
 
 	pending, queued := pool.Stats()
 	if pending != 7 {
@@ -1710,8 +1733,12 @@ func TestTransactionPoolRepricingDynamicFee(t *testing.T) {
 	ltx := dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), keys[3])
 
 	// Import the batch and that both pending and queued transactions match up
-	pool.AddRemotesSync(txs)
-	pool.AddLocal(ltx)
+	if errs := pool.AddRemotesSync(txs); errors.Join(errs...) != nil {
+		t.Fatalf("failed to add transactions: %v", errs)
+	}
+	if err := pool.AddLocal(ltx); err != nil {
+		t.Fatalf("failed to add local transaction: %v", err)
+	}
 
 	pending, queued := pool.Stats()
 	if pending != 7 {
@@ -1907,8 +1934,12 @@ func TestTransactionPoolUnderpricing(t *testing.T) {
 	ltx := pricedTransaction(0, 100000, big.NewInt(1), keys[2])
 
 	// Import the batch and that both pending and queued transactions match up
-	pool.AddRemotes(txs)
-	pool.AddLocal(ltx)
+	if errs := pool.AddRemotes(txs); errors.Join(errs...) != nil {
+		t.Fatalf("failed to add remote transactions: %v", errs)
+	}
+	if err := pool.AddLocal(ltx); err != nil {
+		t.Fatalf("failed to add local transaction: %v", err)
+	}
 
 	pending, queued := pool.Stats()
 	if pending != 3 {
@@ -2077,8 +2108,14 @@ func TestTransactionPoolUnderpricingDynamicFee(t *testing.T) {
 	ltx := dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), keys[2])
 
 	// Import the batch and that both pending and queued transactions match up
-	pool.AddRemotes(txs) // Pend K0:0, K0:1; Que K1:1
-	pool.AddLocal(ltx)   // +K2:0 => Pend K0:0, K0:1, K2:0; Que K1:1
+	// Pend K0:0, K0:1; Que K1:1
+	if errs := pool.AddRemotes(txs); errors.Join(errs...) != nil {
+		t.Fatalf("failed to add remote transactions: %v", errs)
+	}
+	// +K2:0 => Pend K0:0, K0:1, K2:0; Que K1:1
+	if err := pool.AddLocal(ltx); err != nil {
+		t.Fatalf("failed to add local transaction: %v", err)
+	}
 
 	pending, queued := pool.Stats()
 	if pending != 3 {
@@ -2456,11 +2493,14 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 		t.Fatalf("failed to create temporary journal: %v", err)
 	}
 	journal := file.Name()
-	defer os.Remove(journal)
 
 	// Clean up the temporary file, we only need the path for now
-	file.Close()
-	os.Remove(journal)
+	if err := file.Close(); err != nil {
+		t.Fatalf("failed to close temporary journal: %v", err)
+	}
+	if err := os.Remove(journal); err != nil {
+		t.Fatalf("failed to remove temporary journal: %v", err)
+	}
 
 	// Create the original pool to inject transaction into the journal
 	statedb := newTestTxPoolStateDb()
@@ -2805,7 +2845,10 @@ func benchmarkFuturePromotion(b *testing.B, size int) {
 
 	for i := 0; i < size; i++ {
 		tx := transaction(uint64(1+i), 100000, key)
-		pool.enqueueTx(tx.Hash(), tx, false, true)
+		_, err := pool.enqueueTx(tx.Hash(), tx, false, true)
+		if err != nil {
+			b.Fatalf("failed to enqueue transaction: %v", err)
+		}
 	}
 	// Benchmark the speed of pool validation
 	b.ResetTimer()
@@ -2872,8 +2915,12 @@ func BenchmarkInsertRemoteWithAllLocals(b *testing.B) {
 		pool, _ := setupTxPool()
 		testAddBalance(pool, account, big.NewInt(100000000))
 		for _, local := range locals {
-			pool.AddLocal(local)
+			err := pool.AddLocal(local)
+			if err != nil {
+				b.Fatalf("failed to add local transaction: %v", err)
+			}
 		}
+
 		b.StartTimer()
 		// Assign a high enough balance for testing
 		testAddBalance(pool, remoteAddr, big.NewInt(100000000))
