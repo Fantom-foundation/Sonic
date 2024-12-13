@@ -80,7 +80,9 @@ func (tt *TestCmd) Run(name string, args ...string) {
 //
 //	cli.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
-	io.WriteString(tt.stdin, s+"\n")
+	if _, err := io.WriteString(tt.stdin, s+"\n"); err != nil {
+		tt.Fatalf("Failed to write to stdin: %v", err)
+	}
 	return ""
 }
 
@@ -121,7 +123,10 @@ func (tt *TestCmd) matchExactOutput(want []byte) error {
 		// Grab any additional buffered output in case of mismatch
 		// because it might help with debugging.
 		buf = append(buf, make([]byte, tt.stdout.Buffered())...)
-		tt.stdout.Read(buf[n:])
+		if _, err := tt.stdout.Read(buf[n:]); err != nil {
+			tt.Fatalf("Failed to read buffered output: %v", err)
+		}
+
 		// Find the mismatch position.
 		for i := 0; i < n; i++ {
 			if want[i] != buf[i] {

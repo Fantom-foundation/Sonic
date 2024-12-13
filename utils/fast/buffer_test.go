@@ -66,7 +66,7 @@ func Benchmark(b *testing.B) {
 
 	b.Run("Read", func(b *testing.B) {
 		src := make([]byte, 1000)
-		rand.Read(src)
+		_, _ = rand.Read(src)
 
 		b.Run("Std", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {

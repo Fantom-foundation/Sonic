@@ -219,7 +219,9 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 
 func (env *testEnv) Close() {
 	env.verWatcher.Stop()
-	env.store.Close()
+	if err := env.store.Close(); err != nil {
+		panic(fmt.Errorf("store.Close failed; %w", err))
+	}
 	env.tflusher.Stop()
 }
 
