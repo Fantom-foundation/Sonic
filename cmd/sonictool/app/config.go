@@ -2,9 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/config"
-	"gopkg.in/urfave/cli.v1"
 	"os"
+
+	"github.com/Fantom-foundation/go-opera/config"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func checkConfig(ctx *cli.Context) error {
@@ -17,28 +19,30 @@ func checkConfig(ctx *cli.Context) error {
 }
 
 // dumpConfig is the dumpconfig command.
-func dumpConfig(ctx *cli.Context) error {
+func dumpConfig(ctx *cli.Context) (err error) {
 	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
-		return err
+		return
 	}
 	comment := ""
 
 	out, err := config.TomlSettings.Marshal(&cfg)
 	if err != nil {
-		return err
+		return
 	}
 
 	dump := os.Stdout
 	if ctx.NArg() > 0 {
 		dump, err = os.OpenFile(ctx.Args().Get(0), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
-			return err
+			return
 		}
-		defer dump.Close()
+		defer caution.CloseAndReportError(&err, dump, "failed to close config file")
 	}
-	dump.WriteString(comment)
-	dump.Write(out)
-
-	return nil
+	_, err = dump.WriteString(comment)
+	if err != nil {
+		return
+	}
+	_, err = dump.Write(out)
+	return
 }
