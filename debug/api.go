@@ -22,6 +22,7 @@ package debug
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/user"
@@ -31,6 +32,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -60,7 +62,7 @@ func (h *HandlerT) StartCPUProfile(file string) error {
 		return err
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
-		f.Close()
+		caution.CloseAndReportError(&err, f, "failed to close profile file")
 		return err
 	}
 	h.cpuW = f
@@ -78,7 +80,9 @@ func (h *HandlerT) StopCPUProfile() error {
 		return errors.New("CPU profiling not in progress")
 	}
 	log.Info("Done writing CPU profile", "dump", h.cpuFile)
-	h.cpuW.Close()
+	if err := h.cpuW.Close(); err != nil {
+		return fmt.Errorf("failed to close CPU profile file: %w", err)
+	}
 	h.cpuW = nil
 	h.cpuFile = ""
 	return nil

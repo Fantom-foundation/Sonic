@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/dbcounter"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/threads"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -60,7 +61,7 @@ func isEmpty(dir string) bool {
 	if err != nil {
 		return true
 	}
-	defer f.Close()
+	defer caution.CloseAndReportError(&err, f, "failed to close dir")
 	_, err = f.Readdirnames(1)
 	return err == io.EOF
 }

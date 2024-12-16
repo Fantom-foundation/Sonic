@@ -6,6 +6,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/vecmt2dagidx"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -81,9 +82,9 @@ func makeEngine(chaindataDir string, cfg Configs) (*abft.Lachesis, *vecmt.Index,
 	}
 	defer func() {
 		if err != nil {
-			gdb.Close()
-			cdb.Close()
-			dbs.Close()
+			caution.CloseAndReportError(&err, gdb, "failed to close gossip store")
+			caution.CloseAndReportError(&err, cdb, "failed to close lachesis store")
+			caution.CloseAndReportError(&err, dbs, "failed to close db producer")
 		}
 	}()
 
