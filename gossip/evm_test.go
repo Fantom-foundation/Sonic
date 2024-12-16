@@ -23,7 +23,10 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 	require := require.New(b)
 
 	env := newTestEnv(2, 3, b)
-	defer env.Close()
+	b.Cleanup(func() {
+		err := env.Close()
+		require.NoError(err)
+	})
 
 	for bi := 0; bi < b.N; bi++ {
 		count := idx.ValidatorID(10)
