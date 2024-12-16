@@ -217,10 +217,13 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 	return env
 }
 
-func (env *testEnv) Close() {
+func (env *testEnv) Close() error {
 	env.verWatcher.Stop()
-	env.store.Close()
+	if err := env.store.Close(); err != nil {
+		return fmt.Errorf("failed to close test store; %w", err)
+	}
 	env.tflusher.Stop()
+	return nil
 }
 
 func (env *testEnv) GetEvmStateReader() *EvmStateReader {

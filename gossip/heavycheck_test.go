@@ -45,9 +45,8 @@ func (s *LLRHeavyCheckTestSuite) SetupSuite() {
 
 func (s *LLRHeavyCheckTestSuite) TearDownSuite() {
 	s.T().Log("tearing down test suite")
-	s.env.Close()
+	s.Require().NoError(s.env.Close())
 }
-
 
 func mutableEventPayloadFromImmutable(e *inter.EventPayload) *inter.MutableEventPayload {
 	me := &inter.MutableEventPayload{}
