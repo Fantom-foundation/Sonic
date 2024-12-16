@@ -30,6 +30,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
 	"github.com/Fantom-foundation/go-opera/vecmt"
 )
@@ -81,12 +82,13 @@ func (c *Config) AppConfigs() integration.Configs {
 	}
 }
 
-func loadAllConfigs(file string, cfg *Config) error {
+func loadAllConfigs(file string, cfg *Config) (err error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return err
+		err = fmt.Errorf("failed to open config file %s: %w", file, err)
+		return
 	}
-	defer f.Close()
+	defer caution.CloseAndReportError(&err, f, "failed to close config file")
 
 	err = TomlSettings.NewDecoder(bufio.NewReader(f)).Decode(cfg)
 	// Add file name to errors that have a line number.
@@ -94,12 +96,11 @@ func loadAllConfigs(file string, cfg *Config) error {
 		err = errors.New(file + ", " + err.Error())
 	}
 	if err != nil {
-
 		return fmt.Errorf("TOML config file error: %v.\n"+
 			"Use 'dumpconfig' command to get an example config file.\n"+
 			"If node was recently upgraded and a previous network config file is used, then check updates for the config file.", err)
 	}
-	return err
+	return
 }
 
 func setBootnodes(ctx *cli.Context, urls []string, cfg *node.Config) {

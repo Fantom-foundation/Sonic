@@ -11,6 +11,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	futils "github.com/Fantom-foundation/go-opera/utils"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/utils/memory"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
@@ -31,7 +32,7 @@ var (
 	}
 )
 
-func gfileGenesisImport(ctx *cli.Context) error {
+func gfileGenesisImport(ctx *cli.Context) (err error) {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the genesis file to import")
 	}
@@ -41,24 +42,24 @@ func gfileGenesisImport(ctx *cli.Context) error {
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
-		return err
+		return
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
-		return err
+		return
 	}
 
 	genesisReader, err := os.Open(ctx.Args().First())
 	if err != nil {
 		return fmt.Errorf("failed to open the genesis file: %w", err)
 	}
-	defer genesisReader.Close()
+	// note, genesisStore closes the reader, no need to defer close it here
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
 		return fmt.Errorf("failed to read genesis file: %w", err)
 	}
-	defer genesisStore.Close()
+	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
 	if err := genesis.IsGenesisTrusted(genesisStore, genesisHashes); err != nil {
 		if ctx.IsSet(ExperimentalFlag.Name) {
 			log.Warn("Experimental genesis file is used", "err", err)
@@ -76,7 +77,7 @@ func gfileGenesisImport(ctx *cli.Context) error {
 	})
 }
 
-func jsonGenesisImport(ctx *cli.Context) error {
+func jsonGenesisImport(ctx *cli.Context) (err error) {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the genesis file to import")
 	}
@@ -89,11 +90,11 @@ func jsonGenesisImport(ctx *cli.Context) error {
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
-		return err
+		return
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
-		return err
+		return
 	}
 
 	genesisJson, err := makefakegenesis.LoadGenesisJson(ctx.Args().First())
@@ -105,7 +106,7 @@ func jsonGenesisImport(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare JSON genesis: %w", err)
 	}
-	defer genesisStore.Close()
+	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
 	return genesis.ImportGenesisStore(genesis.ImportParams{
 		GenesisStore:  genesisStore,
 		DataDir:       dataDir,
@@ -116,7 +117,7 @@ func jsonGenesisImport(ctx *cli.Context) error {
 	})
 }
 
-func fakeGenesisImport(ctx *cli.Context) error {
+func fakeGenesisImport(ctx *cli.Context) (err error) {
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("this command requires an argument - the number of validators in the fake network")
 	}
@@ -133,11 +134,11 @@ func fakeGenesisImport(ctx *cli.Context) error {
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
-		return err
+		return
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
-		return err
+		return
 	}
 
 	genesisStore := makefakegenesis.FakeGenesisStore(
@@ -145,7 +146,7 @@ func fakeGenesisImport(ctx *cli.Context) error {
 		futils.ToFtm(1000000000),
 		futils.ToFtm(5000000),
 	)
-	defer genesisStore.Close()
+	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
 	return genesis.ImportGenesisStore(genesis.ImportParams{
 		GenesisStore:  genesisStore,
 		DataDir:       dataDir,

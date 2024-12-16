@@ -17,6 +17,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
@@ -93,7 +94,7 @@ func heal(ctx *cli.Context) error {
 	return nil
 }
 
-func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.Block) error {
+func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.Block) (err error) {
 	if err := os.RemoveAll(carmenLiveDir); err != nil {
 		return fmt.Errorf("failed to remove broken live state: %w", err)
 	}
@@ -102,7 +103,7 @@ func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir st
 	}
 
 	reader, writer := io.Pipe()
-	defer reader.Close()
+	defer caution.CloseAndReportError(&err, reader, "failed to close reader")
 	bufReader := bufio.NewReaderSize(reader, 100*1024*1024) // 100 MiB
 	bufWriter := bufio.NewWriterSize(writer, 100*1024*1024) // 100 MiB
 
@@ -111,14 +112,14 @@ func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir st
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer writer.Close()
+		defer caution.CloseAndReportError(&err, writer, "failed to close writer")
 		exportErr = mptio.ExportBlockFromArchive(ctx, mptio.NewLog(), carmenArchiveDir, bufWriter, uint64(recoveredBlock))
 		if exportErr == nil {
 			exportErr = bufWriter.Flush()
 		}
 	}()
 
-	err := mptio.ImportLiveDb(mptio.NewLog(), carmenLiveDir, bufReader)
+	err = mptio.ImportLiveDb(mptio.NewLog(), carmenLiveDir, bufReader)
 
 	wg.Wait()
 	return errors.Join(err, exportErr)

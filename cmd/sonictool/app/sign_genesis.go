@@ -2,13 +2,15 @@ package app
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
-	"os"
 )
 
 func signGenesis(ctx *cli.Context) error {
@@ -59,16 +61,16 @@ func signGenesis(ctx *cli.Context) error {
 
 func getGenesisHeaderHashes(genesisFile string) (ogenesis.Header, ogenesis.Hashes, error) {
 	genesisReader, err := os.Open(genesisFile)
+	// note, genesisStore closes the reader, no need to defer close it here
 	if err != nil {
 		return ogenesis.Header{}, nil, fmt.Errorf("failed to open the genesis file: %w", err)
 	}
-	defer genesisReader.Close()
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
 		return ogenesis.Header{}, nil, fmt.Errorf("failed to read genesis file: %w", err)
 	}
-	defer genesisStore.Close()
+	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
 
 	return genesisStore.Header(), genesisHashes, nil
 }
