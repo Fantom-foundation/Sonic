@@ -95,10 +95,10 @@ func heal(ctx *cli.Context) error {
 }
 
 func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.Block) (err error) {
-	if err := os.RemoveAll(carmenLiveDir); err != nil {
+	if err = os.RemoveAll(carmenLiveDir); err != nil {
 		return fmt.Errorf("failed to remove broken live state: %w", err)
 	}
-	if err := os.MkdirAll(carmenLiveDir, 0700); err != nil {
+	if err = os.MkdirAll(carmenLiveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen live dir; %w", err)
 	}
 

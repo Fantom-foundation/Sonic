@@ -43,7 +43,7 @@ func compactDB(name string, producer kvdb.DBProducer) (err error) {
 	db, err := producer.OpenDB(name)
 	if err != nil {
 		log.Error("Cannot open db or db does not exists", "db", name)
-		return err
+		return
 	}
 	defer caution.CloseAndReportError(&err, db, "failed to close db")
 

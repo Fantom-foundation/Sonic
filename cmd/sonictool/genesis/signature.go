@@ -85,12 +85,12 @@ func CheckGenesisSignature(hash []byte, signature []byte) error {
 func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file string) (err error) {
 	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm) // avoid using O_APPEND for correct seek positions
 	if err != nil {
-		err = fmt.Errorf("failed to open genesis file: %w", err)
+		err = fmt.Errorf("failed to open the genesis file: %w", err)
 		return
 	}
 	_, err = out.Seek(0, io.SeekEnd)
 	if err != nil {
-		err = fmt.Errorf("failed to seek genesis file: %w", err)
+		err = fmt.Errorf("failed to seek to the end of the file: %w", err)
 		return
 	}
 	defer caution.CloseAndReportError(&err, out, "failed to close genesis file")

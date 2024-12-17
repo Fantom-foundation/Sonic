@@ -60,13 +60,13 @@ func signGenesis(ctx *cli.Context) error {
 	return nil
 }
 
-func getGenesisHeaderHashes(genesisFile string) (header ogenesis.Header, genesisHashes ogenesis.Hashes, err error) {
+func getGenesisHeaderHashes(genesisFile string) (genesisHead ogenesis.Header, genesisHashes ogenesis.Hashes, err error) {
 	genesisReader, err := os.Open(genesisFile)
-	// note, genesisStore closes the reader, no need to defer close it here
 	if err != nil {
 		err = fmt.Errorf("failed to open the genesis file: %w", err)
 		return
 	}
+	// note, genesisStore closes the reader, no need to defer close it here
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
@@ -74,6 +74,6 @@ func getGenesisHeaderHashes(genesisFile string) (header ogenesis.Header, genesis
 		return
 	}
 	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
-	header = genesisStore.Header()
+	genesisHead = genesisStore.Header()
 	return
 }
