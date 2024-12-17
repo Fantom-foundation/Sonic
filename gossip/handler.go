@@ -697,7 +697,10 @@ func (h *handler) handleMsg(p *peer) error {
 	if msg.Size > protocolMaxMsgSize {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, protocolMaxMsgSize)
 	}
-	defer msg.Discard()
+	defer func() {
+		// dicard is a writte operation into io.Discard, it cannot return an error
+		_ = msg.Discard()
+	}()
 	// Acquire semaphore for serialized messages
 	eventsSizeEst := dag.Metric{
 		Num:  1,
@@ -1153,9 +1156,16 @@ func (h *handler) peerInfoCollectionLoop(stop <-chan struct{}) {
 			for _, peer := range peers {
 				// If we do not have the peer's end-point or it is too old, request it.
 				if info := peer.endPoint.Load(); info == nil || time.Since(info.timestamp) > h.config.Protocol.PeerEndPointUpdatePeriod {
-					peer.SendEndPointUpdateRequest()
+					if err := peer.SendEndPointUpdateRequest(); err != nil {
+						log.Warn("Failed to send end-point update request", "peer", peer.id, "err", err)
+						// If the end-point update request fails, do not send the peer info request.
+						continue
+					}
 				}
-				peer.SendPeerInfoRequest()
+
+				if err := peer.SendPeerInfoRequest(); err != nil {
+					log.Warn("Failed to send peer info request", "peer", peer.id, "err", err)
+				}
 			}
 
 			// Drop a redundant connection if there are too many connections.
