@@ -35,7 +35,7 @@ func CheckLiveStateDb(ctx context.Context, dataDir string, cacheRatio cachescale
 func checkLiveBlockRoot(dataDir string, cacheRatio cachescale.Func) error {
 	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.NoArchive, true)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create gossip db and db producer: %w", err)
 	}
 	defer gdb.Close()
 	defer dbs.Close()

@@ -2,13 +2,14 @@ package genesis
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"sort"
+
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"io"
-	"os"
-	"sort"
 )
 
 func GetGenesisMetadata(header genesis.Header, genesisHashes genesis.Hashes) ([]byte, string, error) {
@@ -80,14 +81,16 @@ func CheckGenesisSignature(hash []byte, signature []byte) error {
 	return fmt.Errorf("genesis signature does not match any trusted signer (signer: %x)", address)
 }
 
-func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file string) error {
+func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file string) (err error) {
 	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm) // avoid using O_APPEND for correct seek positions
 	if err != nil {
-		return err
+		err = fmt.Errorf("failed to open the genesis file: %w", err)
+		return
 	}
 	_, err = out.Seek(0, io.SeekEnd)
 	if err != nil {
-		return err
+		err = fmt.Errorf("failed to seek to the end of the file: %w", err)
+		return
 	}
 	defer out.Close()
 
