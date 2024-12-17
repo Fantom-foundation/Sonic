@@ -38,7 +38,7 @@ func compactDbs(ctx *cli.Context) error {
 	return nil
 }
 
-func compactDB(name string, producer kvdb.DBProducer) error {
+func compactDB(name string, producer kvdb.DBProducer) (err error) {
 	db, err := producer.OpenDB(name)
 	if err != nil {
 		log.Error("Cannot open db or db does not exists", "db", name)
