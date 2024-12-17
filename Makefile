@@ -73,4 +73,4 @@ deadcode:
 	deadcode -test ./...
 
 .PHONY: lint
-lint: vet staticcheck deadcode # errorcheck
+lint: vet staticcheck deadcode errorcheck
