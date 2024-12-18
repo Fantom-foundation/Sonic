@@ -75,7 +75,8 @@ func (h *HandlerT) StopCPUProfile() error {
 	defer h.mu.Unlock()
 	pprof.StopCPUProfile()
 	if h.cpuW == nil {
-		return errors.New("CPU profiling not in progress")
+		//  Profiling was not in progress, so nothing to stop.
+		return nil
 	}
 	log.Info("Done writing CPU profile", "dump", h.cpuFile)
 	h.cpuW.Close()

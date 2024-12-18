@@ -21,6 +21,7 @@ package debug
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"runtime/trace"
 
@@ -54,10 +55,13 @@ func (h *HandlerT) StopGoTrace() error {
 	defer h.mu.Unlock()
 	trace.Stop()
 	if h.traceW == nil {
-		return errors.New("trace not in progress")
+		// trace was not running, nothing to stop
+		return nil
 	}
 	log.Info("Done writing Go trace", "dump", h.traceFile)
-	h.traceW.Close()
+	if err := h.traceW.Close(); err != nil {
+		return fmt.Errorf("failed to close trace file: %w", err)
+	}
 	h.traceW = nil
 	h.traceFile = ""
 	return nil

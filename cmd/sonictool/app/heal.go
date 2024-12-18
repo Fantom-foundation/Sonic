@@ -93,11 +93,11 @@ func heal(ctx *cli.Context) error {
 	return nil
 }
 
-func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.Block) error {
-	if err := os.RemoveAll(carmenLiveDir); err != nil {
+func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir string, recoveredBlock idx.Block) (err error) {
+	if err = os.RemoveAll(carmenLiveDir); err != nil {
 		return fmt.Errorf("failed to remove broken live state: %w", err)
 	}
-	if err := os.MkdirAll(carmenLiveDir, 0700); err != nil {
+	if err = os.MkdirAll(carmenLiveDir, 0700); err != nil {
 		return fmt.Errorf("failed to create carmen live dir; %w", err)
 	}
 
@@ -118,7 +118,7 @@ func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir st
 		}
 	}()
 
-	err := mptio.ImportLiveDb(mptio.NewLog(), carmenLiveDir, bufReader)
+	err = mptio.ImportLiveDb(mptio.NewLog(), carmenLiveDir, bufReader)
 
 	wg.Wait()
 	return errors.Join(err, exportErr)
