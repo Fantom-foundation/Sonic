@@ -112,7 +112,7 @@ func healLiveFromArchive(ctx context.Context, carmenLiveDir, carmenArchiveDir st
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer caution.CloseAndReportError(&err, writer, "failed to close writer")
+		defer caution.CloseAndReportError(&exportErr, writer, "failed to close writer")
 		exportErr = mptio.ExportBlockFromArchive(ctx, mptio.NewLog(), carmenArchiveDir, bufWriter, uint64(recoveredBlock))
 		if exportErr == nil {
 			exportErr = bufWriter.Flush()

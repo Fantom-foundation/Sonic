@@ -67,3 +67,11 @@ func CloseAndReportError(err *error, closer io.Closer, message string) {
 		return closer.Close()
 	}, message)
 }
+
+// IfErrorAddContext adds a message to an error, if the error is not nil.
+func IfErrorAddContext(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", message, err)
+}

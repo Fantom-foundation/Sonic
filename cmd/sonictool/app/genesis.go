@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -57,7 +58,7 @@ func gfileGenesisImport(ctx *cli.Context) (err error) {
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
-		return fmt.Errorf("failed to read genesis file: %w", err)
+		return errors.Join(fmt.Errorf("failed to read genesis file: %w", err), genesisReader.Close())
 	}
 	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
 	if err := genesis.IsGenesisTrusted(genesisStore, genesisHashes); err != nil {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -58,18 +59,20 @@ func signGenesis(ctx *cli.Context) error {
 	return nil
 }
 
-func getGenesisHeaderHashes(genesisFile string) (ogenesis.Header, ogenesis.Hashes, error) {
+func getGenesisHeaderHashes(genesisFile string) (header ogenesis.Header, genesisHashes ogenesis.Hashes, err error) {
 	genesisReader, err := os.Open(genesisFile)
 	// note, genesisStore closes the reader, no need to defer close it here
 	if err != nil {
-		return ogenesis.Header{}, nil, fmt.Errorf("failed to open the genesis file: %w", err)
+		err = fmt.Errorf("failed to open the genesis file: %w", err)
+		return
 	}
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
-		return ogenesis.Header{}, nil, fmt.Errorf("failed to read genesis file: %w", err)
+		err = errors.Join(fmt.Errorf("failed to read genesis file: %w", err), genesisReader.Close())
+		return
 	}
 	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
-
-	return genesisStore.Header(), genesisHashes, nil
+	header = genesisStore.Header()
+	return
 }
