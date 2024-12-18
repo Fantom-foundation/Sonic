@@ -62,8 +62,9 @@ func (h *HandlerT) StartCPUProfile(file string) error {
 		return err
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
-		caution.CloseAndReportError(&err, f, "failed to close profile file")
-		return err
+		return errors.Join(
+			fmt.Errorf("failed to start CPU: %w", err),
+			caution.IfErrorAddContext(f.Close(), "failed to close CPU profile file"))
 	}
 	h.cpuW = f
 	h.cpuFile = file

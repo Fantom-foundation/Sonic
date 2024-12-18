@@ -1,6 +1,7 @@
 package encryption
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,10 +24,11 @@ func writeTemporaryKeyFile(file string, content []byte) (string, error) {
 	}
 
 	if _, err = f.Write(content); err != nil {
-		caution.CloseAndReportError(&err, f, "failed to close key file")
-		caution.ExecuteAndReportError(&err, func() error { return os.Remove(f.Name()) },
-			"failed to remove temporary key file")
-		return "", err
+		return "", errors.Join(
+			fmt.Errorf("failed to write key file: %w", err),
+			caution.IfErrorAddContext(f.Close(), "failed to close key file"),
+			caution.IfErrorAddContext(os.Remove(f.Name()), "failed to remove temporary key file"),
+		)
 	}
 
 	return f.Name(), f.Close()

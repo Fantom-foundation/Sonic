@@ -202,10 +202,10 @@ func initApp() {
 		return nil
 	}
 
-	app.After = func(ctx *cli.Context) (err error) {
+	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
-		caution.CloseAndReportError(&err, prompt.Stdin, "failed to reset terminal input") // Resets terminal mode.
-		return
+		// Close will resets terminal mode.
+		return caution.IfErrorAddContext(prompt.Stdin.Close(), "failed to reset terminal input")
 	}
 }
 

@@ -114,7 +114,9 @@ func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file
 		return
 	}
 	_, err = writer.Flush()
-	err = fmt.Errorf("failed to flush genesis file: %w", err)
+	if err != nil {
+		err = fmt.Errorf("failed to flush genesis file: %w", err)
+	}
 	return
 }
 

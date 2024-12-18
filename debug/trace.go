@@ -21,6 +21,7 @@ package debug
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"runtime/trace"
 
@@ -40,8 +41,9 @@ func (h *HandlerT) StartGoTrace(file string) error {
 		return err
 	}
 	if err := trace.Start(f); err != nil {
-		caution.CloseAndReportError(&err, f, "failed to close trace file")
-		return err
+		return errors.Join(
+			fmt.Errorf("failed to start Go trace: %w", err),
+			caution.IfErrorAddContext(f.Close(), "failed to close trace file"))
 	}
 	h.traceW = f
 	h.traceFile = file
