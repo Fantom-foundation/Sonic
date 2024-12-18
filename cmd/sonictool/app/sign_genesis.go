@@ -1,14 +1,12 @@
 package app
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
@@ -60,20 +58,18 @@ func signGenesis(ctx *cli.Context) error {
 	return nil
 }
 
-func getGenesisHeaderHashes(genesisFile string) (genesisHead ogenesis.Header, genesisHashes ogenesis.Hashes, err error) {
+func getGenesisHeaderHashes(genesisFile string) (ogenesis.Header, ogenesis.Hashes, error) {
 	genesisReader, err := os.Open(genesisFile)
 	if err != nil {
-		err = fmt.Errorf("failed to open the genesis file: %w", err)
-		return
+		return ogenesis.Header{}, nil, fmt.Errorf("failed to open the genesis file: %w", err)
 	}
-	// note, genesisStore closes the reader, no need to defer close it here
+	defer genesisReader.Close()
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
-		err = errors.Join(fmt.Errorf("failed to read genesis file: %w", err), genesisReader.Close())
-		return
+		return ogenesis.Header{}, nil, fmt.Errorf("failed to read genesis file: %w", err)
 	}
-	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
-	genesisHead = genesisStore.Header()
-	return
+	defer genesisStore.Close()
+
+	return genesisStore.Header(), genesisHashes, nil
 }

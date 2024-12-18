@@ -27,6 +27,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/exp"
@@ -223,7 +224,8 @@ func Exit() {
 		Handler.StopCPUProfile(),
 		Handler.StopGoTrace(),
 	)
+	caution.IfErrorAddContext(err, "Failed to stop profiles")
 	if err != nil {
-		log.Error("Failed to stop profiles", "err", err)
+		log.Warn(err.Error())
 	}
 }
