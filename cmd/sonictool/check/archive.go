@@ -8,6 +8,7 @@ import (
 	"github.com/Fantom-foundation/Carmen/go/database/mpt"
 	"github.com/Fantom-foundation/Carmen/go/database/mpt/io"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
@@ -33,13 +34,13 @@ func CheckArchiveStateDb(ctx context.Context, dataDir string, cacheRatio cachesc
 	return nil
 }
 
-func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
+func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) (err error) {
 	gdb, dbs, err := createGdb(dataDir, cacheRatio, carmen.S5Archive, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create gdb and db producer: %w", err)
 	}
-	defer gdb.Close()
-	defer dbs.Close()
+	defer caution.CloseAndReportError(&err, gdb, "failed to close gossip db")
+	defer caution.CloseAndReportError(&err, dbs, "failed to close db producer")
 
 	invalidBlocks := 0
 	lastBlockIdx := gdb.GetLatestBlockIndex()
@@ -61,5 +62,5 @@ func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) error {
 		return fmt.Errorf("block root verification failed for %d blocks (from %d total blocks)", invalidBlocks, lastBlockIdx)
 	}
 	log.Info("Block root verification OK for all blocks", "blocks", lastBlockIdx)
-	return nil
+	return
 }

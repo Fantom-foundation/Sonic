@@ -6,6 +6,7 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/config/flags"
 	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/compactdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
@@ -38,13 +39,13 @@ func compactDbs(ctx *cli.Context) error {
 	return nil
 }
 
-func compactDB(name string, producer kvdb.DBProducer) error {
+func compactDB(name string, producer kvdb.DBProducer) (err error) {
 	db, err := producer.OpenDB(name)
 	if err != nil {
 		log.Error("Cannot open db or db does not exists", "db", name)
 		return err
 	}
-	defer db.Close()
+	defer caution.CloseAndReportError(&err, db, "failed to close db")
 
 	log.Info("Stats before compaction", "db", name)
 	showDbStats(db)
@@ -52,13 +53,13 @@ func compactDB(name string, producer kvdb.DBProducer) error {
 	err = compactdb.Compact(db, name, 64*opt.GiB)
 	if err != nil {
 		log.Error("Database compaction failed", "err", err)
-		return err
+		return
 	}
 
 	log.Info("Stats after compaction", "db", name)
 	showDbStats(db)
 
-	return nil
+	return
 }
 
 func showDbStats(db ethdb.Stater) {

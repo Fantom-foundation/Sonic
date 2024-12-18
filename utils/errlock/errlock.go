@@ -5,11 +5,17 @@ import (
 	"io"
 	"os"
 	"path"
+
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 )
 
 // Check if errlock is written
 func Check() error {
-	locked, reason, eLockPath, _ := read(datadir)
+	locked, reason, eLockPath, err := read(datadir)
+	if err != nil {
+		return fmt.Errorf("Node isn't allowed to start due to an error reading lock file. Please fix the issue and then delete file \"%s\". Error message:\n%w", eLockPath, err)
+	}
+
 	if locked {
 		return fmt.Errorf("Node isn't allowed to start due to a previous error. Please fix the issue and then delete file \"%s\". Error message:\n%s", eLockPath, reason)
 	}
@@ -47,22 +53,25 @@ func readAll(reader io.Reader, max int) ([]byte, error) {
 }
 
 // read errlock file
-func read(dir string) (bool, string, string, error) {
-	eLockPath := path.Join(dir, "errlock")
+func read(dir string) (locked bool, reason string, eLockPath string, err error) {
+	eLockPath = path.Join(dir, "errlock")
 
 	data, err := os.Open(eLockPath)
 	if err != nil {
-		return false, "", eLockPath, err
+		// if file doesn't exist, directory is not locked and it is not an error
+		return false, "", eLockPath, nil
 	}
-	defer data.Close()
+	defer caution.CloseAndReportError(&err, data, "Failed to close errlock file")
 
 	// read no more than N bytes
 	maxFileLen := 5000
 	eLockBytes, err := readAll(data, maxFileLen)
 	if err != nil {
-		return true, "", eLockPath, err
+		return true, "", eLockPath, fmt.Errorf("failed to read lock file %v: %w", eLockPath, err)
 	}
-	return true, string(eLockBytes), eLockPath, nil
+	reason = string(eLockBytes)
+	locked = true
+	return
 }
 
 // write errlock file

@@ -71,7 +71,9 @@ func isPortFree(host string, port int) bool {
 	if err != nil {
 		return false
 	}
-	listener.Close()
+	if err = listener.Close(); err != nil {
+		fmt.Print("failed to close listener:", err)
+	}
 	return true
 }
 

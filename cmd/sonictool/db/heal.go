@@ -2,10 +2,14 @@ package db
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -16,32 +20,33 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"strings"
-	"time"
 )
 
-func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.Config, lastCarmenBlock idx.Block) (idx.Block, error) {
+func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.Config, lastCarmenBlock idx.Block) (lastBlockId idx.Block, err error) {
 	producer := &DummyScopedProducer{integration.GetRawDbProducer(chaindataDir, integration.DBCacheConfig{
 		Cache:   cacheRatio.U64(480 * opt.MiB),
 		Fdlimit: makeDatabaseHandles(),
 	})}
-	defer producer.Close()
+	defer caution.CloseAndReportError(&err, producer, "failed to close db producer")
 
 	log.Info("Healing gossip db...")
-	epochState, lastBlock, err := healGossipDb(producer, cfg.OperaStore, lastCarmenBlock)
+	epochState, lastBlockId, err := healGossipDb(producer, cfg.OperaStore, lastCarmenBlock)
 	if err != nil {
-		return 0, err
+		err = fmt.Errorf("failed to heal gossip db: %w", err)
+		return
 	}
 
 	log.Info("Removing epoch DBs - will be recreated on next start")
 	if err = dropAllEpochDbs(producer); err != nil {
-		return 0, err
+		err = fmt.Errorf("failed to drop epoch DBs: %w", err)
+		return
 	}
 
 	log.Info("Recreating consensus database")
 	cMainDb, err := producer.OpenDB("lachesis")
 	if err != nil {
-		return 0, fmt.Errorf("failed to open 'lachesis' database: %w", err)
+		err = fmt.Errorf("failed to open 'lachesis' database: %w", err)
+		return
 	}
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
 		name := fmt.Sprintf("lachesis-%d", epoch)
@@ -56,18 +61,21 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 		Epoch:      epochState.Epoch,
 		Validators: epochState.Validators,
 	}); err != nil {
-		return 0, fmt.Errorf("failed to init consensus database: %w", err)
+		err = fmt.Errorf("failed to init consensus database: %w", err)
+		return
 	}
 	if err = cdb.Close(); err != nil {
-		return 0, fmt.Errorf("failed to close consensus database: %w", err)
+		err = fmt.Errorf("failed to close consensus database: %w", err)
+		return
 	}
 
 	log.Info("Clearing DBs dirty flags")
-	if err := clearDirtyFlags(producer); err != nil {
-		return 0, fmt.Errorf("failed to write clean FlushID: %w", err)
+	if err = clearDirtyFlags(producer); err != nil {
+		err = fmt.Errorf("failed to clear dirty flags: %w", err)
+		return
 	}
 
-	return lastBlock, nil
+	return
 }
 
 // healGossipDb reverts the gossip database into state, into which can be reverted carmen
@@ -78,7 +86,7 @@ func healGossipDb(producer kvdb.FlushableDBProducer, cfg gossip.StoreConfig, las
 	if err != nil {
 		return nil, 0, err
 	}
-	defer gdb.Close()
+	defer caution.CloseAndReportError(&err, gdb, "failed to close gossip db")
 
 	// find the last closed epoch with the state available
 	epochIdx, blockState, epochState := getLastEpochWithState(gdb, lastCarmenBlock)

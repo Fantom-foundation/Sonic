@@ -1,11 +1,13 @@
 package chain
 
 import (
-	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
-	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"io"
 	"path/filepath"
 	"time"
+
+	"github.com/Fantom-foundation/go-opera/cmd/sonictool/db"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
+	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -28,9 +30,9 @@ func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epo
 	chaindataDir := filepath.Join(gdbParams.DataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
-		return err
+		return
 	}
-	defer dbs.Close()
+	defer caution.CloseAndReportError(&err, dbs, "failed to close db producer")
 
 	// Fill the rest of the params
 	gdbParams.Dbs = dbs
@@ -38,14 +40,14 @@ func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epo
 
 	gdb, err := db.MakeGossipDb(gdbParams)
 	if err != nil {
-		return err
+		return
 	}
-	defer gdb.Close()
+	defer caution.CloseAndReportError(&err, gdb, "failed to close gossip db")
 
 	// Write header and version
 	_, err = w.Write(append(eventsFileHeader, eventsFileVersion...))
 	if err != nil {
-		return err
+		return
 	}
 
 	start, reported := time.Now(), time.Time{}

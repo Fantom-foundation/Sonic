@@ -12,6 +12,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonicd/metrics"
 	"github.com/Fantom-foundation/go-opera/config"
 	"github.com/Fantom-foundation/go-opera/config/flags"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/version"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/console/prompt"
@@ -203,9 +204,8 @@ func initApp() {
 
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
-		prompt.Stdin.Close() // Resets terminal mode.
-
-		return nil
+		// Close will resets terminal mode.
+		return caution.IfErrorAddContext(prompt.Stdin.Close(), "failed to reset terminal input")
 	}
 }
 
