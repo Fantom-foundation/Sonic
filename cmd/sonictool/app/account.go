@@ -20,13 +20,14 @@ import (
 	"fmt"
 
 	"github.com/Fantom-foundation/go-opera/config"
+	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"gopkg.in/urfave/cli.v1"
 )
 
-func accountList(ctx *cli.Context) error {
+func accountList(ctx *cli.Context) (err error) {
 	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
 		return err
@@ -35,6 +36,8 @@ func accountList(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
+	defer caution.CloseAndReportError(&err, stack, "failed to close network stack")
+
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
@@ -91,7 +94,7 @@ func accountCreate(ctx *cli.Context) error {
 
 // accountUpdate transitions an account from a previous format to the current
 // one, also providing the possibility to change the pass-phrase.
-func accountUpdate(ctx *cli.Context) error {
+func accountUpdate(ctx *cli.Context) (err error) {
 	if len(ctx.Args()) == 0 {
 		return fmt.Errorf("no accounts specified to update")
 	}
@@ -104,6 +107,8 @@ func accountUpdate(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
+	defer caution.CloseAndReportError(&err, stack, "failed to close network stack")
+
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args() {
@@ -122,7 +127,7 @@ func accountUpdate(ctx *cli.Context) error {
 	return nil
 }
 
-func accountImport(ctx *cli.Context) error {
+func accountImport(ctx *cli.Context) (err error) {
 	keyfile := ctx.Args().First()
 	if len(keyfile) == 0 {
 		return fmt.Errorf("keyfile must be given as argument")
@@ -140,6 +145,8 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create the protocol stack: %w", err)
 	}
+	defer caution.CloseAndReportError(&err, stack, "failed to close network stack")
+
 	passwordList, err := config.MakePasswordList(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get password list: %w", err)
