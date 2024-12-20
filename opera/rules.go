@@ -2,6 +2,7 @@ package opera
 
 import (
 	"encoding/json"
+	"math"
 	"math/big"
 	"time"
 
@@ -26,8 +27,9 @@ const (
 	llrBit                 = 1 << 2
 	sonicBit               = 1 << 3
 
-	defaultMaxBlockGas          = 1_000_000_000
-	defaultTargetGasRate        = 15_000_000 // 15 MGas/s
+	MinimumMaxBlockGas          = 1_000_000_000 // < must be large enough to allow internal transactions to seal blocks
+	MaximumMaxBlockGas          = math.MaxInt64 // < should fit into 64-bit signed integers to avoid parsing errors in third-party libraries
+	defaultTargetGasRate        = 15_000_000    // 15 MGas/s
 	defaultEventEmitterInterval = 600 * time.Millisecond
 )
 
@@ -297,7 +299,7 @@ func MainNetRules() Rules {
 		Epochs:    DefaultEpochsRules(),
 		Economy:   DefaultEconomyRules(),
 		Blocks: BlocksRules{
-			MaxBlockGas:             defaultMaxBlockGas,
+			MaxBlockGas:             MinimumMaxBlockGas,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(1 * time.Minute),
 		},
 	}
@@ -312,7 +314,7 @@ func FakeNetRules() Rules {
 		Epochs:    FakeNetEpochsRules(),
 		Economy:   FakeEconomyRules(),
 		Blocks: BlocksRules{
-			MaxBlockGas:             defaultMaxBlockGas,
+			MaxBlockGas:             MinimumMaxBlockGas,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(3 * time.Second),
 		},
 		Upgrades: Upgrades{
@@ -414,7 +416,12 @@ func DefaultGasPowerRules() GasPowerRules {
 func (r Rules) Copy() Rules {
 	cp := r
 	cp.Economy.MinGasPrice = new(big.Int).Set(r.Economy.MinGasPrice)
+	cp.Economy.MinBaseFee = new(big.Int).Set(r.Economy.MinBaseFee)
 	return cp
+}
+
+func (r Rules) Validate() error {
+	return validate(r)
 }
 
 func (r Rules) String() string {
