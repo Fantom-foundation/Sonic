@@ -18,14 +18,15 @@ import (
 )
 
 const (
-	MainNetworkID   uint64 = 0xfa
-	TestNetworkID   uint64 = 0xfa2
-	FakeNetworkID   uint64 = 0xfa3
-	DefaultEventGas uint64 = 28000
-	berlinBit              = 1 << 0
-	londonBit              = 1 << 1
-	llrBit                 = 1 << 2
-	sonicBit               = 1 << 3
+	MainNetworkID       uint64 = 0xfa
+	TestNetworkID       uint64 = 0xfa2
+	FakeNetworkID       uint64 = 0xfa3
+	DefaultEventGas     uint64 = 28000
+	berlinBit                  = 1 << 0
+	londonBit                  = 1 << 1
+	llrBit                     = 1 << 2
+	sonicBit                   = 1 << 3
+	checkRuleChangesBit        = 1 << 4
 
 	MinimumMaxBlockGas          = 1_000_000_000 // < must be large enough to allow internal transactions to seal blocks
 	MaximumMaxBlockGas          = math.MaxInt64 // < should fit into 64-bit signed integers to avoid parsing errors in third-party libraries
@@ -214,6 +215,8 @@ type Upgrades struct {
 	London bool
 	Llr    bool
 	Sonic  bool
+
+	CheckRuleChanges bool // < enables safety checks for rule updates
 }
 
 type UpgradeHeight struct {
@@ -302,12 +305,7 @@ func MainNetRules() Rules {
 			MaxBlockGas:             MinimumMaxBlockGas,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(1 * time.Minute),
 		},
-		Upgrades: Upgrades{
-			Berlin: true,
-			London: true,
-			Llr:    false,
-			Sonic:  true,
-		},
+		Upgrades: DefaultUpgrades(),
 	}
 }
 
@@ -323,12 +321,7 @@ func FakeNetRules() Rules {
 			MaxBlockGas:             MinimumMaxBlockGas,
 			MaxEmptyBlockSkipPeriod: inter.Timestamp(3 * time.Second),
 		},
-		Upgrades: Upgrades{
-			Berlin: true,
-			London: true,
-			Llr:    false,
-			Sonic:  true,
-		},
+		Upgrades: DefaultUpgrades(),
 	}
 }
 
@@ -343,6 +336,16 @@ func DefaultEconomyRules() EconomyRules {
 		LongGasPower:     DefaultGasPowerRules(),
 	}
 	return rules
+}
+
+func DefaultUpgrades() Upgrades {
+	return Upgrades{
+		Berlin:           true,
+		London:           true,
+		Llr:              false,
+		Sonic:            true,
+		CheckRuleChanges: true,
+	}
 }
 
 // FakeEconomyRules returns fakenet economy
