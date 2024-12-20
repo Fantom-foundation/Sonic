@@ -478,7 +478,7 @@ func (env *testEnv) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	return new(big.Int), nil
 }
 
-// SuggestGasTipCap retrieves the currently suggested gas price to allow a timely
+// SuggestGasPrice retrieves the currently suggested gas price to allow a timely
 // execution of a transaction.
 func (env *testEnv) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	return env.store.GetRules().Economy.MinGasPrice, nil
