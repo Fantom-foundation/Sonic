@@ -171,20 +171,20 @@ func TestSonicTool_genesis_ExecutesWithoutErrors(t *testing.T) {
 }
 
 func TestSonicTool_heal_ExecutesWithoutErrors(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := StartIntegrationTestNet(t.TempDir(),
+		"--statedb.checkpointinterval", "1")
 	require.NoError(t, err)
-	for range 2 {
+	for range 3 {
 		createAccount(t, net)
 	}
 	net.Stop()
 
-	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
-		"check", "archive")
+	_, err = executeSonicTool(t, "--datadir", net.directory+"/state", "heal")
 	require.NoError(t, err)
 }
 
 func TestSonicTool_config_ExecutesWithoutErrors(t *testing.T) {
+
 	net, err := StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
 	for range 2 {

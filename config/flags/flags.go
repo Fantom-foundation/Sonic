@@ -355,14 +355,14 @@ var (
 		Name: "statedb.livecache",
 		Usage: fmt.Sprintf("Size of live db cache in bytes. Leaving this blank (which is generally recommended),"+
 			"or setting this to <1 will automatically allocate cache size depending on how much cache you use with %s."+
-			"Setting this value to <=2000 will result in pre-confugired cache capacity of 2KB", CacheFlag.Name),
+			"Setting this value to <=2000 will result in pre-configured cache capacity of 2KB", CacheFlag.Name),
 		Value: 0,
 	}
 	ArchiveCacheFlag = cli.IntFlag{
 		Name: "statedb.archivecache",
 		Usage: fmt.Sprintf("Size of archive cache in bytes. Leaving this blank (which is generally recommended),"+
 			"or setting this to <1 will automatically allocate cache size depending on how much cache you use with %s."+
-			"Setting this value to <=2000 will result in pre-confugired cache capacity of 2KB", CacheFlag.Name),
+			"Setting this value to <=2000 will result in pre-configured cache capacity of 2KB", CacheFlag.Name),
 		Value: 0,
 	}
 	StateDbCacheCapacityFlag = cli.IntFlag{
@@ -370,6 +370,13 @@ var (
 		Usage: "The number of cached data elements by each StateDb instance. Since this is an experimental feature " +
 			"used mainly by tests it is generally recommended leaving this blank. In tests no value lower than 1024 " +
 			"is recommended. Setting this to <1 will automatically set the cache capacity to a DB defined default value.",
+		Value: 0,
+	}
+	StateDbCheckPointInterval = cli.IntFlag{
+		Name:   "statedb.checkpointinterval",
+		Hidden: true, // Intended for testing
+		Usage: "The number of blocks after which a db healing checkpoint will be created. " +
+			"Setting this to <1 will automatically set the value to a DB defined default.",
 		Value: 0,
 	}
 )
