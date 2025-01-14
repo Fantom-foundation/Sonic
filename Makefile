@@ -6,20 +6,28 @@ GOPROXY ?= "https://proxy.golang.org,direct"
 sonicd:
 	GIT_COMMIT=`git rev-list -1 HEAD 2>/dev/null || echo ""` && \
 	GIT_DATE=`git log -1 --date=short --pretty=format:%ct 2>/dev/null || echo ""` && \
+	GIT_TAG=`echo $(call get_git_tag)` && \
 	GOPROXY=$(GOPROXY) \
 	go build \
-	    -ldflags "-s -w -X github.com/Fantom-foundation/go-opera/config.GitCommit=$${GIT_COMMIT} -X github.com/Fantom-foundation/go-opera/config.GitDate=$${GIT_DATE}" \
-	    -o build/sonicd \
-	    ./cmd/sonicd
+			-ldflags "-s -w -X github.com/Fantom-foundation/go-opera/config.GitCommit=$${GIT_COMMIT} \
+							-X github.com/Fantom-foundation/go-opera/config.GitDate=$${GIT_DATE} \
+							-X github.com/Fantom-foundation/go-opera/version.GitTag=$${GIT_TAG}" \
+            -o build/sonicd \
+            ./cmd/sonicd && \
+			./build/sonicd version
 
 sonictool:
 	GIT_COMMIT=`git rev-list -1 HEAD 2>/dev/null || echo ""` && \
 	GIT_DATE=`git log -1 --date=short --pretty=format:%ct 2>/dev/null || echo ""` && \
+	GIT_TAG=`echo $(call get_git_tag)` && \
 	GOPROXY=$(GOPROXY) \
 	go build \
-	    -ldflags "-s -w -X github.com/Fantom-foundation/go-opera/config.GitCommit=$${GIT_COMMIT} -X github.com/Fantom-foundation/go-opera/config.GitDate=$${GIT_DATE}" \
-	    -o build/sonictool \
-	    ./cmd/sonictool
+			-ldflags "-s -w -X github.com/Fantom-foundation/go-opera/config.GitCommit=$${GIT_COMMIT} \
+							-X github.com/Fantom-foundation/go-opera/config.GitDate=$${GIT_DATE} \
+							-X github.com/Fantom-foundation/go-opera/version.GitTag=$${GIT_TAG}" \
+            -o build/sonictool \
+            ./cmd/sonictool && \
+			./build/sonictool --version
 
 TAG ?= "latest"
 .PHONY: sonic-image
@@ -74,3 +82,21 @@ deadcode:
 
 .PHONY: lint
 lint: vet staticcheck deadcode # errorcheck
+
+# get_git_tag get the last git tag and append -dev if there are commits since
+# the last tag and -dirty if there are uncommitted changes
+define get_git_tag
+    $(shell \
+        GIT_TAG=$$(git describe --tags --abbrev=0 2>/dev/null); \
+        COMMITS_SINCE=$$(git log $${GIT_TAG}..HEAD --oneline 2>/dev/null | wc -l); \
+        DIRTY_STATE=$$(git status --porcelain 2>/dev/null); \
+        FINAL_TAG=$${GIT_TAG}; \
+        if [ "$${COMMITS_SINCE}" -ne 0 ]; then \
+            FINAL_TAG=$${FINAL_TAG}-dev; \
+        fi; \
+        if [ -n "$${DIRTY_STATE}" ]; then \
+            FINAL_TAG=$${FINAL_TAG}-dirty; \
+        fi; \
+        echo "$${FINAL_TAG}"
+    )
+endef

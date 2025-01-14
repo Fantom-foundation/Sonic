@@ -2,46 +2,84 @@ package version
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 )
 
-const (
-	VersionMajor = 2     // Major version component of the current release
-	VersionMinor = 0     // Minor version component of the current release
-	VersionPatch = 2     // Patch version component of the current release
-	VersionMeta  = "dev" // Version metadata to append to the version string
+var (
+	GitTag       = "" // Git tag of this release
+	versionMajor = 0  // Major version component of the current release
+	versionMinor = 0  // Minor version component of the current release
+	versionPatch = 0  // Patch version component of the current release
+	versionMeta  = "" // Meta information of the current release
 )
 
 // Version holds the textual version string.
 var Version = func() string {
-	return fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
+	// in case of no tag or small/irregular tag, return it as is
+	if len(GitTag) < 2 {
+		return GitTag
+	}
+	versionMajor, versionMinor, versionPatch, versionMeta = parseVersion(GitTag)
+	return GitTag
 }()
 
-// VersionWithMeta holds the textual version string including the metadata.
-var VersionWithMeta = func() string {
-	v := Version
-	if VersionMeta != "" {
-		v += "-" + VersionMeta
+// parseVersion parses the GitTag into major, minor, patch, and meta components.
+func parseVersion(gitTag string) (vMajor, vMinor, vPatch int, vMeta string) {
+	parts := strings.SplitN(gitTag, "-", 2)
+	versionParts := strings.Split(parts[0], ".")
+
+	// Parse major, minor, and patch
+	vMajor = parseVersionComponent(versionParts, 0, true)
+	vMinor = parseVersionComponent(versionParts, 1, false)
+	if len(versionParts) > 2 {
+		dashSplits := strings.Split(versionParts[2], "-")
+		vPatch = parseVersionComponent(dashSplits, 0, false)
 	}
-	return v
-}()
+	// Parse meta if available
+	if (vMajor != 0 || vMinor != 0 || vPatch != 0) && len(parts) > 1 {
+		vMeta = parts[1]
+	}
+	return
+}
+
+// parseVersionComponent parses and returns a specific version component.
+// If `stripPrefix` is true, it strips the leading "v" from the major version.
+func parseVersionComponent(parts []string, index int, stripPrefix bool) int {
+	if len(parts) <= index {
+		return 0
+	}
+
+	component := parts[index]
+	if stripPrefix {
+		component = strings.TrimPrefix(component, "v")
+	}
+
+	value, err := strconv.Atoi(component)
+	if err != nil {
+		return 0
+	}
+
+	return value
+}
 
 func VersionWithCommit(gitCommit, gitDate string) string {
-	vsn := VersionWithMeta
+	vsn := GitTag
 	if len(gitCommit) >= 8 {
 		vsn += "-" + gitCommit[:8]
 	}
-	if (VersionMeta != "stable") && (gitDate != "") {
+	if (strings.Split(GitTag, "-")[0] != "") && (gitDate != "") {
 		vsn += "-" + gitDate
 	}
 	return vsn
 }
 
 func AsString() string {
-	return ToString(uint16(VersionMajor), uint16(VersionMinor), uint16(VersionPatch))
+	return ToString(uint16(versionMajor), uint16(versionMinor), uint16(versionPatch))
 }
 
 func AsU64() uint64 {
-	return ToU64(uint16(VersionMajor), uint16(VersionMinor), uint16(VersionPatch))
+	return ToU64(uint16(versionMajor), uint16(versionMinor), uint16(versionPatch))
 }
 
 func ToU64(vMajor, vMinor, vPatch uint16) uint64 {
