@@ -16,7 +16,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
-func setup(t *testing.T) (*testEnv, *inter.MutableEventPayload, idx.Epoch) {
+func setup(t *testing.T) (*testEnv, *inter.MutableEventPayload) {
 	t.Helper()
 
 	const (
@@ -32,7 +32,7 @@ func setup(t *testing.T) (*testEnv, *inter.MutableEventPayload, idx.Epoch) {
 	require.NotNil(t, e)
 
 	me := mutableEventPayloadFromImmutable(e)
-	return env, me, startEpoch
+	return env, me
 }
 
 func TestBasicCheckValidate(t *testing.T) {
@@ -238,7 +238,7 @@ func TestBasicCheckValidate(t *testing.T) {
 
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
-			env, payload, _ := setup(t)
+			env, payload := setup(t)
 			t.Cleanup(func() {
 				err := env.Close()
 				require.NoError(t, err)
