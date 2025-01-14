@@ -82,7 +82,7 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 		return nil, err
 	}
 	if blk == nil {
-		return nil, nil
+		return nil, fmt.Errorf("block %v not found", number)
 	}
 	return blk.Header(), err
 }
@@ -91,7 +91,7 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, h common.Hash) (*evmcore.EvmHeader, error) {
 	index := b.svc.store.GetBlockIndex(hash.Event(h))
 	if index == nil {
-		return nil, nil
+		return nil, fmt.Errorf("block with hash %s not found", h.String())
 	}
 	return b.HeaderByNumber(ctx, rpc.BlockNumber(*index))
 }
