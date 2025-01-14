@@ -58,12 +58,12 @@ import (
 // integration test networks can also be used for automated integration and
 // regression tests for client code.
 type IntegrationTestNet struct {
-	directory      string
-	done           <-chan struct{}
-	validator      Account
-	httpPort       int
-	wsPort         int
-	extraArguments []string
+	directory            string
+	done                 <-chan struct{}
+	validator            Account
+	httpPort             int
+	wsPort               int
+	extraClientArguments []string
 }
 
 func isPortFree(host string, port int) bool {
@@ -96,8 +96,8 @@ func getFreePort() (int, error) {
 // The node serving the network is started in the same process as the caller. This
 // is intended to facilitate debugging of client code in the context of a running
 // node.
-func StartIntegrationTestNet(directory string, extraArguments ...string) (*IntegrationTestNet, error) {
-	return startIntegrationTestNet(directory, []string{"genesis", "fake", "1"}, extraArguments)
+func StartIntegrationTestNet(directory string, extraClientArguments ...string) (*IntegrationTestNet, error) {
+	return startIntegrationTestNet(directory, []string{"genesis", "fake", "1"}, extraClientArguments)
 }
 
 func StartIntegrationTestNetFromJsonGenesis(directory string, extraArguments ...string) (*IntegrationTestNet, error) {
@@ -190,12 +190,12 @@ func StartIntegrationTestNetFromJsonGenesis(directory string, extraArguments ...
 	)
 }
 
-func startIntegrationTestNet(directory string, sonicToolArguments []string, extraArguments []string) (*IntegrationTestNet, error) {
+func startIntegrationTestNet(directory string, sonicToolArguments []string, extraClientArguments []string) (*IntegrationTestNet, error) {
 	// start the fakenet sonic node
 	result := &IntegrationTestNet{
-		directory:      directory,
-		validator:      Account{evmcore.FakeKey(1)},
-		extraArguments: extraArguments,
+		directory:            directory,
+		validator:            Account{evmcore.FakeKey(1)},
+		extraClientArguments: extraClientArguments,
 	}
 
 	// initialize the data directory for the single node on the test network
@@ -282,7 +282,7 @@ func (n *IntegrationTestNet) start() error {
 		},
 
 			// append extra arguments
-			n.extraArguments...,
+			n.extraClientArguments...,
 		)
 
 		err := sonicd.Run()
@@ -488,6 +488,9 @@ func (n *IntegrationTestNet) GetClient() (*ethclient.Client, error) {
 // using the WebSocket protocol. The resulting client must be closed after use.
 func (n *IntegrationTestNet) GetWebSocketClient() (*ethclient.Client, error) {
 	return ethclient.Dial(fmt.Sprintf("ws://localhost:%d", n.wsPort))
+}
+func (n *IntegrationTestNet) GetDirectory() string {
+	return n.directory
 }
 
 // RestartWithExportImport stops the network, exports the genesis file, cleans the

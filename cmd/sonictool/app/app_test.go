@@ -1,4 +1,4 @@
-package tests
+package app_test
 
 import (
 	"crypto/ecdsa"
@@ -14,6 +14,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+	"github.com/Fantom-foundation/go-opera/tests"
 	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/utils/prompt"
 	"github.com/ethereum/go-ethereum/common"
@@ -26,35 +27,31 @@ import (
 
 func TestSonicTool_check_ExecutesWithoutErrors(t *testing.T) {
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
-	for range 2 {
-		createAccount(t, net)
-	}
+	generateNBlocks(t, net, 2)
 	net.Stop()
 
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"check", "live")
 	require.NoError(t, err)
 
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"check", "archive")
 	require.NoError(t, err)
 }
 
 func TestSonicTool_compact_ExecutesWithoutErrors(t *testing.T) {
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
-	for range 2 {
-		createAccount(t, net)
-	}
+	generateNBlocks(t, net, 2)
 	net.Stop()
 
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"compact")
 	require.NoError(t, err)
 }
@@ -129,11 +126,9 @@ func TestSonicTool_genesis_ExecutesWithoutErrors(t *testing.T) {
 	dataDirB := fmt.Sprintf("%s/B", tmp)
 
 	// Create a history by running some transactions
-	net, err := StartIntegrationTestNet(dataDirA)
+	net, err := tests.StartIntegrationTestNet(dataDirA)
 	require.NoError(t, err)
-	for range 2 {
-		createAccount(t, net)
-	}
+	generateNBlocks(t, net, 2)
 	net.Stop()
 
 	passwordFileName := fmt.Sprintf("%s/password_file", t.TempDir())
@@ -141,7 +136,7 @@ func TestSonicTool_genesis_ExecutesWithoutErrors(t *testing.T) {
 
 	exportFile := fmt.Sprintf("%s/genesis", tmp)
 	executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"genesis", "export", exportFile)
 	require.FileExists(t, exportFile)
 
@@ -171,35 +166,31 @@ func TestSonicTool_genesis_ExecutesWithoutErrors(t *testing.T) {
 }
 
 func TestSonicTool_heal_ExecutesWithoutErrors(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir(),
+	net, err := tests.StartIntegrationTestNet(t.TempDir(),
 		"--statedb.checkpointinterval", "1")
 	require.NoError(t, err)
-	for range 3 {
-		createAccount(t, net)
-	}
+	generateNBlocks(t, net, 3)
 	net.Stop()
 
-	_, err = executeSonicTool(t, "--datadir", net.directory+"/state", "heal")
+	_, err = executeSonicTool(t, "--datadir", net.GetDirectory()+"/state", "heal")
 	require.NoError(t, err)
 }
 
 func TestSonicTool_config_ExecutesWithoutErrors(t *testing.T) {
 
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
-	for range 2 {
-		createAccount(t, net)
-	}
+	generateNBlocks(t, net, 2)
 	net.Stop()
 
 	configFileName := t.TempDir() + "config.toml"
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"dumpconfig", configFileName)
 	require.NoError(t, err)
 
 	output, err := executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"dumpconfig")
 	require.NoError(t, err)
 
@@ -214,29 +205,27 @@ func TestSonicTool_config_ExecutesWithoutErrors(t *testing.T) {
 		"config file content is not in the output")
 
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"checkconfig", configFileName)
 	require.NoError(t, err)
 }
 
 func TestSonicTool_events_ExecutesWithoutErrors(t *testing.T) {
-	net, err := StartIntegrationTestNet(t.TempDir())
+	net, err := tests.StartIntegrationTestNet(t.TempDir())
 	require.NoError(t, err)
-	for range 2 {
-		createAccount(t, net)
-	}
+	generateNBlocks(t, net, 2)
 	net.Stop()
 
 	eventsExportFile := t.TempDir() + "/events.json"
 
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"events", "export", eventsExportFile)
 	require.NoError(t, err)
 	require.FileExists(t, eventsExportFile)
 
 	_, err = executeSonicTool(t,
-		"--datadir", net.directory+"/state",
+		"--datadir", net.GetDirectory()+"/state",
 		"events", "import", eventsExportFile)
 	require.NoError(t, err)
 }
@@ -353,7 +342,17 @@ func generatePrivateKeyFile(file string) (*ecdsa.PrivateKey, error) {
 	return key, err
 }
 
-func createAccount(t *testing.T, net *IntegrationTestNet) {
+// generateNBlocks generates n blocks in the blockchain.
+// The transactions executed are not important, only the fact that they are
+// executed synchronously and n blocks exist after the function returns.
+func generateNBlocks(t *testing.T, net *tests.IntegrationTestNet, n int) {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		createAccount(t, net)
+	}
+}
+
+func createAccount(t *testing.T, net *tests.IntegrationTestNet) {
 	t.Helper()
 
 	var addr common.Address
