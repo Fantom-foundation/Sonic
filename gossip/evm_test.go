@@ -23,7 +23,10 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 	require := require.New(b)
 
 	env := newTestEnv(2, 3, b)
-	defer env.Close()
+	b.Cleanup(func() {
+		err := env.Close()
+		require.NoError(err)
+	})
 
 	for bi := 0; bi < b.N; bi++ {
 		count := idx.ValidatorID(10)
@@ -50,7 +53,8 @@ func BenchmarkBallotTxsProcessing(b *testing.B) {
 		txs := make([]*types.Transaction, 0, count-1)
 		flushTxs := func() {
 			if len(txs) != 0 {
-				env.ApplyTxs(nextEpoch, txs...)
+				_, err := env.ApplyTxs(nextEpoch, txs...)
+				require.NoError(err, "failed to apply txs")
 			}
 			txs = txs[:0]
 		}

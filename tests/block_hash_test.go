@@ -36,9 +36,11 @@ func TestBlockHash_CorrectBlockHashesAreAccessibleInContracts(t *testing.T) {
 	}
 
 	t.Run("fresh network", runTest)
-	net.Restart()
+	err = net.Restart()
+	require.NoError(err, "failed to restart network; %v", err)
 	t.Run("restarted network", runTest)
-	net.RestartWithExportImport()
+	err = net.RestartWithExportImport()
+	require.NoError(err, "failed to restart network with export/import; %v", err)
 	t.Run("reinitialized network", runTest)
 }
 
