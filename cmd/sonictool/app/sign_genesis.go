@@ -2,13 +2,15 @@ package app
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+	"github.com/Fantom-foundation/go-opera/utils/prompt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
-	"os"
 )
 
 func signGenesis(ctx *cli.Context) error {
@@ -36,9 +38,7 @@ func signGenesis(ctx *cli.Context) error {
 	log.Info("Hash to sign", "hash", hexutil.Encode(hash))
 	log.Info("Raw data", "rawdata", hexutil.Encode([]byte(rawData)))
 
-	fmt.Printf("Signature (hex): ")
-	var signatureString string
-	_, err = fmt.Scanln(&signatureString)
+	signatureString, err := prompt.UserPrompt.PromptInput("Signature (hex): ")
 	if err != nil {
 		return fmt.Errorf("failed to read signature: %w", err)
 	}
