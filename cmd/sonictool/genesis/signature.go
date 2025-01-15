@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -85,39 +86,32 @@ func CheckGenesisSignature(hash []byte, signature []byte) error {
 func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file string) (err error) {
 	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm) // avoid using O_APPEND for correct seek positions
 	if err != nil {
-		err = fmt.Errorf("failed to open genesis file: %w", err)
-		return err
+		return fmt.Errorf("failed to open genesis file: %w", err)
 	}
 	_, err = out.Seek(0, io.SeekEnd)
 	if err != nil {
-		err = fmt.Errorf("failed to seek genesis file: %w", err)
-		return err
+		return fmt.Errorf("failed to seek genesis file: %w", err)
 	}
 	defer caution.CloseAndReportError(&err, out, "failed to close genesis file")
 
 	tmpDir, err := os.MkdirTemp("", "signing-genesis-tmp")
 	if err != nil {
-		err = fmt.Errorf("failed to create temporary directory: %w", err)
-		return err
+		return fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 	defer caution.ExecuteAndReportError(&err, func() error { return os.RemoveAll(tmpDir) },
 		"failed to remove temporary directory")
 
 	writer := newUnitWriter(out)
 	if err = writer.Start(header, "signature", tmpDir); err != nil {
-		err = fmt.Errorf("failed to write start to genesis file: %w", err)
-		return err
+		return fmt.Errorf("failed to write start to genesis file: %w", err)
 	}
 	_, err = writer.Write(signature)
 	if err != nil {
-		err = fmt.Errorf("failed to write signature to genesis file: %w", err)
-		return err
+		return fmt.Errorf("failed to write signature to genesis file: %w", err)
 	}
 	_, err = writer.Flush()
-	if err != nil {
-		err = fmt.Errorf("failed to flush genesis file: %w", err)
-	}
-	return nil
+	utils.AnnotateIfError(err, "failed to flush genesis file:")
+	return err
 }
 
 // TypedDataAndHash is a helper function that calculates a hash for typed data conforming to EIP-712.
