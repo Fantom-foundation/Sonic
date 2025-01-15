@@ -57,20 +57,12 @@ func TestVersion_parseVersion(t *testing.T) {
 		"myTestTag":                    {},
 	}
 
-	originalGitTag := GitTag
 	for tag, want := range tests {
-		versionMajor = 0
-		versionMinor = 0
-		versionPatch = 0
-		versionMeta = ""
+		testVMajor, testVMinor, testVPatch, testVMeta := parseVersion(tag)
 
-		versionMajor, versionMinor, versionPatch, versionMeta = parseVersion(tag)
-
-		require.Equal(want.major, versionMajor, "major version mismatch")
-		require.Equal(want.minor, versionMinor, "minor version mismatch")
-		require.Equal(want.patch, versionPatch, "patch version mismatch")
-		require.Equal(want.meta, versionMeta, "meta version mismatch")
+		require.Equal(want.major, testVMajor, "major version mismatch")
+		require.Equal(want.minor, testVMinor, "minor version mismatch")
+		require.Equal(want.patch, testVPatch, "patch version mismatch")
+		require.Equal(want.meta, testVMeta, "meta version mismatch")
 	}
-
-	GitTag = originalGitTag
 }

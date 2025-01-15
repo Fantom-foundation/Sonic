@@ -11,7 +11,7 @@ sonicd:
 	go build \
 			-ldflags "-s -w -X github.com/Fantom-foundation/go-opera/config.GitCommit=$${GIT_COMMIT} \
 							-X github.com/Fantom-foundation/go-opera/config.GitDate=$${GIT_DATE} \
-							-X github.com/Fantom-foundation/go-opera/version.GitTag=$${GIT_TAG}" \
+							-X github.com/Fantom-foundation/go-opera/version.Version=$${GIT_TAG}" \
             -o build/sonicd \
             ./cmd/sonicd && \
 			./build/sonicd version
@@ -24,7 +24,7 @@ sonictool:
 	go build \
 			-ldflags "-s -w -X github.com/Fantom-foundation/go-opera/config.GitCommit=$${GIT_COMMIT} \
 							-X github.com/Fantom-foundation/go-opera/config.GitDate=$${GIT_DATE} \
-							-X github.com/Fantom-foundation/go-opera/version.GitTag=$${GIT_TAG}" \
+							-X github.com/Fantom-foundation/go-opera/version.Version=$${GIT_TAG}" \
             -o build/sonictool \
             ./cmd/sonictool && \
 			./build/sonictool --version

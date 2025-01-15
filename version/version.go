@@ -6,23 +6,8 @@ import (
 	"strings"
 )
 
-var (
-	GitTag       = "" // Git tag of this release
-	versionMajor = 0  // Major version component of the current release
-	versionMinor = 0  // Minor version component of the current release
-	versionPatch = 0  // Patch version component of the current release
-	versionMeta  = "" // Meta information of the current release
-)
-
 // Version holds the textual version string.
-var Version = func() string {
-	// in case of no tag or small/irregular tag, return it as is
-	if len(GitTag) < 2 {
-		return GitTag
-	}
-	versionMajor, versionMinor, versionPatch, versionMeta = parseVersion(GitTag)
-	return GitTag
-}()
+var Version = ""
 
 // parseVersion parses the GitTag into major, minor, patch, and meta components.
 func parseVersion(gitTag string) (vMajor, vMinor, vPatch int, vMeta string) {
@@ -64,21 +49,25 @@ func parseVersionComponent(parts []string, index int, stripPrefix bool) int {
 }
 
 func VersionWithCommit(gitCommit, gitDate string) string {
-	vsn := GitTag
+	vsn := Version
 	if len(gitCommit) >= 8 {
 		vsn += "-" + gitCommit[:8]
 	}
-	if (strings.Split(GitTag, "-")[0] != "") && (gitDate != "") {
+	if (strings.Split(Version, "-")[0] != "") && (gitDate != "") {
 		vsn += "-" + gitDate
 	}
 	return vsn
 }
 
 func AsString() string {
+	// meta is not used for now, so we ignore it.
+	versionMajor, versionMinor, versionPatch, _ := parseVersion(Version)
 	return ToString(uint16(versionMajor), uint16(versionMinor), uint16(versionPatch))
 }
 
 func AsU64() uint64 {
+	// meta is not used for now, so we ignore it.
+	versionMajor, versionMinor, versionPatch, _ := parseVersion(Version)
 	return ToU64(uint16(versionMajor), uint16(versionMinor), uint16(versionPatch))
 }
 
