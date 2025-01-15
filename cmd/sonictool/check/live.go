@@ -51,5 +51,5 @@ func checkLiveBlockRoot(dataDir string, cacheRatio cachescale.Func) (err error) 
 		return fmt.Errorf("checking live state failed: %w", err)
 	}
 	log.Info("Live block root verification OK", "block", lastBlockIdx)
-	return
+	return nil
 }

@@ -25,7 +25,7 @@ import (
 	"os"
 	"runtime/trace"
 
-	"github.com/Fantom-foundation/go-opera/utils/caution"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -43,7 +43,7 @@ func (h *HandlerT) StartGoTrace(file string) error {
 	if err := trace.Start(f); err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to start Go trace: %w", err),
-			caution.IfErrorAddContext(f.Close(), "failed to close trace file"))
+			utils.AnnotateIfError(f.Close(), "failed to close trace file"))
 	}
 	h.traceW = f
 	h.traceFile = file

@@ -154,7 +154,7 @@ func importEventsFile(srv *gossip.Service, filename string) (err error) {
 		if err == io.EOF {
 			err = processBatch()
 			if err != nil {
-				return
+				return err
 			}
 			break
 		}
@@ -164,7 +164,7 @@ func importEventsFile(srv *gossip.Service, filename string) (err error) {
 		if e.Epoch() != epoch || batchSize >= maxBatchSize {
 			err = processBatch()
 			if err != nil {
-				return
+				return err
 			}
 		}
 		epoch = e.Epoch()

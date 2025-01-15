@@ -86,19 +86,19 @@ func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file
 	out, err := os.OpenFile(file, os.O_RDWR, os.ModePerm) // avoid using O_APPEND for correct seek positions
 	if err != nil {
 		err = fmt.Errorf("failed to open genesis file: %w", err)
-		return
+		return err
 	}
 	_, err = out.Seek(0, io.SeekEnd)
 	if err != nil {
 		err = fmt.Errorf("failed to seek genesis file: %w", err)
-		return
+		return err
 	}
 	defer caution.CloseAndReportError(&err, out, "failed to close genesis file")
 
 	tmpDir, err := os.MkdirTemp("", "signing-genesis-tmp")
 	if err != nil {
 		err = fmt.Errorf("failed to create temporary directory: %w", err)
-		return
+		return err
 	}
 	defer caution.ExecuteAndReportError(&err, func() error { return os.RemoveAll(tmpDir) },
 		"failed to remove temporary directory")
@@ -106,18 +106,18 @@ func WriteSignatureIntoGenesisFile(header genesis.Header, signature []byte, file
 	writer := newUnitWriter(out)
 	if err = writer.Start(header, "signature", tmpDir); err != nil {
 		err = fmt.Errorf("failed to write start to genesis file: %w", err)
-		return
+		return err
 	}
 	_, err = writer.Write(signature)
 	if err != nil {
 		err = fmt.Errorf("failed to write signature to genesis file: %w", err)
-		return
+		return err
 	}
 	_, err = writer.Flush()
 	if err != nil {
 		err = fmt.Errorf("failed to flush genesis file: %w", err)
 	}
-	return
+	return nil
 }
 
 // TypedDataAndHash is a helper function that calculates a hash for typed data conforming to EIP-712.

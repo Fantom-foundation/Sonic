@@ -33,7 +33,7 @@ func exportEvents(ctx *cli.Context) (err error) {
 	// Open the file handle and potentially wrap with a gzip stream
 	fileHandler, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		return
+		return err
 	}
 	defer caution.CloseAndReportError(&err, fileHandler, fmt.Sprintf("failed to close file %v", filename))
 
@@ -74,7 +74,7 @@ func exportEvents(ctx *cli.Context) (err error) {
 		return fmt.Errorf("export error: %w", err)
 	}
 
-	return
+	return nil
 }
 
 func importEvents(ctx *cli.Context) error {

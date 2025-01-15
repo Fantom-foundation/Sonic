@@ -73,7 +73,7 @@ func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expected
 	}
 
 	if params.Archive == carmen.NoArchive {
-		return // skip archive checks when archive is not enabled
+		return nil // skip archive checks when archive is not enabled
 	}
 	archiveState, err := liveState.GetArchiveState(lastArchiveBlock)
 	if err != nil {
@@ -83,7 +83,7 @@ func verifyLastState(params carmen.Parameters, expectedBlockNum uint64, expected
 	if err := checkStateHash(archiveState, expectedHash); err != nil {
 		return fmt.Errorf("archive state check failed; %w", err)
 	}
-	return
+	return nil
 }
 
 func checkStateHash(state carmen.State, expectedHash common.Hash) error {

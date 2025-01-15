@@ -43,7 +43,7 @@ func (c *closeMe) Close() error {
 	return c.err
 }
 
-func TestCloseAndReportError_(t *testing.T) {
+func TestCloseAndReportError_AddsMessageToError(t *testing.T) {
 	file := &closeMe{}
 	var err error
 	CloseAndReportError(&err, file, "message")
@@ -65,16 +65,4 @@ func TestCloseAndReportError_UsagePatternPropagatesError(t *testing.T) {
 
 	gotError := testFun()
 	require.ErrorIs(t, gotError, expectedError)
-}
-
-func TestIfErrorAddContext_PropagatesNil(t *testing.T) {
-	if IfErrorAddContext(nil, "message") != nil {
-		t.Error("IfErrorAddContext should return nil when err is nil")
-	}
-}
-
-func TestIfErrorAddContext_AddsContextToError(t *testing.T) {
-	err := fmt.Errorf("someError")
-	errWithContext := IfErrorAddContext(err, "message")
-	require.ErrorContains(t, errWithContext, "message: someError")
 }

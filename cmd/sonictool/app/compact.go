@@ -53,13 +53,13 @@ func compactDB(name string, producer kvdb.DBProducer) (err error) {
 	err = compactdb.Compact(db, name, 64*opt.GiB)
 	if err != nil {
 		log.Error("Database compaction failed", "err", err)
-		return
+		return err
 	}
 
 	log.Info("Stats after compaction", "db", name)
 	showDbStats(db)
 
-	return
+	return nil
 }
 
 func showDbStats(db ethdb.Stater) {

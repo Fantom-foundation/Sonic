@@ -43,11 +43,11 @@ func gfileGenesisImport(ctx *cli.Context) (err error) {
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
-		return
+		return err
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
-		return
+		return err
 	}
 
 	genesisReader, err := os.Open(ctx.Args().First())
@@ -91,11 +91,11 @@ func jsonGenesisImport(ctx *cli.Context) (err error) {
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
-		return
+		return err
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
-		return
+		return err
 	}
 
 	genesisJson, err := makefakegenesis.LoadGenesisJson(ctx.Args().First())
@@ -135,11 +135,11 @@ func fakeGenesisImport(ctx *cli.Context) (err error) {
 	}
 	validatorMode, err := isValidatorModeSet(ctx)
 	if err != nil {
-		return
+		return err
 	}
 	cacheRatio, err := cacheScaler(ctx)
 	if err != nil {
-		return
+		return err
 	}
 
 	genesisStore := makefakegenesis.FakeGenesisStore(

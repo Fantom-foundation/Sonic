@@ -35,8 +35,7 @@ func ImportGenesisStore(params ImportParams) (err error) {
 	chaindataDir := filepath.Join(params.DataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, params.CacheRatio)
 	if err != nil {
-		err = fmt.Errorf("failed to create db producer: %w", err)
-		return
+		return fmt.Errorf("failed to create db producer: %w", err)
 	}
 	defer caution.CloseAndReportError(&err, dbs, "failed to close db producer")
 	setGenesisProcessing(chaindataDir)
@@ -50,8 +49,7 @@ func ImportGenesisStore(params ImportParams) (err error) {
 		ArchiveCache:  params.ArchiveCache,
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to create gossip db: %w", err)
-		return
+		return fmt.Errorf("failed to create gossip db: %w", err)
 	}
 	defer caution.CloseAndReportError(&err, gdb, "failed to close gossip db")
 
@@ -62,8 +60,7 @@ func ImportGenesisStore(params ImportParams) (err error) {
 
 	cMainDb, err := dbs.OpenDB("lachesis")
 	if err != nil {
-		err = fmt.Errorf("failed to open lachesis db: %w", err)
-		return
+		return fmt.Errorf("failed to open lachesis db: %w", err)
 	}
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
 		db, err := dbs.OpenDB(fmt.Sprintf("lachesis-%d", epoch))
@@ -83,18 +80,16 @@ func ImportGenesisStore(params ImportParams) (err error) {
 		Validators: gdb.GetValidators(),
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to write lachesis genesis state: %w", err)
-		return
+		return fmt.Errorf("failed to write lachesis genesis state: %w", err)
 	}
 
 	err = gdb.Commit()
 	if err != nil {
-		err = fmt.Errorf("failed to commit gossip db: %w", err)
-		return
+		return fmt.Errorf("failed to commit gossip db: %w", err)
 	}
 	setGenesisComplete(chaindataDir)
 	log.Info("Successfully imported genesis file")
-	return
+	return nil
 }
 
 func IsGenesisTrusted(genesisStore *genesisstore.Store, genesisHashes genesis.Hashes) error {

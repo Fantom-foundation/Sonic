@@ -32,21 +32,18 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 	log.Info("Healing gossip db...")
 	epochState, lastBlockId, err := healGossipDb(producer, cfg.OperaStore, lastCarmenBlock)
 	if err != nil {
-		err = fmt.Errorf("failed to heal gossip db: %w", err)
-		return
+		return 0, fmt.Errorf("failed to heal gossip db: %w", err)
 	}
 
 	log.Info("Removing epoch DBs - will be recreated on next start")
 	if err = dropAllEpochDbs(producer); err != nil {
-		err = fmt.Errorf("failed to drop epoch DBs: %w", err)
-		return
+		return 0, fmt.Errorf("failed to drop epoch DBs: %w", err)
 	}
 
 	log.Info("Recreating consensus database")
 	cMainDb, err := producer.OpenDB("lachesis")
 	if err != nil {
-		err = fmt.Errorf("failed to open 'lachesis' database: %w", err)
-		return
+		return 0, fmt.Errorf("failed to open 'lachesis' database: %w", err)
 	}
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.Store {
 		name := fmt.Sprintf("lachesis-%d", epoch)
@@ -61,21 +58,18 @@ func HealChaindata(chaindataDir string, cacheRatio cachescale.Func, cfg *config.
 		Epoch:      epochState.Epoch,
 		Validators: epochState.Validators,
 	}); err != nil {
-		err = fmt.Errorf("failed to init consensus database: %w", err)
-		return
+		return 0, fmt.Errorf("failed to init consensus database: %w", err)
 	}
 	if err = cdb.Close(); err != nil {
-		err = fmt.Errorf("failed to close consensus database: %w", err)
-		return
+		return 0, fmt.Errorf("failed to close consensus database: %w", err)
 	}
 
 	log.Info("Clearing DBs dirty flags")
 	if err = clearDirtyFlags(producer); err != nil {
-		err = fmt.Errorf("failed to clear dirty flags: %w", err)
-		return
+		return 0, fmt.Errorf("failed to clear dirty flags: %w", err)
 	}
 
-	return
+	return lastBlockId, nil
 }
 
 // healGossipDb reverts the gossip database into state, into which can be reverted carmen

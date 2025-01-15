@@ -90,5 +90,5 @@ func (s *Store) CheckArchiveStateHash(blockNum idx.Block, root hash.Hash) (err e
 	if cc.Hash(root) != stateHash {
 		return fmt.Errorf("hash of the archive EVM state is incorrect: blockNum: %d expected: %x actual: %x", blockNum, root, stateHash)
 	}
-	return
+	return nil
 }

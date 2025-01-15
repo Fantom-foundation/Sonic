@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Fantom-foundation/go-opera/utils/caution"
+	"github.com/Fantom-foundation/go-opera/utils"
 )
 
 func writeTemporaryKeyFile(file string, content []byte) (string, error) {
@@ -26,8 +26,8 @@ func writeTemporaryKeyFile(file string, content []byte) (string, error) {
 	if _, err = f.Write(content); err != nil {
 		return "", errors.Join(
 			fmt.Errorf("failed to write key file: %w", err),
-			caution.IfErrorAddContext(f.Close(), "failed to close key file"),
-			caution.IfErrorAddContext(os.Remove(f.Name()), "failed to remove temporary key file"),
+			utils.AnnotateIfError(f.Close(), "failed to close key file"),
+			utils.AnnotateIfError(os.Remove(f.Name()), "failed to remove temporary key file"),
 		)
 	}
 

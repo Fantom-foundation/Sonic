@@ -66,8 +66,7 @@ func (journal *txJournal) load(add func([]*types.Transaction) []error) (err erro
 	// Open the journal for loading any past transactions
 	input, err := os.Open(journal.path)
 	if err != nil {
-		err = fmt.Errorf("Failed to open transaction journal: %w", err)
-		return
+		return fmt.Errorf("Failed to open transaction journal: %w", err)
 	}
 	defer caution.CloseAndReportError(&err, input, "Failed to close transaction journal")
 

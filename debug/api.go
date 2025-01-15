@@ -32,7 +32,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Fantom-foundation/go-opera/utils/caution"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -64,7 +64,7 @@ func (h *HandlerT) StartCPUProfile(file string) error {
 	if err := pprof.StartCPUProfile(f); err != nil {
 		return errors.Join(
 			fmt.Errorf("failed to start CPU: %w", err),
-			caution.IfErrorAddContext(f.Close(), "failed to close CPU profile file"))
+			utils.AnnotateIfError(f.Close(), "failed to close CPU profile file"))
 	}
 	h.cpuW = f
 	h.cpuFile = file

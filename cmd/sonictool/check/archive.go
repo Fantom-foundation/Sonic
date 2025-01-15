@@ -62,5 +62,5 @@ func checkArchiveBlockRoots(dataDir string, cacheRatio cachescale.Func) (err err
 		return fmt.Errorf("block root verification failed for %d blocks (from %d total blocks)", invalidBlocks, lastBlockIdx)
 	}
 	log.Info("Block root verification OK for all blocks", "blocks", lastBlockIdx)
-	return
+	return err
 }

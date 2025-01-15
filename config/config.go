@@ -85,8 +85,7 @@ func (c *Config) AppConfigs() integration.Configs {
 func loadAllConfigs(file string, cfg *Config) (err error) {
 	f, err := os.Open(file)
 	if err != nil {
-		err = fmt.Errorf("failed to open config file %s: %w", file, err)
-		return
+		return fmt.Errorf("failed to open config file %s: %w", file, err)
 	}
 	defer caution.CloseAndReportError(&err, f, "failed to close config file")
 
@@ -100,7 +99,7 @@ func loadAllConfigs(file string, cfg *Config) (err error) {
 			"Use 'dumpconfig' command to get an example config file.\n"+
 			"If node was recently upgraded and a previous network config file is used, then check updates for the config file.", err)
 	}
-	return
+	return nil
 }
 
 func setBootnodes(ctx *cli.Context, urls []string, cfg *node.Config) {

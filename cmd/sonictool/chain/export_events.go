@@ -30,7 +30,7 @@ func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epo
 	chaindataDir := filepath.Join(gdbParams.DataDir, "chaindata")
 	dbs, err := db.MakeDbProducer(chaindataDir, cachescale.Identity)
 	if err != nil {
-		return
+		return err
 	}
 	defer caution.CloseAndReportError(&err, dbs, "failed to close db producer")
 
@@ -40,14 +40,14 @@ func ExportEvents(gdbParams db.GossipDbParameters, w io.Writer, from, to idx.Epo
 
 	gdb, err := db.MakeGossipDb(gdbParams)
 	if err != nil {
-		return
+		return err
 	}
 	defer caution.CloseAndReportError(&err, gdb, "failed to close gossip db")
 
 	// Write header and version
 	_, err = w.Write(append(eventsFileHeader, eventsFileVersion...))
 	if err != nil {
-		return
+		return err
 	}
 
 	start, reported := time.Now(), time.Time{}

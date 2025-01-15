@@ -8,6 +8,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	ogenesis "github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+	"github.com/Fantom-foundation/go-opera/utils"
 	"github.com/Fantom-foundation/go-opera/utils/caution"
 	"github.com/Fantom-foundation/go-opera/utils/prompt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -63,16 +64,15 @@ func getGenesisHeaderHashes(genesisFile string) (header ogenesis.Header, genesis
 	genesisReader, err := os.Open(genesisFile)
 	// note, genesisStore closes the reader, no need to defer close it here
 	if err != nil {
-		err = fmt.Errorf("failed to open the genesis file: %w", err)
-		return
+		return ogenesis.Header{}, nil, fmt.Errorf("failed to open genesis file: %w", err)
 	}
 
 	genesisStore, genesisHashes, err := genesisstore.OpenGenesisStore(genesisReader)
 	if err != nil {
-		err = errors.Join(fmt.Errorf("failed to read genesis file: %w", err), genesisReader.Close())
-		return
+		return ogenesis.Header{}, nil, errors.Join(
+			fmt.Errorf("failed to read genesis file: %w", err),
+			utils.AnnotateIfError(genesisReader.Close(), "failed to close the genesis file"))
 	}
 	defer caution.CloseAndReportError(&err, genesisStore, "failed to close the genesis store")
-	header = genesisStore.Header()
-	return
+	return genesisStore.Header(), genesisHashes, nil
 }

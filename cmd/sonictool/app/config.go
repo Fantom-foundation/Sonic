@@ -22,27 +22,27 @@ func checkConfig(ctx *cli.Context) error {
 func dumpConfig(ctx *cli.Context) (err error) {
 	cfg, err := config.MakeAllConfigs(ctx)
 	if err != nil {
-		return
+		return err
 	}
 	comment := ""
 
 	out, err := config.TomlSettings.Marshal(&cfg)
 	if err != nil {
-		return
+		return err
 	}
 
 	dump := os.Stdout
 	if ctx.NArg() > 0 {
 		dump, err = os.OpenFile(ctx.Args().Get(0), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
-			return
+			return err
 		}
 		defer caution.CloseAndReportError(&err, dump, "failed to close config file")
 	}
 	_, err = dump.WriteString(comment)
 	if err != nil {
-		return
+		return err
 	}
 	_, err = dump.Write(out)
-	return
+	return err
 }
