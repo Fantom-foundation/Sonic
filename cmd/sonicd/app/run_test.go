@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
 
 	"github.com/Fantom-foundation/go-opera/cmd/sonictool/genesis"
 	"github.com/Fantom-foundation/go-opera/config"
@@ -28,7 +29,11 @@ func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
 		futils.ToFtm(1000000000),
 		futils.ToFtm(5000000),
 	)
-	defer genesisStore.Close()
+	defer func() {
+		if err := genesisStore.Close(); err != nil {
+			panic(fmt.Errorf("failed to close genesis store: %v", err))
+		}
+	}()
 
 	if err := genesis.ImportGenesisStore(genesis.ImportParams{
 		GenesisStore: genesisStore,
@@ -37,7 +42,7 @@ func initFakenetDatadir(dataDir string, validatorsNum idx.Validator) {
 		LiveDbCache:  1, // Set lowest cache
 		ArchiveCache: 1, // Set lowest cache
 	}); err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to import genesis store: %v", err))
 	}
 }
 
@@ -99,7 +104,11 @@ func exec(t *testing.T, args ...string) *testcli {
 		}
 
 		// Remove the temporary datadir.
-		tt.Cleanup = func() { os.RemoveAll(tt.Datadir) }
+		tt.Cleanup = func() {
+			if err := os.RemoveAll(tt.Datadir); err != nil {
+				t.Fatalf("failed to remove temporary datadir: %v", err)
+			}
+		}
 		defer func() {
 			if t.Failed() {
 				tt.Cleanup()

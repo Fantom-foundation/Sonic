@@ -58,7 +58,7 @@ func (b *EthAPIBackend) CurrentBlock() *evmcore.EvmBlock {
 
 func (b *EthAPIBackend) ResolveRpcBlockNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (idx.Block, error) {
 	latest := b.svc.store.GetLatestBlockIndex()
-	if number, ok := blockNrOrHash.Number(); ok && (number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber) {
+	if number, ok := blockNrOrHash.Number(); ok && isLatestBlockNumber(number) {
 		return latest, nil
 	} else if number, ok := blockNrOrHash.Number(); ok {
 		if idx.Block(number) > latest {
@@ -82,7 +82,7 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 		return nil, err
 	}
 	if blk == nil {
-		return nil, nil
+		return nil, fmt.Errorf("block %v not found", number)
 	}
 	return blk.Header(), err
 }
@@ -91,19 +91,16 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, h common.Hash) (*evmcore.EvmHeader, error) {
 	index := b.svc.store.GetBlockIndex(hash.Event(h))
 	if index == nil {
-		return nil, nil
+		return nil, fmt.Errorf("block with hash %s not found", h.String())
 	}
 	return b.HeaderByNumber(ctx, rpc.BlockNumber(*index))
 }
 
 // BlockByNumber returns evm block by its number, or nil if not exists.
 func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*evmcore.EvmBlock, error) {
-	if number == rpc.PendingBlockNumber {
-		number = rpc.LatestBlockNumber
-	}
 	// Otherwise, resolve and return the block
 	var blk *evmcore.EvmBlock
-	if number == rpc.LatestBlockNumber {
+	if isLatestBlockNumber(number) {
 		blk = b.state.CurrentBlock()
 	} else {
 		n := uint64(number.Int64())
@@ -113,10 +110,18 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 	return blk, nil
 }
 
+// isLatestBlockNumber returns true if the block number is latest, pending, finalized or safe
+func isLatestBlockNumber(number rpc.BlockNumber) bool {
+	return number == rpc.LatestBlockNumber ||
+		number == rpc.PendingBlockNumber ||
+		number == rpc.FinalizedBlockNumber ||
+		number == rpc.SafeBlockNumber
+}
+
 // StateAndHeaderByNumberOrHash returns evm state and block header by block number or block hash, err if not exists.
 func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (state.StateDB, *evmcore.EvmHeader, error) {
 	var header *evmcore.EvmHeader
-	if number, ok := blockNrOrHash.Number(); ok && (number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber) {
+	if number, ok := blockNrOrHash.Number(); ok && isLatestBlockNumber(number) {
 		var err error
 		header, err = b.state.LastHeaderWithArchiveState()
 		if err != nil {
@@ -287,10 +292,7 @@ func (b *EthAPIBackend) GetReceiptsByNumber(ctx context.Context, number rpc.Bloc
 		return nil, errors.New("transactions index is disabled (enable TxIndex and re-process the DAGs)")
 	}
 
-	if number == rpc.PendingBlockNumber {
-		number = rpc.LatestBlockNumber
-	}
-	if number == rpc.LatestBlockNumber {
+	if isLatestBlockNumber(number) {
 		header := b.state.CurrentHeader()
 		number = rpc.BlockNumber(header.Number.Uint64())
 	}

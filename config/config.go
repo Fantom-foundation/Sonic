@@ -345,6 +345,10 @@ func MakeAllConfigsFromFile(ctx *cli.Context, configFile string) (*Config, error
 		cfg.OperaStore.EVM.Cache.StateDbCapacity = ctx.GlobalInt(flags.StateDbCacheCapacityFlag.Name)
 	}
 
+	if ctx.IsSet(flags.StateDbCheckPointInterval.Name) {
+		cfg.OperaStore.EVM.StateDb.CheckpointInterval = ctx.GlobalInt(flags.StateDbCheckPointInterval.Name)
+	}
+
 	return &cfg, nil
 }
 

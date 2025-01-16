@@ -53,7 +53,10 @@ func TestSFC(t *testing.T) {
 	logger.SetLevel("debug")
 
 	env := newTestEnv(2, 3, t)
-	defer env.Close()
+	t.Cleanup(func() {
+		err := env.Close()
+		require.NoError(t, err)
+	})
 
 	var (
 		sfc10 *sfc100.Contract

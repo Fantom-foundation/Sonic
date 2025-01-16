@@ -90,25 +90,27 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 	root, err := writer.Flush()
 	require.NoError(err)
 	require.Equal(expRoot.Hex(), root.Hex())
-	file.Close()
+	err = file.Close()
+	require.NoError(err)
 
 	maxMemUsage := memUsageOf(pieceSize, getPiecesNum(uint64(len(content)), pieceSize))
 
 	// normal case: correct root hash and content after reading file partially
 	if len(content) > 0 {
-		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
 		reader := WrapReader(file, maxMemUsage, root)
 		readB := make([]byte, rand.Int64N(int64(len(content))))
 		err = ioread.ReadAll(reader, readB)
 		require.NoError(err)
 		require.Equal(content[:len(readB)], readB)
-		reader.Close()
+		err = reader.Close()
+		require.NoError(err)
 	}
 
 	// normal case: correct root hash and content after reading the whole file
 	{
-		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
 		reader := WrapReader(file, maxMemUsage, root)
 		readB := make([]byte, len(content))
@@ -117,28 +119,31 @@ func testFileHash_ReadWrite(t *testing.T, content []byte, expRoot hash.Hash, pie
 		require.Equal(content, readB)
 		// try to read one more byte
 		require.Error(ioread.ReadAll(reader, make([]byte, 1)), io.EOF)
-		reader.Close()
+		err = reader.Close()
+		require.NoError(err)
 	}
 
 	// correct root hash and reading too much content
 	{
-		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
 		reader := WrapReader(file, maxMemUsage, root)
 		readB := make([]byte, len(content)+1)
 		require.Error(ioread.ReadAll(reader, readB), io.EOF)
-		reader.Close()
+		err = reader.Close()
+		require.NoError(err)
 	}
 
 	// passing the wrong root hash to reader
 	{
-		file, err = os.OpenFile(filePath, os.O_RDONLY, 0600)
+		file, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
 		require.NoError(err)
 		maliciousReader := WrapReader(file, maxMemUsage, hash.HexToHash("0x00"))
 		data := make([]byte, 1)
 		err = ioread.ReadAll(maliciousReader, data)
 		require.Contains(err.Error(), ErrInit.Error())
-		maliciousReader.Close()
+		err = maliciousReader.Close()
+		require.NoError(err)
 	}
 
 	// modify piece data to make the mismatch piece hash

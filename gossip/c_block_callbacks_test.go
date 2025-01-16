@@ -22,7 +22,10 @@ func TestConsensusCallback(t *testing.T) {
 	const validatorsNum = 3
 
 	env := newTestEnv(2, validatorsNum, t)
-	defer env.Close()
+	t.Cleanup(func() {
+		err := env.Close()
+		require.NoError(err)
+	})
 
 	// save start balances
 	balances := make([]*uint256.Int, validatorsNum)

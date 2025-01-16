@@ -67,6 +67,7 @@ func initFlags() {
 		flags.LiveDbCacheFlag,
 		flags.ArchiveCacheFlag,
 		flags.StateDbCacheCapacityFlag,
+		flags.StateDbCheckPointInterval,
 	}
 	networkingFlags = []cli.Flag{
 		flags.BootnodesFlag,
