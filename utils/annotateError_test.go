@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -17,4 +18,5 @@ func TestAnnotateIfError_AddsContextToError(t *testing.T) {
 	err := fmt.Errorf("someError")
 	errWithContext := AnnotateIfError(err, "message")
 	require.ErrorContains(t, errWithContext, "message: someError")
+	require.True(t, errors.Is(errWithContext, err))
 }
