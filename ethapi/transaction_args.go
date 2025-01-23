@@ -174,18 +174,22 @@ func (args *TransactionArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*
 	// Set sender address or use zero address if none specified.
 	addr := args.from()
 
-	// Set default gas & gas price if none were set
+	// Tosca uses int64 for gas so it needs to be limited by MaxInt64
+	if globalGasCap == 0 || globalGasCap > math.MaxInt64 {
+		globalGasCap = math.MaxInt64
+	}
+
 	gas := globalGasCap
-	if gas == 0 {
-		gas = uint64(math.MaxUint64 / 2)
-	}
+
 	if args.Gas != nil {
-		gas = uint64(*args.Gas)
+		argsGas := uint64(*args.Gas)
+		if argsGas > gas {
+			log.Warn("Caller gas above allowance, capping", "requested", argsGas, "cap", gas)
+		} else {
+			gas = argsGas
+		}
 	}
-	if globalGasCap != 0 && globalGasCap < gas {
-		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
-		gas = globalGasCap
-	}
+
 	var (
 		gasPrice  *big.Int
 		gasFeeCap *big.Int
