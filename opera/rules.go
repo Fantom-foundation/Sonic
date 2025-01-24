@@ -10,8 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethparams "github.com/ethereum/go-ethereum/params"
 
-	"github.com/Fantom-foundation/Tosca/go/geth_adapter"
-	"github.com/Fantom-foundation/Tosca/go/interpreter/lfvm"
+	"github.com/0xsoniclabs/tosca/go/geth_adapter"
+	"github.com/0xsoniclabs/tosca/go/interpreter/lfvm"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 )
