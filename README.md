@@ -1,79 +1,119 @@
-# Sonic 
+# ⚡ Sonic 
 
-EVM-compatible chain secured by the Lachesis consensus algorithm.
+**Sonic is an EVM-compatible blockchain secured by the Lachesis consensus algorithm.**  
+Built for **high-speed transactions and decentralized applications**.
 
-## Building the source
+<div align="center">
 
-Building Sonic requires both a Go (version 1.21 or later) and a C compiler. You can install
-them using your favourite package manager. Once the dependencies are installed, run:
+[![GitHub Repo stars](https://img.shields.io/github/stars/Fantom-foundation/Sonic?logo=github&color=yellow)](https://github.com/Fantom-foundation/Sonic/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Fantom-foundation/Sonic?logo=github&color=blue)](https://github.com/Fantom-foundation/Sonic/network/members)
+[![GitHub last commit](https://img.shields.io/github/last-commit/Fantom-foundation/Sonic?logo=git)](https://github.com/Fantom-foundation/Sonic/commits/main)
+[![License](https://img.shields.io/github/license/Fantom-foundation/Sonic?logo=open-source-initiative)](https://github.com/Fantom-foundation/Sonic/blob/main/LICENSE)
+[![Discord](https://img.shields.io/discord/924442927399313448?logo=discord&color=5865F2)](https://discord.gg/3Ynr2QDSnB)
+[![Twitter Follow](https://img.shields.io/twitter/follow/SonicLabs?style=flat&logo=twitter)](https://x.com/SonicLabs)
 
-```shell
-make all
+</div>
+
+---
+
+## 🛠 **Building the Source**
+
+To build **Sonic**, you need **Go (1.21+)** and a **C compiler**.  
+Once dependencies are installed, run:
+
+```sh  
+make all  
 ```
-The build output are ```build/sonicd``` and ```build/sonictool``` executables.
 
-## Initialization of the Sonic Database
+The build outputs are the `build/sonicd` and `build/sonictool` executables.
 
-You will need a genesis file to join a network. Please check the following
-site for details how to get one: https://github.com/Fantom-foundation/lachesis_launch
-Once you obtain the most recent genesis file available, you need to use the `sonictool`
-create a starting DB.
+---
 
-```shell
+## 🗄 **Initializing the Sonic Database**
+
+To join a network, you need a **genesis file**.  
+Check [this repository](https://github.com/Fantom-foundation/lachesis_launch) for instructions on obtaining the latest version.
+
+Once you have the **genesis file**, initialize your database with:
+
+```sh 
 sonictool --datadir=<target DB path> genesis <path to the genesis file>
 ```
 
-## Running `sonicd`
+---
 
-Going through all the possible command line flags is out of scope here,
-but we've enumerated a few common parameter combos to get you up to speed quickly
-on how you can run your own `sonicd` instance.
+## 🚀 **Running `sonicd`**
 
-### Launching a network
+Here are some common ways to launch your **Sonic node**.
 
-Launching `sonicd` readonly (non-validator) node for network specified by the genesis file:
+### 🌍 **Launching a Network Node** (Non-Validator Mode)
+Run `sonicd` as a **readonly (non-validator) node** using the genesis file:
 
-```shell
-sonicd --datadir=<DB path>
+```sh  
+sonicd --datadir=<DB path>  
 ```
 
-### Configuration
+---
 
-As an alternative to passing the numerous flags to the `sonicd` binary, you can also pass a
-configuration file via:
+### ⚙️ **Using a Configuration File**
+Instead of using multiple CLI flags, pass a **config file**:
 
-```shell
-sonicd --datadir=<DB path> --config /path/to/your/config.toml
+```sh  
+sonicd --datadir=<DB path> --config /path/to/your/config.toml  
 ```
 
-To get an idea how the file should look like you can use the `dumpconfig` subcommand to
-export the default configuration:
+To generate a default config file:
 
-```shell
-sonictool --datadir=<DB path> dumpconfig
+```sh  
+sonictool --datadir=<DB path> dumpconfig  
 ```
 
-### Validator
+---
 
-New validator private key may be created with `sonictool --datadir=<DB path> validator new` command.
+## 🔐 **Running a Validator Node**
+To **create a validator private key**, run:
 
-To launch a validator, you have to use `--validator.id` and `--validator.pubkey` flags to enable 
-events emitter. Check the [Fantom Documentation](https://docs.fantom.foundation) for the detailed process 
-of obtaining the validator ID and registering your initial stake.
-
-```shell
-sonicd --datadir=<DB path> --validator.id=YOUR_ID --validator.pubkey=0xYOUR_PUBKEY
+```sh  
+sonictool --datadir=<DB path> validator new  
 ```
 
-`sonicd` will prompt you for a password to decrypt your validator private key. Optionally, you can
-specify password with a file using `--validator.password` flag.
+To launch a **validator node**, you need to specify your **Validator ID** and **Public Key**:
 
-#### Participation in discovery
-
-Optionally you can specify your public IP to straighten connectivity of the network.
-Ensure your TCP/UDP p2p port (5050 by default) isn't blocked by your firewall.
-
-```shell
-sonicd --datadir=<DB path> --nat=extip:1.2.3.4
+```sh 
+sonicd --datadir=<DB path> --validator.id=YOUR_ID --validator.pubkey=0xYOUR_PUBKEY  
 ```
 
+📌 **Note:** `sonicd` will prompt for a **password** to decrypt your validator key.  
+To use a password file, add:  
+
+```sh
+--validator.password /path/to/password-file
+```
+
+For details on registering your **validator stake**, see the [Fantom Documentation](https://docs.fantom.foundation).
+
+---
+
+## 🌐 **Network Connectivity**
+To improve **network discovery**, specify your **public IP**:
+
+```sh  
+sonicd --datadir=<DB path> --nat=extip:1.2.3.4  
+```
+
+📌 **Make sure** that TCP/UDP **port 5050** is open in your firewall.
+
+---
+
+## 💬 **Join the Community**
+<p align="left">
+  <a href="https://t.me/Sonic_English">
+    <img src="https://img.shields.io/badge/Telegram-26A5E4?logo=telegram&logoColor=white&style=for-the-badge" alt="Telegram">
+  </a>
+  <a href="https://discord.gg/3Ynr2QDSnB">
+    <img src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white&style=for-the-badge" alt="Discord">
+  </a>
+  <a href="https://x.com/SonicLabs">
+    <img src="https://img.shields.io/badge/Twitter-000000?logo=x&logoColor=white&style=for-the-badge" alt="Twitter (X)">
+  </a>
+</p>
