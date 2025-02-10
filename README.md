@@ -2,9 +2,13 @@
 
 EVM-compatible chain secured by the Lachesis consensus algorithm.
 
+> [!CAUTION]
+> This is client of the Fantom Opera main net. It will not work with the new Sonic network.
+> If you are looking for Sonic network client, check repository [0xsoniclabs/sonic](https://github.com/0xsoniclabs/sonic).
+
 ## Building the source
 
-Building Sonic requires both a Go (version 1.21 or later) and a C compiler. You can install
+Building Sonic requires both a Go (version 1.21) and a C compiler. You can install
 them using your favourite package manager. Once the dependencies are installed, run:
 
 ```shell
