@@ -126,6 +126,9 @@ func initFlags() {
 		flags.RPCGlobalEVMTimeoutFlag,
 		flags.RPCGlobalTxFeeCapFlag,
 		flags.RPCGlobalTimeoutFlag,
+		flags.BatchRequestLimitFlag,
+		flags.JSTracerLimitFlag,
+		flags.MaxResponseSizeFlag,
 	}
 
 	metricsFlags = []cli.Flag{
