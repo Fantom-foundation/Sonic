@@ -7,6 +7,8 @@ pipeline {
         disableConcurrentBuilds(abortPrevious: true)
     }
 
+    tools { go '1.21' }
+
     stages {
         stage('Validate commit') {
             steps {
