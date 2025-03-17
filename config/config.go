@@ -174,6 +174,15 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	if ctx.GlobalIsSet(flags.RPCGlobalTimeoutFlag.Name) {
 		cfg.RPCTimeout = ctx.GlobalDuration(flags.RPCGlobalTimeoutFlag.Name)
 	}
+	if ctx.GlobalIsSet(flags.MaxResponseSizeFlag.Name) {
+		cfg.MaxResponseSize = ctx.GlobalInt(flags.MaxResponseSizeFlag.Name)
+	}
+	if ctx.GlobalIsSet(flags.BatchRequestLimitFlag.Name) {
+		cfg.BatchRequestLimit = ctx.GlobalInt(flags.BatchRequestLimitFlag.Name)
+	}
+	if ctx.GlobalIsSet(flags.JSTracerLimitFlag.Name) {
+		cfg.JSTracerLimit = ctx.GlobalInt(flags.JSTracerLimitFlag.Name)
+	}
 
 	return cfg
 }
