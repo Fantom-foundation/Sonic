@@ -398,14 +398,11 @@ func consensusCallbackBeginBlockFn(
 
 					// Notify about new block
 					if feed != nil {
-						feed.newBlock.Send(evmcore.ChainHeadNotify{Block: evmBlock})
 						var logs []*types.Log
 						for _, r := range allReceipts {
-							for _, l := range r.Logs {
-								logs = append(logs, l)
-							}
+							logs = append(logs, r.Logs...)
 						}
-						feed.newLogs.Send(logs)
+						feed.notifyAboutNewBlock(evmBlock, logs)
 					}
 
 					now := time.Now()
