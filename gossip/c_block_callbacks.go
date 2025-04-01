@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 
-	"github.com/Fantom-foundation/go-opera/evmcore"
 	"github.com/Fantom-foundation/go-opera/gossip/blockproc/verwatcher"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
