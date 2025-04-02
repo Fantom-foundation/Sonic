@@ -199,6 +199,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 
 	env.blockProcTasks.Start(1)
 	env.verWatcher.Start()
+	env.feed.Start(env.Service.store.evm)
 
 	return env
 }
