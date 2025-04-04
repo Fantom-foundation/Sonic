@@ -222,8 +222,6 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 
 	externalReceipts := make(types.Receipts, 0, len(txs))
 
-	env.txpool.AddRemotes(txs)
-	defer env.txpool.(*dummyTxPool).Clear()
 	newBlocks := make(chan evmcore.ChainHeadNotify)
 	chainHeadSub := env.feed.SubscribeNewBlock(newBlocks)
 	mu := &sync.Mutex{}
@@ -248,6 +246,9 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 			}
 		}
 	}()
+	env.txpool.AddRemotes(txs)
+	defer env.txpool.(*dummyTxPool).Clear()
+
 	err := env.EmitUntil(func() bool {
 		mu.Lock()
 		defer mu.Unlock()
