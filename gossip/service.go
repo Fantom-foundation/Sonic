@@ -560,7 +560,6 @@ func (s *Service) Stop() error {
 
 	s.handler.Stop()
 	s.feed.Stop()
-	s.feed.scope.Close()
 	s.gpo.Stop()
 	// it's safe to stop tflusher only before locking engineMu
 	s.tflusher.Stop()
