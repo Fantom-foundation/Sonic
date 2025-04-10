@@ -197,6 +197,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 		em.Start()
 	}
 
+	env.feed.Start(store.evm)
 	env.blockProcTasks.Start(1)
 	env.verWatcher.Start()
 
@@ -204,6 +205,7 @@ func newTestEnv(firstEpoch idx.Epoch, validatorsNum idx.Validator, tb testing.TB
 }
 
 func (env *testEnv) Close() {
+	env.feed.Stop()
 	env.verWatcher.Stop()
 	env.store.Close()
 	env.tflusher.Stop()
@@ -220,8 +222,6 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 
 	externalReceipts := make(types.Receipts, 0, len(txs))
 
-	env.txpool.AddRemotes(txs)
-	defer env.txpool.(*dummyTxPool).Clear()
 	newBlocks := make(chan evmcore.ChainHeadNotify)
 	chainHeadSub := env.feed.SubscribeNewBlock(newBlocks)
 	mu := &sync.Mutex{}
@@ -246,6 +246,9 @@ func (env *testEnv) ApplyTxs(spent time.Duration, txs ...*types.Transaction) (ty
 			}
 		}
 	}()
+	env.txpool.AddRemotes(txs)
+	defer env.txpool.(*dummyTxPool).Clear()
+
 	err := env.EmitUntil(func() bool {
 		mu.Lock()
 		defer mu.Unlock()

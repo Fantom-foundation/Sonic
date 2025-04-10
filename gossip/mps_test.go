@@ -575,18 +575,23 @@ func TestMisbehaviourProofsWrongBlockEpoch(t *testing.T) {
 	require.ErrorIs(err, heavycheck.ErrUnknownEpochBVs)
 
 	goodEpochMp := copyMP(correctMp)
-	goodEpochMp.WrongBlockVote.Pals[0].Val.Epoch = env.store.FindBlockEpoch(goodEpochMp.WrongBlockVote.Block)
-	goodEpochMp.WrongBlockVote.Pals[1].Val.Epoch = env.store.FindBlockEpoch(goodEpochMp.WrongBlockVote.Block)
+	// Get epoch number when vote will occur
+	epoch := env.store.FindBlockEpoch(goodEpochMp.WrongBlockVote.Block)
+	goodEpochMp.WrongBlockVote.Pals[0].Val.Epoch = epoch - 1
+	goodEpochMp.WrongBlockVote.Pals[1].Val.Epoch = epoch - 1
 	err = env.ApplyMPs(nextEpoch, goodEpochMp)
 	require.ErrorIs(err, heavycheck.ErrWrongPayloadHash)
 	sign(&goodEpochMp)
 	err = env.ApplyMPs(nextEpoch, goodEpochMp)
 	require.NoError(err)
-	require.Equal(idx.Validator(3), env.store.GetValidators().Len())
+	// Get epoch state, before validators penalty
+	epochState := env.store.GetHistoryEpochState(epoch)
+	require.Equal(idx.Validator(3), epochState.Validators.Len())
 
 	err = env.ApplyMPs(nextEpoch, correctMp)
 	require.NoError(err)
-	require.Equal(idx.Validator(1), env.store.GetValidators().Len())
+	epochState = env.store.GetHistoryEpochState(epoch + 1)
+	require.Equal(idx.Validator(1), epochState.Validators.Len())
 	require.False(env.store.GetValidators().Exists(1))
 	require.False(env.store.GetValidators().Exists(2))
 }
