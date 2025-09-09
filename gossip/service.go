@@ -144,6 +144,10 @@ func (f *ServiceFeed) notifyAboutNewBlock(
 	block *evmcore.EvmBlock,
 	logs []*types.Log,
 ) {
+	// ignore updates if not started
+	if f.incomingUpdates == nil {
+		return
+	}
 	f.incomingUpdates <- feedUpdate{
 		block: block,
 		logs:  logs,
