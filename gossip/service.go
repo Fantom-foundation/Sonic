@@ -517,8 +517,12 @@ func (s *Service) Start() error {
 	if s.store.evm.CheckLiveStateHash(blockState.LastBlock.Idx, blockState.FinalizedStateRoot) != nil {
 		return errors.New("fullsync isn't possible because state root is missing")
 	}
-	// start notification feeder
-	s.feed.Start(s.store.evm)
+
+	_, _, err := s.store.evm.GetArchiveBlockHeight()
+	if err == nil {
+		// start notification feeder for archive nodes
+		s.feed.Start(s.store.evm)
+	}
 
 	// start blocks processor
 	s.blockProcTasks.Start(1)
