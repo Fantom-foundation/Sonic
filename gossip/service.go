@@ -73,6 +73,10 @@ type feedUpdate struct {
 	logs  []*types.Log
 }
 
+type ArchiveBlockHeightSource interface {
+	GetArchiveBlockHeight() (uint64, bool, error)
+}
+
 func (f *ServiceFeed) SubscribeNewEpoch(ch chan<- idx.Epoch) notify.Subscription {
 	return f.scope.Track(f.newEpoch.Subscribe(ch))
 }
@@ -89,7 +93,7 @@ func (f *ServiceFeed) SubscribeNewLogs(ch chan<- []*types.Log) notify.Subscripti
 	return f.scope.Track(f.newLogs.Subscribe(ch))
 }
 
-func (f *ServiceFeed) Start(store *evmstore.Store) {
+func (f *ServiceFeed) Start(store ArchiveBlockHeightSource) {
 	incoming := make(chan feedUpdate, 1024)
 	f.incomingUpdates = incoming
 	stop := make(chan struct{})
@@ -122,12 +126,20 @@ func (f *ServiceFeed) Start(store *evmstore.Store) {
 
 			height, empty, err := store.GetArchiveBlockHeight()
 			if err != nil {
-				log.Error("failed to get archive block height", "err", err)
-				continue
+				// If there is no archive, set height to the last block
+				// and send all notifications
+				if errors.Is(err, evmstore.NoArchiveError) {
+					height = pending[len(pending)-1].block.Number.Uint64()
+				} else {
+					log.Error("failed to get archive block height", "err", err)
+					continue
+				}
+			} else {
+				if empty {
+					continue
+				}
 			}
-			if empty {
-				continue
-			}
+
 			for _, update := range pending {
 				if update.block.Number.Uint64() > height {
 					break
@@ -522,11 +534,8 @@ func (s *Service) Start() error {
 		return errors.New("fullsync isn't possible because state root is missing")
 	}
 
-	_, _, err := s.store.evm.GetArchiveBlockHeight()
-	if err == nil {
-		// start notification feeder for archive nodes
-		s.feed.Start(s.store.evm)
-	}
+	// start notification feeder
+	s.feed.Start(s.store.evm)
 
 	// start blocks processor
 	s.blockProcTasks.Start(1)
