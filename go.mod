@@ -44,7 +44,10 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
-require github.com/Fantom-foundation/Carmen/go v0.0.0-20240919111317-5c737f72628f
+require (
+	github.com/Fantom-foundation/Carmen/go v0.0.0-20240919111317-5c737f72628f
+	go.uber.org/mock v0.2.0
+)
 
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
@@ -103,7 +106,6 @@ require (
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.uber.org/mock v0.2.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.21.0 // indirect
