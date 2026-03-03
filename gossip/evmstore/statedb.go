@@ -2,6 +2,8 @@ package evmstore
 
 import (
 	"fmt"
+	"math/big"
+
 	cc "github.com/Fantom-foundation/Carmen/go/common"
 	carmen "github.com/Fantom-foundation/Carmen/go/state"
 	_ "github.com/Fantom-foundation/Carmen/go/state/gostate"
@@ -9,8 +11,11 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 )
+
+// NoArchiveError is an error returned by implementation of the State interface
+// for archive operations if no archive is maintained by this implementation.
+const NoArchiveError = carmen.NoArchiveError
 
 // GetLiveStateDb obtains StateDB for block processing - the live writable state
 func (s *Store) GetLiveStateDb(stateRoot hash.Hash) (state.StateDB, error) {
