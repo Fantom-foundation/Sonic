@@ -104,7 +104,7 @@ type Backend interface {
 	GetOriginatedFee(ctx context.Context, vid idx.ValidatorID) (*big.Int, error)
 }
 
-func GetAPIs(apiBackend Backend) []rpc.API {
+func GetAPIs(apiBackend Backend, allowJSTracers bool) []rpc.API {
 	nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{
@@ -135,7 +135,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPublicDebugAPI(apiBackend),
+			Service:   NewPublicDebugAPI(apiBackend, allowJSTracers),
 			Public:    true,
 		}, {
 			Namespace: "debug",

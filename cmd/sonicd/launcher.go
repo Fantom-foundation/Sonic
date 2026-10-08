@@ -129,6 +129,7 @@ func initFlags() {
 		flags.MaxResponseSizeFlag,
 		flags.BatchRequestLimitFlag,
 		flags.JSTracerLimitFlag,
+		flags.AllowJSTracersFlag,
 	}
 
 	metricsFlags = []cli.Flag{
