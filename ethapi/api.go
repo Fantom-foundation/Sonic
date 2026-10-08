@@ -2042,13 +2042,33 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs Transact
 // PublicDebugAPI is the collection of Ethereum APIs exposed over the public
 // debugging endpoint.
 type PublicDebugAPI struct {
-	b Backend
+	b              Backend
+	allowJSTracers bool // only built-in tracers enabled when false
 }
 
 // NewPublicDebugAPI creates a new API definition for the public debug methods
 // of the Ethereum service.
-func NewPublicDebugAPI(b Backend) *PublicDebugAPI {
-	return &PublicDebugAPI{b: b}
+func NewPublicDebugAPI(b Backend, allowJSTracers bool) *PublicDebugAPI {
+	return &PublicDebugAPI{b: b, allowJSTracers: allowJSTracers}
+}
+
+func isTracerWhitelisted(name string) bool {
+	switch name {
+	case
+		// built-in JS tracers
+		"4byteTracer",
+		"bigramTracer",
+		"callTracer",
+		"callTracerLegacy",
+		"evmdisTracer",
+		"noopTracer",
+		"opcountTracer",
+		"prestateTracer",
+		"trigramTracer",
+		"unigramTracer":
+		return true
+	}
+	return false
 }
 
 // GetBlockRlp retrieves the RLP encoded for of a single block.
@@ -2186,6 +2206,9 @@ func (api *PublicDebugAPI) traceTx(ctx context.Context, message evmcore.Message,
 	case config == nil:
 		tracer = vm.NewStructLogger(nil)
 	case config.Tracer != nil:
+		if !api.allowJSTracers && !isTracerWhitelisted(*config.Tracer) {
+			return nil, fmt.Errorf("custom tracer is not permitted")
+		}
 		// Define a meaningful timeout of a single transaction trace
 		timeout := defaultTraceTimeout
 		if config.Timeout != nil {

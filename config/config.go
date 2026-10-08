@@ -226,6 +226,9 @@ func gossipConfigWithFlags(ctx *cli.Context, src gossip.Config) gossip.Config {
 	if ctx.GlobalIsSet(flags.BatchRequestLimitFlag.Name) {
 		cfg.BatchRequestLimit = ctx.GlobalInt(flags.BatchRequestLimitFlag.Name)
 	}
+	if ctx.GlobalIsSet(flags.AllowJSTracersFlag.Name) {
+		cfg.AllowJSTracers = ctx.GlobalBool(flags.AllowJSTracersFlag.Name)
+	}
 	if ctx.GlobalIsSet(flags.JSTracerLimitFlag.Name) {
 		cfg.JSTracerLimit = ctx.GlobalInt(flags.JSTracerLimitFlag.Name)
 	}
