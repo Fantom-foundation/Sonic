@@ -306,6 +306,10 @@ var (
 		Usage: "Limit for concurent js engines in RPC calls execution",
 		Value: gossip.DefaultConfig(cachescale.Identity).JSTracerLimit,
 	}
+	AllowJSTracersFlag = cli.BoolFlag{
+		Name:  "rpc.allow-js-tracers",
+		Usage: "Allow custom (user-supplied) JavaScript debug tracers (unsafe); default permits only built-in tracers",
+	}
 	MaxResponseSizeFlag = cli.IntFlag{
 		Name:  "rpc.maxresponsesize",
 		Usage: "Limit maximum size in some RPC calls execution",
