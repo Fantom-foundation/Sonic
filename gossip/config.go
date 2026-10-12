@@ -110,6 +110,11 @@ type (
 		// JSTracerLimit is a global JS engine limit for RPC debug methods execution.
 		JSTracerLimit int
 
+		// AllowJSTracers permits custom (user-supplied) JavaScript tracers in the
+		// debug_trace* endpoints. When false (the default), only the built-in
+		// tracers are accepted. Enabling it is unsafe on publicly exposed nodes.
+		AllowJSTracers bool `toml:",omitempty"`
+
 		// MaxResponseSize is a limit for maximum response size in some RPC calls
 		MaxResponseSize int
 
