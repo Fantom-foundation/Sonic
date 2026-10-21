@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
+	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/state"
@@ -62,6 +63,10 @@ type Backend interface {
 	RPCTxFeeCap() float64         // global tx fee cap for all transaction related APIs
 	UnprotectedAllowed() bool     // allows only for EIP155 transactions.
 	CalcBlockExtApi() bool
+
+	// GetTotalSupply returns the total supply and the balances of the burn
+	// addresses, all taken from the state of the last processed block.
+	GetTotalSupply() (*evmstore.TotalSupplySnapshot, error)
 
 	// Blockchain API
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*evmcore.EvmHeader, error)
@@ -151,6 +156,11 @@ func GetAPIs(apiBackend Backend, allowJSTracers bool) []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateAccountAPI(apiBackend, nonceLock),
 			Public:    false,
+		}, {
+			Namespace: "sonic",
+			Version:   "1.0",
+			Service:   NewPublicSonicAPI(apiBackend),
+			Public:    true,
 		}, {
 			Namespace: "abft",
 			Version:   "1.0",

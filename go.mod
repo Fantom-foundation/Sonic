@@ -122,3 +122,5 @@ require (
 replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum-substate v1.1.1-0.20250210130925-ab1d0339012b
 
 replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210201043429-a8e90a2a4f88
+
+replace github.com/Fantom-foundation/Carmen/go => github.com/0xsoniclabs/carmen/go v0.0.0-20261021122848-55f26041d73a

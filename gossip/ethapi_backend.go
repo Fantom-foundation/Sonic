@@ -532,6 +532,10 @@ func (b *EthAPIBackend) GetEpochBlockState(ctx context.Context, epoch rpc.BlockN
 	return bs, es, nil
 }
 
+func (b *EthAPIBackend) GetTotalSupply() (*evmstore.TotalSupplySnapshot, error) {
+	return b.svc.store.evm.GetTotalSupply()
+}
+
 func (b *EthAPIBackend) CalcBlockExtApi() bool {
 	return b.svc.config.RPCBlockExt
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 )
 
 const nominalSize uint = 1
@@ -43,6 +44,9 @@ type Store struct {
 	parameters carmen.Parameters
 	carmenState carmen.State
 	liveStateDb carmen.StateDB
+
+	// totalSupply is the snapshot of the last processed block, see UpdateTotalSupply
+	totalSupply atomic.Pointer[TotalSupplySnapshot]
 }
 
 // NewStore creates store over key-value db.
